@@ -8,6 +8,12 @@ Use rules:
 - Keep checkboxes small and verifiable.
 - If scope changes, update this checklist before implementation.
 
+### Completion Evidence Rule (All Phases)
+
+- Every checked item in a `Phase X Exit Criteria` section must cite at least one reproducible evidence artifact (CI workflow/job, test path, snapshot, or report).
+- If implementation exists but evidence artifacts are missing, keep the corresponding exit criterion unchecked until evidence is linked.
+- Preferred evidence format in checklist lines: `workflow <path> job <name>`, `test <path>`, `report <path>`.
+
 ## Critical Design Guardrails (Non-Negotiable)
 
 ### Determinism First
@@ -89,10 +95,10 @@ Goal: lock core language behavior and ship a usable frontend that can type-check
 
 ### Phase 1 Exit Criteria
 
-- [x] `vibe check` validates sample files end-to-end
-- [x] Typed HIR generated for core language constructs
-- [x] Frontend test suite stable in CI
-- [x] Deterministic diagnostics and HIR output confirmed by repeat-run tests
+- [x] `vibe check` validates sample files end-to-end (test `crates/vibe_cli/tests/frontend_fixtures.rs`, workflow `.github/workflows/phase1-frontend.yml` job `tests`)
+- [x] Typed HIR generated for core language constructs (test `crates/vibe_cli/tests/frontend_fixtures.rs` case `snapshots_ast_hir_and_diag`)
+- [x] Frontend test suite stable in CI (workflow `.github/workflows/phase1-frontend.yml` jobs `fmt_lint`, `tests`)
+- [x] Deterministic diagnostics and HIR output confirmed by repeat-run tests (workflow `.github/workflows/phase1-frontend.yml` job `determinism_smoke`)
 
 ---
 
@@ -126,9 +132,9 @@ Goal: compile typed IR into native binaries with a minimal standard library and 
 
 ### Phase 2 Exit Criteria
 
-- [x] Hello-world style programs compile and run natively
-- [x] Sample specs compile with basic stdlib dependencies
-- [x] CLI commands stable for local developer workflows
+- [x] Hello-world style programs compile and run natively (test `crates/vibe_cli/tests/phase2_native.rs` case `hello_world_build_and_run`, workflow `.github/workflows/phase2-native.yml` job `hello_world_smoke`)
+- [x] Sample specs compile with basic stdlib dependencies (tests `crates/vibe_cli/tests/phase2_native.rs` cases `function_call_fixture_runs`, `if_control_flow_fixture_runs`)
+- [x] CLI commands stable for local developer workflows (workflow `.github/workflows/phase2-native.yml` jobs `backend_tests`, `deterministic_build_smoke`)
 
 ---
 
@@ -159,9 +165,9 @@ Goal: enforce safe concurrent behavior and effect correctness while preserving e
 
 ### Phase 3 Exit Criteria
 
-- [x] Concurrency primitives stable under stress workloads
-- [x] Effect checker catches mismatches with high signal
-- [x] Runtime behavior aligns with safety-default guardrails
+- [x] Concurrency primitives stable under stress workloads (workflow `.github/workflows/phase3-concurrency.yml` jobs `runtime_concurrency`, `stress_smoke`)
+- [x] Effect checker catches mismatches with high signal (test `crates/vibe_cli/tests/frontend_fixtures.rs` groups `effect_ok`, `effect_err`; workflow `.github/workflows/phase3-concurrency.yml` job `compiler_safety`)
+- [x] Runtime behavior aligns with safety-default guardrails (workflow `.github/workflows/phase3-concurrency.yml` jobs `concurrency_integration_smoke`, `determinism_checks`)
 
 ---
 
@@ -192,8 +198,8 @@ Goal: provide fast, local-first IDE feedback with semantic understanding and inc
 
 ### Phase 4 Exit Criteria
 
-- [x] Local IDE workflow is fast, stable, and offline-capable
-- [x] Semantic index supports downstream AI sidecar reads
+- [x] Local IDE workflow is fast, stable, and offline-capable (workflow `.github/workflows/phase4-indexer-lsp.yml` jobs `indexer_and_lsp_unit_tests`, `phase4_cli_integration`, `medium_project_stability_smoke`)
+- [x] Semantic index supports downstream AI sidecar reads (tests `crates/vibe_indexer/src/lib.rs`, `crates/vibe_lsp/src/lib.rs`; workflow `.github/workflows/phase4-indexer-lsp.yml` job `deterministic_index_snapshot`)
 
 ---
 
@@ -233,12 +239,19 @@ Goal: add AI productivity features without compromising determinism, cost, or tr
 - [ ] Add policy controls for local-only / hybrid / cloud modes
 - [ ] Add telemetry dashboards (opt-in only)
 
+### 5.4 Evidence Artifacts and Gating
+
+- [ ] Add Phase 5 CI workflow with explicit sidecar/lint gates (`.github/workflows/phase5-ai-sidecar.yml`)
+- [ ] Add compile non-blocking parity test suite (AI enabled vs disabled compile/check/build parity)
+- [ ] Publish Phase 5 evidence bundle (`reports/phase5/summary.md`, `reports/phase5/cost_latency.json`, `reports/phase5/intent_lint_quality.json`)
+- [ ] Add regression thresholds for sidecar latency/cost and intent-lint quality in CI policy
+
 ### Phase 5 Exit Criteria
 
-- [ ] Documented v0.1 semantics for core control-flow/concurrency are executable in native backend or explicitly marked as release-blocking exceptions
-- [ ] AI features clearly improve workflow without compile dependency
-- [ ] Cost/latency budgets consistently respected
-- [ ] Intent lint trusted as advisory signal with low false positives
+- [ ] Documented v0.1 semantics for core control-flow/concurrency are executable in native backend or explicitly marked as release-blocking exceptions (evidence: conformance tests + report `reports/phase5/semantics_conformance.md`)
+- [ ] AI features clearly improve workflow without compile dependency (evidence: workflow `.github/workflows/phase5-ai-sidecar.yml` job `non_blocking_compile`, report `reports/phase5/workflow_impact.md`)
+- [ ] Cost/latency budgets consistently respected (evidence: report `reports/phase5/cost_latency.json`, CI threshold gate results)
+- [ ] Intent lint trusted as advisory signal with low false positives (evidence: report `reports/phase5/intent_lint_quality.json` with precision/recall breakdown)
 
 ---
 
@@ -281,9 +294,9 @@ Goal: move from core compiler/runtime to a sustainable developer ecosystem.
 
 ### Phase 6 Exit Criteria
 
-- [ ] Teams can build, test, publish, and maintain VibeLang projects end-to-end
-- [ ] Self-hosting path is demonstrated or scheduled with validated milestones
-- [ ] Target-tier support and conformance governance process are operational in release workflow
+- [ ] Teams can build, test, publish, and maintain VibeLang projects end-to-end (evidence: release pipeline dry-run report + package manager e2e CI)
+- [ ] Self-hosting path is demonstrated or scheduled with validated milestones (evidence: bootstrap-vs-self-host conformance report in `reports/phase6/self_hosting_conformance.md`)
+- [ ] Target-tier support and conformance governance process are operational in release workflow (evidence: CI matrix results + published support matrix)
 
 ---
 
@@ -302,5 +315,5 @@ Goal: move from core compiler/runtime to a sustainable developer ecosystem.
 
 - Core strategy/spec docs: drafted and phase-1 ambiguities resolved
 - Implementation code: Phase 4 local-first indexer and LSP baseline delivered (`vibe_indexer`, `vibe_lsp`, `vibe index`, `vibe lsp`, non-blocking `vibe check` index refresh)
-- Verification: phase4 index/lsp unit + CLI integration + deterministic snapshot + medium-corpus stability smoke + performance threshold checks are green
+- Verification: phase4 index/lsp unit + CLI integration + deterministic snapshot + medium-corpus stability smoke + performance threshold checks are green (workflow `.github/workflows/phase4-indexer-lsp.yml`)
 - Next execution focus: Phase 5 AI intent engine plus core conformance hardening (`go/select/while/repeat` + contract runtime policy) before broader ecosystem scale-out
