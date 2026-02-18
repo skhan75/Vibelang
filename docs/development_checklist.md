@@ -201,6 +201,16 @@ Goal: provide fast, local-first IDE feedback with semantic understanding and inc
 
 Goal: add AI productivity features without compromising determinism, cost, or trust.
 
+### 5.0 Core Conformance Hardening (Carry-Over)
+
+- [ ] Implement native codegen support for `while` and `repeat` (remove phase-baseline fallback errors)
+- [ ] Implement true task spawning semantics for `go` in generated binaries
+- [ ] Implement full multi-case `select` lowering semantics (receive/after/closed/default with fairness policy)
+- [ ] Implement backend support for documented core forms used in official specs/examples (`List/Map` paths, member access, method-call lowering)
+- [ ] Add stable diagnostics for unsupported constructs with actionable migration/feature-status guidance
+- [ ] Add conformance fixtures proving runtime behavior matches `docs/spec/semantics.md` for control flow and concurrency primitives
+- [ ] Activate `@require/@ensure` runtime checks by default in dev/test and verify policy behavior in integration tests
+
 ### 5.1 AI Sidecar Core
 
 - [x] Sidecar architecture drafted (`ai/sidecar/architecture.md`)
@@ -225,6 +235,7 @@ Goal: add AI productivity features without compromising determinism, cost, or tr
 
 ### Phase 5 Exit Criteria
 
+- [ ] Documented v0.1 semantics for core control-flow/concurrency are executable in native backend or explicitly marked as release-blocking exceptions
 - [ ] AI features clearly improve workflow without compile dependency
 - [ ] Cost/latency budgets consistently respected
 - [ ] Intent lint trusted as advisory signal with low false positives
@@ -260,10 +271,19 @@ Goal: move from core compiler/runtime to a sustainable developer ecosystem.
 - [ ] Release pipeline and changelog process
 - [ ] Migration guides between language/toolchain versions
 
+### 6.5 Portability and Conformance Governance
+
+- [ ] Expand native target support toward charter targets (Linux arm64, macOS arm64) with parity checklist
+- [ ] Add cross-target CI matrix for build/run determinism and runtime smoke tests
+- [ ] Publish target-tier support matrix (feature coverage, performance expectations, known limitations)
+- [ ] Require phase-complete evidence: spec-to-runtime conformance tests + CI gates before marking a phase done
+- [ ] Maintain a release-visible limitations/debt register with owner, severity, and target phase
+
 ### Phase 6 Exit Criteria
 
 - [ ] Teams can build, test, publish, and maintain VibeLang projects end-to-end
 - [ ] Self-hosting path is demonstrated or scheduled with validated milestones
+- [ ] Target-tier support and conformance governance process are operational in release workflow
 
 ---
 
@@ -274,10 +294,13 @@ Goal: move from core compiler/runtime to a sustainable developer ecosystem.
 - [ ] Contract coverage and failure signal quality
 - [ ] Intent lint precision/recall (where measurable)
 - [ ] Developer productivity indicators (time-to-first-binary, median feedback loop)
+- [ ] Spec conformance dashboard (documented constructs vs runtime-validated coverage)
+- [ ] Unsupported-feature backlog trend (count, severity, time-to-resolution)
+- [ ] Cross-target compatibility pass rate by profile/target
 
 ## Current Status Snapshot
 
 - Core strategy/spec docs: drafted and phase-1 ambiguities resolved
 - Implementation code: Phase 4 local-first indexer and LSP baseline delivered (`vibe_indexer`, `vibe_lsp`, `vibe index`, `vibe lsp`, non-blocking `vibe check` index refresh)
 - Verification: phase4 index/lsp unit + CLI integration + deterministic snapshot + medium-corpus stability smoke + performance threshold checks are green
-- Next execution focus: Phase 5 AI intent engine and verifier-gated suggestion flows on top of read-only semantic index APIs
+- Next execution focus: Phase 5 AI intent engine plus core conformance hardening (`go/select/while/repeat` + contract runtime policy) before broader ecosystem scale-out
