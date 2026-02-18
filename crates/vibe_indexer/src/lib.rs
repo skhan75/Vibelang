@@ -10,8 +10,9 @@ use std::path::{Path, PathBuf};
 pub use extract::build_file_index;
 pub use incremental::{IncrementalIndexer, IncrementalTelemetry};
 pub use model::{
-    EffectMismatch, FileIndex, FunctionMeta, IndexSnapshot, IndexSpan, IndexStats, IndexedDiagnostic,
-    IndexedSeverity, Reference, Symbol, SymbolId, SymbolKind, INDEX_FILENAME, INDEX_SCHEMA_VERSION,
+    EffectMismatch, FileIndex, FunctionMeta, IndexSnapshot, IndexSpan, IndexStats,
+    IndexedDiagnostic, IndexedSeverity, Reference, Symbol, SymbolId, SymbolKind, INDEX_FILENAME,
+    INDEX_SCHEMA_VERSION,
 };
 pub use queries::{
     definition_for_position, effect_mismatches, find_by_intent, find_references, find_symbol,
@@ -76,7 +77,8 @@ beta() -> Int {
         fs::write(&file, src).expect("write source");
         let file_index = parse_index(&file, src);
 
-        let mut store = IndexStore::open_or_create(dir.path().join(".vibe/index")).expect("open store");
+        let mut store =
+            IndexStore::open_or_create(dir.path().join(".vibe/index")).expect("open store");
         store.upsert_file(file_index.clone());
         let snapshot = store.snapshot();
 
@@ -102,7 +104,8 @@ bar() -> Int {
 "#;
         fs::write(&file, src).expect("write source");
         let file_index = parse_index(&file, src);
-        let mut store = IndexStore::open_or_create(dir.path().join(".vibe/index")).expect("open store");
+        let mut store =
+            IndexStore::open_or_create(dir.path().join(".vibe/index")).expect("open store");
         store.upsert_file(file_index.clone());
         let snapshot = store.snapshot();
 
@@ -131,7 +134,10 @@ bar() -> Int {
             call_ref.span.line_start,
             call_ref.span.col_start,
         );
-        assert!(!refs.is_empty(), "references should include call-site usage");
+        assert!(
+            !refs.is_empty(),
+            "references should include call-site usage"
+        );
         let direct = find_references(snapshot, definition.id);
         assert_eq!(refs, direct);
     }
@@ -147,7 +153,8 @@ bar() -> Int {
 "#;
         fs::write(&file, src).expect("write source");
         let file_index = parse_index(&file, src);
-        let mut store = IndexStore::open_or_create(dir.path().join(".vibe/index")).expect("open store");
+        let mut store =
+            IndexStore::open_or_create(dir.path().join(".vibe/index")).expect("open store");
         store.upsert_file(file_index);
         let mismatches = effect_mismatches(store.snapshot());
         assert_eq!(mismatches.len(), 1, "expected one effect mismatch entry");
@@ -170,7 +177,10 @@ bar() -> Int {
         let mut store = IndexStore::open_or_create(&root).expect("open store");
         store.upsert_file(file_index);
         store.save().expect("save store");
-        assert!(root.join(INDEX_FILENAME).exists(), "index snapshot should be persisted");
+        assert!(
+            root.join(INDEX_FILENAME).exists(),
+            "index snapshot should be persisted"
+        );
 
         let reopened = IndexStore::open_or_create(&root).expect("reopen store");
         assert_eq!(reopened.snapshot().files.len(), 1);
@@ -206,16 +216,12 @@ bar() -> Int {
         incremental.record_file_index(parse_index(&file_b, src_b), &mut telemetry);
 
         let affected = incremental.affected_files_for_change(&file_a.to_string_lossy());
-        assert!(
-            affected
-                .iter()
-                .any(|f| f == &file_a.to_string_lossy().to_string())
-        );
-        assert!(
-            affected
-                .iter()
-                .any(|f| f == &file_b.to_string_lossy().to_string())
-        );
+        assert!(affected
+            .iter()
+            .any(|f| f == &file_a.to_string_lossy().to_string()));
+        assert!(affected
+            .iter()
+            .any(|f| f == &file_b.to_string_lossy().to_string()));
     }
 
     #[test]
@@ -252,15 +258,21 @@ bar() -> Int {
             .expect("incremental update with loader");
 
         assert!(
-            loaded.iter().any(|p| p == &file_a.to_string_lossy().to_string()),
+            loaded
+                .iter()
+                .any(|p| p == &file_a.to_string_lossy().to_string()),
             "changed file should be reloaded"
         );
         assert!(
-            loaded.iter().any(|p| p == &file_b.to_string_lossy().to_string()),
+            loaded
+                .iter()
+                .any(|p| p == &file_b.to_string_lossy().to_string()),
             "reverse dependent file should be reloaded"
         );
         assert!(
-            !loaded.iter().any(|p| p == &file_c.to_string_lossy().to_string()),
+            !loaded
+                .iter()
+                .any(|p| p == &file_c.to_string_lossy().to_string()),
             "unrelated file should not be reloaded"
         );
         assert!(report.invalidation_fanout >= 2);
@@ -280,14 +292,20 @@ bar() -> Int {
 
         fs::write(&file, "main() -> Int { 1 }").expect("modify file");
         let modified = watcher.scan(&[root.to_path_buf()]).expect("scan modified");
-        assert!(modified.iter().any(|change| change.kind == FileChangeKind::Modified));
+        assert!(modified
+            .iter()
+            .any(|change| change.kind == FileChangeKind::Modified));
 
         fs::remove_file(&file).expect("remove watched file");
         let removed = watcher.scan(&[root.to_path_buf()]).expect("scan removed");
-        assert!(removed.iter().any(|change| change.kind == FileChangeKind::Removed));
+        assert!(removed
+            .iter()
+            .any(|change| change.kind == FileChangeKind::Removed));
 
         fs::write(&file, "main() -> Int { 2 }").expect("add file back");
         let added = watcher.scan(&[root.to_path_buf()]).expect("scan added");
-        assert!(added.iter().any(|change| change.kind == FileChangeKind::Added));
+        assert!(added
+            .iter()
+            .any(|change| change.kind == FileChangeKind::Added));
     }
 }

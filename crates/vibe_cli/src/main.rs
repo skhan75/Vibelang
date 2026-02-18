@@ -9,7 +9,9 @@ use vibe_codegen::{emit_object, CodegenOptions};
 use vibe_diagnostics::Diagnostic;
 use vibe_diagnostics::Diagnostics;
 use vibe_indexer::build_file_index;
-use vibe_indexer::{default_index_root, IncrementalIndexer, IncrementalTelemetry, IndexStats, IndexStore};
+use vibe_indexer::{
+    default_index_root, IncrementalIndexer, IncrementalTelemetry, IndexStats, IndexStore,
+};
 use vibe_lsp::run_line_stdio;
 use vibe_mir::MirProgram;
 use vibe_mir::{lower_hir_to_mir, mir_debug_dump};

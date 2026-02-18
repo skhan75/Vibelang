@@ -28,7 +28,8 @@ pub struct IndexSpan {
 
 impl IndexSpan {
     pub fn contains(&self, line: usize, col: usize) -> bool {
-        let start_ok = (line > self.line_start) || (line == self.line_start && col >= self.col_start);
+        let start_ok =
+            (line > self.line_start) || (line == self.line_start && col >= self.col_start);
         let end_ok = (line < self.line_end) || (line == self.line_end && col <= self.col_end);
         start_ok && end_ok
     }
@@ -194,7 +195,8 @@ impl FileIndex {
                 ))
         });
         self.effect_mismatches.sort_by(|a, b| {
-            (a.file.as_str(), a.function_name.as_str()).cmp(&(b.file.as_str(), b.function_name.as_str()))
+            (a.file.as_str(), a.function_name.as_str())
+                .cmp(&(b.file.as_str(), b.function_name.as_str()))
         });
         self.diagnostics.sort_by(|a, b| {
             (

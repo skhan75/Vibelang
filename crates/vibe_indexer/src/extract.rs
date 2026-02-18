@@ -7,8 +7,8 @@ use vibe_diagnostics::Diagnostic;
 use vibe_hir::HirProgram;
 
 use crate::model::{
-    EffectMismatch, FileIndex, FunctionMeta, IndexSpan, IndexedDiagnostic, IndexedSeverity, Reference, Symbol,
-    SymbolId, SymbolKind,
+    EffectMismatch, FileIndex, FunctionMeta, IndexSpan, IndexedDiagnostic, IndexedSeverity,
+    Reference, Symbol, SymbolId, SymbolKind,
 };
 
 pub fn build_file_index(
@@ -223,7 +223,14 @@ fn index_function(
                     file: file.to_string(),
                     span: IndexSpan::from(*span),
                 });
-                collect_expr_refs(expr, file, &locals, function_symbol_ids, references, dependencies);
+                collect_expr_refs(
+                    expr,
+                    file,
+                    &locals,
+                    function_symbol_ids,
+                    references,
+                    dependencies,
+                );
             }
             Contract::Effect { name, span } => {
                 symbols.push(Symbol {
@@ -285,7 +292,14 @@ fn collect_stmt_refs(
 ) {
     match stmt {
         Stmt::Binding { name, expr, span } => {
-            collect_expr_refs(expr, file, locals, function_symbol_ids, references, dependencies);
+            collect_expr_refs(
+                expr,
+                file,
+                locals,
+                function_symbol_ids,
+                references,
+                dependencies,
+            );
             let symbol_id = SymbolId(stable_symbol_id(
                 file,
                 &format!("{}::{}", func.name, name),
@@ -305,16 +319,48 @@ fn collect_stmt_refs(
             });
         }
         Stmt::Assignment { target, expr, .. } => {
-            collect_expr_refs(target, file, locals, function_symbol_ids, references, dependencies);
-            collect_expr_refs(expr, file, locals, function_symbol_ids, references, dependencies);
+            collect_expr_refs(
+                target,
+                file,
+                locals,
+                function_symbol_ids,
+                references,
+                dependencies,
+            );
+            collect_expr_refs(
+                expr,
+                file,
+                locals,
+                function_symbol_ids,
+                references,
+                dependencies,
+            );
         }
         Stmt::Return { expr, .. } | Stmt::ExprStmt { expr, .. } | Stmt::Go { expr, .. } => {
-            collect_expr_refs(expr, file, locals, function_symbol_ids, references, dependencies);
+            collect_expr_refs(
+                expr,
+                file,
+                locals,
+                function_symbol_ids,
+                references,
+                dependencies,
+            );
         }
         Stmt::For {
-            var, iter, body, span, ..
+            var,
+            iter,
+            body,
+            span,
+            ..
         } => {
-            collect_expr_refs(iter, file, locals, function_symbol_ids, references, dependencies);
+            collect_expr_refs(
+                iter,
+                file,
+                locals,
+                function_symbol_ids,
+                references,
+                dependencies,
+            );
             let symbol_id = SymbolId(stable_symbol_id(
                 file,
                 &format!("{}::{}", func.name, var),
@@ -353,7 +399,14 @@ fn collect_stmt_refs(
             else_body,
             ..
         } => {
-            collect_expr_refs(cond, file, locals, function_symbol_ids, references, dependencies);
+            collect_expr_refs(
+                cond,
+                file,
+                locals,
+                function_symbol_ids,
+                references,
+                dependencies,
+            );
             for child in then_body {
                 collect_stmt_refs(
                     child,
@@ -384,7 +437,14 @@ fn collect_stmt_refs(
             }
         }
         Stmt::While { cond, body, .. } => {
-            collect_expr_refs(cond, file, locals, function_symbol_ids, references, dependencies);
+            collect_expr_refs(
+                cond,
+                file,
+                locals,
+                function_symbol_ids,
+                references,
+                dependencies,
+            );
             for child in body {
                 collect_stmt_refs(
                     child,
@@ -401,7 +461,14 @@ fn collect_stmt_refs(
             }
         }
         Stmt::Repeat { count, body, .. } => {
-            collect_expr_refs(count, file, locals, function_symbol_ids, references, dependencies);
+            collect_expr_refs(
+                count,
+                file,
+                locals,
+                function_symbol_ids,
+                references,
+                dependencies,
+            );
             for child in body {
                 collect_stmt_refs(
                     child,
@@ -492,27 +559,86 @@ fn collect_expr_refs(
             }
         }
         Expr::Call { callee, args, .. } => {
-            collect_expr_refs(callee, file, locals, function_symbol_ids, references, dependencies);
+            collect_expr_refs(
+                callee,
+                file,
+                locals,
+                function_symbol_ids,
+                references,
+                dependencies,
+            );
             for arg in args {
-                collect_expr_refs(arg, file, locals, function_symbol_ids, references, dependencies);
+                collect_expr_refs(
+                    arg,
+                    file,
+                    locals,
+                    function_symbol_ids,
+                    references,
+                    dependencies,
+                );
             }
         }
-        Expr::Member { object, .. } | Expr::Unary { expr: object, .. } | Expr::Question { expr: object, .. } | Expr::Old { expr: object, .. } => {
-            collect_expr_refs(object, file, locals, function_symbol_ids, references, dependencies);
+        Expr::Member { object, .. }
+        | Expr::Unary { expr: object, .. }
+        | Expr::Question { expr: object, .. }
+        | Expr::Old { expr: object, .. } => {
+            collect_expr_refs(
+                object,
+                file,
+                locals,
+                function_symbol_ids,
+                references,
+                dependencies,
+            );
         }
         Expr::Binary { left, right, .. } => {
-            collect_expr_refs(left, file, locals, function_symbol_ids, references, dependencies);
-            collect_expr_refs(right, file, locals, function_symbol_ids, references, dependencies);
+            collect_expr_refs(
+                left,
+                file,
+                locals,
+                function_symbol_ids,
+                references,
+                dependencies,
+            );
+            collect_expr_refs(
+                right,
+                file,
+                locals,
+                function_symbol_ids,
+                references,
+                dependencies,
+            );
         }
         Expr::List { items, .. } => {
             for item in items {
-                collect_expr_refs(item, file, locals, function_symbol_ids, references, dependencies);
+                collect_expr_refs(
+                    item,
+                    file,
+                    locals,
+                    function_symbol_ids,
+                    references,
+                    dependencies,
+                );
             }
         }
         Expr::Map { entries, .. } => {
             for (key, value) in entries {
-                collect_expr_refs(key, file, locals, function_symbol_ids, references, dependencies);
-                collect_expr_refs(value, file, locals, function_symbol_ids, references, dependencies);
+                collect_expr_refs(
+                    key,
+                    file,
+                    locals,
+                    function_symbol_ids,
+                    references,
+                    dependencies,
+                );
+                collect_expr_refs(
+                    value,
+                    file,
+                    locals,
+                    function_symbol_ids,
+                    references,
+                    dependencies,
+                );
             }
         }
         Expr::Int { .. }
@@ -537,9 +663,7 @@ fn build_function_meta(
             .map(|p| format!(
                 "{}:{}",
                 p.name,
-                p.ty.as_ref()
-                    .map(|t| t.raw.as_str())
-                    .unwrap_or("Unknown")
+                p.ty.as_ref().map(|t| t.raw.as_str()).unwrap_or("Unknown")
             ))
             .collect::<Vec<_>>()
             .join(","),

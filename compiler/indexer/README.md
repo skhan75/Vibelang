@@ -73,6 +73,7 @@ FunctionMeta {
 - Initial cold index for 100K LOC: under 5 seconds on developer laptop
 - Incremental update for single-file edit: under 100 ms median
 - Index store memory overhead: under 10% of source footprint
+- Baseline benchmark command and CI smoke thresholds are tracked in `compiler/indexer/performance.md`.
 
 ## Integration Boundaries
 

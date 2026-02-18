@@ -24,6 +24,13 @@ fn vibe_index_rebuild_writes_snapshot() {
         "expected stats output:\n{}",
         out.stdout
     );
+    assert!(
+        out.stdout.contains("cold_ms=")
+            && out.stdout.contains("incremental_ms=")
+            && out.stdout.contains("memory_bytes="),
+        "stats output should include performance metrics:\n{}",
+        out.stdout
+    );
     let snapshot = project_dir.join(".vibe/index/index_v1.json");
     assert!(
         snapshot.exists(),

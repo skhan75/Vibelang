@@ -43,7 +43,11 @@ impl IncrementalIndexer {
         self.store
     }
 
-    pub fn record_file_index(&mut self, file_index: FileIndex, telemetry: &mut IncrementalTelemetry) {
+    pub fn record_file_index(
+        &mut self,
+        file_index: FileIndex,
+        telemetry: &mut IncrementalTelemetry,
+    ) {
         let old_hash = self
             .store
             .snapshot()

@@ -107,7 +107,8 @@ pub fn effect_mismatches(snapshot: &IndexSnapshot) -> Vec<EffectMismatch> {
         .cloned()
         .collect::<Vec<_>>();
     out.sort_by(|a, b| {
-        (a.file.as_str(), a.function_name.as_str()).cmp(&(b.file.as_str(), b.function_name.as_str()))
+        (a.file.as_str(), a.function_name.as_str())
+            .cmp(&(b.file.as_str(), b.function_name.as_str()))
     });
     out
 }

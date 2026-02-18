@@ -37,7 +37,17 @@ jobs:
           set -euo pipefail
           cargo run -q -p vibe_cli -- index compiler/tests/fixtures --rebuild --stats > /tmp/index_stats.txt
           test -s /tmp/index_stats.txt
-          grep "index stats:" /tmp/index_stats.txt
+          stats_line="$(grep 'index stats:' /tmp/index_stats.txt)"
+          echo "$stats_line"
+
+          cold_ms="$(echo "$stats_line" | sed -E 's/.*cold_ms=([0-9]+).*/\1/')"
+          incremental_ms="$(echo "$stats_line" | sed -E 's/.*incremental_ms=([0-9]+).*/\1/')"
+          memory_bytes="$(echo "$stats_line" | sed -E 's/.*memory_bytes=([0-9]+).*/\1/')"
+
+          # Phase 4 baseline thresholds for CI smoke; tighten as corpus grows.
+          test "$cold_ms" -le 15000
+          test "$incremental_ms" -le 5000
+          test "$memory_bytes" -le 50000000
 
   deterministic_index_snapshot:
     runs-on: ubuntu-latest

@@ -53,8 +53,12 @@ impl IndexStore {
     }
 
     pub fn save(&self) -> Result<(), String> {
-        fs::create_dir_all(&self.root)
-            .map_err(|e| format!("failed to create index directory `{}`: {e}", self.root.display()))?;
+        fs::create_dir_all(&self.root).map_err(|e| {
+            format!(
+                "failed to create index directory `{}`: {e}",
+                self.root.display()
+            )
+        })?;
         let mut snapshot = self.snapshot.clone();
         snapshot.normalize();
         let json = serde_json::to_string_pretty(&snapshot)
@@ -144,8 +148,16 @@ impl IndexStore {
             }
             for mismatch in &file_index.effect_mismatches {
                 bytes += mismatch.function_name.len() + mismatch.file.len();
-                bytes += mismatch.declared_only.iter().map(String::len).sum::<usize>();
-                bytes += mismatch.observed_only.iter().map(String::len).sum::<usize>();
+                bytes += mismatch
+                    .declared_only
+                    .iter()
+                    .map(String::len)
+                    .sum::<usize>();
+                bytes += mismatch
+                    .observed_only
+                    .iter()
+                    .map(String::len)
+                    .sum::<usize>();
             }
         }
 

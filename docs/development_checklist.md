@@ -172,28 +172,28 @@ Goal: provide fast, local-first IDE feedback with semantic understanding and inc
 ### 4.1 Semantic Index Core
 
 - [x] Indexer architecture drafted (`compiler/indexer/README.md`)
-- [ ] Implement symbol/reference index storage
-- [ ] Implement contract/effect metadata indexing
-- [ ] Implement file-change incremental update pipeline
-- [ ] Persist/reload index safely with schema versioning
+- [x] Implement symbol/reference index storage
+- [x] Implement contract/effect metadata indexing
+- [x] Implement file-change incremental update pipeline
+- [x] Persist/reload index safely with schema versioning
 
 ### 4.2 LSP and Editor Integration
 
-- [ ] Go-to-definition/references support
-- [ ] Real-time diagnostics streaming
-- [ ] Intent/contract metadata surfacing in editor UI
-- [ ] Performance and stability testing in medium-size projects
+- [x] Go-to-definition/references support
+- [x] Real-time diagnostics streaming
+- [x] Intent/contract metadata surfacing in editor UI
+- [x] Performance and stability testing in medium-size projects
 
 ### 4.3 Performance Targets
 
-- [ ] Cold index target validated on reference hardware
-- [ ] Single-file edit update latency target validated
-- [ ] Index memory overhead target validated
+- [x] Cold index target validated on reference hardware
+- [x] Single-file edit update latency target validated
+- [x] Index memory overhead target validated
 
 ### Phase 4 Exit Criteria
 
-- [ ] Local IDE workflow is fast, stable, and offline-capable
-- [ ] Semantic index supports downstream AI sidecar reads
+- [x] Local IDE workflow is fast, stable, and offline-capable
+- [x] Semantic index supports downstream AI sidecar reads
 
 ---
 
@@ -278,6 +278,6 @@ Goal: move from core compiler/runtime to a sustainable developer ecosystem.
 ## Current Status Snapshot
 
 - Core strategy/spec docs: drafted and phase-1 ambiguities resolved
-- Implementation code: Phase 3 hybrid ownership/effect/concurrency baseline delivered (ownership/effect passes, transitive effects, runtime scheduler/channels/select/cancellation, go/select codegen path)
-- Verification: ownership/effect/concurrency fixture suites, runtime stress tests, go/chan/select native smoke, and deterministic checks are green
-- Next execution focus: Phase 4 incremental semantic index and LSP diagnostics with low-latency local feedback
+- Implementation code: Phase 4 local-first indexer and LSP baseline delivered (`vibe_indexer`, `vibe_lsp`, `vibe index`, `vibe lsp`, non-blocking `vibe check` index refresh)
+- Verification: phase4 index/lsp unit + CLI integration + deterministic snapshot + medium-corpus stability smoke + performance threshold checks are green
+- Next execution focus: Phase 5 AI intent engine and verifier-gated suggestion flows on top of read-only semantic index APIs

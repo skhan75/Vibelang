@@ -8,7 +8,7 @@ use vibe_indexer::extract::build_file_index;
 use vibe_indexer::incremental::IncrementalTelemetry;
 use vibe_indexer::model::{IndexSpan, IndexedDiagnostic};
 use vibe_indexer::queries::{definition_for_position, references_for_position, symbol_at_position};
-use vibe_indexer::{IndexStore, IncrementalIndexer};
+use vibe_indexer::{IncrementalIndexer, IndexStore};
 use vibe_parser::parse_source;
 use vibe_types::check_and_lower;
 
@@ -54,7 +54,13 @@ impl LspSession {
 
         let mut all_diagnostics: Vec<Diagnostic> = parsed.diagnostics.into_sorted();
         all_diagnostics.extend(checked.diagnostics.into_sorted());
-        let file_index = build_file_index(&path_buf, source, &parsed.ast, &checked.hir, &all_diagnostics);
+        let file_index = build_file_index(
+            &path_buf,
+            source,
+            &parsed.ast,
+            &checked.hir,
+            &all_diagnostics,
+        );
         let diagnostics = file_index.diagnostics.clone();
         let mut telemetry = IncrementalTelemetry::default();
         self.indexer.record_file_index(file_index, &mut telemetry);
@@ -72,7 +78,8 @@ impl LspSession {
 
     pub fn definition(&self, file: &str, line: usize, col: usize) -> Option<LspLocation> {
         let normalized = normalize_path(Path::new(file));
-        let symbol = definition_for_position(self.indexer.store().snapshot(), &normalized, line, col)?;
+        let symbol =
+            definition_for_position(self.indexer.store().snapshot(), &normalized, line, col)?;
         Some(LspLocation {
             file: symbol.file,
             span: symbol.span,
@@ -108,7 +115,8 @@ impl LspSession {
         col: usize,
     ) -> Option<ContractMetadata> {
         let normalized = normalize_path(Path::new(file));
-        let symbol_id = symbol_at_position(self.indexer.store().snapshot(), &normalized, line, col)?;
+        let symbol_id =
+            symbol_at_position(self.indexer.store().snapshot(), &normalized, line, col)?;
         self.indexer
             .store()
             .snapshot()
@@ -145,10 +153,12 @@ pub fn run_line_stdio(index_root: impl Into<PathBuf>) -> Result<(), String> {
         let command = serde_json::from_str::<StdioCommand>(trimmed)
             .map_err(|e| format!("invalid lsp command json: {e}"))?;
         let response = match command {
-            StdioCommand::Open { file, text } => match session.open_document(Path::new(&file), &text) {
-                Ok(diags) => json!({ "ok": true, "diagnostics": diags }),
-                Err(err) => json!({ "ok": false, "error": err }),
-            },
+            StdioCommand::Open { file, text } => {
+                match session.open_document(Path::new(&file), &text) {
+                    Ok(diags) => json!({ "ok": true, "diagnostics": diags }),
+                    Err(err) => json!({ "ok": false, "error": err }),
+                }
+            }
             StdioCommand::Change { file, text } => {
                 match session.change_document(Path::new(&file), &text) {
                     Ok(diags) => json!({ "ok": true, "diagnostics": diags }),
@@ -193,12 +203,32 @@ pub fn run_line_stdio(index_root: impl Into<PathBuf>) -> Result<(), String> {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(tag = "method", rename_all = "snake_case")]
 enum StdioCommand {
-    Open { file: String, text: String },
-    Change { file: String, text: String },
-    Definition { file: String, line: usize, col: usize },
-    References { file: String, line: usize, col: usize },
-    Hover { file: String, line: usize, col: usize },
-    Diagnostics { file: String },
+    Open {
+        file: String,
+        text: String,
+    },
+    Change {
+        file: String,
+        text: String,
+    },
+    Definition {
+        file: String,
+        line: usize,
+        col: usize,
+    },
+    References {
+        file: String,
+        line: usize,
+        col: usize,
+    },
+    Hover {
+        file: String,
+        line: usize,
+        col: usize,
+    },
+    Diagnostics {
+        file: String,
+    },
     Shutdown,
 }
 
