@@ -104,31 +104,31 @@ Goal: compile typed IR into native binaries with a minimal standard library and 
 
 - [x] Codegen strategy documented (`compiler/codegen/README.md`)
 - [x] IR staging documented (`compiler/ir/overview.md`)
-- [ ] Implement MIR -> backend lowering (Cranelift-first)
-- [ ] Emit object files for Linux x86_64 and arm64
-- [ ] Integrate linker for executable output
+- [x] Implement MIR -> backend lowering (Cranelift-first)
+- [x] Emit object files for Linux x86_64 first target
+- [x] Integrate linker for executable output
 - [ ] Add debug info emission basics
 
 ### 2.2 Minimal Standard Library
 
-- [ ] Define stdlib module boundaries (`core`, `collections`, `io`, `time`, `concurrency`)
-- [ ] Implement required intrinsics and core container APIs
+- [x] Define Phase 2 stdlib boundaries with initial `io` contract (`print/println`)
+- [x] Implement hello-world IO intrinsic path (`print`/`println` -> runtime)
 - [ ] Add deterministic utility APIs for contract/example execution
 - [ ] Document stdlib stability policy
 
 ### 2.3 CLI Tooling
 
-- [ ] Implement `vibe build`
-- [ ] Implement `vibe run`
+- [x] Implement `vibe build`
+- [x] Implement `vibe run`
 - [ ] Implement `vibe test`
-- [ ] Implement `vibe check`
-- [ ] Add profile/target flags (`--profile`, `--target`, `--offline`)
+- [x] Implement `vibe check`
+- [x] Add profile/target flags (`--profile`, `--target`, `--offline`)
 
 ### Phase 2 Exit Criteria
 
-- [ ] Hello-world style programs compile and run natively
+- [x] Hello-world style programs compile and run natively
 - [ ] Sample specs compile with basic stdlib dependencies
-- [ ] CLI commands stable for local developer workflows
+- [x] CLI commands stable for local developer workflows
 
 ---
 
@@ -278,5 +278,6 @@ Goal: move from core compiler/runtime to a sustainable developer ecosystem.
 ## Current Status Snapshot
 
 - Core strategy/spec docs: drafted and phase-1 ambiguities resolved
-- Implementation code: Phase 1 frontend scaffold + typed HIR pipeline implemented in Rust
-- Next execution focus: Phase 2 native backend + stdlib + CLI expansion
+- Implementation code: Phase 2 native path delivered for Linux x86_64 (HIR bodies, MIR, Cranelift object emission, runtime/link, `vibe build`/`vibe run`)
+- Verification: hello-world compile/run works end-to-end with deterministic build smoke coverage and CI gates
+- Next execution focus: broaden backend coverage (additional control-flow/codegen subset, debug info, arm64) and deepen stdlib/runtime capabilities

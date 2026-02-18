@@ -1,0 +1,58 @@
+name: phase2-native
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  backend_tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: backend and cli tests
+        run: |
+          set -euo pipefail
+          cargo test -p vibe_hir
+          cargo test -p vibe_mir
+          cargo test -p vibe_codegen
+          cargo test -p vibe_cli --tests
+
+  hello_world_smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: build hello-world fixture
+        run: |
+          set -euo pipefail
+          file="compiler/tests/fixtures/build/hello_world.vibe"
+          cargo run -q -p vibe_cli -- build "$file"
+      - name: run hello-world fixture
+        run: |
+          set -euo pipefail
+          file="compiler/tests/fixtures/build/hello_world.vibe"
+          cargo run -q -p vibe_cli -- run "$file" > /tmp/hello.out
+          printf "hello from vibelang\n" > /tmp/hello.expected
+          diff -u /tmp/hello.expected /tmp/hello.out
+
+  deterministic_build_smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: deterministic native build output
+        run: |
+          set -euo pipefail
+          file="compiler/tests/fixtures/build/hello_world.vibe"
+          bin="compiler/tests/fixtures/build/.vibe/artifacts/dev/x86_64-unknown-linux-gnu/hello_world"
+
+          cargo run -q -p vibe_cli -- build "$file" > /tmp/build_1.txt
+          sha256sum "$bin" > /tmp/hash_1.txt
+
+          cargo run -q -p vibe_cli -- build "$file" > /tmp/build_2.txt
+          sha256sum "$bin" > /tmp/hash_2.txt
+
+          diff -u /tmp/build_1.txt /tmp/build_2.txt
+          diff -u /tmp/hash_1.txt /tmp/hash_2.txt
