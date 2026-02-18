@@ -1,0 +1,123 @@
+(* VibeLang v0.1 grammar freeze for Phase 1 parser implementation. *)
+(* This file is the parser source of truth for frontend bootstrap. *)
+
+file                = ws, module_decl_opt, { import_decl }, { declaration }, EOF ;
+
+module_decl_opt     = [ module_decl ] ;
+module_decl         = "module", ws1, qualified_ident, line_end ;
+import_decl         = "import", ws1, qualified_ident, line_end ;
+
+declaration         = function_decl | type_decl ;
+type_decl           = [ "pub", ws1 ], "type", ws1, ident, ws, "{", { type_field }, "}", ws ;
+type_field          = ident, ws, ":", ws, type_expr, line_end ;
+
+function_decl       = visibility_opt, ident, ws, "(", ws, param_list_opt, ws, ")", ws,
+                      return_type_opt, ws, block ;
+visibility_opt      = [ "pub", ws1 ] ;
+param_list_opt      = [ param, { ws, ",", ws, param } ] ;
+param               = ident, [ ws, ":", ws, type_expr ] ;
+return_type_opt     = [ ws, "->", ws, type_expr ] ;
+
+block               = "{", ws, contract_stmt_seq_opt, stmt_seq_opt, tail_expr_opt, ws, "}" ;
+contract_stmt_seq_opt = [ contract_stmt, { ws, contract_stmt } ] ;
+stmt_seq_opt        = { stmt, ws } ;
+tail_expr_opt       = [ expr ] ;
+
+contract_stmt       = intent_stmt
+                    | examples_stmt
+                    | require_stmt
+                    | ensure_stmt
+                    | effect_stmt ;
+
+intent_stmt         = "@intent", ws1, string_lit, line_end ;
+examples_stmt       = "@examples", ws, "{", ws, { example_case, ws }, "}", ws ;
+example_case        = expr, ws, "=>", ws, expr, line_end_opt ;
+require_stmt        = "@require", ws1, expr, line_end ;
+ensure_stmt         = "@ensure", ws1, expr, line_end ;
+effect_stmt         = "@effect", ws1, effect_name, line_end ;
+
+stmt                = binding_stmt
+                    | assignment_stmt
+                    | return_stmt
+                    | for_stmt
+                    | if_stmt
+                    | while_stmt
+                    | repeat_stmt
+                    | select_stmt
+                    | go_stmt
+                    | expr_stmt ;
+
+binding_stmt        = ident, ws, ":=", ws, expr, line_end ;
+assignment_stmt     = lhs_expr, ws, "=", ws, expr, line_end ;
+return_stmt         = "return", ws1, expr, line_end ;
+go_stmt             = "go", ws1, expr, line_end_opt ;
+
+for_stmt            = "for", ws1, ident, ws1, "in", ws1, expr, ws, block ;
+while_stmt          = "while", ws1, expr, ws, block ;
+repeat_stmt         = "repeat", ws1, expr, ws, block ;
+if_stmt             = "if", ws1, expr, ws, block, [ ws, "else", ws, block ] ;
+select_stmt         = "select", ws, "{", ws, { select_case, ws }, "}" ;
+select_case         = "case", ws1, select_pattern, ws, "=>", ws, stmt_or_expr, line_end_opt ;
+select_pattern      = ident, ws, ":=", ws, expr
+                    | "after", ws1, duration_lit
+                    | "closed", ws1, ident ;
+stmt_or_expr        = stmt | expr ;
+
+expr_stmt           = expr, line_end ;
+
+expr                = equality_expr ;
+equality_expr       = comparison_expr, { ws, ( "==" | "!=" ), ws, comparison_expr } ;
+comparison_expr     = additive_expr, { ws, ( "<" | "<=" | ">" | ">=" ), ws, additive_expr } ;
+additive_expr       = multiplicative_expr, { ws, ( "+" | "-" ), ws, multiplicative_expr } ;
+multiplicative_expr = unary_expr, { ws, ( "*" | "/" ), ws, unary_expr } ;
+unary_expr          = [ "!" | "-" ], postfix_expr ;
+
+postfix_expr        = primary_expr, { postfix_op } ;
+postfix_op          = ws, ".", ws, ident
+                    | ws, "(", ws, arg_list_opt, ws, ")"
+                    | ws, "?" ;
+
+arg_list_opt        = [ expr, { ws, ",", ws, expr } ] ;
+
+primary_expr        = ident
+                    | int_lit
+                    | float_lit
+                    | bool_lit
+                    | string_lit
+                    | list_lit
+                    | map_lit
+                    | dot_result
+                    | old_expr
+                    | "(", ws, expr, ws, ")" ;
+
+list_lit            = "[", ws, [ expr, { ws, ",", ws, expr } ], ws, "]" ;
+map_lit             = "{", ws, [ map_entry, { ws, ",", ws, map_entry } ], ws, "}" ;
+map_entry           = ( string_lit | ident ), ws, ":", ws, expr ;
+
+old_expr            = "old", ws, "(", ws, expr, ws, ")" ;
+dot_result          = "." ;
+
+lhs_expr            = ident, { ws, ".", ws, ident } ;
+
+type_expr           = qualified_ident, [ ws, "<", ws, type_expr, { ws, ",", ws, type_expr }, ws, ">" ] ;
+qualified_ident     = ident, { ".", ident } ;
+
+effect_name         = "alloc" | "mut_state" | "io" | "net" | "concurrency" | "nondet" ;
+
+ident               = letter, { letter | digit | "_" } ;
+bool_lit            = "true" | "false" ;
+int_lit             = digit, { digit } ;
+float_lit           = digit, { digit }, ".", digit, { digit } ;
+string_lit          = "\"", { string_char }, "\"" ;
+duration_lit        = int_lit, ( "ms" | "s" | "m" ) ;
+
+line_end            = line_end_opt, ws ;
+line_end_opt        = [ "\n" | "\r\n" ] ;
+ws                  = { " " | "\t" | "\n" | "\r" } ;
+ws1                 = ( " " | "\t" ), ws ;
+
+letter              = "A"…"Z" | "a"…"z" ;
+digit               = "0"…"9" ;
+string_char         = ? any non-quote char or escaped sequence ? ;
+
+EOF                 = ? end of input ? ;

@@ -1,0 +1,34 @@
+HirProgram {
+    functions: [
+        HirFunction {
+            name: "runAll",
+            is_public: true,
+            params: [
+                HirParam {
+                    name: "tasks",
+                    ty: Some(
+                        TypeRef {
+                            raw: "List < Job >",
+                        },
+                    ),
+                },
+            ],
+            return_type: Some(
+                TypeRef {
+                    raw: "List < JobResult >",
+                },
+            ),
+            inferred_return_type: Some(
+                "Unknown",
+            ),
+            effects_declared: {
+                "alloc",
+                "concurrency",
+            },
+            effects_observed: {
+                "alloc",
+                "concurrency",
+            },
+        },
+    ],
+}

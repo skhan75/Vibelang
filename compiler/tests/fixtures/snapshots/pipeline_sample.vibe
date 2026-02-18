@@ -1,0 +1,15 @@
+pub runAll(tasks: List<Job>) -> List<JobResult> {
+  @intent "process all tasks concurrently"
+  @ensure len(.) == len(tasks)
+  @effect alloc
+  @effect concurrency
+
+  jobs := chan(1024)
+  out := chan(1024)
+
+  repeat cpu_count() {
+    go worker(jobs, out)
+  }
+
+  out.take(len(tasks))
+}

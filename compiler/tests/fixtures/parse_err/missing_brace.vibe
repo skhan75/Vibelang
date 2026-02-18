@@ -1,0 +1,3 @@
+topK(xs, k) {
+  @intent "k largest numbers"
+  xs.sort_desc().take(k)

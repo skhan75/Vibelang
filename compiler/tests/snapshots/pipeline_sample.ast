@@ -1,0 +1,341 @@
+FileAst {
+    module: None,
+    imports: [],
+    declarations: [
+        Function(
+            FunctionDecl {
+                is_public: true,
+                name: "runAll",
+                params: [
+                    Param {
+                        name: "tasks",
+                        ty: Some(
+                            TypeRef {
+                                raw: "List < Job >",
+                            },
+                        ),
+                    },
+                ],
+                return_type: Some(
+                    TypeRef {
+                        raw: "List < JobResult >",
+                    },
+                ),
+                contracts: [
+                    Intent {
+                        text: "process all tasks concurrently",
+                        span: Span {
+                            line_start: 2,
+                            col_start: 11,
+                            line_end: 2,
+                            col_end: 42,
+                        },
+                    },
+                    Ensure {
+                        expr: Binary {
+                            left: Call {
+                                callee: Ident {
+                                    name: "len",
+                                    span: Span {
+                                        line_start: 3,
+                                        col_start: 11,
+                                        line_end: 3,
+                                        col_end: 13,
+                                    },
+                                },
+                                args: [
+                                    DotResult {
+                                        span: Span {
+                                            line_start: 3,
+                                            col_start: 15,
+                                            line_end: 3,
+                                            col_end: 15,
+                                        },
+                                    },
+                                ],
+                                span: Span {
+                                    line_start: 3,
+                                    col_start: 11,
+                                    line_end: 3,
+                                    col_end: 16,
+                                },
+                            },
+                            op: Eq,
+                            right: Call {
+                                callee: Ident {
+                                    name: "len",
+                                    span: Span {
+                                        line_start: 3,
+                                        col_start: 21,
+                                        line_end: 3,
+                                        col_end: 23,
+                                    },
+                                },
+                                args: [
+                                    Ident {
+                                        name: "tasks",
+                                        span: Span {
+                                            line_start: 3,
+                                            col_start: 25,
+                                            line_end: 3,
+                                            col_end: 29,
+                                        },
+                                    },
+                                ],
+                                span: Span {
+                                    line_start: 3,
+                                    col_start: 21,
+                                    line_end: 3,
+                                    col_end: 30,
+                                },
+                            },
+                            span: Span {
+                                line_start: 3,
+                                col_start: 11,
+                                line_end: 3,
+                                col_end: 30,
+                            },
+                        },
+                        span: Span {
+                            line_start: 3,
+                            col_start: 3,
+                            line_end: 3,
+                            col_end: 3,
+                        },
+                    },
+                    Effect {
+                        name: "alloc",
+                        span: Span {
+                            line_start: 4,
+                            col_start: 3,
+                            line_end: 4,
+                            col_end: 3,
+                        },
+                    },
+                    Effect {
+                        name: "concurrency",
+                        span: Span {
+                            line_start: 5,
+                            col_start: 3,
+                            line_end: 5,
+                            col_end: 3,
+                        },
+                    },
+                ],
+                body: [
+                    Binding {
+                        name: "jobs",
+                        expr: Call {
+                            callee: Ident {
+                                name: "chan",
+                                span: Span {
+                                    line_start: 7,
+                                    col_start: 11,
+                                    line_end: 7,
+                                    col_end: 14,
+                                },
+                            },
+                            args: [
+                                Int {
+                                    value: 1024,
+                                    span: Span {
+                                        line_start: 7,
+                                        col_start: 16,
+                                        line_end: 7,
+                                        col_end: 19,
+                                    },
+                                },
+                            ],
+                            span: Span {
+                                line_start: 7,
+                                col_start: 11,
+                                line_end: 7,
+                                col_end: 20,
+                            },
+                        },
+                        span: Span {
+                            line_start: 7,
+                            col_start: 3,
+                            line_end: 7,
+                            col_end: 6,
+                        },
+                    },
+                    Binding {
+                        name: "out",
+                        expr: Call {
+                            callee: Ident {
+                                name: "chan",
+                                span: Span {
+                                    line_start: 8,
+                                    col_start: 10,
+                                    line_end: 8,
+                                    col_end: 13,
+                                },
+                            },
+                            args: [
+                                Int {
+                                    value: 1024,
+                                    span: Span {
+                                        line_start: 8,
+                                        col_start: 15,
+                                        line_end: 8,
+                                        col_end: 18,
+                                    },
+                                },
+                            ],
+                            span: Span {
+                                line_start: 8,
+                                col_start: 10,
+                                line_end: 8,
+                                col_end: 19,
+                            },
+                        },
+                        span: Span {
+                            line_start: 8,
+                            col_start: 3,
+                            line_end: 8,
+                            col_end: 5,
+                        },
+                    },
+                    Repeat {
+                        count: Call {
+                            callee: Ident {
+                                name: "cpu_count",
+                                span: Span {
+                                    line_start: 10,
+                                    col_start: 10,
+                                    line_end: 10,
+                                    col_end: 18,
+                                },
+                            },
+                            args: [],
+                            span: Span {
+                                line_start: 10,
+                                col_start: 10,
+                                line_end: 10,
+                                col_end: 20,
+                            },
+                        },
+                        body: [
+                            Go {
+                                expr: Call {
+                                    callee: Ident {
+                                        name: "worker",
+                                        span: Span {
+                                            line_start: 11,
+                                            col_start: 8,
+                                            line_end: 11,
+                                            col_end: 13,
+                                        },
+                                    },
+                                    args: [
+                                        Ident {
+                                            name: "jobs",
+                                            span: Span {
+                                                line_start: 11,
+                                                col_start: 15,
+                                                line_end: 11,
+                                                col_end: 18,
+                                            },
+                                        },
+                                        Ident {
+                                            name: "out",
+                                            span: Span {
+                                                line_start: 11,
+                                                col_start: 21,
+                                                line_end: 11,
+                                                col_end: 23,
+                                            },
+                                        },
+                                    ],
+                                    span: Span {
+                                        line_start: 11,
+                                        col_start: 8,
+                                        line_end: 11,
+                                        col_end: 24,
+                                    },
+                                },
+                                span: Span {
+                                    line_start: 11,
+                                    col_start: 5,
+                                    line_end: 11,
+                                    col_end: 6,
+                                },
+                            },
+                        ],
+                        span: Span {
+                            line_start: 10,
+                            col_start: 3,
+                            line_end: 10,
+                            col_end: 8,
+                        },
+                    },
+                ],
+                tail_expr: Some(
+                    Call {
+                        callee: Member {
+                            object: Ident {
+                                name: "out",
+                                span: Span {
+                                    line_start: 14,
+                                    col_start: 3,
+                                    line_end: 14,
+                                    col_end: 5,
+                                },
+                            },
+                            field: "take",
+                            span: Span {
+                                line_start: 14,
+                                col_start: 3,
+                                line_end: 14,
+                                col_end: 10,
+                            },
+                        },
+                        args: [
+                            Call {
+                                callee: Ident {
+                                    name: "len",
+                                    span: Span {
+                                        line_start: 14,
+                                        col_start: 12,
+                                        line_end: 14,
+                                        col_end: 14,
+                                    },
+                                },
+                                args: [
+                                    Ident {
+                                        name: "tasks",
+                                        span: Span {
+                                            line_start: 14,
+                                            col_start: 16,
+                                            line_end: 14,
+                                            col_end: 20,
+                                        },
+                                    },
+                                ],
+                                span: Span {
+                                    line_start: 14,
+                                    col_start: 12,
+                                    line_end: 14,
+                                    col_end: 21,
+                                },
+                            },
+                        ],
+                        span: Span {
+                            line_start: 14,
+                            col_start: 3,
+                            line_end: 14,
+                            col_end: 22,
+                        },
+                    },
+                ),
+                span: Span {
+                    line_start: 1,
+                    col_start: 5,
+                    line_end: 15,
+                    col_end: 1,
+                },
+            },
+        ),
+    ],
+}

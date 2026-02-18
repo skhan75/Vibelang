@@ -1,0 +1,14 @@
+pub sum(values: List<Int>) -> Int {
+  @intent "sum values"
+  @examples {
+    sum([1,2,3]) => 6
+    sum([]) => 0
+  }
+  @effect alloc
+
+  acc := 0
+  for v in values {
+    acc = acc + v
+  }
+  acc
+}

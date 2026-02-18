@@ -1,0 +1,4 @@
+E1104: error: expected `)` after parameter list @ 1:9-1:9
+E1107: error: expected parameter name @ 1:9-1:9
+E1307: error: expected `=>` in example case @ 3:17-3:17
+E1401: error: expected expression @ 5:8-5:8

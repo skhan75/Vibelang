@@ -1,0 +1,5 @@
+pub invalid_position() -> Int {
+  x := 1
+  @ensure . == 1
+  x
+}

@@ -1,0 +1,4 @@
+pub invalid(xs: List<Int>) -> Int {
+  @require old(len(xs)) > 0
+  1
+}

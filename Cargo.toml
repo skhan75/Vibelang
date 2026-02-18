@@ -1,0 +1,25 @@
+[workspace]
+members = [
+  "crates/vibe_cli",
+  "crates/vibe_ast",
+  "crates/vibe_diagnostics",
+  "crates/vibe_hir",
+  "crates/vibe_lexer",
+  "crates/vibe_parser",
+  "crates/vibe_types",
+]
+resolver = "2"
+
+[workspace.package]
+edition = "2021"
+version = "0.1.0"
+license = "MIT"
+authors = ["VibeLang Contributors"]
+
+[workspace.dependencies]
+vibe_ast = { path = "crates/vibe_ast" }
+vibe_diagnostics = { path = "crates/vibe_diagnostics" }
+vibe_hir = { path = "crates/vibe_hir" }
+vibe_lexer = { path = "crates/vibe_lexer" }
+vibe_parser = { path = "crates/vibe_parser" }
+vibe_types = { path = "crates/vibe_types" }

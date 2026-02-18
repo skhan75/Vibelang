@@ -1,0 +1,43 @@
+name: phase1-frontend
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  fmt_lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: cargo fmt
+        run: cargo fmt --all --check
+      - name: cargo clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: cargo test
+        run: cargo test --workspace --all-targets
+
+  determinism_smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: deterministic check and hir output
+        run: |
+          set -euo pipefail
+          file="compiler/tests/fixtures/parse_ok/basic_function.vibe"
+          cargo run -q -p vibe_cli -- check "$file" > /tmp/check_1.txt
+          cargo run -q -p vibe_cli -- check "$file" > /tmp/check_2.txt
+          diff -u /tmp/check_1.txt /tmp/check_2.txt
+          cargo run -q -p vibe_cli -- hir "$file" > /tmp/hir_1.txt
+          cargo run -q -p vibe_cli -- hir "$file" > /tmp/hir_2.txt
+          diff -u /tmp/hir_1.txt /tmp/hir_2.txt

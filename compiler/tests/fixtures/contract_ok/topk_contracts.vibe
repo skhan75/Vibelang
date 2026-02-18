@@ -1,0 +1,12 @@
+pub topK(xs: List<Int>, k: Int) -> List<Int> {
+  @intent "k largest numbers, sorted desc"
+  @examples {
+    topK([3,1,2], 2) => [3,2]
+    topK([], 5) => []
+  }
+  @require k >= 0
+  @ensure len(.) <= len(xs)
+  @effect alloc
+
+  xs.sort_desc().take(k)
+}

@@ -1,0 +1,6 @@
+broken( {
+  @examples {
+    broken([1]) [1]
+  }
+  x := 
+}
