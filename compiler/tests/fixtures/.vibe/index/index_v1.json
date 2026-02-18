@@ -1,0 +1,2792 @@
+{
+  "schema_version": 1,
+  "files": {
+    "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/concurrency_go_select.vibe": {
+      "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/concurrency_go_select.vibe",
+      "file_hash": "1bf085a22f50437d045996dd3cfb2a53c6b4a3f30af371fc9fd166952b704da2",
+      "symbols": [
+        {
+          "id": 17983787867821098072,
+          "name": "notify",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/concurrency_go_select.vibe",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 9,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 9776400213071661788,
+          "name": "value",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/concurrency_go_select.vibe",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 9,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 10595074063023350118,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/concurrency_go_select.vibe",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 6007865532201390580,
+          "name": "worker",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/concurrency_go_select.vibe",
+          "span": {
+            "line_start": 11,
+            "col_start": 1,
+            "line_end": 15,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 6734066327280601325,
+          "name": "dummy",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/concurrency_go_select.vibe",
+          "span": {
+            "line_start": 11,
+            "col_start": 1,
+            "line_end": 15,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 4251085966884760706,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/concurrency_go_select.vibe",
+          "span": {
+            "line_start": 12,
+            "col_start": 3,
+            "line_end": 12,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 12992322576808665140,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/concurrency_go_select.vibe",
+          "span": {
+            "line_start": 17,
+            "col_start": 5,
+            "line_end": 34,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 7655814276414953802,
+          "name": "concurrency",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/concurrency_go_select.vibe",
+          "span": {
+            "line_start": 18,
+            "col_start": 3,
+            "line_end": 18,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 14867473919750094299,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/concurrency_go_select.vibe",
+          "span": {
+            "line_start": 19,
+            "col_start": 3,
+            "line_end": 19,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 7768838237989916066,
+          "name": "alloc",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/concurrency_go_select.vibe",
+          "span": {
+            "line_start": 20,
+            "col_start": 3,
+            "line_end": 20,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 12389814964144728055,
+          "name": "nondet",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/concurrency_go_select.vibe",
+          "span": {
+            "line_start": 21,
+            "col_start": 3,
+            "line_end": 21,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 4771026236779833735,
+          "name": "ch",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/concurrency_go_select.vibe",
+          "span": {
+            "line_start": 25,
+            "col_start": 3,
+            "line_end": 25,
+            "col_end": 4
+          }
+        },
+        {
+          "id": 5158595471633036711,
+          "name": "value",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/concurrency_go_select.vibe",
+          "span": {
+            "line_start": 28,
+            "col_start": 3,
+            "line_end": 28,
+            "col_end": 8
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 9776400213071661788,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/concurrency_go_select.vibe",
+          "span": {
+            "line_start": 3,
+            "col_start": 6,
+            "line_end": 3,
+            "col_end": 10
+          }
+        },
+        {
+          "symbol_id": 6734066327280601325,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/concurrency_go_select.vibe",
+          "span": {
+            "line_start": 14,
+            "col_start": 3,
+            "line_end": 14,
+            "col_end": 7
+          }
+        },
+        {
+          "symbol_id": 6007865532201390580,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/concurrency_go_select.vibe",
+          "span": {
+            "line_start": 23,
+            "col_start": 6,
+            "line_end": 23,
+            "col_end": 11
+          }
+        },
+        {
+          "symbol_id": 4771026236779833735,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/concurrency_go_select.vibe",
+          "span": {
+            "line_start": 26,
+            "col_start": 3,
+            "line_end": 26,
+            "col_end": 4
+          }
+        },
+        {
+          "symbol_id": 4771026236779833735,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/concurrency_go_select.vibe",
+          "span": {
+            "line_start": 29,
+            "col_start": 19,
+            "line_end": 29,
+            "col_end": 20
+          }
+        },
+        {
+          "symbol_id": 17983787867821098072,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/concurrency_go_select.vibe",
+          "span": {
+            "line_start": 29,
+            "col_start": 32,
+            "line_end": 29,
+            "col_end": 37
+          }
+        },
+        {
+          "symbol_id": 5158595471633036711,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/concurrency_go_select.vibe",
+          "span": {
+            "line_start": 29,
+            "col_start": 39,
+            "line_end": 29,
+            "col_end": 43
+          }
+        },
+        {
+          "symbol_id": 17983787867821098072,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/concurrency_go_select.vibe",
+          "span": {
+            "line_start": 30,
+            "col_start": 21,
+            "line_end": 30,
+            "col_end": 26
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 12992322576808665140,
+          "function_name": "main",
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/concurrency_go_select.vibe",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "alloc",
+            "concurrency",
+            "io",
+            "nondet"
+          ],
+          "effects_observed": [
+            "alloc",
+            "concurrency",
+            "io",
+            "nondet"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        },
+        {
+          "symbol_id": 17983787867821098072,
+          "function_name": "notify",
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/concurrency_go_select.vibe",
+          "signature_hash": "e1a3e24b92b7c6801cc2e347f9ca6f30c3bb5e90fabf4107ef165264d26baa8e",
+          "effects_declared": [
+            "io"
+          ],
+          "effects_observed": [
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        },
+        {
+          "symbol_id": 6007865532201390580,
+          "function_name": "worker",
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/concurrency_go_select.vibe",
+          "signature_hash": "26768eb95ec855c811bcc2f4c40d108db8659e1bde6319c4f477dc49f3f0d13b",
+          "effects_declared": [
+            "io"
+          ],
+          "effects_observed": [
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/control_flow_if.vibe": {
+      "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/control_flow_if.vibe",
+      "file_hash": "b3117e37acd5021d5a83026ee924c453b0f4e54739efeb3c5dfbaadecff1e86b",
+      "symbols": [
+        {
+          "id": 9294874425482369288,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/control_flow_if.vibe",
+          "span": {
+            "line_start": 1,
+            "col_start": 5,
+            "line_end": 11,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 7506120619124979691,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/control_flow_if.vibe",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 8258325988906269093,
+          "name": "x",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/control_flow_if.vibe",
+          "span": {
+            "line_start": 4,
+            "col_start": 3,
+            "line_end": 4,
+            "col_end": 3
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 8258325988906269093,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/control_flow_if.vibe",
+          "span": {
+            "line_start": 5,
+            "col_start": 6,
+            "line_end": 5,
+            "col_end": 6
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 9294874425482369288,
+          "function_name": "main",
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/control_flow_if.vibe",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "io"
+          ],
+          "effects_observed": [
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/function_calls.vibe": {
+      "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/function_calls.vibe",
+      "file_hash": "1acc5e4223432337d564afaf06753b096561f8b24858550244266929ae1c7496",
+      "symbols": [
+        {
+          "id": 6074735585891323102,
+          "name": "greet",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/function_calls.vibe",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 5,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 10660933462234643307,
+          "name": "msg",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/function_calls.vibe",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 5,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 5961157407832754687,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/function_calls.vibe",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 10873292451136410608,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/function_calls.vibe",
+          "span": {
+            "line_start": 7,
+            "col_start": 5,
+            "line_end": 10,
+            "col_end": 1
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 10660933462234643307,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/function_calls.vibe",
+          "span": {
+            "line_start": 3,
+            "col_start": 11,
+            "line_end": 3,
+            "col_end": 13
+          }
+        },
+        {
+          "symbol_id": 6074735585891323102,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/function_calls.vibe",
+          "span": {
+            "line_start": 8,
+            "col_start": 3,
+            "line_end": 8,
+            "col_end": 7
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 6074735585891323102,
+          "function_name": "greet",
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/function_calls.vibe",
+          "signature_hash": "d40b3ba5333106fc006a0966c8a4da717c33ba6a0d0d53b25eab7162d249e82f",
+          "effects_declared": [
+            "io"
+          ],
+          "effects_observed": [
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        },
+        {
+          "symbol_id": 10873292451136410608,
+          "function_name": "main",
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/function_calls.vibe",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [],
+          "effects_observed": [
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [
+        {
+          "function_name": "main",
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/function_calls.vibe",
+          "declared_only": [],
+          "observed_only": [
+            "io"
+          ]
+        }
+      ],
+      "diagnostics": [
+        {
+          "code": "E3002",
+          "severity": "Warning",
+          "message": "observed effect `io` is not declared in `@effect` (including transitive calls)",
+          "span": {
+            "line_start": 7,
+            "col_start": 5,
+            "line_end": 10,
+            "col_end": 1
+          }
+        },
+        {
+          "code": "E3101",
+          "severity": "Warning",
+          "message": "call to `greet` requires transitive effect `io` to be declared",
+          "span": {
+            "line_start": 7,
+            "col_start": 5,
+            "line_end": 10,
+            "col_end": 1
+          }
+        }
+      ],
+      "dependencies": []
+    },
+    "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/hello_world.vibe": {
+      "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/hello_world.vibe",
+      "file_hash": "3caf63e891859273f39665d215183fccfff412446e55ceac5055841c77ccf6a4",
+      "symbols": [
+        {
+          "id": 13853597781903195928,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/hello_world.vibe",
+          "span": {
+            "line_start": 1,
+            "col_start": 5,
+            "line_end": 5,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 2808475568343115841,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/hello_world.vibe",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        }
+      ],
+      "references": [],
+      "function_meta": [
+        {
+          "symbol_id": 13853597781903195928,
+          "function_name": "main",
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build/hello_world.vibe",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "io"
+          ],
+          "effects_observed": [
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build_err/while_loop.vibe": {
+      "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build_err/while_loop.vibe",
+      "file_hash": "7944bb4d22f71ac6f80f3d45676db9591dff64873ebc56787b0cc6ff20fda4e4",
+      "symbols": [
+        {
+          "id": 4542410037222836431,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build_err/while_loop.vibe",
+          "span": {
+            "line_start": 1,
+            "col_start": 5,
+            "line_end": 7,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 7092047529150518421,
+          "name": "x",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build_err/while_loop.vibe",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 7092047529150518421,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build_err/while_loop.vibe",
+          "span": {
+            "line_start": 3,
+            "col_start": 9,
+            "line_end": 3,
+            "col_end": 9
+          }
+        },
+        {
+          "symbol_id": 7092047529150518421,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build_err/while_loop.vibe",
+          "span": {
+            "line_start": 4,
+            "col_start": 5,
+            "line_end": 4,
+            "col_end": 5
+          }
+        },
+        {
+          "symbol_id": 7092047529150518421,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build_err/while_loop.vibe",
+          "span": {
+            "line_start": 4,
+            "col_start": 9,
+            "line_end": 4,
+            "col_end": 9
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 4542410037222836431,
+          "function_name": "main",
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/build_err/while_loop.vibe",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/concurrency_err/shared_member_write.vibe": {
+      "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/concurrency_err/shared_member_write.vibe",
+      "file_hash": "9fef6e3011e67b93aadeab8eb3bdd38a6a9cf2d49a676908f532ad4929479522",
+      "symbols": [
+        {
+          "id": 2039056126220851518,
+          "name": "badConcurrentWrite",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/concurrency_err/shared_member_write.vibe",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 6,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 9454507429214759264,
+          "name": "state",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/concurrency_err/shared_member_write.vibe",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 6,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 994707794365594309,
+          "name": "concurrency",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/concurrency_err/shared_member_write.vibe",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 4527834447647511962,
+          "name": "worker",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/concurrency_err/shared_member_write.vibe",
+          "span": {
+            "line_start": 8,
+            "col_start": 1,
+            "line_end": 10,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 10767776073151338340,
+          "name": "x",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/concurrency_err/shared_member_write.vibe",
+          "span": {
+            "line_start": 8,
+            "col_start": 1,
+            "line_end": 10,
+            "col_end": 1
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 4527834447647511962,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/concurrency_err/shared_member_write.vibe",
+          "span": {
+            "line_start": 3,
+            "col_start": 6,
+            "line_end": 3,
+            "col_end": 11
+          }
+        },
+        {
+          "symbol_id": 9454507429214759264,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/concurrency_err/shared_member_write.vibe",
+          "span": {
+            "line_start": 4,
+            "col_start": 3,
+            "line_end": 4,
+            "col_end": 7
+          }
+        },
+        {
+          "symbol_id": 10767776073151338340,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/concurrency_err/shared_member_write.vibe",
+          "span": {
+            "line_start": 9,
+            "col_start": 3,
+            "line_end": 9,
+            "col_end": 3
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 2039056126220851518,
+          "function_name": "badConcurrentWrite",
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/concurrency_err/shared_member_write.vibe",
+          "signature_hash": "5da678ca2c35ba0fa238d5a1adad086d5a1eae35f1eaf1ac97c60092d1899235",
+          "effects_declared": [
+            "concurrency"
+          ],
+          "effects_observed": [
+            "concurrency",
+            "mut_state"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        },
+        {
+          "symbol_id": 4527834447647511962,
+          "function_name": "worker",
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/concurrency_err/shared_member_write.vibe",
+          "signature_hash": "87b55019981acd90d78d7d815a657ac281f1e51d5642016d18a5f202d54d522b",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        }
+      ],
+      "effect_mismatches": [
+        {
+          "function_name": "badConcurrentWrite",
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/concurrency_err/shared_member_write.vibe",
+          "declared_only": [],
+          "observed_only": [
+            "mut_state"
+          ]
+        }
+      ],
+      "diagnostics": [
+        {
+          "code": "E3002",
+          "severity": "Warning",
+          "message": "observed effect `mut_state` is not declared in `@effect` (including transitive calls)",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 6,
+            "col_end": 1
+          }
+        },
+        {
+          "code": "E3203",
+          "severity": "Error",
+          "message": "shared mutable member assignment in concurrent function requires explicit synchronization primitive",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 6,
+            "col_end": 1
+          }
+        }
+      ],
+      "dependencies": []
+    },
+    "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/concurrency_ok/select_receive_basic.vibe": {
+      "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/concurrency_ok/select_receive_basic.vibe",
+      "file_hash": "69aa4414d0b05c1ac311b93961423edeefbd02186f873a121da04d56b5ce620d",
+      "symbols": [
+        {
+          "id": 5212215926131352069,
+          "name": "selectReceive",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/concurrency_ok/select_receive_basic.vibe",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 13,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 4976594174576300770,
+          "name": "concurrency",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/concurrency_ok/select_receive_basic.vibe",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 18383781696724775017,
+          "name": "alloc",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/concurrency_ok/select_receive_basic.vibe",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 225497540131384369,
+          "name": "nondet",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/concurrency_ok/select_receive_basic.vibe",
+          "span": {
+            "line_start": 4,
+            "col_start": 3,
+            "line_end": 4,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 7480392122518748668,
+          "name": "ch",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/concurrency_ok/select_receive_basic.vibe",
+          "span": {
+            "line_start": 5,
+            "col_start": 3,
+            "line_end": 5,
+            "col_end": 4
+          }
+        },
+        {
+          "id": 2636771100776365500,
+          "name": "value",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/concurrency_ok/select_receive_basic.vibe",
+          "span": {
+            "line_start": 8,
+            "col_start": 3,
+            "line_end": 8,
+            "col_end": 8
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 7480392122518748668,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/concurrency_ok/select_receive_basic.vibe",
+          "span": {
+            "line_start": 6,
+            "col_start": 3,
+            "line_end": 6,
+            "col_end": 4
+          }
+        },
+        {
+          "symbol_id": 7480392122518748668,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/concurrency_ok/select_receive_basic.vibe",
+          "span": {
+            "line_start": 9,
+            "col_start": 19,
+            "line_end": 9,
+            "col_end": 20
+          }
+        },
+        {
+          "symbol_id": 2636771100776365500,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/concurrency_ok/select_receive_basic.vibe",
+          "span": {
+            "line_start": 9,
+            "col_start": 32,
+            "line_end": 9,
+            "col_end": 36
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 5212215926131352069,
+          "function_name": "selectReceive",
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/concurrency_ok/select_receive_basic.vibe",
+          "signature_hash": "442ae36edc8c9548445a442752d47668d4bfd30df02983ee62d882b41255989c",
+          "effects_declared": [
+            "alloc",
+            "concurrency",
+            "nondet"
+          ],
+          "effects_observed": [
+            "alloc",
+            "concurrency",
+            "nondet"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/contract_err/annotation_after_statement.vibe": {
+      "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/contract_err/annotation_after_statement.vibe",
+      "file_hash": "2ee2e7fdb1dee66d8df51e693ce5dc1193c24e195e303eb902198eab98fe5ea6",
+      "symbols": [
+        {
+          "id": 18062023105444947202,
+          "name": "invalid_position",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/contract_err/annotation_after_statement.vibe",
+          "span": {
+            "line_start": 1,
+            "col_start": 5,
+            "line_end": 5,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 13924462947907045928,
+          "name": "x",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/contract_err/annotation_after_statement.vibe",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 13924462947907045928,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/contract_err/annotation_after_statement.vibe",
+          "span": {
+            "line_start": 4,
+            "col_start": 3,
+            "line_end": 4,
+            "col_end": 3
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 18062023105444947202,
+          "function_name": "invalid_position",
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/contract_err/annotation_after_statement.vibe",
+          "signature_hash": "5d67728bc931d5d1fed645ff8ec90a3341dc680c550fd6d27c1c5cf3d9b92f75",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [
+        {
+          "code": "E1309",
+          "severity": "Error",
+          "message": "invalid contract position: annotations must appear before executable statements",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 3
+          }
+        }
+      ],
+      "dependencies": []
+    },
+    "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/contract_err/old_in_require.vibe": {
+      "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/contract_err/old_in_require.vibe",
+      "file_hash": "e9f2e2280020e6f0d104a4184317e75e09b8da412fe504b704af4162a05593db",
+      "symbols": [
+        {
+          "id": 2057572612758087750,
+          "name": "invalid",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/contract_err/old_in_require.vibe",
+          "span": {
+            "line_start": 1,
+            "col_start": 5,
+            "line_end": 4,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 9114376547460649653,
+          "name": "xs",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/contract_err/old_in_require.vibe",
+          "span": {
+            "line_start": 1,
+            "col_start": 5,
+            "line_end": 4,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 12159283130334669753,
+          "name": "@contract",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/contract_err/old_in_require.vibe",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 9114376547460649653,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/contract_err/old_in_require.vibe",
+          "span": {
+            "line_start": 2,
+            "col_start": 20,
+            "line_end": 2,
+            "col_end": 21
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 2057572612758087750,
+          "function_name": "invalid",
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/contract_err/old_in_require.vibe",
+          "signature_hash": "5e5fc3cec1ba81106bca4b53c6b4d9ba2b5db93cafbae646c7ec91238f13d494",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [
+        {
+          "code": "E2205",
+          "severity": "Error",
+          "message": "`old(...)` is only valid inside `@ensure`",
+          "span": {
+            "line_start": 2,
+            "col_start": 12,
+            "line_end": 2,
+            "col_end": 23
+          }
+        },
+        {
+          "code": "E2205",
+          "severity": "Error",
+          "message": "`old(...)` is only valid inside `@ensure`",
+          "span": {
+            "line_start": 2,
+            "col_start": 12,
+            "line_end": 2,
+            "col_end": 23
+          }
+        },
+        {
+          "code": "E2207",
+          "severity": "Error",
+          "message": "`old(...)` is only valid in `@ensure`",
+          "span": {
+            "line_start": 2,
+            "col_start": 12,
+            "line_end": 2,
+            "col_end": 23
+          }
+        }
+      ],
+      "dependencies": []
+    },
+    "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/contract_ok/topk_contracts.vibe": {
+      "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/contract_ok/topk_contracts.vibe",
+      "file_hash": "b878aec28a1a7a2928cd56d18f623a33d3b313a42828abfef1d9ccab889ebb34",
+      "symbols": [
+        {
+          "id": 16328276261910221940,
+          "name": "topK",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/contract_ok/topk_contracts.vibe",
+          "span": {
+            "line_start": 1,
+            "col_start": 5,
+            "line_end": 12,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 7687758166371083419,
+          "name": "k",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/contract_ok/topk_contracts.vibe",
+          "span": {
+            "line_start": 1,
+            "col_start": 5,
+            "line_end": 12,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 16748043828622028308,
+          "name": "xs",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/contract_ok/topk_contracts.vibe",
+          "span": {
+            "line_start": 1,
+            "col_start": 5,
+            "line_end": 12,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 13279265978408174078,
+          "name": "k largest numbers, sorted desc",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/contract_ok/topk_contracts.vibe",
+          "span": {
+            "line_start": 2,
+            "col_start": 11,
+            "line_end": 2,
+            "col_end": 42
+          }
+        },
+        {
+          "id": 16494058923321766732,
+          "name": "@examples",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/contract_ok/topk_contracts.vibe",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 15948798446815219162,
+          "name": "@contract",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/contract_ok/topk_contracts.vibe",
+          "span": {
+            "line_start": 7,
+            "col_start": 3,
+            "line_end": 7,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 1136228767680518651,
+          "name": "@contract",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/contract_ok/topk_contracts.vibe",
+          "span": {
+            "line_start": 8,
+            "col_start": 3,
+            "line_end": 8,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 17439598301055034169,
+          "name": "alloc",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/contract_ok/topk_contracts.vibe",
+          "span": {
+            "line_start": 9,
+            "col_start": 3,
+            "line_end": 9,
+            "col_end": 3
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 16328276261910221940,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/contract_ok/topk_contracts.vibe",
+          "span": {
+            "line_start": 4,
+            "col_start": 5,
+            "line_end": 4,
+            "col_end": 8
+          }
+        },
+        {
+          "symbol_id": 16328276261910221940,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/contract_ok/topk_contracts.vibe",
+          "span": {
+            "line_start": 5,
+            "col_start": 5,
+            "line_end": 5,
+            "col_end": 8
+          }
+        },
+        {
+          "symbol_id": 7687758166371083419,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/contract_ok/topk_contracts.vibe",
+          "span": {
+            "line_start": 7,
+            "col_start": 12,
+            "line_end": 7,
+            "col_end": 12
+          }
+        },
+        {
+          "symbol_id": 16748043828622028308,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/contract_ok/topk_contracts.vibe",
+          "span": {
+            "line_start": 8,
+            "col_start": 25,
+            "line_end": 8,
+            "col_end": 26
+          }
+        },
+        {
+          "symbol_id": 16748043828622028308,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/contract_ok/topk_contracts.vibe",
+          "span": {
+            "line_start": 11,
+            "col_start": 3,
+            "line_end": 11,
+            "col_end": 4
+          }
+        },
+        {
+          "symbol_id": 7687758166371083419,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/contract_ok/topk_contracts.vibe",
+          "span": {
+            "line_start": 11,
+            "col_start": 23,
+            "line_end": 11,
+            "col_end": 23
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 16328276261910221940,
+          "function_name": "topK",
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/contract_ok/topk_contracts.vibe",
+          "signature_hash": "f595b2ea83391735b3342746e18e4e933fe8f974e7e4b7e0e31fe1b885d5de4d",
+          "effects_declared": [
+            "alloc"
+          ],
+          "effects_observed": [
+            "alloc"
+          ],
+          "intent_text": "k largest numbers, sorted desc",
+          "has_examples": true,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/effect_err/transitive_missing_effect.vibe": {
+      "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/effect_err/transitive_missing_effect.vibe",
+      "file_hash": "6437c3fa191abe931c7fab5a6455bb5190de2f53216dd5e000ef7146e292144a",
+      "symbols": [
+        {
+          "id": 16045810835290956666,
+          "name": "caller",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/effect_err/transitive_missing_effect.vibe",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 3,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 11081455036663809398,
+          "name": "helper",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/effect_err/transitive_missing_effect.vibe",
+          "span": {
+            "line_start": 5,
+            "col_start": 1,
+            "line_end": 9,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 11573343851992322834,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/effect_err/transitive_missing_effect.vibe",
+          "span": {
+            "line_start": 6,
+            "col_start": 3,
+            "line_end": 6,
+            "col_end": 3
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 11081455036663809398,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/effect_err/transitive_missing_effect.vibe",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 8
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 16045810835290956666,
+          "function_name": "caller",
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/effect_err/transitive_missing_effect.vibe",
+          "signature_hash": "1f3e90625fc3802513619d81c2c4e61d7ae34141200359d5c006532428bf83e8",
+          "effects_declared": [],
+          "effects_observed": [
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        },
+        {
+          "symbol_id": 11081455036663809398,
+          "function_name": "helper",
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/effect_err/transitive_missing_effect.vibe",
+          "signature_hash": "7664653c49016da75390ebe6aaf68456910c8fc6597416cfa2987ddc9e0464ff",
+          "effects_declared": [
+            "io"
+          ],
+          "effects_observed": [
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        }
+      ],
+      "effect_mismatches": [
+        {
+          "function_name": "caller",
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/effect_err/transitive_missing_effect.vibe",
+          "declared_only": [],
+          "observed_only": [
+            "io"
+          ]
+        }
+      ],
+      "diagnostics": [
+        {
+          "code": "E3002",
+          "severity": "Warning",
+          "message": "observed effect `io` is not declared in `@effect` (including transitive calls)",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 3,
+            "col_end": 1
+          }
+        },
+        {
+          "code": "E3101",
+          "severity": "Warning",
+          "message": "call to `helper` requires transitive effect `io` to be declared",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 3,
+            "col_end": 1
+          }
+        }
+      ],
+      "dependencies": []
+    },
+    "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/effect_ok/transitive_declared_effect.vibe": {
+      "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/effect_ok/transitive_declared_effect.vibe",
+      "file_hash": "bd7f7b5c0fa5afe14fb7a507a31438f23c7eb209e47fe22828d59f8de90ec01b",
+      "symbols": [
+        {
+          "id": 1635749220306934612,
+          "name": "caller",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/effect_ok/transitive_declared_effect.vibe",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 4,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 5269147065860434936,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/effect_ok/transitive_declared_effect.vibe",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 2595092943930511591,
+          "name": "helper",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/effect_ok/transitive_declared_effect.vibe",
+          "span": {
+            "line_start": 6,
+            "col_start": 1,
+            "line_end": 10,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 1820844639249231483,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/effect_ok/transitive_declared_effect.vibe",
+          "span": {
+            "line_start": 7,
+            "col_start": 3,
+            "line_end": 7,
+            "col_end": 3
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 2595092943930511591,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/effect_ok/transitive_declared_effect.vibe",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 8
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 1635749220306934612,
+          "function_name": "caller",
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/effect_ok/transitive_declared_effect.vibe",
+          "signature_hash": "1f3e90625fc3802513619d81c2c4e61d7ae34141200359d5c006532428bf83e8",
+          "effects_declared": [
+            "io"
+          ],
+          "effects_observed": [
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        },
+        {
+          "symbol_id": 2595092943930511591,
+          "function_name": "helper",
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/effect_ok/transitive_declared_effect.vibe",
+          "signature_hash": "7664653c49016da75390ebe6aaf68456910c8fc6597416cfa2987ddc9e0464ff",
+          "effects_declared": [
+            "io"
+          ],
+          "effects_observed": [
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/ownership_err/member_capture_in_go.vibe": {
+      "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/ownership_err/member_capture_in_go.vibe",
+      "file_hash": "84813b2aa293660bb885671920ebdd87aa9a971af6b515da8808854d76586f24",
+      "symbols": [
+        {
+          "id": 6104885107264000410,
+          "name": "unsafeCapture",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/ownership_err/member_capture_in_go.vibe",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 5,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 8906331215285489881,
+          "name": "account",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/ownership_err/member_capture_in_go.vibe",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 5,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 10135509472053018704,
+          "name": "concurrency",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/ownership_err/member_capture_in_go.vibe",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 11427397811062317799,
+          "name": "worker",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/ownership_err/member_capture_in_go.vibe",
+          "span": {
+            "line_start": 7,
+            "col_start": 1,
+            "line_end": 9,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 15764255972034730169,
+          "name": "x",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/ownership_err/member_capture_in_go.vibe",
+          "span": {
+            "line_start": 7,
+            "col_start": 1,
+            "line_end": 9,
+            "col_end": 1
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 11427397811062317799,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/ownership_err/member_capture_in_go.vibe",
+          "span": {
+            "line_start": 3,
+            "col_start": 6,
+            "line_end": 3,
+            "col_end": 11
+          }
+        },
+        {
+          "symbol_id": 8906331215285489881,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/ownership_err/member_capture_in_go.vibe",
+          "span": {
+            "line_start": 3,
+            "col_start": 13,
+            "line_end": 3,
+            "col_end": 19
+          }
+        },
+        {
+          "symbol_id": 15764255972034730169,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/ownership_err/member_capture_in_go.vibe",
+          "span": {
+            "line_start": 8,
+            "col_start": 3,
+            "line_end": 8,
+            "col_end": 3
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 6104885107264000410,
+          "function_name": "unsafeCapture",
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/ownership_err/member_capture_in_go.vibe",
+          "signature_hash": "a482c287848e16a539e0400b846edc51dd68164b9216a2fdfef333deed28be42",
+          "effects_declared": [
+            "concurrency"
+          ],
+          "effects_observed": [
+            "concurrency"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        },
+        {
+          "symbol_id": 11427397811062317799,
+          "function_name": "worker",
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/ownership_err/member_capture_in_go.vibe",
+          "signature_hash": "87b55019981acd90d78d7d815a657ac281f1e51d5642016d18a5f202d54d522b",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [
+        {
+          "code": "E3202",
+          "severity": "Error",
+          "message": "capturing member access in `go` may alias shared mutable state; use explicit synchronization",
+          "span": {
+            "line_start": 3,
+            "col_start": 13,
+            "line_end": 3,
+            "col_end": 27
+          }
+        }
+      ],
+      "dependencies": []
+    },
+    "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/ownership_err/shared_mutation_in_concurrent_fn.vibe": {
+      "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/ownership_err/shared_mutation_in_concurrent_fn.vibe",
+      "file_hash": "a5dc897496b2331c00f598d56db3cba53dafcbe0527c22c9f2d9f18acf187a74",
+      "symbols": [
+        {
+          "id": 16315877904420887917,
+          "name": "racyUpdate",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/ownership_err/shared_mutation_in_concurrent_fn.vibe",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 7,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 11452623168710164420,
+          "name": "account",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/ownership_err/shared_mutation_in_concurrent_fn.vibe",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 7,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 14623410804976712366,
+          "name": "concurrency",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/ownership_err/shared_mutation_in_concurrent_fn.vibe",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 15805632398178367519,
+          "name": "mut_state",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/ownership_err/shared_mutation_in_concurrent_fn.vibe",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 5827296958205183588,
+          "name": "worker",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/ownership_err/shared_mutation_in_concurrent_fn.vibe",
+          "span": {
+            "line_start": 9,
+            "col_start": 1,
+            "line_end": 11,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 9783076262411083840,
+          "name": "x",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/ownership_err/shared_mutation_in_concurrent_fn.vibe",
+          "span": {
+            "line_start": 9,
+            "col_start": 1,
+            "line_end": 11,
+            "col_end": 1
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 5827296958205183588,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/ownership_err/shared_mutation_in_concurrent_fn.vibe",
+          "span": {
+            "line_start": 4,
+            "col_start": 6,
+            "line_end": 4,
+            "col_end": 11
+          }
+        },
+        {
+          "symbol_id": 11452623168710164420,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/ownership_err/shared_mutation_in_concurrent_fn.vibe",
+          "span": {
+            "line_start": 5,
+            "col_start": 3,
+            "line_end": 5,
+            "col_end": 9
+          }
+        },
+        {
+          "symbol_id": 11452623168710164420,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/ownership_err/shared_mutation_in_concurrent_fn.vibe",
+          "span": {
+            "line_start": 5,
+            "col_start": 21,
+            "line_end": 5,
+            "col_end": 27
+          }
+        },
+        {
+          "symbol_id": 9783076262411083840,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/ownership_err/shared_mutation_in_concurrent_fn.vibe",
+          "span": {
+            "line_start": 10,
+            "col_start": 3,
+            "line_end": 10,
+            "col_end": 3
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 16315877904420887917,
+          "function_name": "racyUpdate",
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/ownership_err/shared_mutation_in_concurrent_fn.vibe",
+          "signature_hash": "6a8ca5f27bec439fa23a65e3122730010c6146426cb89a3d2c01b6a2c349a0d0",
+          "effects_declared": [
+            "concurrency",
+            "mut_state"
+          ],
+          "effects_observed": [
+            "concurrency",
+            "mut_state"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        },
+        {
+          "symbol_id": 5827296958205183588,
+          "function_name": "worker",
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/ownership_err/shared_mutation_in_concurrent_fn.vibe",
+          "signature_hash": "87b55019981acd90d78d7d815a657ac281f1e51d5642016d18a5f202d54d522b",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [
+        {
+          "code": "E3203",
+          "severity": "Error",
+          "message": "shared mutable member assignment in concurrent function requires explicit synchronization primitive",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 7,
+            "col_end": 1
+          }
+        }
+      ],
+      "dependencies": []
+    },
+    "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/parse_err/missing_brace.vibe": {
+      "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/parse_err/missing_brace.vibe",
+      "file_hash": "0d3999c58530ef07f7cb66797b5b2ed89f516f8d3ce049eab477aca6c16250ec",
+      "symbols": [
+        {
+          "id": 10873381231446470079,
+          "name": "topK",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/parse_err/missing_brace.vibe",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 4,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 4404755792733900553,
+          "name": "k",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/parse_err/missing_brace.vibe",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 4,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 1035550157542955699,
+          "name": "xs",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/parse_err/missing_brace.vibe",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 4,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 15739316916255433844,
+          "name": "k largest numbers",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/parse_err/missing_brace.vibe",
+          "span": {
+            "line_start": 2,
+            "col_start": 11,
+            "line_end": 2,
+            "col_end": 29
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 1035550157542955699,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/parse_err/missing_brace.vibe",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 4
+          }
+        },
+        {
+          "symbol_id": 4404755792733900553,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/parse_err/missing_brace.vibe",
+          "span": {
+            "line_start": 3,
+            "col_start": 23,
+            "line_end": 3,
+            "col_end": 23
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 10873381231446470079,
+          "function_name": "topK",
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/parse_err/missing_brace.vibe",
+          "signature_hash": "c01d276a114110dc71227e37f489b60252610fe46d02560e4d67c47fcf8facd5",
+          "effects_declared": [],
+          "effects_observed": [
+            "alloc"
+          ],
+          "intent_text": "k largest numbers",
+          "has_examples": false,
+          "is_public": false
+        }
+      ],
+      "effect_mismatches": [
+        {
+          "function_name": "topK",
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/parse_err/missing_brace.vibe",
+          "declared_only": [],
+          "observed_only": [
+            "alloc"
+          ]
+        }
+      ],
+      "diagnostics": [
+        {
+          "code": "E3002",
+          "severity": "Warning",
+          "message": "observed effect `alloc` is not declared in `@effect` (including transitive calls)",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 4,
+            "col_end": 1
+          }
+        },
+        {
+          "code": "E1106",
+          "severity": "Error",
+          "message": "expected `}` to close function body",
+          "span": {
+            "line_start": 4,
+            "col_start": 1,
+            "line_end": 4,
+            "col_end": 1
+          }
+        }
+      ],
+      "dependencies": []
+    },
+    "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/parse_err/multiple_errors.vibe": {
+      "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/parse_err/multiple_errors.vibe",
+      "file_hash": "ae51d4bb108e2199866be172f94bf6ab3220720c16847af4d53b49c6096be777",
+      "symbols": [
+        {
+          "id": 16323766438168371198,
+          "name": "broken",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/parse_err/multiple_errors.vibe",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 6,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 1107595019344873297,
+          "name": "__error",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/parse_err/multiple_errors.vibe",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 6,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 3372428568100487548,
+          "name": "@examples",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/parse_err/multiple_errors.vibe",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 4792713122436412330,
+          "name": "x",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/parse_err/multiple_errors.vibe",
+          "span": {
+            "line_start": 5,
+            "col_start": 3,
+            "line_end": 5,
+            "col_end": 3
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 1107595019344873297,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/parse_err/multiple_errors.vibe",
+          "span": {
+            "line_start": 5,
+            "col_start": 8,
+            "line_end": 5,
+            "col_end": 8
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 16323766438168371198,
+          "function_name": "broken",
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/parse_err/multiple_errors.vibe",
+          "signature_hash": "56556812a06e3122f6bd290acd2aaccca1232716f13fe78f5da8bb10535f4b1d",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": null,
+          "has_examples": true,
+          "is_public": false
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [
+        {
+          "code": "E1104",
+          "severity": "Error",
+          "message": "expected `)` after parameter list",
+          "span": {
+            "line_start": 1,
+            "col_start": 9,
+            "line_end": 1,
+            "col_end": 9
+          }
+        },
+        {
+          "code": "E1107",
+          "severity": "Error",
+          "message": "expected parameter name",
+          "span": {
+            "line_start": 1,
+            "col_start": 9,
+            "line_end": 1,
+            "col_end": 9
+          }
+        },
+        {
+          "code": "E1307",
+          "severity": "Error",
+          "message": "expected `=>` in example case",
+          "span": {
+            "line_start": 3,
+            "col_start": 17,
+            "line_end": 3,
+            "col_end": 17
+          }
+        },
+        {
+          "code": "E1401",
+          "severity": "Error",
+          "message": "expected expression",
+          "span": {
+            "line_start": 5,
+            "col_start": 8,
+            "line_end": 5,
+            "col_end": 8
+          }
+        }
+      ],
+      "dependencies": []
+    },
+    "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/parse_ok/basic_function.vibe": {
+      "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/parse_ok/basic_function.vibe",
+      "file_hash": "a0e0809b1ce2a3c8415f493531ad87b732b733418908c11e6eae441d13cbd011",
+      "symbols": [
+        {
+          "id": 15431703654715915396,
+          "name": "topK",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/parse_ok/basic_function.vibe",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 7,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 11111454988784196282,
+          "name": "k",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/parse_ok/basic_function.vibe",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 7,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 1557292843740898264,
+          "name": "xs",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/parse_ok/basic_function.vibe",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 7,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 14071405404262121189,
+          "name": "k largest numbers",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/parse_ok/basic_function.vibe",
+          "span": {
+            "line_start": 2,
+            "col_start": 11,
+            "line_end": 2,
+            "col_end": 29
+          }
+        },
+        {
+          "id": 12657046359835122315,
+          "name": "@examples",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/parse_ok/basic_function.vibe",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 3
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 15431703654715915396,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/parse_ok/basic_function.vibe",
+          "span": {
+            "line_start": 4,
+            "col_start": 5,
+            "line_end": 4,
+            "col_end": 8
+          }
+        },
+        {
+          "symbol_id": 1557292843740898264,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/parse_ok/basic_function.vibe",
+          "span": {
+            "line_start": 6,
+            "col_start": 3,
+            "line_end": 6,
+            "col_end": 4
+          }
+        },
+        {
+          "symbol_id": 11111454988784196282,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/parse_ok/basic_function.vibe",
+          "span": {
+            "line_start": 6,
+            "col_start": 23,
+            "line_end": 6,
+            "col_end": 23
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 15431703654715915396,
+          "function_name": "topK",
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/parse_ok/basic_function.vibe",
+          "signature_hash": "c01d276a114110dc71227e37f489b60252610fe46d02560e4d67c47fcf8facd5",
+          "effects_declared": [],
+          "effects_observed": [
+            "alloc"
+          ],
+          "intent_text": "k largest numbers",
+          "has_examples": true,
+          "is_public": false
+        }
+      ],
+      "effect_mismatches": [
+        {
+          "function_name": "topK",
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/parse_ok/basic_function.vibe",
+          "declared_only": [],
+          "observed_only": [
+            "alloc"
+          ]
+        }
+      ],
+      "diagnostics": [
+        {
+          "code": "E3002",
+          "severity": "Warning",
+          "message": "observed effect `alloc` is not declared in `@effect` (including transitive calls)",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 7,
+            "col_end": 1
+          }
+        }
+      ],
+      "dependencies": []
+    },
+    "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/snapshots/pipeline_sample.vibe": {
+      "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/snapshots/pipeline_sample.vibe",
+      "file_hash": "fc8d136c2de58018330c50296f5c403706fc19b0c4b610b16d677bef5b540187",
+      "symbols": [
+        {
+          "id": 6685679650443349745,
+          "name": "runAll",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/snapshots/pipeline_sample.vibe",
+          "span": {
+            "line_start": 1,
+            "col_start": 5,
+            "line_end": 15,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 16800207651463360646,
+          "name": "tasks",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/snapshots/pipeline_sample.vibe",
+          "span": {
+            "line_start": 1,
+            "col_start": 5,
+            "line_end": 15,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 2995043244539563646,
+          "name": "process all tasks concurrently",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/snapshots/pipeline_sample.vibe",
+          "span": {
+            "line_start": 2,
+            "col_start": 11,
+            "line_end": 2,
+            "col_end": 42
+          }
+        },
+        {
+          "id": 560153758850409417,
+          "name": "@contract",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/snapshots/pipeline_sample.vibe",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 12048176359751268964,
+          "name": "alloc",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/snapshots/pipeline_sample.vibe",
+          "span": {
+            "line_start": 4,
+            "col_start": 3,
+            "line_end": 4,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 12317145172816315624,
+          "name": "concurrency",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/snapshots/pipeline_sample.vibe",
+          "span": {
+            "line_start": 5,
+            "col_start": 3,
+            "line_end": 5,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 4854346278379192661,
+          "name": "jobs",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/snapshots/pipeline_sample.vibe",
+          "span": {
+            "line_start": 7,
+            "col_start": 3,
+            "line_end": 7,
+            "col_end": 6
+          }
+        },
+        {
+          "id": 503923559205609675,
+          "name": "out",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/snapshots/pipeline_sample.vibe",
+          "span": {
+            "line_start": 8,
+            "col_start": 3,
+            "line_end": 8,
+            "col_end": 5
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 16800207651463360646,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/snapshots/pipeline_sample.vibe",
+          "span": {
+            "line_start": 3,
+            "col_start": 25,
+            "line_end": 3,
+            "col_end": 29
+          }
+        },
+        {
+          "symbol_id": 4854346278379192661,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/snapshots/pipeline_sample.vibe",
+          "span": {
+            "line_start": 11,
+            "col_start": 15,
+            "line_end": 11,
+            "col_end": 18
+          }
+        },
+        {
+          "symbol_id": 503923559205609675,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/snapshots/pipeline_sample.vibe",
+          "span": {
+            "line_start": 11,
+            "col_start": 21,
+            "line_end": 11,
+            "col_end": 23
+          }
+        },
+        {
+          "symbol_id": 503923559205609675,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/snapshots/pipeline_sample.vibe",
+          "span": {
+            "line_start": 14,
+            "col_start": 3,
+            "line_end": 14,
+            "col_end": 5
+          }
+        },
+        {
+          "symbol_id": 16800207651463360646,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/snapshots/pipeline_sample.vibe",
+          "span": {
+            "line_start": 14,
+            "col_start": 16,
+            "line_end": 14,
+            "col_end": 20
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 6685679650443349745,
+          "function_name": "runAll",
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/snapshots/pipeline_sample.vibe",
+          "signature_hash": "4347f8e71c81b178bf2a5926ee80ce5c92bba5ca2bbad8d406f6bb80c24743f7",
+          "effects_declared": [
+            "alloc",
+            "concurrency"
+          ],
+          "effects_observed": [
+            "alloc",
+            "concurrency"
+          ],
+          "intent_text": "process all tasks concurrently",
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [
+        {
+          "code": "E2001",
+          "severity": "Error",
+          "message": "unknown identifier `worker`",
+          "span": {
+            "line_start": 11,
+            "col_start": 8,
+            "line_end": 11,
+            "col_end": 13
+          }
+        }
+      ],
+      "dependencies": [
+        "worker"
+      ]
+    },
+    "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/type_err/unknown_identifier.vibe": {
+      "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/type_err/unknown_identifier.vibe",
+      "file_hash": "931fa9bb3e314795913c88877b5161fb19af653f970cf067377e973ead03e475",
+      "symbols": [
+        {
+          "id": 9691472034228311394,
+          "name": "sum",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/type_err/unknown_identifier.vibe",
+          "span": {
+            "line_start": 1,
+            "col_start": 5,
+            "line_end": 5,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 14527674603944472709,
+          "name": "values",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/type_err/unknown_identifier.vibe",
+          "span": {
+            "line_start": 1,
+            "col_start": 5,
+            "line_end": 5,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 7910945632087657775,
+          "name": "acc",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/type_err/unknown_identifier.vibe",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 5
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 7910945632087657775,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/type_err/unknown_identifier.vibe",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 5
+          }
+        },
+        {
+          "symbol_id": 7910945632087657775,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/type_err/unknown_identifier.vibe",
+          "span": {
+            "line_start": 3,
+            "col_start": 9,
+            "line_end": 3,
+            "col_end": 11
+          }
+        },
+        {
+          "symbol_id": 7910945632087657775,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/type_err/unknown_identifier.vibe",
+          "span": {
+            "line_start": 4,
+            "col_start": 3,
+            "line_end": 4,
+            "col_end": 5
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 9691472034228311394,
+          "function_name": "sum",
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/type_err/unknown_identifier.vibe",
+          "signature_hash": "5794fe42dd12820c215690d53ccf361283297f3ca831c344ab0e470fd9f7ef6a",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [
+        {
+          "code": "E2001",
+          "severity": "Error",
+          "message": "unknown identifier `missing`",
+          "span": {
+            "line_start": 3,
+            "col_start": 15,
+            "line_end": 3,
+            "col_end": 21
+          }
+        }
+      ],
+      "dependencies": [
+        "missing"
+      ]
+    },
+    "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/type_ok/typed_sum.vibe": {
+      "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/type_ok/typed_sum.vibe",
+      "file_hash": "85f424dc3858940cb450f79482ca00fd8a357acb941b9adac1c431052addf461",
+      "symbols": [
+        {
+          "id": 6764388159075460109,
+          "name": "sum",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/type_ok/typed_sum.vibe",
+          "span": {
+            "line_start": 1,
+            "col_start": 5,
+            "line_end": 14,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 7653928857649391056,
+          "name": "values",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/type_ok/typed_sum.vibe",
+          "span": {
+            "line_start": 1,
+            "col_start": 5,
+            "line_end": 14,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 7952572055566050025,
+          "name": "sum values",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/type_ok/typed_sum.vibe",
+          "span": {
+            "line_start": 2,
+            "col_start": 11,
+            "line_end": 2,
+            "col_end": 22
+          }
+        },
+        {
+          "id": 7664745208863286117,
+          "name": "@examples",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/type_ok/typed_sum.vibe",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 4033999736992873635,
+          "name": "alloc",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/type_ok/typed_sum.vibe",
+          "span": {
+            "line_start": 7,
+            "col_start": 3,
+            "line_end": 7,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 2724897571355765161,
+          "name": "acc",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/type_ok/typed_sum.vibe",
+          "span": {
+            "line_start": 9,
+            "col_start": 3,
+            "line_end": 9,
+            "col_end": 5
+          }
+        },
+        {
+          "id": 4084320041551865039,
+          "name": "v",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/type_ok/typed_sum.vibe",
+          "span": {
+            "line_start": 10,
+            "col_start": 3,
+            "line_end": 10,
+            "col_end": 5
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 6764388159075460109,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/type_ok/typed_sum.vibe",
+          "span": {
+            "line_start": 4,
+            "col_start": 5,
+            "line_end": 4,
+            "col_end": 7
+          }
+        },
+        {
+          "symbol_id": 6764388159075460109,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/type_ok/typed_sum.vibe",
+          "span": {
+            "line_start": 5,
+            "col_start": 5,
+            "line_end": 5,
+            "col_end": 7
+          }
+        },
+        {
+          "symbol_id": 7653928857649391056,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/type_ok/typed_sum.vibe",
+          "span": {
+            "line_start": 10,
+            "col_start": 12,
+            "line_end": 10,
+            "col_end": 17
+          }
+        },
+        {
+          "symbol_id": 2724897571355765161,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/type_ok/typed_sum.vibe",
+          "span": {
+            "line_start": 11,
+            "col_start": 5,
+            "line_end": 11,
+            "col_end": 7
+          }
+        },
+        {
+          "symbol_id": 2724897571355765161,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/type_ok/typed_sum.vibe",
+          "span": {
+            "line_start": 11,
+            "col_start": 11,
+            "line_end": 11,
+            "col_end": 13
+          }
+        },
+        {
+          "symbol_id": 4084320041551865039,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/type_ok/typed_sum.vibe",
+          "span": {
+            "line_start": 11,
+            "col_start": 17,
+            "line_end": 11,
+            "col_end": 17
+          }
+        },
+        {
+          "symbol_id": 2724897571355765161,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/type_ok/typed_sum.vibe",
+          "span": {
+            "line_start": 13,
+            "col_start": 3,
+            "line_end": 13,
+            "col_end": 5
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 6764388159075460109,
+          "function_name": "sum",
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/type_ok/typed_sum.vibe",
+          "signature_hash": "5794fe42dd12820c215690d53ccf361283297f3ca831c344ab0e470fd9f7ef6a",
+          "effects_declared": [
+            "alloc"
+          ],
+          "effects_observed": [
+            "alloc"
+          ],
+          "intent_text": "sum values",
+          "has_examples": true,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    }
+  }
+}

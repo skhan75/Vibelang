@@ -6,7 +6,11 @@ use std::process::{Command, ExitCode};
 use std::{env, fs};
 
 use vibe_codegen::{emit_object, CodegenOptions};
+use vibe_diagnostics::Diagnostic;
 use vibe_diagnostics::Diagnostics;
+use vibe_indexer::build_file_index;
+use vibe_indexer::{default_index_root, IncrementalIndexer, IncrementalTelemetry, IndexStats, IndexStore};
+use vibe_lsp::run_line_stdio;
 use vibe_mir::MirProgram;
 use vibe_mir::{lower_hir_to_mir, mir_debug_dump};
 use vibe_parser::parse_source;
@@ -78,21 +82,36 @@ fn run() -> Result<ExitCode, String> {
             let test_args = parse_build_like_args(&args, false)?;
             run_test(&test_args)
         }
+        "index" => {
+            let index_args = parse_index_args(&args)?;
+            run_index(&index_args)
+        }
+        "lsp" => run_lsp(&args),
         _ => Err(usage()),
     }
 }
 
 fn usage() -> String {
-    "usage: vibe <check|ast|hir|mir|build|run|test> <path> [--profile dev|release] [--target x86_64-unknown-linux-gnu] [--offline] [--debuginfo none|line|full]".to_string()
+    "usage: vibe <check|ast|hir|mir|build|run|test|index|lsp> <path> [--profile dev|release] [--target x86_64-unknown-linux-gnu] [--offline] [--debuginfo none|line|full]".to_string()
 }
 
 fn run_check(path: &str) -> Result<ExitCode, String> {
     let src = fs::read_to_string(path).map_err(|e| format!("failed to read `{path}`: {e}"))?;
     let parsed = parse_source(&src);
     let checked = check_and_lower(&parsed.ast);
+    let mut merged_diags = parsed.diagnostics.clone().into_sorted();
+    merged_diags.extend(checked.diagnostics.clone().into_sorted());
     let mut all = Diagnostics::default();
-    all.extend(parsed.diagnostics.into_sorted());
-    all.extend(checked.diagnostics.into_sorted());
+    all.extend(merged_diags.clone());
+    if let Err(err) = best_effort_refresh_index(
+        Path::new(path),
+        &src,
+        &parsed.ast,
+        &checked.hir,
+        &merged_diags,
+    ) {
+        eprintln!("index refresh skipped: {err}");
+    }
     let out = all.to_golden();
     if out.trim().is_empty() {
         println!("OK");
@@ -178,6 +197,13 @@ struct BuildArtifacts {
     binary_path: PathBuf,
 }
 
+#[derive(Debug, Clone)]
+struct IndexArgs {
+    target_path: PathBuf,
+    rebuild: bool,
+    stats: bool,
+}
+
 fn parse_build_like_args(args: &[String], allow_exec_args: bool) -> Result<BuildArgs, String> {
     if args.is_empty() {
         return Err("missing source path".to_string());
@@ -251,6 +277,125 @@ fn parse_build_like_args(args: &[String], allow_exec_args: bool) -> Result<Build
         offline,
         exec_args,
     })
+}
+
+fn parse_index_args(args: &[String]) -> Result<IndexArgs, String> {
+    let mut idx = 0usize;
+    let mut target_path = PathBuf::from(".");
+    let mut rebuild = false;
+    let mut stats = false;
+
+    if let Some(first) = args.first() {
+        if !first.starts_with("--") {
+            target_path = PathBuf::from(first);
+            idx = 1;
+        }
+    }
+
+    while idx < args.len() {
+        match args[idx].as_str() {
+            "--rebuild" => rebuild = true,
+            "--stats" => stats = true,
+            "--path" => {
+                idx += 1;
+                let val = args
+                    .get(idx)
+                    .ok_or_else(|| "missing value for `--path`".to_string())?;
+                target_path = PathBuf::from(val);
+            }
+            other => return Err(format!("unknown argument `{other}`")),
+        }
+        idx += 1;
+    }
+
+    Ok(IndexArgs {
+        target_path,
+        rebuild,
+        stats,
+    })
+}
+
+fn run_index(args: &IndexArgs) -> Result<ExitCode, String> {
+    let files = collect_vibe_files(&args.target_path)?;
+    if files.is_empty() {
+        return Err(format!(
+            "no .vibe files found under `{}`",
+            args.target_path.display()
+        ));
+    }
+
+    let index_root = default_index_root(&args.target_path);
+    let mut store = IndexStore::open_or_create(&index_root)?;
+    if args.rebuild {
+        store.clear();
+    }
+    let mut incremental = IncrementalIndexer::new(store);
+    let cold_start = std::time::Instant::now();
+    let mut telemetry = IncrementalTelemetry::default();
+
+    for file in &files {
+        let file_index = build_index_for_file(file)?;
+        incremental.record_file_index(file_index, &mut telemetry);
+    }
+
+    let mut single_file_incremental_ms = 0u128;
+    if let Some(first) = files.first() {
+        let changed = first
+            .canonicalize()
+            .unwrap_or_else(|_| first.clone())
+            .to_string_lossy()
+            .to_string();
+        let report = incremental.update_changed_files_with_loader(&changed, |file_path| {
+            let path = PathBuf::from(file_path);
+            if !path.exists() {
+                return Ok(None);
+            }
+            Ok(Some(build_index_for_file(&path)?))
+        })?;
+        single_file_incremental_ms = report.incremental_update_latency_ms;
+    }
+
+    incremental.store().save()?;
+    let stats = incremental.store().stats();
+    let cold_ms = cold_start.elapsed().as_millis();
+    println!(
+        "indexed {} files into {}",
+        files.len(),
+        index_root.display()
+    );
+    if args.stats {
+        print_index_stats(
+            &stats,
+            cold_ms,
+            single_file_incremental_ms,
+            &index_root,
+            &args.target_path,
+        );
+    }
+    Ok(ExitCode::SUCCESS)
+}
+
+fn run_lsp(args: &[String]) -> Result<ExitCode, String> {
+    let mut index_root = env::current_dir()
+        .map_err(|e| format!("failed to resolve current directory: {e}"))?
+        .join(".vibe")
+        .join("index");
+    let mut idx = 0usize;
+    while idx < args.len() {
+        match args[idx].as_str() {
+            "--index-root" => {
+                idx += 1;
+                let val = args
+                    .get(idx)
+                    .ok_or_else(|| "missing value for `--index-root`".to_string())?;
+                index_root = PathBuf::from(val);
+            }
+            other => return Err(format!("unknown argument `{other}`")),
+        }
+        idx += 1;
+    }
+    run_line_stdio(index_root)?;
+    Ok(ExitCode::SUCCESS)
 }
 
 fn build_source(args: &BuildArgs) -> Result<BuildArtifacts, String> {
@@ -329,6 +474,80 @@ fn build_source(args: &BuildArgs) -> Result<BuildArtifacts, String> {
         debug_map_path,
         binary_path,
     })
+}
+
+fn build_index_for_file(file: &Path) -> Result<vibe_indexer::FileIndex, String> {
+    let canonical = file.canonicalize().unwrap_or_else(|_| file.to_path_buf());
+    let src = fs::read_to_string(&canonical)
+        .map_err(|e| format!("failed to read `{}`: {e}", canonical.display()))?;
+    let parsed = parse_source(&src);
+    let checked = check_and_lower(&parsed.ast);
+    let mut diagnostics = parsed.diagnostics.into_sorted();
+    diagnostics.extend(checked.diagnostics.into_sorted());
+    Ok(build_file_index(
+        &canonical,
+        &src,
+        &parsed.ast,
+        &checked.hir,
+        &diagnostics,
+    ))
+}
+
+fn best_effort_refresh_index(
+    path: &Path,
+    source: &str,
+    ast: &vibe_ast::FileAst,
+    hir: &vibe_hir::HirProgram,
+    diagnostics: &[Diagnostic],
+) -> Result<(), String> {
+    let canonical = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
+    let file_index = build_file_index(&canonical, source, ast, hir, diagnostics);
+    let index_root = default_index_root(&canonical);
+    let store = IndexStore::open_or_create(&index_root)?;
+    let mut incremental = IncrementalIndexer::new(store);
+    let mut telemetry = IncrementalTelemetry::default();
+    incremental.record_file_index(file_index, &mut telemetry);
+    incremental.store().save()?;
+    Ok(())
+}
+
+fn print_index_stats(
+    stats: &IndexStats,
+    cold_ms: u128,
+    incremental_ms: u128,
+    index_root: &Path,
+    target_path: &Path,
+) {
+    let total_source_bytes = collect_total_source_bytes(target_path).unwrap_or(0);
+    let memory_ratio = if total_source_bytes == 0 {
+        0.0
+    } else {
+        stats.memory_estimate_bytes as f64 / total_source_bytes as f64
+    };
+    println!(
+        "index stats: files={} symbols={} references={} function_meta={} diagnostics={} cold_ms={} incremental_ms={} memory_bytes={} memory_ratio={:.4} root={}",
+        stats.files,
+        stats.symbols,
+        stats.references,
+        stats.function_meta,
+        stats.diagnostics,
+        cold_ms,
+        incremental_ms,
+        stats.memory_estimate_bytes,
+        memory_ratio,
+        index_root.display()
+    );
+}
+
+fn collect_total_source_bytes(target_path: &Path) -> Result<usize, String> {
+    let files = collect_vibe_files(target_path)?;
+    let mut total = 0usize;
+    for file in files {
+        let metadata = fs::metadata(&file)
+            .map_err(|e| format!("failed to read metadata `{}`: {e}", file.display()))?;
+        total += usize::try_from(metadata.len()).unwrap_or(0);
+    }
+    Ok(total)
 }
 
 fn artifact_directory(source_path: &Path, profile: &str, target: &str) -> PathBuf {

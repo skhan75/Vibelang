@@ -1,21 +1,21 @@
 [package]
-name = "vibe_cli"
+name = "vibe_indexer"
 edition.workspace = true
 version.workspace = true
 license.workspace = true
 
 [dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
 vibe_ast.workspace = true
-vibe_codegen.workspace = true
 vibe_diagnostics.workspace = true
 vibe_hir.workspace = true
-vibe_indexer.workspace = true
-vibe_lsp.workspace = true
-vibe_mir.workspace = true
-vibe_parser.workspace = true
-vibe_runtime.workspace = true
-vibe_types.workspace = true
 
-[[bin]]
-name = "vibe"
-path = "src/main.rs"
+[lib]
+path = "src/lib.rs"
+
+[dev-dependencies]
+tempfile = "3.12"
+vibe_parser.workspace = true
+vibe_types.workspace = true

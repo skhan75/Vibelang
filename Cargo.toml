@@ -5,7 +5,9 @@ members = [
   "crates/vibe_codegen",
   "crates/vibe_diagnostics",
   "crates/vibe_hir",
+  "crates/vibe_indexer",
   "crates/vibe_lexer",
+  "crates/vibe_lsp",
   "crates/vibe_mir",
   "crates/vibe_parser",
   "crates/vibe_runtime",
@@ -23,7 +25,9 @@ authors = ["VibeLang Contributors"]
 vibe_ast = { path = "crates/vibe_ast" }
 vibe_diagnostics = { path = "crates/vibe_diagnostics" }
 vibe_hir = { path = "crates/vibe_hir" }
+vibe_indexer = { path = "crates/vibe_indexer" }
 vibe_lexer = { path = "crates/vibe_lexer" }
+vibe_lsp = { path = "crates/vibe_lsp" }
 vibe_mir = { path = "crates/vibe_mir" }
 vibe_parser = { path = "crates/vibe_parser" }
 vibe_codegen = { path = "crates/vibe_codegen" }

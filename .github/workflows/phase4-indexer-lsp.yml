@@ -1,0 +1,59 @@
+name: phase4-indexer-lsp
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  indexer_and_lsp_unit_tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: run indexer and lsp crate tests
+        run: |
+          set -euo pipefail
+          cargo test -p vibe_indexer
+          cargo test -p vibe_lsp
+
+  phase4_cli_integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: run phase4 cli integration tests
+        run: |
+          set -euo pipefail
+          cargo test -p vibe_cli --test phase4_indexer
+
+  medium_project_stability_smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: index medium fixture corpus
+        run: |
+          set -euo pipefail
+          cargo run -q -p vibe_cli -- index compiler/tests/fixtures --rebuild --stats > /tmp/index_stats.txt
+          test -s /tmp/index_stats.txt
+          grep "index stats:" /tmp/index_stats.txt
+
+  deterministic_index_snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: verify deterministic index snapshots
+        run: |
+          set -euo pipefail
+          dir="compiler/tests/fixtures/snapshots"
+          snapshot="$dir/.vibe/index/index_v1.json"
+
+          cargo run -q -p vibe_cli -- index "$dir" --rebuild
+          cp "$snapshot" /tmp/index_1.json
+
+          cargo run -q -p vibe_cli -- index "$dir" --rebuild
+          cp "$snapshot" /tmp/index_2.json
+
+          diff -u /tmp/index_1.json /tmp/index_2.json
