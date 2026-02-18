@@ -506,25 +506,46 @@ fn emit_select_stmt(
 
     match &first_case.pattern {
         MirSelectPattern::Receive { binding, source } => {
-            let channel = emit_expr(
-                source,
-                module,
-                builder,
-                locals,
-                function_ids,
-                function_returns,
-                runtime_fns,
-                ptr_ty,
-                str_data_counter,
-                owner,
-            )?;
-            let recv_local = module.declare_func_in_func(runtime_fns.chan_recv_fn, builder.func);
-            let call = builder.ins().call(recv_local, &[channel]);
-            let recv_value = builder
-                .inst_results(call)
-                .first()
-                .copied()
-                .unwrap_or_else(|| builder.ins().iconst(ir::types::I64, 0));
+            let recv_value = match source {
+                MirExpr::Call { callee, .. }
+                    if matches!(&**callee, MirExpr::Member { field, .. } if field == "recv") =>
+                {
+                    emit_expr(
+                        source,
+                        module,
+                        builder,
+                        locals,
+                        function_ids,
+                        function_returns,
+                        runtime_fns,
+                        ptr_ty,
+                        str_data_counter,
+                        owner,
+                    )?
+                }
+                _ => {
+                    let channel = emit_expr(
+                        source,
+                        module,
+                        builder,
+                        locals,
+                        function_ids,
+                        function_returns,
+                        runtime_fns,
+                        ptr_ty,
+                        str_data_counter,
+                        owner,
+                    )?;
+                    let recv_local =
+                        module.declare_func_in_func(runtime_fns.chan_recv_fn, builder.func);
+                    let call = builder.ins().call(recv_local, &[channel]);
+                    builder
+                        .inst_results(call)
+                        .first()
+                        .copied()
+                        .unwrap_or_else(|| builder.ins().iconst(ir::types::I64, 0))
+                }
+            };
             let var = if let Some(existing) = locals.get(binding) {
                 *existing
             } else {

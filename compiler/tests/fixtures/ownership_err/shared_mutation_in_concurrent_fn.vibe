@@ -1,0 +1,11 @@
+racyUpdate(account) -> Int {
+  @effect concurrency
+  @effect mut_state
+  go worker(1)
+  account.balance = account.balance + 1
+  0
+}
+
+worker(x: Int) -> Int {
+  x
+}

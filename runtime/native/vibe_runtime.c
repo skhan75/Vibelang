@@ -133,5 +133,8 @@ void vibe_sleep_ms(int64_t ms) {
     if (ms <= 0) {
         return;
     }
-    usleep((useconds_t)(ms * 1000));
+    struct timespec req;
+    req.tv_sec = (time_t)(ms / 1000);
+    req.tv_nsec = (long)((ms % 1000) * 1000000);
+    nanosleep(&req, NULL);
 }

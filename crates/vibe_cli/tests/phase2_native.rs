@@ -58,6 +58,19 @@ fn if_control_flow_fixture_runs() {
 }
 
 #[test]
+fn concurrency_go_select_fixture_runs() {
+    let source = temp_fixture_copy("build/concurrency_go_select.vibe");
+    let run = run_vibe(&["run", source.to_str().expect("source path str")]);
+    assert!(
+        run.status.success(),
+        "run failed:\nstdout:\n{}\nstderr:\n{}",
+        run.stdout,
+        run.stderr
+    );
+    assert_eq!(run.stdout, "go-worker\nselect-recv\n");
+}
+
+#[test]
 fn deterministic_build_binary_and_metadata() {
     let source = temp_fixture_copy("build/hello_world.vibe");
     let source_str = source.to_str().expect("source path str");

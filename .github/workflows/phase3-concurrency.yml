@@ -1,0 +1,62 @@
+name: phase3-concurrency
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  compiler_safety:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: frontend ownership/effect/concurrency diagnostics
+        run: |
+          set -euo pipefail
+          cargo test -p vibe_cli --test frontend_fixtures
+
+  runtime_concurrency:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: runtime concurrency unit tests
+        run: |
+          set -euo pipefail
+          cargo test -p vibe_runtime
+
+  concurrency_integration_smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: go/chan/select native fixture smoke
+        run: |
+          set -euo pipefail
+          file="compiler/tests/fixtures/build/concurrency_go_select.vibe"
+          cargo run -q -p vibe_cli -- run "$file" > /tmp/concurrency.out
+          printf "go-worker\nselect-recv\n" > /tmp/concurrency.expected
+          diff -u /tmp/concurrency.expected /tmp/concurrency.out
+
+  stress_smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: bounded runtime stress tests
+        run: |
+          set -euo pipefail
+          cargo test -p vibe_runtime scheduler_bounded_soak_stability
+          cargo test -p vibe_runtime channel_contention_close_stress
+
+  determinism_checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: deterministic native build + diagnostics ordering
+        run: |
+          set -euo pipefail
+          cargo test -p vibe_cli --test phase2_native deterministic_build_binary_and_metadata
+          cargo test -p vibe_cli --test frontend_fixtures snapshots_ast_hir_and_diag

@@ -1,0 +1,13 @@
+selectReceive() -> Int {
+  @effect concurrency
+  @effect alloc
+  @effect nondet
+  ch := chan(2)
+  ch.send(9)
+
+  select {
+    case value := ch.recv() => value
+    case after 1 => 0
+  }
+  0
+}

@@ -1,0 +1,10 @@
+caller() -> Int {
+  @effect io
+  helper()
+}
+
+helper() -> Int {
+  @effect io
+  println("hello")
+  0
+}

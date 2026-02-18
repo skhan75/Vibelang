@@ -10,7 +10,9 @@ pub fn is_sendable_type(ty: &TypeKind) -> bool {
         TypeKind::Int | TypeKind::Float | TypeKind::Bool | TypeKind::Str | TypeKind::Void => true,
         TypeKind::List(inner) => is_sendable_type(inner),
         TypeKind::Result(ok, err) => is_sendable_type(ok) && is_sendable_type(err),
-        TypeKind::Unknown => false,
+        // Phase 3 baseline is conservative about explicit unsafe patterns (member capture/shared
+        // mutable writes) while allowing unknowns to avoid noisy false positives.
+        TypeKind::Unknown => true,
     }
 }
 

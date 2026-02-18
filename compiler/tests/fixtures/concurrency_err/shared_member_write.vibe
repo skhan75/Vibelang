@@ -1,0 +1,10 @@
+badConcurrentWrite(state) -> Int {
+  @effect concurrency
+  go worker(1)
+  state.value = 1
+  0
+}
+
+worker(x: Int) -> Int {
+  x
+}

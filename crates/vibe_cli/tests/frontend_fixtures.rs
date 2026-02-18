@@ -101,6 +101,74 @@ fn contract_err_golden() {
 }
 
 #[test]
+fn ownership_err_golden() {
+    let dir = fixture_dir("ownership_err");
+    for file in list_vibe_files(&dir) {
+        let src = fs::read_to_string(&file).expect("read ownership_err fixture");
+        let all = check_output(&src);
+        assert!(
+            all.has_errors(),
+            "ownership_err fixture unexpectedly passed: {}",
+            file.display()
+        );
+        let expected = golden_path(&file, "diag");
+        assert_golden(&expected, &all.to_golden());
+    }
+}
+
+#[test]
+fn effect_ok_fixtures() {
+    let dir = fixture_dir("effect_ok");
+    for file in list_vibe_files(&dir) {
+        let src = fs::read_to_string(&file).expect("read effect_ok fixture");
+        let all = check_output(&src);
+        assert!(
+            !all.has_errors(),
+            "effect_ok fixture failed: {}\n{}",
+            file.display(),
+            all.to_golden()
+        );
+    }
+}
+
+#[test]
+fn effect_err_golden() {
+    let dir = fixture_dir("effect_err");
+    for file in list_vibe_files(&dir) {
+        let src = fs::read_to_string(&file).expect("read effect_err fixture");
+        let all = check_output(&src);
+        let expected = golden_path(&file, "diag");
+        assert_golden(&expected, &all.to_golden());
+    }
+}
+
+#[test]
+fn concurrency_ok_fixtures() {
+    let dir = fixture_dir("concurrency_ok");
+    for file in list_vibe_files(&dir) {
+        let src = fs::read_to_string(&file).expect("read concurrency_ok fixture");
+        let all = check_output(&src);
+        assert!(
+            !all.has_errors(),
+            "concurrency_ok fixture failed: {}\n{}",
+            file.display(),
+            all.to_golden()
+        );
+    }
+}
+
+#[test]
+fn concurrency_err_golden() {
+    let dir = fixture_dir("concurrency_err");
+    for file in list_vibe_files(&dir) {
+        let src = fs::read_to_string(&file).expect("read concurrency_err fixture");
+        let all = check_output(&src);
+        let expected = golden_path(&file, "diag");
+        assert_golden(&expected, &all.to_golden());
+    }
+}
+
+#[test]
 fn snapshots_ast_hir_and_diag() {
     let sample = fixture_dir("snapshots").join("pipeline_sample.vibe");
     let src = fs::read_to_string(&sample).expect("read snapshot sample");

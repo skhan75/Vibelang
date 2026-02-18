@@ -158,8 +158,8 @@ mod tests {
     use std::time::{Duration, Instant};
 
     use super::{
-        select_recv, BoundedChannel, CancellationToken, RecvStatus, Scheduler, SelectRecvStatus,
-        SendStatus,
+        select_recv, spawn_task, BoundedChannel, CancellationToken, RecvStatus, Scheduler,
+        SelectRecvStatus, SendStatus,
     };
 
     #[test]
@@ -234,5 +234,94 @@ mod tests {
             thread::sleep(Duration::from_millis(2));
         }
         assert_eq!(counter.load(Ordering::SeqCst), 2000);
+    }
+
+    #[test]
+    fn scheduler_bounded_soak_stability() {
+        let scheduler = Scheduler::new(4);
+        let handle = scheduler.handle();
+        let counter = Arc::new(AtomicUsize::new(0));
+        for _batch in 0..20 {
+            for _ in 0..500 {
+                let c = Arc::clone(&counter);
+                handle.spawn(move || {
+                    c.fetch_add(1, Ordering::SeqCst);
+                });
+            }
+        }
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while counter.load(Ordering::SeqCst) < 10_000 && Instant::now() < deadline {
+            thread::sleep(Duration::from_millis(2));
+        }
+        assert_eq!(counter.load(Ordering::SeqCst), 10_000);
+    }
+
+    #[test]
+    fn channel_contention_close_stress() {
+        let ch = BoundedChannel::new(32);
+        let sent = Arc::new(AtomicUsize::new(0));
+        let received = Arc::new(AtomicUsize::new(0));
+        let producers_done = Arc::new(AtomicUsize::new(0));
+
+        let mut producer_handles = Vec::new();
+        for producer_id in 0..4 {
+            let local_ch = ch.clone();
+            let local_sent = Arc::clone(&sent);
+            let local_done = Arc::clone(&producers_done);
+            producer_handles.push(thread::spawn(move || {
+                for i in 0..500 {
+                    let value = (producer_id * 1000 + i) as i64;
+                    if local_ch.send(value) != SendStatus::Sent {
+                        break;
+                    }
+                    local_sent.fetch_add(1, Ordering::SeqCst);
+                }
+                local_done.fetch_add(1, Ordering::SeqCst);
+            }));
+        }
+
+        let mut consumer_handles = Vec::new();
+        for _ in 0..4 {
+            let local_ch = ch.clone();
+            let local_received = Arc::clone(&received);
+            let local_done = Arc::clone(&producers_done);
+            consumer_handles.push(thread::spawn(move || loop {
+                match local_ch.recv_with(None, Some(Duration::from_millis(10))) {
+                    RecvStatus::Value(_) => {
+                        local_received.fetch_add(1, Ordering::SeqCst);
+                    }
+                    RecvStatus::Closed => break,
+                    RecvStatus::Timeout => {
+                        if local_done.load(Ordering::SeqCst) == 4 && local_ch.len() == 0 {
+                            break;
+                        }
+                    }
+                    RecvStatus::Cancelled => {}
+                }
+            }));
+        }
+
+        for h in producer_handles {
+            h.join().expect("producer join");
+        }
+        ch.close();
+        for h in consumer_handles {
+            h.join().expect("consumer join");
+        }
+
+        assert_eq!(sent.load(Ordering::SeqCst), 2000);
+        assert_eq!(received.load(Ordering::SeqCst), 2000);
+    }
+
+    #[test]
+    fn task_failure_propagates_to_join_error() {
+        let handle = spawn_task(CancellationToken::new(), |_token| -> i64 {
+            panic!("intentional panic for propagation test");
+        });
+        let err = handle.join().expect_err("panic should propagate as join error");
+        assert!(
+            err.contains("join failed"),
+            "unexpected join error format: {err}"
+        );
     }
 }
