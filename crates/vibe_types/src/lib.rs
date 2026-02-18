@@ -4,7 +4,10 @@ use vibe_ast::{
     BinaryOp, Contract, Declaration, Expr, FileAst, SelectPattern, Stmt, TypeRef, UnaryOp,
 };
 use vibe_diagnostics::{Diagnostic, Diagnostics, Severity};
-use vibe_hir::{verify_hir, HirFunction, HirParam, HirProgram};
+use vibe_hir::{
+    verify_hir, HirExpr, HirExprKind, HirFunction, HirParam, HirProgram, HirSelectCase,
+    HirSelectPattern, HirStmt,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TypeKind {
@@ -179,6 +182,7 @@ pub fn check_and_lower(ast: &FileAst) -> CheckOutput {
         }
 
         let mut inferred_returns: Vec<TypeKind> = Vec::new();
+        let mut hir_body: Vec<HirStmt> = Vec::new();
         for stmt in &func.body {
             check_stmt(
                 stmt,
@@ -187,8 +191,10 @@ pub fn check_and_lower(ast: &FileAst) -> CheckOutput {
                 &mut diagnostics,
                 &mut observed_effects,
                 &mut inferred_returns,
+                &mut hir_body,
             );
         }
+        let mut hir_tail_expr = None;
         if let Some(expr) = &func.tail_expr {
             let t = infer_expr(
                 expr,
@@ -199,6 +205,7 @@ pub fn check_and_lower(ast: &FileAst) -> CheckOutput {
                 &mut observed_effects,
             );
             inferred_returns.push(t);
+            hir_tail_expr = Some(lower_expr(expr, &env));
         }
 
         let inferred_return = unify_return_types(&inferred_returns);
@@ -255,6 +262,8 @@ pub fn check_and_lower(ast: &FileAst) -> CheckOutput {
             inferred_return_type: Some(type_name(&inferred_return)),
             effects_declared: declared_effects,
             effects_observed: observed_effects,
+            body: hir_body,
+            tail_expr: hir_tail_expr,
         });
     }
 
@@ -277,6 +286,7 @@ fn check_stmt(
     diagnostics: &mut Diagnostics,
     observed_effects: &mut BTreeSet<String>,
     inferred_returns: &mut Vec<TypeKind>,
+    hir_out: &mut Vec<HirStmt>,
 ) {
     match stmt {
         Stmt::Binding { name, expr, .. } => {
@@ -288,7 +298,12 @@ fn check_stmt(
                 diagnostics,
                 observed_effects,
             );
+            let lowered_expr = lower_expr(expr, env);
             env.insert(name.clone(), t);
+            hir_out.push(HirStmt::Binding {
+                name: name.clone(),
+                expr: lowered_expr,
+            });
         }
         Stmt::Assignment { target, expr, span } => {
             let rhs = infer_expr(
@@ -327,16 +342,24 @@ fn check_stmt(
                 }
                 _ => {}
             }
+            hir_out.push(HirStmt::Assignment {
+                target: lower_expr(target, env),
+                expr: lower_expr(expr, env),
+            });
         }
         Stmt::Return { expr, .. } => {
-            inferred_returns.push(infer_expr(
+            let ret_ty = infer_expr(
                 expr,
                 env,
                 sigs,
                 ContractContext::Other,
                 diagnostics,
                 observed_effects,
-            ));
+            );
+            inferred_returns.push(ret_ty);
+            hir_out.push(HirStmt::Return {
+                expr: lower_expr(expr, env),
+            });
         }
         Stmt::ExprStmt { expr, .. } => {
             let _ = infer_expr(
@@ -347,6 +370,9 @@ fn check_stmt(
                 diagnostics,
                 observed_effects,
             );
+            hir_out.push(HirStmt::Expr {
+                expr: lower_expr(expr, env),
+            });
         }
         Stmt::For {
             var, iter, body, ..
@@ -364,6 +390,7 @@ fn check_stmt(
                 _ => TypeKind::Unknown,
             };
             env.insert(var.clone(), item_ty);
+            let mut child_hir = Vec::new();
             for s in body {
                 check_stmt(
                     s,
@@ -372,8 +399,14 @@ fn check_stmt(
                     diagnostics,
                     observed_effects,
                     inferred_returns,
+                    &mut child_hir,
                 );
             }
+            hir_out.push(HirStmt::For {
+                var: var.clone(),
+                iter: lower_expr(iter, env),
+                body: child_hir,
+            });
         }
         Stmt::If {
             cond,
@@ -397,6 +430,7 @@ fn check_stmt(
                     cond.span(),
                 ));
             }
+            let mut then_hir = Vec::new();
             for s in then_body {
                 check_stmt(
                     s,
@@ -405,8 +439,10 @@ fn check_stmt(
                     diagnostics,
                     observed_effects,
                     inferred_returns,
+                    &mut then_hir,
                 );
             }
+            let mut else_hir = Vec::new();
             for s in else_body {
                 check_stmt(
                     s,
@@ -415,8 +451,14 @@ fn check_stmt(
                     diagnostics,
                     observed_effects,
                     inferred_returns,
+                    &mut else_hir,
                 );
             }
+            hir_out.push(HirStmt::If {
+                cond: lower_expr(cond, env),
+                then_body: then_hir,
+                else_body: else_hir,
+            });
         }
         Stmt::While { cond, body, .. } => {
             let cond_ty = infer_expr(
@@ -435,6 +477,7 @@ fn check_stmt(
                     cond.span(),
                 ));
             }
+            let mut child_hir = Vec::new();
             for s in body {
                 check_stmt(
                     s,
@@ -443,8 +486,13 @@ fn check_stmt(
                     diagnostics,
                     observed_effects,
                     inferred_returns,
+                    &mut child_hir,
                 );
             }
+            hir_out.push(HirStmt::While {
+                cond: lower_expr(cond, env),
+                body: child_hir,
+            });
         }
         Stmt::Repeat { count, body, .. } => {
             let count_ty = infer_expr(
@@ -463,6 +511,7 @@ fn check_stmt(
                     count.span(),
                 ));
             }
+            let mut child_hir = Vec::new();
             for s in body {
                 check_stmt(
                     s,
@@ -471,11 +520,17 @@ fn check_stmt(
                     diagnostics,
                     observed_effects,
                     inferred_returns,
+                    &mut child_hir,
                 );
             }
+            hir_out.push(HirStmt::Repeat {
+                count: lower_expr(count, env),
+                body: child_hir,
+            });
         }
         Stmt::Select { cases, .. } => {
             observed_effects.insert("concurrency".to_string());
+            let mut lowered_cases = Vec::new();
             for c in cases {
                 match &c.pattern {
                     SelectPattern::Receive { binding, expr } => {
@@ -511,7 +566,14 @@ fn check_stmt(
                     diagnostics,
                     observed_effects,
                 );
+                lowered_cases.push(HirSelectCase {
+                    pattern: lower_select_pattern(&c.pattern, env),
+                    action: lower_expr(&c.action, env),
+                });
             }
+            hir_out.push(HirStmt::Select {
+                cases: lowered_cases,
+            });
         }
         Stmt::Go { expr, .. } => {
             observed_effects.insert("concurrency".to_string());
@@ -523,7 +585,137 @@ fn check_stmt(
                 diagnostics,
                 observed_effects,
             );
+            hir_out.push(HirStmt::Go {
+                expr: lower_expr(expr, env),
+            });
         }
+    }
+}
+
+fn lower_select_pattern(
+    pattern: &SelectPattern,
+    env: &BTreeMap<String, TypeKind>,
+) -> HirSelectPattern {
+    match pattern {
+        SelectPattern::Receive { binding, expr } => HirSelectPattern::Receive {
+            binding: binding.clone(),
+            expr: lower_expr(expr, env),
+        },
+        SelectPattern::After { duration_literal } => HirSelectPattern::After {
+            duration_literal: duration_literal.clone(),
+        },
+        SelectPattern::Closed { ident } => HirSelectPattern::Closed {
+            ident: ident.clone(),
+        },
+    }
+}
+
+fn lower_expr(expr: &Expr, env: &BTreeMap<String, TypeKind>) -> HirExpr {
+    let ty = type_name(&expr_type_hint(expr, env));
+    let kind = match expr {
+        Expr::Ident { name, .. } => HirExprKind::Ident(name.clone()),
+        Expr::Int { value, .. } => HirExprKind::Int(*value),
+        Expr::Float { value, .. } => HirExprKind::Float(*value),
+        Expr::Bool { value, .. } => HirExprKind::Bool(*value),
+        Expr::String { value, .. } => HirExprKind::String(value.clone()),
+        Expr::List { items, .. } => {
+            HirExprKind::List(items.iter().map(|e| lower_expr(e, env)).collect())
+        }
+        Expr::Map { entries, .. } => HirExprKind::Map(
+            entries
+                .iter()
+                .map(|(k, v)| (lower_expr(k, env), lower_expr(v, env)))
+                .collect(),
+        ),
+        Expr::Member { object, field, .. } => HirExprKind::Member {
+            object: Box::new(lower_expr(object, env)),
+            field: field.clone(),
+        },
+        Expr::Call { callee, args, .. } => HirExprKind::Call {
+            callee: Box::new(lower_expr(callee, env)),
+            args: args.iter().map(|a| lower_expr(a, env)).collect(),
+        },
+        Expr::Binary {
+            left, op, right, ..
+        } => HirExprKind::Binary {
+            left: Box::new(lower_expr(left, env)),
+            op: *op,
+            right: Box::new(lower_expr(right, env)),
+        },
+        Expr::Unary { op, expr, .. } => HirExprKind::Unary {
+            op: *op,
+            expr: Box::new(lower_expr(expr, env)),
+        },
+        Expr::Question { expr, .. } => HirExprKind::Question {
+            expr: Box::new(lower_expr(expr, env)),
+        },
+        Expr::DotResult { .. } => HirExprKind::DotResult,
+        Expr::Old { expr, .. } => HirExprKind::Old {
+            expr: Box::new(lower_expr(expr, env)),
+        },
+    };
+    HirExpr::new(kind, ty)
+}
+
+fn expr_type_hint(expr: &Expr, env: &BTreeMap<String, TypeKind>) -> TypeKind {
+    match expr {
+        Expr::Ident { name, .. } => env.get(name).cloned().unwrap_or(TypeKind::Unknown),
+        Expr::Int { .. } => TypeKind::Int,
+        Expr::Float { .. } => TypeKind::Float,
+        Expr::Bool { .. } => TypeKind::Bool,
+        Expr::String { .. } => TypeKind::Str,
+        Expr::List { items, .. } => {
+            if let Some(first) = items.first() {
+                TypeKind::List(Box::new(expr_type_hint(first, env)))
+            } else {
+                TypeKind::List(Box::new(TypeKind::Unknown))
+            }
+        }
+        Expr::Map { .. } => TypeKind::Unknown,
+        Expr::Member { object, field, .. } => match field.as_str() {
+            "len" | "balance" => TypeKind::Int,
+            _ => expr_type_hint(object, env),
+        },
+        Expr::Call { callee, .. } => {
+            if let Expr::Ident { name, .. } = &**callee {
+                return match name.as_str() {
+                    "len" | "min" | "cpu_count" => TypeKind::Int,
+                    "sorted_desc" => TypeKind::Bool,
+                    "print" | "println" => TypeKind::Void,
+                    _ => TypeKind::Unknown,
+                };
+            }
+            TypeKind::Unknown
+        }
+        Expr::Binary {
+            op, left, right, ..
+        } => match op {
+            BinaryOp::Eq
+            | BinaryOp::Ne
+            | BinaryOp::Lt
+            | BinaryOp::Le
+            | BinaryOp::Gt
+            | BinaryOp::Ge => TypeKind::Bool,
+            BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div => {
+                let lt = expr_type_hint(left, env);
+                let rt = expr_type_hint(right, env);
+                if matches!(lt, TypeKind::Float) || matches!(rt, TypeKind::Float) {
+                    TypeKind::Float
+                } else {
+                    TypeKind::Int
+                }
+            }
+        },
+        Expr::Unary { op, expr, .. } => match op {
+            UnaryOp::Not => TypeKind::Bool,
+            UnaryOp::Neg => expr_type_hint(expr, env),
+        },
+        Expr::Question { expr, .. } => match expr_type_hint(expr, env) {
+            TypeKind::Result(ok, _) => *ok,
+            _ => TypeKind::Unknown,
+        },
+        Expr::DotResult { .. } => TypeKind::Unknown,
+        Expr::Old { expr, .. } => expr_type_hint(expr, env),
     }
 }
 
@@ -596,6 +788,10 @@ fn infer_expr(
                     }
                     "len" | "min" | "cpu_count" => return TypeKind::Int,
                     "sorted_desc" => return TypeKind::Bool,
+                    "print" | "println" => {
+                        observed_effects.insert("io".to_string());
+                        return TypeKind::Void;
+                    }
                     "ok" => {
                         return TypeKind::Result(
                             Box::new(TypeKind::Void),
@@ -848,6 +1044,16 @@ fn is_known_effect(e: &str) -> bool {
 fn is_builtin_ident(name: &str) -> bool {
     matches!(
         name,
-        "len" | "min" | "max" | "sorted_desc" | "cpu_count" | "ok" | "err" | "true" | "false"
+        "len"
+            | "min"
+            | "max"
+            | "sorted_desc"
+            | "cpu_count"
+            | "ok"
+            | "err"
+            | "print"
+            | "println"
+            | "true"
+            | "false"
     )
 }

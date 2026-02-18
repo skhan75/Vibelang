@@ -1,0 +1,11 @@
+[package]
+name = "vibe_mir"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+
+[dependencies]
+vibe_hir.workspace = true
+
+[lib]
+path = "src/lib.rs"

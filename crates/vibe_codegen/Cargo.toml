@@ -1,0 +1,17 @@
+[package]
+name = "vibe_codegen"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+
+[dependencies]
+cranelift-codegen = "0.121.2"
+cranelift-frontend = "0.121.2"
+cranelift-module = "0.121.2"
+cranelift-native = "0.121.2"
+cranelift-object = "0.121.2"
+target-lexicon = "0.13.5"
+vibe_mir.workspace = true
+
+[lib]
+path = "src/lib.rs"

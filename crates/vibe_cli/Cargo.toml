@@ -5,8 +5,11 @@ version.workspace = true
 license.workspace = true
 
 [dependencies]
+vibe_codegen.workspace = true
 vibe_diagnostics.workspace = true
+vibe_mir.workspace = true
 vibe_parser.workspace = true
+vibe_runtime.workspace = true
 vibe_types.workspace = true
 
 [[bin]]
