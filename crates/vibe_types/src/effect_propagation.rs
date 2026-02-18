@@ -32,7 +32,10 @@ pub fn compute_transitive_effects(
 ) -> BTreeMap<String, BTreeSet<String>> {
     let mut effect_map = BTreeMap::new();
     for summary in summaries {
-        effect_map.insert(summary.name.clone(), summary.direct_observed_effects.clone());
+        effect_map.insert(
+            summary.name.clone(),
+            summary.direct_observed_effects.clone(),
+        );
     }
 
     let mut changed = true;
@@ -86,7 +89,10 @@ fn collect_calls_from_stmt(stmt: &Stmt, out: &mut BTreeSet<String>) {
         Stmt::Return { expr, .. } => {
             collect_calls_from_expr(expr, out);
         }
-        Stmt::For { iter, body, .. } | Stmt::While { cond: iter, body, .. } => {
+        Stmt::For { iter, body, .. }
+        | Stmt::While {
+            cond: iter, body, ..
+        } => {
             collect_calls_from_expr(iter, out);
             for s in body {
                 collect_calls_from_stmt(s, out);
@@ -118,7 +124,8 @@ fn collect_calls_from_stmt(stmt: &Stmt, out: &mut BTreeSet<String>) {
                     vibe_ast::SelectPattern::Receive { expr, .. } => {
                         collect_calls_from_expr(expr, out);
                     }
-                    vibe_ast::SelectPattern::After { .. } | vibe_ast::SelectPattern::Closed { .. } => {}
+                    vibe_ast::SelectPattern::After { .. }
+                    | vibe_ast::SelectPattern::Closed { .. } => {}
                 }
                 collect_calls_from_expr(&case.action, out);
             }

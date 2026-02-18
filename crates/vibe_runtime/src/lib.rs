@@ -318,7 +318,9 @@ mod tests {
         let handle = spawn_task(CancellationToken::new(), |_token| -> i64 {
             panic!("intentional panic for propagation test");
         });
-        let err = handle.join().expect_err("panic should propagate as join error");
+        let err = handle
+            .join()
+            .expect_err("panic should propagate as join error");
         assert!(
             err.contains("join failed"),
             "unexpected join error format: {err}"

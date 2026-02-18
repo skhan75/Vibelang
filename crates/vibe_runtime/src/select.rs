@@ -34,7 +34,12 @@ pub fn select_recv<T: Clone>(
         for offset in 0..channels.len() {
             let idx = (start_idx + offset) % channels.len();
             match channels[idx].try_recv() {
-                RecvStatus::Value(v) => return SelectRecvStatus::Received { index: idx, value: v },
+                RecvStatus::Value(v) => {
+                    return SelectRecvStatus::Received {
+                        index: idx,
+                        value: v,
+                    }
+                }
                 RecvStatus::Closed => return SelectRecvStatus::Closed { index: idx },
                 RecvStatus::Cancelled | RecvStatus::Timeout => {}
             }

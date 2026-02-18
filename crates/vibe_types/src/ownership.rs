@@ -20,8 +20,7 @@ pub fn expr_contains_member_access(expr: &Expr) -> bool {
     match expr {
         Expr::Member { .. } => true,
         Expr::Call { callee, args, .. } => {
-            expr_contains_member_access(callee)
-                || args.iter().any(expr_contains_member_access)
+            expr_contains_member_access(callee) || args.iter().any(expr_contains_member_access)
         }
         Expr::Binary { left, right, .. } => {
             expr_contains_member_access(left) || expr_contains_member_access(right)
@@ -104,9 +103,7 @@ fn contains_member_assignment(stmts: &[Stmt]) -> bool {
                     return true;
                 }
             }
-            Stmt::For { body, .. }
-            | Stmt::While { body, .. }
-            | Stmt::Repeat { body, .. } => {
+            Stmt::For { body, .. } | Stmt::While { body, .. } | Stmt::Repeat { body, .. } => {
                 if contains_member_assignment(body) {
                     return true;
                 }

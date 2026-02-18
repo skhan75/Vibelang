@@ -14,8 +14,10 @@ use vibe_hir::{
 };
 
 use crate::effect_diagnostics::emit_effect_diagnostics;
-use crate::effect_propagation::{collect_direct_calls, compute_transitive_effects, FunctionEffectSummary};
-use crate::ownership::{check_shared_mutation_in_concurrent_context, check_go_sendability};
+use crate::effect_propagation::{
+    collect_direct_calls, compute_transitive_effects, FunctionEffectSummary,
+};
+use crate::ownership::{check_go_sendability, check_shared_mutation_in_concurrent_context};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TypeKind {

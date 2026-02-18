@@ -99,9 +99,7 @@ fn worker_loop(shared: Arc<SharedState>, metrics: SchedulerMetrics) {
                     return;
                 }
                 if let Some(job) = queue.pop_front() {
-                    metrics
-                        .queue_depth
-                        .store(queue.len(), Ordering::SeqCst);
+                    metrics.queue_depth.store(queue.len(), Ordering::SeqCst);
                     break job;
                 }
                 metrics.blocking_waits.fetch_add(1, Ordering::SeqCst);

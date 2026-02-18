@@ -10,7 +10,9 @@ use cranelift_module::DataDescription;
 use cranelift_module::{default_libcall_names, FuncId, Linkage, Module};
 use cranelift_object::{ObjectBuilder, ObjectModule};
 use target_lexicon::Triple;
-use vibe_mir::{MirExpr, MirFunction, MirProgram, MirSelectCase, MirSelectPattern, MirStmt, MirType};
+use vibe_mir::{
+    MirExpr, MirFunction, MirProgram, MirSelectCase, MirSelectPattern, MirStmt, MirType,
+};
 
 #[derive(Debug, Clone)]
 pub struct CodegenOptions {
@@ -480,9 +482,9 @@ fn emit_stmt(
             )?;
             Ok(false)
         }
-        MirStmt::While { .. } | MirStmt::Repeat { .. } => Err(
-            "codegen for this control-flow construct is not yet implemented".to_string(),
-        ),
+        MirStmt::While { .. } | MirStmt::Repeat { .. } => {
+            Err("codegen for this control-flow construct is not yet implemented".to_string())
+        }
     }
 }
 
@@ -507,9 +509,7 @@ fn emit_select_stmt(
     match &first_case.pattern {
         MirSelectPattern::Receive { binding, source } => {
             let recv_value = match source {
-                MirExpr::Call { callee, .. }
-                    if matches!(&**callee, MirExpr::Member { field, .. } if field == "recv") =>
-                {
+                MirExpr::Call { callee, .. } if matches!(&**callee, MirExpr::Member { field, .. } if field == "recv") => {
                     emit_expr(
                         source,
                         module,
@@ -702,13 +702,12 @@ fn emit_expr(
                         str_data_counter,
                         owner,
                     )?;
-                    let local_new = module.declare_func_in_func(runtime_fns.chan_new_fn, builder.func);
+                    let local_new =
+                        module.declare_func_in_func(runtime_fns.chan_new_fn, builder.func);
                     let call = builder.ins().call(local_new, &[capacity]);
-                    let chan = builder
-                        .inst_results(call)
-                        .first()
-                        .copied()
-                        .ok_or_else(|| "chan runtime call did not return channel handle".to_string())?;
+                    let chan = builder.inst_results(call).first().copied().ok_or_else(|| {
+                        "chan runtime call did not return channel handle".to_string()
+                    })?;
                     return Ok(chan);
                 }
                 if let Some(fid) = function_ids.get(name) {
@@ -936,9 +935,7 @@ fn value_type_for_expr(expr: &MirExpr, ptr_ty: ir::Type) -> ir::Type {
         MirExpr::Float(_) => ir::types::F64,
         MirExpr::Bool(_) => ir::types::I8,
         MirExpr::Str(_) => ptr_ty,
-        MirExpr::Call { callee, .. }
-            if matches!(&**callee, MirExpr::Var(name) if name == "chan") =>
-        {
+        MirExpr::Call { callee, .. } if matches!(&**callee, MirExpr::Var(name) if name == "chan") => {
             ptr_ty
         }
         _ => ir::types::I64,
