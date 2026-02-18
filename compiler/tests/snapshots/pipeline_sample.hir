@@ -29,6 +29,135 @@ HirProgram {
                 "alloc",
                 "concurrency",
             },
+            body: [
+                Binding {
+                    name: "jobs",
+                    expr: HirExpr {
+                        kind: Call {
+                            callee: HirExpr {
+                                kind: Ident(
+                                    "chan",
+                                ),
+                                ty: "Unknown",
+                            },
+                            args: [
+                                HirExpr {
+                                    kind: Int(
+                                        1024,
+                                    ),
+                                    ty: "Int",
+                                },
+                            ],
+                        },
+                        ty: "Unknown",
+                    },
+                },
+                Binding {
+                    name: "out",
+                    expr: HirExpr {
+                        kind: Call {
+                            callee: HirExpr {
+                                kind: Ident(
+                                    "chan",
+                                ),
+                                ty: "Unknown",
+                            },
+                            args: [
+                                HirExpr {
+                                    kind: Int(
+                                        1024,
+                                    ),
+                                    ty: "Int",
+                                },
+                            ],
+                        },
+                        ty: "Unknown",
+                    },
+                },
+                Repeat {
+                    count: HirExpr {
+                        kind: Call {
+                            callee: HirExpr {
+                                kind: Ident(
+                                    "cpu_count",
+                                ),
+                                ty: "Unknown",
+                            },
+                            args: [],
+                        },
+                        ty: "Int",
+                    },
+                    body: [
+                        Go {
+                            expr: HirExpr {
+                                kind: Call {
+                                    callee: HirExpr {
+                                        kind: Ident(
+                                            "worker",
+                                        ),
+                                        ty: "Unknown",
+                                    },
+                                    args: [
+                                        HirExpr {
+                                            kind: Ident(
+                                                "jobs",
+                                            ),
+                                            ty: "Unknown",
+                                        },
+                                        HirExpr {
+                                            kind: Ident(
+                                                "out",
+                                            ),
+                                            ty: "Unknown",
+                                        },
+                                    ],
+                                },
+                                ty: "Unknown",
+                            },
+                        },
+                    ],
+                },
+            ],
+            tail_expr: Some(
+                HirExpr {
+                    kind: Call {
+                        callee: HirExpr {
+                            kind: Member {
+                                object: HirExpr {
+                                    kind: Ident(
+                                        "out",
+                                    ),
+                                    ty: "Unknown",
+                                },
+                                field: "take",
+                            },
+                            ty: "Unknown",
+                        },
+                        args: [
+                            HirExpr {
+                                kind: Call {
+                                    callee: HirExpr {
+                                        kind: Ident(
+                                            "len",
+                                        ),
+                                        ty: "Unknown",
+                                    },
+                                    args: [
+                                        HirExpr {
+                                            kind: Ident(
+                                                "tasks",
+                                            ),
+                                            ty: "List<Unknown>",
+                                        },
+                                    ],
+                                },
+                                ty: "Int",
+                            },
+                        ],
+                    },
+                    ty: "Unknown",
+                },
+            ),
         },
     ],
 }

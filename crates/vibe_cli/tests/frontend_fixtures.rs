@@ -2,6 +2,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use vibe_diagnostics::Diagnostics;
+use vibe_mir::{lower_hir_to_mir, mir_debug_dump};
 use vibe_parser::parse_source;
 use vibe_types::check_and_lower;
 
@@ -112,6 +113,10 @@ fn snapshots_ast_hir_and_diag() {
 
     let ast_snapshot = format!("{:#?}\n", parsed.ast);
     let hir_snapshot = format!("{:#?}\n", checked.hir);
+    let mir_snapshot = match lower_hir_to_mir(&checked.hir) {
+        Ok(mir) => mir_debug_dump(&mir),
+        Err(err) => format!("MIR lowering failed: {err}\n"),
+    };
     let diag_snapshot = all.to_golden();
 
     let root = workspace_root();
@@ -124,13 +129,17 @@ fn snapshots_ast_hir_and_diag() {
         &hir_snapshot,
     );
     assert_golden(
+        &root.join("compiler/tests/snapshots/pipeline_sample.mir"),
+        &mir_snapshot,
+    );
+    assert_golden(
         &root.join("compiler/tests/snapshots/pipeline_sample.diag"),
         &diag_snapshot,
     );
 }
 
 #[test]
-fn deterministic_repeat_runs_for_check_and_hir() {
+fn deterministic_repeat_runs_for_check_hir_and_mir() {
     let sample = fixture_dir("snapshots").join("pipeline_sample.vibe");
     let src = fs::read_to_string(&sample).expect("read snapshot sample");
 
@@ -141,15 +150,20 @@ fn deterministic_repeat_runs_for_check_and_hir() {
         "diagnostics output must be deterministic"
     );
     assert_eq!(first.1, second.1, "HIR debug output must be deterministic");
+    assert_eq!(first.2, second.2, "MIR debug output must be deterministic");
 }
 
-fn run_and_capture(src: &str) -> (String, String) {
+fn run_and_capture(src: &str) -> (String, String, String) {
     let parsed = parse_source(src);
     let checked = check_and_lower(&parsed.ast);
     let mut all = Diagnostics::default();
     all.extend(parsed.diagnostics.into_sorted());
     all.extend(checked.diagnostics.into_sorted());
-    (all.to_golden(), format!("{:#?}", checked.hir))
+    let mir = match lower_hir_to_mir(&checked.hir) {
+        Ok(mir) => mir_debug_dump(&mir),
+        Err(err) => format!("MIR lowering failed: {err}"),
+    };
+    (all.to_golden(), format!("{:#?}", checked.hir), mir)
 }
 
 fn check_output(src: &str) -> Diagnostics {

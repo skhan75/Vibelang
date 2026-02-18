@@ -1,0 +1,10 @@
+greet(msg: Str) -> Int {
+  @effect io
+  println(msg)
+  0
+}
+
+pub main() -> Int {
+  greet("from helper")
+  0
+}
