@@ -15,13 +15,13 @@ Use rules:
 - [ ] Reproducible build mode (`--locked`, pinned toolchain, normalized artifacts)
 - [ ] Determinism tests: same source + same toolchain => bit-identical output
 - [ ] AI sidecar proven non-blocking for parse/type/codegen/link paths
-- [ ] Deterministic diagnostics ordering in compiler output
+- [x] Deterministic diagnostics ordering in compiler output
 
 ### Safety Defaults
 
-- [ ] Data-race safety strategy documented and enforced in language/runtime behavior
+- [x] Data-race safety strategy documented and enforced in language/runtime behavior
 - [ ] Memory safety defaults documented for user code paths
-- [ ] Concurrency primitives (`go`, `chan`, `select`) validated with stress tests
+- [x] Concurrency primitives (`go`, `chan`, `select`) validated with stress tests
 - [ ] Contract checks (`@require/@ensure`) active in dev/test profiles by default
 
 ### Escape Hatches (Isolated and Auditable)
@@ -33,7 +33,7 @@ Use rules:
 ### Transparent Performance Model
 
 - [ ] Allocation visibility available in diagnostics/profile outputs
-- [ ] Effect declarations (`@effect`) checked against observed behavior
+- [x] Effect declarations (`@effect`) checked against observed behavior
 - [ ] Benchmark suite publishes CPU/memory/latency metrics per release
 - [ ] Docs explain cost model for copies, allocations, and concurrency operations
 
@@ -138,30 +138,30 @@ Goal: enforce safe concurrent behavior and effect correctness while preserving e
 
 ### 3.1 Ownership and Effect Semantics
 
-- [ ] Define ownership/aliasing rules for shared mutable state (thread-safety focused)
-- [ ] Implement effect inference and checking against `@effect`
-- [ ] Add transitive effect propagation over call graph
-- [ ] Add compiler diagnostics for missing/incorrect effects
+- [x] Define ownership/aliasing rules for shared mutable state (thread-safety focused)
+- [x] Implement effect inference and checking against `@effect`
+- [x] Add transitive effect propagation over call graph
+- [x] Add compiler diagnostics for missing/incorrect effects
 
 ### 3.2 Concurrency Runtime Model
 
 - [x] Concurrency design drafted (`runtime/concurrency/design.md`)
-- [ ] Implement task scheduler (M:N work stealing baseline)
-- [ ] Implement typed bounded channels
-- [ ] Implement `select` semantics with fairness policy
-- [ ] Implement cancellation primitives and propagation
+- [x] Implement task scheduler (M:N work stealing baseline)
+- [x] Implement typed bounded channels
+- [x] Implement `select` semantics with fairness policy
+- [x] Implement cancellation primitives and propagation
 
 ### 3.3 Reliability and Safety Validation
 
-- [ ] Concurrency stress tests (deadlock/contention/cancellation paths)
-- [ ] Race-pattern tests and static/dynamic checks where feasible
-- [ ] Panic/failure propagation rules validated in task scopes
+- [x] Concurrency stress tests (deadlock/contention/cancellation paths)
+- [x] Race-pattern tests and static/dynamic checks where feasible
+- [x] Panic/failure propagation rules validated in task scopes
 
 ### Phase 3 Exit Criteria
 
-- [ ] Concurrency primitives stable under stress workloads
-- [ ] Effect checker catches mismatches with high signal
-- [ ] Runtime behavior aligns with safety-default guardrails
+- [x] Concurrency primitives stable under stress workloads
+- [x] Effect checker catches mismatches with high signal
+- [x] Runtime behavior aligns with safety-default guardrails
 
 ---
 
@@ -278,6 +278,6 @@ Goal: move from core compiler/runtime to a sustainable developer ecosystem.
 ## Current Status Snapshot
 
 - Core strategy/spec docs: drafted and phase-1 ambiguities resolved
-- Implementation code: Phase 2 native path delivered for Linux x86_64 (HIR bodies, MIR, Cranelift object emission, runtime/link, `vibe build`/`vibe run`)
-- Verification: hello-world compile/run works end-to-end with deterministic build smoke coverage and CI gates
-- Next execution focus: broaden backend coverage (additional control-flow/codegen subset, debug info, arm64) and deepen stdlib/runtime capabilities
+- Implementation code: Phase 3 hybrid ownership/effect/concurrency baseline delivered (ownership/effect passes, transitive effects, runtime scheduler/channels/select/cancellation, go/select codegen path)
+- Verification: ownership/effect/concurrency fixture suites, runtime stress tests, go/chan/select native smoke, and deterministic checks are green
+- Next execution focus: Phase 4 incremental semantic index and LSP diagnostics with low-latency local feedback
