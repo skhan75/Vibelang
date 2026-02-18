@@ -153,6 +153,18 @@ fn deterministic_repeat_runs_for_check_hir_and_mir() {
     assert_eq!(first.2, second.2, "MIR debug output must be deterministic");
 }
 
+#[test]
+fn docs_syntax_samples_compile_without_errors() {
+    let sample = workspace_root().join("docs/spec/syntax_samples.vibe");
+    let src = fs::read_to_string(&sample).expect("read syntax samples");
+    let all = check_output(&src);
+    assert!(
+        !all.has_errors(),
+        "docs syntax samples should compile without errors:\n{}",
+        all.to_golden()
+    );
+}
+
 fn run_and_capture(src: &str) -> (String, String, String) {
     let parsed = parse_source(src);
     let checked = check_and_lower(&parsed.ast);

@@ -86,6 +86,10 @@ This catalog reserves deterministic code ranges for frontend diagnostics.
 - `E3003` declared effect not observed (info)
 - `E3004` `@require` expression should be Bool
 - `E3005` `@ensure` expression should be Bool
+- `E3101` transitive callee effect missing from caller declaration (warning)
+- `E3201` non-sendable value passed to `go`
+- `E3202` unsafe member capture in `go` argument
+- `E3203` shared mutable member assignment in concurrent context without explicit synchronization
 
 ## Deterministic Ordering
 

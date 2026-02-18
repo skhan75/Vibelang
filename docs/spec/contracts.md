@@ -120,6 +120,7 @@ Semantics:
 - Compiler builds effect summary for each function.
 - Summary is checked against declared effects.
 - Transitive effect propagation is supported for call graphs.
+- Ownership/sendability checks in Phase 3 can raise diagnostics that require `@effect concurrency`/`@effect mut_state` alignment.
 
 ## Lowering Strategy
 

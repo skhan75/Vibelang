@@ -10,12 +10,13 @@ use cranelift_module::DataDescription;
 use cranelift_module::{default_libcall_names, FuncId, Linkage, Module};
 use cranelift_object::{ObjectBuilder, ObjectModule};
 use target_lexicon::Triple;
-use vibe_mir::{MirExpr, MirFunction, MirProgram, MirStmt, MirType};
+use vibe_mir::{MirExpr, MirFunction, MirProgram, MirSelectCase, MirSelectPattern, MirStmt, MirType};
 
 #[derive(Debug, Clone)]
 pub struct CodegenOptions {
     pub target: String,
     pub profile: String,
+    pub debuginfo: String,
 }
 
 impl Default for CodegenOptions {
@@ -23,19 +24,31 @@ impl Default for CodegenOptions {
         Self {
             target: "x86_64-unknown-linux-gnu".to_string(),
             profile: "dev".to_string(),
+            debuginfo: "line".to_string(),
         }
     }
 }
 
+#[derive(Clone, Copy)]
+struct RuntimeFunctions {
+    print_fn: FuncId,
+    chan_new_fn: FuncId,
+    chan_send_fn: FuncId,
+    chan_recv_fn: FuncId,
+    chan_close_fn: FuncId,
+    chan_is_closed_fn: FuncId,
+    sleep_ms_fn: FuncId,
+}
+
 pub fn emit_object(program: &MirProgram, options: &CodegenOptions) -> Result<Vec<u8>, String> {
     let triple = parse_target(&options.target)?;
-    let isa = build_isa(triple, &options.profile)?;
+    let isa = build_isa(triple, &options.profile, &options.debuginfo)?;
     let builder = ObjectBuilder::new(isa, "vibe_module".to_string(), default_libcall_names())
         .map_err(|e| format!("failed to create object builder: {e}"))?;
     let mut module = ObjectModule::new(builder);
 
     let ptr_ty = module.target_config().pointer_type();
-    let print_fn = declare_print_runtime(&mut module, ptr_ty)?;
+    let runtime_fns = declare_runtime_functions(&mut module, ptr_ty)?;
 
     let mut function_ids = BTreeMap::new();
     let mut function_returns = BTreeMap::new();
@@ -62,7 +75,7 @@ pub fn emit_object(program: &MirProgram, options: &CodegenOptions) -> Result<Vec
                 .ok_or_else(|| format!("missing function id for `{}`", f.name))?,
             &function_ids,
             &function_returns,
-            print_fn,
+            runtime_fns,
             ptr_ty,
         )?;
     }
@@ -81,7 +94,11 @@ fn parse_target(raw: &str) -> Result<Triple, String> {
         .map_err(|e| format!("invalid target triple `{raw}`: {e}"))
 }
 
-fn build_isa(triple: Triple, profile: &str) -> Result<Arc<dyn isa::TargetIsa>, String> {
+fn build_isa(
+    triple: Triple,
+    profile: &str,
+    debuginfo: &str,
+) -> Result<Arc<dyn isa::TargetIsa>, String> {
     let mut flags_builder = settings::builder();
     flags_builder
         .set(
@@ -96,6 +113,12 @@ fn build_isa(triple: Triple, profile: &str) -> Result<Arc<dyn isa::TargetIsa>, S
     flags_builder
         .set("is_pic", "true")
         .map_err(|e| format!("failed to set PIC flag: {e}"))?;
+    if debuginfo != "none" {
+        let _ = flags_builder.set("unwind_info", "true");
+    }
+    if debuginfo == "full" {
+        let _ = flags_builder.set("preserve_frame_pointers", "true");
+    }
     let flags = settings::Flags::new(flags_builder);
     isa::lookup(triple)
         .map_err(|e| format!("unsupported target ISA: {e}"))?
@@ -116,12 +139,66 @@ fn build_signature(module: &ObjectModule, f: &MirFunction, ptr_ty: ir::Type) -> 
     sig
 }
 
-fn declare_print_runtime(module: &mut ObjectModule, ptr_ty: ir::Type) -> Result<FuncId, String> {
+fn declare_runtime_functions(
+    module: &mut ObjectModule,
+    ptr_ty: ir::Type,
+) -> Result<RuntimeFunctions, String> {
     let mut sig = module.make_signature();
     sig.params.push(AbiParam::new(ptr_ty));
-    module
+    let print_fn = module
         .declare_function("vibe_println", Linkage::Import, &sig)
-        .map_err(|e| format!("failed to declare runtime print symbol: {e}"))
+        .map_err(|e| format!("failed to declare runtime print symbol: {e}"))?;
+
+    let mut chan_new_sig = module.make_signature();
+    chan_new_sig.params.push(AbiParam::new(ir::types::I64));
+    chan_new_sig.returns.push(AbiParam::new(ptr_ty));
+    let chan_new_fn = module
+        .declare_function("vibe_chan_new_i64", Linkage::Import, &chan_new_sig)
+        .map_err(|e| format!("failed to declare runtime chan_new symbol: {e}"))?;
+
+    let mut chan_send_sig = module.make_signature();
+    chan_send_sig.params.push(AbiParam::new(ptr_ty));
+    chan_send_sig.params.push(AbiParam::new(ir::types::I64));
+    chan_send_sig.returns.push(AbiParam::new(ir::types::I64));
+    let chan_send_fn = module
+        .declare_function("vibe_chan_send_i64", Linkage::Import, &chan_send_sig)
+        .map_err(|e| format!("failed to declare runtime chan_send symbol: {e}"))?;
+
+    let mut chan_recv_sig = module.make_signature();
+    chan_recv_sig.params.push(AbiParam::new(ptr_ty));
+    chan_recv_sig.returns.push(AbiParam::new(ir::types::I64));
+    let chan_recv_fn = module
+        .declare_function("vibe_chan_recv_i64", Linkage::Import, &chan_recv_sig)
+        .map_err(|e| format!("failed to declare runtime chan_recv symbol: {e}"))?;
+
+    let mut chan_close_sig = module.make_signature();
+    chan_close_sig.params.push(AbiParam::new(ptr_ty));
+    let chan_close_fn = module
+        .declare_function("vibe_chan_close_i64", Linkage::Import, &chan_close_sig)
+        .map_err(|e| format!("failed to declare runtime chan_close symbol: {e}"))?;
+
+    let mut chan_closed_sig = module.make_signature();
+    chan_closed_sig.params.push(AbiParam::new(ptr_ty));
+    chan_closed_sig.returns.push(AbiParam::new(ir::types::I64));
+    let chan_is_closed_fn = module
+        .declare_function("vibe_chan_is_closed_i64", Linkage::Import, &chan_closed_sig)
+        .map_err(|e| format!("failed to declare runtime chan_is_closed symbol: {e}"))?;
+
+    let mut sleep_sig = module.make_signature();
+    sleep_sig.params.push(AbiParam::new(ir::types::I64));
+    let sleep_ms_fn = module
+        .declare_function("vibe_sleep_ms", Linkage::Import, &sleep_sig)
+        .map_err(|e| format!("failed to declare runtime sleep symbol: {e}"))?;
+
+    Ok(RuntimeFunctions {
+        print_fn,
+        chan_new_fn,
+        chan_send_fn,
+        chan_recv_fn,
+        chan_close_fn,
+        chan_is_closed_fn,
+        sleep_ms_fn,
+    })
 }
 
 fn define_function(
@@ -130,7 +207,7 @@ fn define_function(
     func_id: FuncId,
     function_ids: &BTreeMap<String, FuncId>,
     function_returns: &BTreeMap<String, MirType>,
-    print_fn: FuncId,
+    runtime_fns: RuntimeFunctions,
     ptr_ty: ir::Type,
 ) -> Result<(), String> {
     let mut ctx = module.make_context();
@@ -170,7 +247,7 @@ fn define_function(
             &mut next_var,
             function_ids,
             function_returns,
-            print_fn,
+            runtime_fns,
             ptr_ty,
             &mut str_data_counter,
             function,
@@ -202,7 +279,7 @@ fn emit_stmt(
     next_var: &mut usize,
     function_ids: &BTreeMap<String, FuncId>,
     function_returns: &BTreeMap<String, MirType>,
-    print_fn: FuncId,
+    runtime_fns: RuntimeFunctions,
     ptr_ty: ir::Type,
     str_data_counter: &mut usize,
     owner: &MirFunction,
@@ -216,7 +293,7 @@ fn emit_stmt(
                 locals,
                 function_ids,
                 function_returns,
-                print_fn,
+                runtime_fns,
                 ptr_ty,
                 str_data_counter,
                 owner,
@@ -236,7 +313,7 @@ fn emit_stmt(
                 locals,
                 function_ids,
                 function_returns,
-                print_fn,
+                runtime_fns,
                 ptr_ty,
                 str_data_counter,
                 owner,
@@ -261,7 +338,7 @@ fn emit_stmt(
                 locals,
                 function_ids,
                 function_returns,
-                print_fn,
+                runtime_fns,
                 ptr_ty,
                 str_data_counter,
                 owner,
@@ -276,7 +353,7 @@ fn emit_stmt(
                 locals,
                 function_ids,
                 function_returns,
-                print_fn,
+                runtime_fns,
                 ptr_ty,
                 str_data_counter,
                 owner,
@@ -300,7 +377,7 @@ fn emit_stmt(
                 locals,
                 function_ids,
                 function_returns,
-                print_fn,
+                runtime_fns,
                 ptr_ty,
                 str_data_counter,
                 owner,
@@ -328,7 +405,7 @@ fn emit_stmt(
                     next_var,
                     function_ids,
                     function_returns,
-                    print_fn,
+                    runtime_fns,
                     ptr_ty,
                     str_data_counter,
                     owner,
@@ -353,7 +430,7 @@ fn emit_stmt(
                     next_var,
                     function_ids,
                     function_returns,
-                    print_fn,
+                    runtime_fns,
                     ptr_ty,
                     str_data_counter,
                     owner,
@@ -372,13 +449,153 @@ fn emit_stmt(
                 Ok(false)
             }
         }
-        MirStmt::While { .. }
-        | MirStmt::Repeat { .. }
-        | MirStmt::Select { .. }
-        | MirStmt::Go(_) => {
-            Err("codegen for this control-flow construct is not yet implemented".to_string())
+        MirStmt::Go(expr) => {
+            let _ = emit_expr(
+                expr,
+                module,
+                builder,
+                locals,
+                function_ids,
+                function_returns,
+                runtime_fns,
+                ptr_ty,
+                str_data_counter,
+                owner,
+            )?;
+            Ok(false)
+        }
+        MirStmt::Select { cases } => {
+            emit_select_stmt(
+                cases,
+                module,
+                builder,
+                locals,
+                next_var,
+                function_ids,
+                function_returns,
+                runtime_fns,
+                ptr_ty,
+                str_data_counter,
+                owner,
+            )?;
+            Ok(false)
+        }
+        MirStmt::While { .. } | MirStmt::Repeat { .. } => Err(
+            "codegen for this control-flow construct is not yet implemented".to_string(),
+        ),
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn emit_select_stmt(
+    cases: &[MirSelectCase],
+    module: &mut ObjectModule,
+    builder: &mut FunctionBuilder<'_>,
+    locals: &mut BTreeMap<String, Variable>,
+    next_var: &mut usize,
+    function_ids: &BTreeMap<String, FuncId>,
+    function_returns: &BTreeMap<String, MirType>,
+    runtime_fns: RuntimeFunctions,
+    ptr_ty: ir::Type,
+    str_data_counter: &mut usize,
+    owner: &MirFunction,
+) -> Result<(), String> {
+    let Some(first_case) = cases.first() else {
+        return Ok(());
+    };
+
+    match &first_case.pattern {
+        MirSelectPattern::Receive { binding, source } => {
+            let channel = emit_expr(
+                source,
+                module,
+                builder,
+                locals,
+                function_ids,
+                function_returns,
+                runtime_fns,
+                ptr_ty,
+                str_data_counter,
+                owner,
+            )?;
+            let recv_local = module.declare_func_in_func(runtime_fns.chan_recv_fn, builder.func);
+            let call = builder.ins().call(recv_local, &[channel]);
+            let recv_value = builder
+                .inst_results(call)
+                .first()
+                .copied()
+                .unwrap_or_else(|| builder.ins().iconst(ir::types::I64, 0));
+            let var = if let Some(existing) = locals.get(binding) {
+                *existing
+            } else {
+                let created = Variable::from_u32(*next_var as u32);
+                *next_var += 1;
+                builder.declare_var(created, ir::types::I64);
+                locals.insert(binding.clone(), created);
+                created
+            };
+            builder.def_var(var, recv_value);
+            let _ = emit_expr(
+                &first_case.action,
+                module,
+                builder,
+                locals,
+                function_ids,
+                function_returns,
+                runtime_fns,
+                ptr_ty,
+                str_data_counter,
+                owner,
+            )?;
+        }
+        MirSelectPattern::After { duration_literal } => {
+            let millis = parse_duration_literal(duration_literal);
+            let delay = builder.ins().iconst(ir::types::I64, millis);
+            let sleep_local = module.declare_func_in_func(runtime_fns.sleep_ms_fn, builder.func);
+            builder.ins().call(sleep_local, &[delay]);
+            let _ = emit_expr(
+                &first_case.action,
+                module,
+                builder,
+                locals,
+                function_ids,
+                function_returns,
+                runtime_fns,
+                ptr_ty,
+                str_data_counter,
+                owner,
+            )?;
+        }
+        MirSelectPattern::Closed { ident } => {
+            if let Some(var) = locals.get(ident) {
+                let channel = builder.use_var(*var);
+                let closed_local =
+                    module.declare_func_in_func(runtime_fns.chan_is_closed_fn, builder.func);
+                let _ = builder.ins().call(closed_local, &[channel]);
+            }
+            let _ = emit_expr(
+                &first_case.action,
+                module,
+                builder,
+                locals,
+                function_ids,
+                function_returns,
+                runtime_fns,
+                ptr_ty,
+                str_data_counter,
+                owner,
+            )?;
         }
     }
+    Ok(())
+}
+
+fn parse_duration_literal(duration_literal: &str) -> i64 {
+    let digits = duration_literal
+        .chars()
+        .filter(|c| c.is_ascii_digit())
+        .collect::<String>();
+    digits.parse::<i64>().unwrap_or(0)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -389,7 +606,7 @@ fn emit_expr(
     locals: &BTreeMap<String, Variable>,
     function_ids: &BTreeMap<String, FuncId>,
     function_returns: &BTreeMap<String, MirType>,
-    print_fn: FuncId,
+    runtime_fns: RuntimeFunctions,
     ptr_ty: ir::Type,
     str_data_counter: &mut usize,
     owner: &MirFunction,
@@ -416,7 +633,7 @@ fn emit_expr(
                 locals,
                 function_ids,
                 function_returns,
-                print_fn,
+                runtime_fns,
                 ptr_ty,
                 str_data_counter,
                 owner,
@@ -438,14 +655,40 @@ fn emit_expr(
                         locals,
                         function_ids,
                         function_returns,
-                        print_fn,
+                        runtime_fns,
                         ptr_ty,
                         str_data_counter,
                         owner,
                     )?;
-                    let local_print = module.declare_func_in_func(print_fn, builder.func);
+                    let local_print =
+                        module.declare_func_in_func(runtime_fns.print_fn, builder.func);
                     builder.ins().call(local_print, &[arg0]);
                     return Ok(builder.ins().iconst(ir::types::I64, 0));
+                }
+                if name == "chan" {
+                    if args.len() != 1 {
+                        return Err("`chan` expects one capacity argument".to_string());
+                    }
+                    let capacity = emit_expr(
+                        &args[0],
+                        module,
+                        builder,
+                        locals,
+                        function_ids,
+                        function_returns,
+                        runtime_fns,
+                        ptr_ty,
+                        str_data_counter,
+                        owner,
+                    )?;
+                    let local_new = module.declare_func_in_func(runtime_fns.chan_new_fn, builder.func);
+                    let call = builder.ins().call(local_new, &[capacity]);
+                    let chan = builder
+                        .inst_results(call)
+                        .first()
+                        .copied()
+                        .ok_or_else(|| "chan runtime call did not return channel handle".to_string())?;
+                    return Ok(chan);
                 }
                 if let Some(fid) = function_ids.get(name) {
                     let local = module.declare_func_in_func(*fid, builder.func);
@@ -458,7 +701,7 @@ fn emit_expr(
                             locals,
                             function_ids,
                             function_returns,
-                            print_fn,
+                            runtime_fns,
                             ptr_ty,
                             str_data_counter,
                             owner,
@@ -476,7 +719,75 @@ fn emit_expr(
                 }
                 return Err(format!("unknown call target `{name}`"));
             }
-            return Err("dynamic call targets are not supported in phase 2".to_string());
+            if let MirExpr::Member { object, field } = &**callee {
+                let channel = emit_expr(
+                    object,
+                    module,
+                    builder,
+                    locals,
+                    function_ids,
+                    function_returns,
+                    runtime_fns,
+                    ptr_ty,
+                    str_data_counter,
+                    owner,
+                )?;
+                match field.as_str() {
+                    "send" => {
+                        if args.len() != 1 {
+                            return Err("channel send expects one argument".to_string());
+                        }
+                        let value = emit_expr(
+                            &args[0],
+                            module,
+                            builder,
+                            locals,
+                            function_ids,
+                            function_returns,
+                            runtime_fns,
+                            ptr_ty,
+                            str_data_counter,
+                            owner,
+                        )?;
+                        let local_send =
+                            module.declare_func_in_func(runtime_fns.chan_send_fn, builder.func);
+                        let call = builder.ins().call(local_send, &[channel, value]);
+                        return Ok(builder
+                            .inst_results(call)
+                            .first()
+                            .copied()
+                            .unwrap_or_else(|| builder.ins().iconst(ir::types::I64, 0)));
+                    }
+                    "recv" => {
+                        if !args.is_empty() {
+                            return Err("channel recv expects no arguments".to_string());
+                        }
+                        let local_recv =
+                            module.declare_func_in_func(runtime_fns.chan_recv_fn, builder.func);
+                        let call = builder.ins().call(local_recv, &[channel]);
+                        return Ok(builder
+                            .inst_results(call)
+                            .first()
+                            .copied()
+                            .unwrap_or_else(|| builder.ins().iconst(ir::types::I64, 0)));
+                    }
+                    "close" => {
+                        if !args.is_empty() {
+                            return Err("channel close expects no arguments".to_string());
+                        }
+                        let local_close =
+                            module.declare_func_in_func(runtime_fns.chan_close_fn, builder.func);
+                        builder.ins().call(local_close, &[channel]);
+                        return Ok(builder.ins().iconst(ir::types::I64, 0));
+                    }
+                    _ => {
+                        return Err(format!(
+                            "member call `.{field}()` is not supported in phase 3 baseline"
+                        ));
+                    }
+                }
+            }
+            return Err("dynamic call targets are not supported in phase 3 baseline".to_string());
         }
         MirExpr::Binary { left, op, right } => {
             let l = emit_expr(
@@ -486,7 +797,7 @@ fn emit_expr(
                 locals,
                 function_ids,
                 function_returns,
-                print_fn,
+                runtime_fns,
                 ptr_ty,
                 str_data_counter,
                 owner,
@@ -498,7 +809,7 @@ fn emit_expr(
                 locals,
                 function_ids,
                 function_returns,
-                print_fn,
+                runtime_fns,
                 ptr_ty,
                 str_data_counter,
                 owner,
@@ -532,7 +843,7 @@ fn emit_expr(
                 locals,
                 function_ids,
                 function_returns,
-                print_fn,
+                runtime_fns,
                 ptr_ty,
                 str_data_counter,
                 owner,
@@ -555,7 +866,7 @@ fn emit_expr(
             locals,
             function_ids,
             function_returns,
-            print_fn,
+            runtime_fns,
             ptr_ty,
             str_data_counter,
             owner,
@@ -604,6 +915,11 @@ fn value_type_for_expr(expr: &MirExpr, ptr_ty: ir::Type) -> ir::Type {
         MirExpr::Float(_) => ir::types::F64,
         MirExpr::Bool(_) => ir::types::I8,
         MirExpr::Str(_) => ptr_ty,
+        MirExpr::Call { callee, .. }
+            if matches!(&**callee, MirExpr::Var(name) if name == "chan") =>
+        {
+            ptr_ty
+        }
         _ => ir::types::I64,
     }
 }

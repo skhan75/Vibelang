@@ -20,10 +20,15 @@
 
 ## CLI Design
 
+- `vibe test <path>` run deterministic checks/examples for a file or directory
 - `vibe checks` run all checks for workspace
 - `vibe checks --file app/math.vibe` scoped run
 - `vibe checks --changed` run checks for changed files only
 - `vibe checks --format json` output for CI annotation
+
+## Deterministic Utility APIs
+
+Contract/example execution should use deterministic helpers only (`len`, `min`, `max`, `sorted_desc`, `sort_desc`, `take`) so repeated runs are stable across machines.
 
 ## Output Format (Human)
 

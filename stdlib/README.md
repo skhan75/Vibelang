@@ -13,6 +13,23 @@ In this phase, these are compiler-recognized builtins:
 - codegen lowers both to the runtime symbol `vibe_println`
 - runtime provides `vibe_println` via `runtime/native/vibe_runtime.c`
 
+## Deterministic utilities for checks/examples
+
+Phase 2B adds deterministic utility APIs used by contract/example execution (`vibe test`):
+
+- `len`
+- `min`
+- `max`
+- `sorted_desc`
+- `sort_desc`
+- `take`
+
+Reference: `stdlib/core/deterministic_apis.md`
+
+## Stability policy
+
+Reference: `stdlib/stability_policy.md`
+
 ## Boundaries and non-goals
 
 - no formatting APIs (`printf`, interpolation helpers, width/precision controls)

@@ -40,6 +40,7 @@ V0.1 avoids implicit null. Optional values use explicit `Option<T>` style type.
 - `:=` introduces a new binding.
 - `=` updates an existing mutable value.
 - Mutation to shared state is legal only under rules enforced by runtime/concurrency checker.
+- Hybrid ownership/sendability rules for Phase 3 are defined in `docs/spec/ownership_sendability.md`.
 
 ## Function Semantics
 
@@ -85,6 +86,7 @@ This avoids hidden reorderings in early versions and simplifies mental model.
 - Channel `send`/`recv` operations define synchronization points.
 - Values sent through channels are transferred according to runtime copy/move policy.
 - Shared mutable state without synchronization is disallowed in safe mode.
+- Values passed to `go` must satisfy sendability rules in Phase 3 baseline.
 
 ## Effect Semantics
 

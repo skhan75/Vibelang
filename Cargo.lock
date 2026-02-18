@@ -402,6 +402,7 @@ dependencies = [
 name = "vibe_cli"
 version = "0.1.0"
 dependencies = [
+ "vibe_ast",
  "vibe_codegen",
  "vibe_diagnostics",
  "vibe_mir",

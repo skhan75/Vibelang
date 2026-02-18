@@ -5,6 +5,7 @@ version.workspace = true
 license.workspace = true
 
 [dependencies]
+vibe_ast.workspace = true
 vibe_codegen.workspace = true
 vibe_diagnostics.workspace = true
 vibe_mir.workspace = true

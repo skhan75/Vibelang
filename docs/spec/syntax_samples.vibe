@@ -35,8 +35,8 @@ pub runAll(tasks: List<Job>) -> List<JobResult> {
   @effect alloc
   @effect concurrency
 
-  jobs := chan<Job>(1024)
-  out := chan<JobResult>(1024)
+  jobs := chan(1024)
+  out := chan(1024)
 
   repeat cpu_count() {
     go worker(jobs, out)
@@ -48,4 +48,10 @@ pub runAll(tasks: List<Job>) -> List<JobResult> {
   jobs.close()
 
   out.take(len(tasks))
+}
+
+worker(jobs, out) {
+  @intent "worker example stub for docs sample"
+  @effect concurrency
+  jobs.recv()
 }

@@ -75,6 +75,12 @@ fn deterministic_build_binary_and_metadata() {
         "x86_64-unknown-linux-gnu",
     ))
     .expect("read first binary");
+    let first_debug_map = fs::read_to_string(artifact_debug_map_path(
+        &source,
+        "dev",
+        "x86_64-unknown-linux-gnu",
+    ))
+    .expect("read first debug map");
 
     let second = run_vibe(&["build", source_str]);
     assert!(
@@ -89,11 +95,61 @@ fn deterministic_build_binary_and_metadata() {
         "x86_64-unknown-linux-gnu",
     ))
     .expect("read second binary");
+    let second_debug_map = fs::read_to_string(artifact_debug_map_path(
+        &source,
+        "dev",
+        "x86_64-unknown-linux-gnu",
+    ))
+    .expect("read second debug map");
 
     assert_eq!(first_bin, second_bin, "binary output must be deterministic");
     assert_eq!(
+        first_debug_map, second_debug_map,
+        "debug map output must be deterministic"
+    );
+    assert_eq!(
         first.stdout, second.stdout,
         "build metadata output should be stable"
+    );
+}
+
+#[test]
+fn vibe_test_runs_contract_examples() {
+    let source = temp_fixture_copy("contract_ok/topk_contracts.vibe");
+    let out = run_vibe(&["test", source.to_str().expect("source path str")]);
+    assert!(
+        out.status.success(),
+        "vibe test failed:\nstdout:\n{}\nstderr:\n{}",
+        out.stdout,
+        out.stderr
+    );
+    assert!(
+        out.stdout.contains("examples=2 passed=2 failed=0"),
+        "unexpected test summary:\n{}",
+        out.stdout
+    );
+}
+
+#[test]
+fn build_accepts_debuginfo_flag_and_writes_metadata() {
+    let source = temp_fixture_copy("build/hello_world.vibe");
+    let source_str = source.to_str().expect("source path str");
+    let out = run_vibe(&["build", source_str, "--debuginfo", "full"]);
+    assert!(
+        out.status.success(),
+        "build failed with debuginfo=full:\nstdout:\n{}\nstderr:\n{}",
+        out.stdout,
+        out.stderr
+    );
+    let debug_map = fs::read_to_string(artifact_debug_map_path(
+        &source,
+        "dev",
+        "x86_64-unknown-linux-gnu",
+    ))
+    .expect("read debug map");
+    assert!(
+        debug_map.contains("debuginfo=full"),
+        "debug map should record debuginfo level:\n{debug_map}"
     );
 }
 
@@ -181,6 +237,21 @@ fn artifact_binary_path(source: &Path, profile: &str, target: &str) -> PathBuf {
         .join(profile)
         .join(target)
         .join(stem)
+}
+
+fn artifact_debug_map_path(source: &Path, profile: &str, target: &str) -> PathBuf {
+    let stem = source
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .expect("source stem");
+    source
+        .parent()
+        .expect("source parent")
+        .join(".vibe")
+        .join("artifacts")
+        .join(profile)
+        .join(target)
+        .join(format!("{stem}.debug.map"))
 }
 
 struct CmdOutput {

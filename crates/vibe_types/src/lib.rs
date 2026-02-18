@@ -1,5 +1,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 
+mod effect_diagnostics;
+mod effect_propagation;
+mod ownership;
+
 use vibe_ast::{
     BinaryOp, Contract, Declaration, Expr, FileAst, SelectPattern, Stmt, TypeRef, UnaryOp,
 };
@@ -8,6 +12,10 @@ use vibe_hir::{
     verify_hir, HirExpr, HirExprKind, HirFunction, HirParam, HirProgram, HirSelectCase,
     HirSelectPattern, HirStmt,
 };
+
+use crate::effect_diagnostics::emit_effect_diagnostics;
+use crate::effect_propagation::{collect_direct_calls, compute_transitive_effects, FunctionEffectSummary};
+use crate::ownership::{check_shared_mutation_in_concurrent_context, check_go_sendability};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TypeKind {
@@ -38,6 +46,7 @@ pub fn check_and_lower(ast: &FileAst) -> CheckOutput {
     let mut diagnostics = Diagnostics::default();
     let mut signatures: BTreeMap<String, Option<TypeKind>> = BTreeMap::new();
     let mut hir = HirProgram::default();
+    let mut effect_summaries: Vec<FunctionEffectSummary> = Vec::new();
 
     for decl in &ast.declarations {
         let Declaration::Function(f) = decl;
@@ -226,26 +235,20 @@ pub fn check_and_lower(ast: &FileAst) -> CheckOutput {
             }
         }
 
-        for observed in &observed_effects {
-            if !declared_effects.contains(observed) {
-                diagnostics.push(Diagnostic::new(
-                    "E3002",
-                    Severity::Warning,
-                    format!("observed effect `{observed}` is not declared in `@effect`"),
-                    func.span,
-                ));
-            }
-        }
-        for declared in &declared_effects {
-            if !observed_effects.contains(declared) {
-                diagnostics.push(Diagnostic::new(
-                    "E3003",
-                    Severity::Info,
-                    format!("declared effect `{declared}` was not observed"),
-                    func.span,
-                ));
-            }
-        }
+        check_shared_mutation_in_concurrent_context(
+            &func.body,
+            observed_effects.contains("concurrency"),
+            &mut diagnostics,
+            func.span,
+        );
+
+        effect_summaries.push(FunctionEffectSummary {
+            name: func.name.clone(),
+            span: func.span,
+            declared_effects: declared_effects.clone(),
+            direct_observed_effects: observed_effects.clone(),
+            direct_calls: collect_direct_calls(func),
+        });
 
         hir.functions.push(HirFunction {
             name: func.name.clone(),
@@ -265,6 +268,14 @@ pub fn check_and_lower(ast: &FileAst) -> CheckOutput {
             body: hir_body,
             tail_expr: hir_tail_expr,
         });
+    }
+
+    let transitive_effects = compute_transitive_effects(&effect_summaries);
+    emit_effect_diagnostics(&effect_summaries, &transitive_effects, &mut diagnostics);
+    for f in &mut hir.functions {
+        if let Some(transitive) = transitive_effects.get(&f.name) {
+            f.effects_observed = transitive.clone();
+        }
     }
 
     if let Err(msg) = verify_hir(&hir) {
@@ -585,6 +596,7 @@ fn check_stmt(
                 diagnostics,
                 observed_effects,
             );
+            check_go_sendability(expr, env, expr_type_hint, diagnostics);
             hir_out.push(HirStmt::Go {
                 expr: lower_expr(expr, env),
             });
@@ -806,7 +818,11 @@ fn infer_expr(
             }
             if let Expr::Member { field, .. } = &**callee {
                 match field.as_str() {
-                    "sort_desc" | "take" | "recv" | "send" | "close" => {
+                    "sort_desc" | "take" => {
+                        observed_effects.insert("alloc".to_string());
+                        return TypeKind::Unknown;
+                    }
+                    "recv" | "send" | "close" => {
                         observed_effects.insert("concurrency".to_string());
                         return TypeKind::Unknown;
                     }
@@ -1049,6 +1065,7 @@ fn is_builtin_ident(name: &str) -> bool {
             | "max"
             | "sorted_desc"
             | "cpu_count"
+            | "chan"
             | "ok"
             | "err"
             | "print"

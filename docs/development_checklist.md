@@ -107,27 +107,27 @@ Goal: compile typed IR into native binaries with a minimal standard library and 
 - [x] Implement MIR -> backend lowering (Cranelift-first)
 - [x] Emit object files for Linux x86_64 first target
 - [x] Integrate linker for executable output
-- [ ] Add debug info emission basics
+- [x] Add debug info emission basics
 
 ### 2.2 Minimal Standard Library
 
 - [x] Define Phase 2 stdlib boundaries with initial `io` contract (`print/println`)
 - [x] Implement hello-world IO intrinsic path (`print`/`println` -> runtime)
-- [ ] Add deterministic utility APIs for contract/example execution
-- [ ] Document stdlib stability policy
+- [x] Add deterministic utility APIs for contract/example execution
+- [x] Document stdlib stability policy
 
 ### 2.3 CLI Tooling
 
 - [x] Implement `vibe build`
 - [x] Implement `vibe run`
-- [ ] Implement `vibe test`
+- [x] Implement `vibe test`
 - [x] Implement `vibe check`
 - [x] Add profile/target flags (`--profile`, `--target`, `--offline`)
 
 ### Phase 2 Exit Criteria
 
 - [x] Hello-world style programs compile and run natively
-- [ ] Sample specs compile with basic stdlib dependencies
+- [x] Sample specs compile with basic stdlib dependencies
 - [x] CLI commands stable for local developer workflows
 
 ---

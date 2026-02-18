@@ -1,13 +1,19 @@
+mod deterministic_utils;
+mod example_runner;
+
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitCode};
 use std::{env, fs};
 
 use vibe_codegen::{emit_object, CodegenOptions};
 use vibe_diagnostics::Diagnostics;
+use vibe_mir::MirProgram;
 use vibe_mir::{lower_hir_to_mir, mir_debug_dump};
 use vibe_parser::parse_source;
 use vibe_runtime::{compile_runtime_object, link_executable, RuntimeBuildOptions};
 use vibe_types::check_and_lower;
+
+use crate::example_runner::{run_examples, ExampleRunSummary};
 
 fn main() -> ExitCode {
     match run() {
@@ -46,10 +52,11 @@ fn run() -> Result<ExitCode, String> {
             let build_args = parse_build_like_args(&args, false)?;
             let artifacts = build_source(&build_args)?;
             println!(
-                "built {} (object: {}, runtime: {})",
+                "built {} (object: {}, runtime: {}, debug-map: {})",
                 artifacts.binary_path.display(),
                 artifacts.object_path.display(),
-                artifacts.runtime_object_path.display()
+                artifacts.runtime_object_path.display(),
+                artifacts.debug_map_path.display()
             );
             Ok(ExitCode::SUCCESS)
         }
@@ -67,12 +74,16 @@ fn run() -> Result<ExitCode, String> {
                 })?;
             Ok(ExitCode::from(status.code().unwrap_or(1) as u8))
         }
+        "test" => {
+            let test_args = parse_build_like_args(&args, false)?;
+            run_test(&test_args)
+        }
         _ => Err(usage()),
     }
 }
 
 fn usage() -> String {
-    "usage: vibe <check|ast|hir|mir|build|run> <path> [--profile dev|release] [--target x86_64-unknown-linux-gnu] [--offline]".to_string()
+    "usage: vibe <check|ast|hir|mir|build|run|test> <path> [--profile dev|release] [--target x86_64-unknown-linux-gnu] [--offline] [--debuginfo none|line|full]".to_string()
 }
 
 fn run_check(path: &str) -> Result<ExitCode, String> {
@@ -154,6 +165,7 @@ struct BuildArgs {
     source_path: PathBuf,
     profile: String,
     target: String,
+    debuginfo: String,
     offline: bool,
     exec_args: Vec<String>,
 }
@@ -162,6 +174,7 @@ struct BuildArgs {
 struct BuildArtifacts {
     object_path: PathBuf,
     runtime_object_path: PathBuf,
+    debug_map_path: PathBuf,
     binary_path: PathBuf,
 }
 
@@ -175,6 +188,7 @@ fn parse_build_like_args(args: &[String], allow_exec_args: bool) -> Result<Build
 
     let mut profile = "dev".to_string();
     let mut target = "x86_64-unknown-linux-gnu".to_string();
+    let mut debuginfo = "line".to_string();
     let mut offline = false;
     let mut exec_args = Vec::new();
 
@@ -207,6 +221,18 @@ fn parse_build_like_args(args: &[String], allow_exec_args: bool) -> Result<Build
                     .ok_or_else(|| "missing value for `--target`".to_string())?;
                 target = val.clone();
             }
+            "--debuginfo" => {
+                idx += 1;
+                let val = args
+                    .get(idx)
+                    .ok_or_else(|| "missing value for `--debuginfo`".to_string())?;
+                if !matches!(val.as_str(), "none" | "line" | "full") {
+                    return Err(format!(
+                        "unsupported debuginfo `{val}` (expected none|line|full)"
+                    ));
+                }
+                debuginfo = val.clone();
+            }
             "--offline" => {
                 offline = true;
             }
@@ -221,6 +247,7 @@ fn parse_build_like_args(args: &[String], allow_exec_args: bool) -> Result<Build
         source_path,
         profile,
         target,
+        debuginfo,
         offline,
         exec_args,
     })
@@ -253,6 +280,7 @@ fn build_source(args: &BuildArgs) -> Result<BuildArtifacts, String> {
         &CodegenOptions {
             target: args.target.clone(),
             profile: args.profile.clone(),
+            debuginfo: args.debuginfo.clone(),
         },
     )
     .map_err(|e| format!("codegen failed: {e}"))?;
@@ -278,6 +306,7 @@ fn build_source(args: &BuildArgs) -> Result<BuildArtifacts, String> {
     let runtime_options = RuntimeBuildOptions {
         target: args.target.clone(),
         profile: args.profile.clone(),
+        debuginfo: args.debuginfo.clone(),
     };
     let runtime_object_path = compile_runtime_object(&artifacts_dir, &runtime_options)?;
     link_executable(
@@ -286,10 +315,18 @@ fn build_source(args: &BuildArgs) -> Result<BuildArtifacts, String> {
         &binary_path,
         &runtime_options,
     )?;
+    let debug_map_path = write_debug_map(&artifacts_dir, &args.source_path, args, &mir, stem)
+        .map_err(|e| {
+            format!(
+                "failed to write debug map for `{}`: {e}",
+                args.source_path.display()
+            )
+        })?;
 
     Ok(BuildArtifacts {
         object_path,
         runtime_object_path,
+        debug_map_path,
         binary_path,
     })
 }
@@ -303,4 +340,175 @@ fn artifact_directory(source_path: &Path, profile: &str, target: &str) -> PathBu
         .join("artifacts")
         .join(profile)
         .join(target)
+}
+
+fn run_test(args: &BuildArgs) -> Result<ExitCode, String> {
+    let files = collect_vibe_files(&args.source_path)?;
+    if files.is_empty() {
+        return Err(format!(
+            "no .vibe files found under `{}`",
+            args.source_path.display()
+        ));
+    }
+    let total_files = files.len();
+
+    let mut compile_failures = 0usize;
+    let mut examples = ExampleRunSummary::default();
+    let mut main_run_total = 0usize;
+    let mut main_run_failures = 0usize;
+
+    for file in files {
+        let src = fs::read_to_string(&file)
+            .map_err(|e| format!("failed to read `{}`: {e}", file.display()))?;
+        let parsed = parse_source(&src);
+        let checked = check_and_lower(&parsed.ast);
+        let mut all = Diagnostics::default();
+        all.extend(parsed.diagnostics.clone().into_sorted());
+        all.extend(checked.diagnostics.clone().into_sorted());
+
+        let diag_out = all.to_golden();
+        if !diag_out.trim().is_empty() {
+            eprintln!("{}:\n{diag_out}", file.display());
+        }
+        if all.has_errors() {
+            compile_failures += 1;
+            continue;
+        }
+
+        let current_examples = run_examples(&parsed.ast);
+        examples.total += current_examples.total;
+        examples.passed += current_examples.passed;
+        examples.failed += current_examples.failed;
+        examples.failures.extend(current_examples.failures);
+
+        if has_main_function(&parsed.ast) {
+            main_run_total += 1;
+            let single_file_args = BuildArgs {
+                source_path: file.clone(),
+                profile: args.profile.clone(),
+                target: args.target.clone(),
+                debuginfo: args.debuginfo.clone(),
+                offline: args.offline,
+                exec_args: Vec::new(),
+            };
+            let artifacts = build_source(&single_file_args)?;
+            let status = Command::new(&artifacts.binary_path).status().map_err(|e| {
+                format!(
+                    "failed to execute test binary `{}`: {e}",
+                    artifacts.binary_path.display()
+                )
+            })?;
+            if !status.success() {
+                main_run_failures += 1;
+                eprintln!(
+                    "{}: main returned non-zero exit code {:?}",
+                    file.display(),
+                    status.code()
+                );
+            }
+        }
+    }
+
+    if !examples.failures.is_empty() {
+        eprintln!("example failures:");
+        for failure in &examples.failures {
+            eprintln!("  - {failure}");
+        }
+    }
+    println!(
+        "test summary: files={}, compile_failures={}, examples={} passed={} failed={}, mains={} main_failures={}",
+        total_files,
+        compile_failures,
+        examples.total,
+        examples.passed,
+        examples.failed,
+        main_run_total,
+        main_run_failures
+    );
+
+    if compile_failures > 0 || examples.failed > 0 || main_run_failures > 0 {
+        Ok(ExitCode::from(1))
+    } else {
+        Ok(ExitCode::SUCCESS)
+    }
+}
+
+fn collect_vibe_files(path: &Path) -> Result<Vec<PathBuf>, String> {
+    if path.is_file() {
+        if path.extension().and_then(|x| x.to_str()) == Some("vibe") {
+            return Ok(vec![path.to_path_buf()]);
+        }
+        return Err(format!("expected a .vibe file, got `{}`", path.display()));
+    }
+    if !path.is_dir() {
+        return Err(format!("path does not exist: `{}`", path.display()));
+    }
+    let mut out = Vec::new();
+    collect_vibe_files_recursive(path, &mut out)?;
+    out.sort();
+    Ok(out)
+}
+
+fn collect_vibe_files_recursive(dir: &Path, out: &mut Vec<PathBuf>) -> Result<(), String> {
+    let mut entries = fs::read_dir(dir)
+        .map_err(|e| format!("failed to read directory `{}`: {e}", dir.display()))?
+        .filter_map(|e| e.ok())
+        .map(|e| e.path())
+        .collect::<Vec<_>>();
+    entries.sort();
+    for path in entries {
+        if path.is_dir() {
+            collect_vibe_files_recursive(&path, out)?;
+            continue;
+        }
+        if path.extension().and_then(|x| x.to_str()) == Some("vibe") {
+            out.push(path);
+        }
+    }
+    Ok(())
+}
+
+fn has_main_function(ast: &vibe_ast::FileAst) -> bool {
+    ast.declarations.iter().any(|decl| {
+        let vibe_ast::Declaration::Function(func) = decl;
+        func.name == "main"
+    })
+}
+
+fn write_debug_map(
+    artifacts_dir: &Path,
+    source_path: &Path,
+    args: &BuildArgs,
+    mir: &MirProgram,
+    stem: &str,
+) -> Result<PathBuf, String> {
+    let mut functions = mir
+        .functions
+        .iter()
+        .map(|f| {
+            format!(
+                "{}({} params) -> {:?}",
+                f.name,
+                f.params.len(),
+                f.return_type
+            )
+        })
+        .collect::<Vec<_>>();
+    functions.sort();
+
+    let mut out = String::new();
+    out.push_str("vibe-debug-map-v0\n");
+    out.push_str(&format!("source={}\n", source_path.display()));
+    out.push_str(&format!("profile={}\n", args.profile));
+    out.push_str(&format!("target={}\n", args.target));
+    out.push_str(&format!("debuginfo={}\n", args.debuginfo));
+    out.push_str("functions:\n");
+    for function in functions {
+        out.push_str(&format!("  - {function}\n"));
+    }
+
+    let debug_map_path = artifacts_dir.join(format!("{stem}.debug.map"));
+    fs::write(&debug_map_path, out)
+        .map_err(|e| format!("failed to write `{}`: {e}", debug_map_path.display()))?;
+    Ok(debug_map_path)
 }
