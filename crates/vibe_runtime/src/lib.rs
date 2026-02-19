@@ -292,7 +292,7 @@ mod tests {
                     }
                     RecvStatus::Closed => break,
                     RecvStatus::Timeout => {
-                        if local_done.load(Ordering::SeqCst) == 4 && local_ch.len() == 0 {
+                        if local_done.load(Ordering::SeqCst) == 4 && local_ch.is_empty() {
                             break;
                         }
                     }

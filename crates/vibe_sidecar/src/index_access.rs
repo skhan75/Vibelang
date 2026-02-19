@@ -31,7 +31,10 @@ impl ReadOnlyIndex {
             .flat_map(|f| f.function_meta.iter())
             .cloned()
             .collect::<Vec<_>>();
-        out.sort_by(|a, b| (a.file.as_str(), a.function_name.as_str()).cmp(&(b.file.as_str(), b.function_name.as_str())));
+        out.sort_by(|a, b| {
+            (a.file.as_str(), a.function_name.as_str())
+                .cmp(&(b.file.as_str(), b.function_name.as_str()))
+        });
         out
     }
 

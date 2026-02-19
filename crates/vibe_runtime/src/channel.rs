@@ -86,6 +86,10 @@ impl<T> BoundedChannel<T> {
             .len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     pub fn send(&self, value: T) -> SendStatus {
         self.send_with(value, None, None)
     }

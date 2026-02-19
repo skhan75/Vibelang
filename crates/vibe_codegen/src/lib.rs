@@ -179,9 +179,15 @@ fn declare_runtime_functions(
 
     let mut chan_has_data_sig = module.make_signature();
     chan_has_data_sig.params.push(AbiParam::new(ptr_ty));
-    chan_has_data_sig.returns.push(AbiParam::new(ir::types::I64));
+    chan_has_data_sig
+        .returns
+        .push(AbiParam::new(ir::types::I64));
     let chan_has_data_fn = module
-        .declare_function("vibe_chan_has_data_i64", Linkage::Import, &chan_has_data_sig)
+        .declare_function(
+            "vibe_chan_has_data_i64",
+            Linkage::Import,
+            &chan_has_data_sig,
+        )
         .map_err(|e| format!("failed to declare runtime chan_has_data symbol: {e}"))?;
 
     let mut chan_close_sig = module.make_signature();
@@ -214,9 +220,15 @@ fn declare_runtime_functions(
 
     let mut select_cursor_sig = module.make_signature();
     select_cursor_sig.params.push(AbiParam::new(ir::types::I64));
-    select_cursor_sig.returns.push(AbiParam::new(ir::types::I64));
+    select_cursor_sig
+        .returns
+        .push(AbiParam::new(ir::types::I64));
     let select_cursor_fn = module
-        .declare_function("vibe_select_next_cursor", Linkage::Import, &select_cursor_sig)
+        .declare_function(
+            "vibe_select_next_cursor",
+            Linkage::Import,
+            &select_cursor_sig,
+        )
         .map_err(|e| format!("failed to declare runtime select_cursor symbol: {e}"))?;
 
     let mut sleep_sig = module.make_signature();
@@ -613,8 +625,7 @@ fn emit_go_stmt(
                         .to_string(),
                 );
             };
-            let local_spawn1 =
-                module.declare_func_in_func(runtime_fns.spawn1_i64_fn, builder.func);
+            let local_spawn1 = module.declare_func_in_func(runtime_fns.spawn1_i64_fn, builder.func);
             let _ = builder.ins().call(local_spawn1, &[fn_ptr, arg_i64]);
             Ok(())
         }
@@ -739,7 +750,9 @@ fn emit_repeat_stmt(
     } else {
         builder.ins().ireduce(loop_count_ty, idx_val)
     };
-    let cond_b = builder.ins().icmp(IntCC::SignedLessThan, idx_cast, loop_count);
+    let cond_b = builder
+        .ins()
+        .icmp(IntCC::SignedLessThan, idx_cast, loop_count);
     builder.ins().brif(cond_b, body_block, &[], exit_block, &[]);
 
     builder.switch_to_block(body_block);
@@ -810,7 +823,9 @@ fn emit_select_stmt(
         .iter()
         .position(|case| matches!(case.pattern, MirSelectPattern::After { .. }));
     let after_duration_ms = after_case_idx.and_then(|idx| match &cases[idx].pattern {
-        MirSelectPattern::After { duration_literal } => Some(parse_duration_literal(duration_literal)),
+        MirSelectPattern::After { duration_literal } => {
+            Some(parse_duration_literal(duration_literal))
+        }
         _ => None,
     });
 
@@ -876,7 +891,9 @@ fn emit_select_stmt(
 
     builder.ins().jump(entry_block, &[]);
     builder.switch_to_block(entry_block);
-    let count_value = builder.ins().iconst(ir::types::I64, poll_case_indices.len() as i64);
+    let count_value = builder
+        .ins()
+        .iconst(ir::types::I64, poll_case_indices.len() as i64);
     let select_cursor_local =
         module.declare_func_in_func(runtime_fns.select_cursor_fn, builder.func);
     let cursor_call = builder.ins().call(select_cursor_local, &[count_value]);
@@ -1068,8 +1085,7 @@ fn emit_select_stmt(
             let delay = builder
                 .ins()
                 .iconst(ir::types::I64, after_duration_ms.unwrap_or(0));
-            let sleep_local =
-                module.declare_func_in_func(runtime_fns.sleep_ms_fn, builder.func);
+            let sleep_local = module.declare_func_in_func(runtime_fns.sleep_ms_fn, builder.func);
             builder.ins().call(sleep_local, &[delay]);
             builder.ins().jump(entry_block, &[]);
             builder.seal_block(sleep_block);

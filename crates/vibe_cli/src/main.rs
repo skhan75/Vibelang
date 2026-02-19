@@ -19,8 +19,8 @@ use vibe_mir::{lower_hir_to_mir, mir_debug_dump};
 use vibe_parser::parse_source;
 use vibe_runtime::{compile_runtime_object, link_executable, RuntimeBuildOptions};
 use vibe_sidecar::models::FindingSeverity;
-use vibe_sidecar::{BudgetPolicy, IntentLintRequest, SidecarService};
 use vibe_sidecar::SidecarMode;
+use vibe_sidecar::{BudgetPolicy, IntentLintRequest, SidecarService};
 use vibe_types::check_and_lower;
 
 use crate::example_runner::{run_examples_with_policy, ExampleRunSummary};
@@ -542,9 +542,7 @@ fn run_lint(args: &LintArgs) -> Result<ExitCode, String> {
             .map(|existing| existing.file_hash.as_str())
             .unwrap_or("");
         let changed_by_hash = old_hash != file_index.file_hash;
-        let changed_by_git = git_changed
-            .as_ref()
-            .is_some_and(|set| set.contains(&key));
+        let changed_by_git = git_changed.as_ref().is_some_and(|set| set.contains(&key));
         let should_include = if args.changed {
             if git_changed.is_some() {
                 changed_by_git
@@ -617,8 +615,11 @@ fn run_lint(args: &LintArgs) -> Result<ExitCode, String> {
             .first()
             .map(|e| e.file.as_str())
             .unwrap_or_default();
-        (a_file, a.code.as_str(), a.message.as_str())
-            .cmp(&(b_file, b.code.as_str(), b.message.as_str()))
+        (a_file, a.code.as_str(), a.message.as_str()).cmp(&(
+            b_file,
+            b.code.as_str(),
+            b.message.as_str(),
+        ))
     });
     response
         .suggestions
@@ -713,8 +714,12 @@ fn compiler_revalidate_file(path: &Path) -> Result<bool, String> {
     if !path.exists() {
         return Ok(false);
     }
-    let src = fs::read_to_string(path)
-        .map_err(|e| format!("failed to read suggestion evidence file `{}`: {e}", path.display()))?;
+    let src = fs::read_to_string(path).map_err(|e| {
+        format!(
+            "failed to read suggestion evidence file `{}`: {e}",
+            path.display()
+        )
+    })?;
     let parsed = parse_source(&src);
     let checked = check_and_lower(&parsed.ast);
     let mut diags = Diagnostics::default();

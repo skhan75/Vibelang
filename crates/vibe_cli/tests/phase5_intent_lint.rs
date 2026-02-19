@@ -74,7 +74,7 @@ pub increment(x: Int) -> Int {
 
     let source = project.join("changed_sample.vibe");
     let mut updated = fs::read_to_string(&source).expect("read source");
-    updated.push_str("\n");
+    updated.push('\n');
     fs::write(&source, updated).expect("write source");
 
     let third = run_vibe(&[

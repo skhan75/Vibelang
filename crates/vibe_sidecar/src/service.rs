@@ -19,7 +19,11 @@ pub struct SidecarService {
 }
 
 impl SidecarService {
-    pub fn new(index_root: &Path, policy: BudgetPolicy, telemetry_enabled: bool) -> Result<Self, String> {
+    pub fn new(
+        index_root: &Path,
+        policy: BudgetPolicy,
+        telemetry_enabled: bool,
+    ) -> Result<Self, String> {
         Ok(Self {
             index: ReadOnlyIndex::open(index_root)?,
             policy,
@@ -56,7 +60,8 @@ impl SidecarService {
                 incomplete: true,
             });
             let elapsed_ms = start.elapsed().as_millis() as u64;
-            self.telemetry.record_request(elapsed_ms, findings.len(), true);
+            self.telemetry
+                .record_request(elapsed_ms, findings.len(), true);
             return IntentLintResponse {
                 findings,
                 suggestions,
@@ -73,9 +78,7 @@ impl SidecarService {
             .collect::<BTreeSet<_>>();
 
         for meta in self.index.all_functions() {
-            if request.changed_only
-                && !changed_file_set.contains(meta.file.as_str())
-            {
+            if request.changed_only && !changed_file_set.contains(meta.file.as_str()) {
                 continue;
             }
 
@@ -99,8 +102,9 @@ impl SidecarService {
                     suggestions.push(CandidateSuggestion {
                         id: format!("intent:{}:{}", meta.file, meta.function_name),
                         title: format!("Add @intent for `{}`", meta.function_name),
-                        summary: "Add a single-sentence behavior intent before executable statements."
-                            .to_string(),
+                        summary:
+                            "Add a single-sentence behavior intent before executable statements."
+                                .to_string(),
                         confidence: 0.78,
                         evidence: vec![EvidenceRef {
                             file: meta.file.clone(),
@@ -181,7 +185,8 @@ impl SidecarService {
             findings.push(IntentFinding {
                 code: "I9002".to_string(),
                 severity: FindingSeverity::Warning,
-                message: "intent lint exceeded local latency budget; results may be partial".to_string(),
+                message: "intent lint exceeded local latency budget; results may be partial"
+                    .to_string(),
                 confidence: 1.0,
                 evidence: Vec::new(),
                 incomplete: true,

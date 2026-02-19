@@ -61,10 +61,25 @@ fn run_example_case(
     enforce_contracts: bool,
 ) -> Result<(), String> {
     let mut env = BTreeMap::new();
-    let got = eval_expr_with_ctx(&case.call, &mut env, functions, 0, None, None, enforce_contracts)?;
+    let got = eval_expr_with_ctx(
+        &case.call,
+        &mut env,
+        functions,
+        0,
+        None,
+        None,
+        enforce_contracts,
+    )?;
     let mut env = BTreeMap::new();
-    let expected =
-        eval_expr_with_ctx(&case.expected, &mut env, functions, 0, None, None, enforce_contracts)?;
+    let expected = eval_expr_with_ctx(
+        &case.expected,
+        &mut env,
+        functions,
+        0,
+        None,
+        None,
+        enforce_contracts,
+    )?;
     if got == expected {
         Ok(())
     } else {
@@ -345,9 +360,13 @@ fn eval_function_call(
         }
     }
 
-    let result = if let Some(ret) =
-        eval_stmt_list(&func.body, &mut env, functions, depth + 1, enforce_contracts)?
-    {
+    let result = if let Some(ret) = eval_stmt_list(
+        &func.body,
+        &mut env,
+        functions,
+        depth + 1,
+        enforce_contracts,
+    )? {
         ret
     } else if let Some(expr) = &func.tail_expr {
         eval_expr_with_ctx(
@@ -411,8 +430,15 @@ fn eval_stmt(
 ) -> Result<Option<DeterministicValue>, String> {
     match stmt {
         Stmt::Binding { name, expr, .. } => {
-            let value =
-                eval_expr_with_ctx(expr, env, functions, depth + 1, None, None, enforce_contracts)?;
+            let value = eval_expr_with_ctx(
+                expr,
+                env,
+                functions,
+                depth + 1,
+                None,
+                None,
+                enforce_contracts,
+            )?;
             env.insert(name.clone(), value);
             Ok(None)
         }
@@ -442,8 +468,15 @@ fn eval_stmt(
             enforce_contracts,
         )?)),
         Stmt::ExprStmt { expr, .. } => {
-            let _ =
-                eval_expr_with_ctx(expr, env, functions, depth + 1, None, None, enforce_contracts)?;
+            let _ = eval_expr_with_ctx(
+                expr,
+                env,
+                functions,
+                depth + 1,
+                None,
+                None,
+                enforce_contracts,
+            )?;
             Ok(None)
         }
         Stmt::For {
@@ -461,7 +494,8 @@ fn eval_stmt(
             let items = iterable.as_list()?.to_vec();
             for item in items {
                 env.insert(var.clone(), item);
-                if let Some(ret) = eval_stmt_list(body, env, functions, depth + 1, enforce_contracts)?
+                if let Some(ret) =
+                    eval_stmt_list(body, env, functions, depth + 1, enforce_contracts)?
                 {
                     return Ok(Some(ret));
                 }
@@ -504,7 +538,8 @@ fn eval_stmt(
                 if !cond_value.as_bool()? {
                     return Ok(None);
                 }
-                if let Some(ret) = eval_stmt_list(body, env, functions, depth + 1, enforce_contracts)?
+                if let Some(ret) =
+                    eval_stmt_list(body, env, functions, depth + 1, enforce_contracts)?
                 {
                     return Ok(Some(ret));
                 }
@@ -521,10 +556,11 @@ fn eval_stmt(
                 None,
                 enforce_contracts,
             )?
-                .as_int()?
-                .max(0) as usize;
+            .as_int()?
+            .max(0) as usize;
             for _ in 0..times.min(MAX_LOOP_ITERS) {
-                if let Some(ret) = eval_stmt_list(body, env, functions, depth + 1, enforce_contracts)?
+                if let Some(ret) =
+                    eval_stmt_list(body, env, functions, depth + 1, enforce_contracts)?
                 {
                     return Ok(Some(ret));
                 }
