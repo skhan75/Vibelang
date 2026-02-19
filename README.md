@@ -3,6 +3,7 @@
 > Fast like systems languages. Smooth like scripting languages.  
 > Built for the AI era with **Intent Driven Development**.
 
+<!-- markdownlint-disable MD033 -->
 <p align="center">
   <img src="assets/branding/mascot-logo.png" alt="VibeLang mascot logo" width="460" />
 </p>
@@ -20,6 +21,7 @@
   <a href="#what-vibelang-solves-today">What VibeLang Solves Today</a> ·
   <a href="#roadmap-snapshot">Roadmap</a>
 </p>
+<!-- markdownlint-enable MD033 -->
 
 ## Branding Assets
 
