@@ -1,0 +1,74 @@
+name: phase7-language-validation
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  frontend_corpus_matrix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: run phase7 frontend corpus checks
+        run: |
+          set -euo pipefail
+          cargo test -p vibe_cli --test frontend_fixtures phase7_basic_and_intermediate_matrix
+          cargo test -p vibe_cli --test frontend_fixtures phase7_frontend_outputs_are_deterministic
+
+  single_thread_determinism:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: run phase7 single-thread suite
+        run: |
+          set -euo pipefail
+          cargo test -p vibe_cli --test phase7_validation
+
+  concurrency_advanced_and_stress:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: run phase7 concurrency suite
+        run: |
+          set -euo pipefail
+          cargo test -p vibe_cli --test phase7_concurrency
+
+  intent_validation_and_quality_trend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: run phase7 intent tests
+        run: |
+          set -euo pipefail
+          cargo test -p vibe_cli --test phase7_intent_validation
+      - name: collect and validate quality trend
+        run: |
+          set -euo pipefail
+          python3 tooling/metrics/collect_intent_lint_quality.py
+          python3 tooling/metrics/validate_intent_lint_quality.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: phase7-intent-quality-trend
+          path: |
+            reports/phase7/intent_lint_quality_trend.json
+            reports/phase7/intent_lint_quality_trend.md
+
+  reports_gate:
+    runs-on: ubuntu-latest
+    needs:
+      - frontend_corpus_matrix
+      - single_thread_determinism
+      - concurrency_advanced_and_stress
+      - intent_validation_and_quality_trend
+    steps:
+      - uses: actions/checkout@v4
+      - name: verify phase7 reports exist
+        run: |
+          set -euo pipefail
+          test -f reports/phase7/language_validation_matrix.md
+          test -f reports/phase7/sample_programs_catalog.md

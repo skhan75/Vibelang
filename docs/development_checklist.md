@@ -342,47 +342,47 @@ Execution order is fixed and should be followed top to bottom.
 
 #### 7.1.a Test Corpus Structure (Basic -> Advanced)
 
-- [ ] Define fixture taxonomy and naming convention for progression levels (`basic`, `intermediate`, `advanced`, `stress`) under `compiler/tests/fixtures/phase7/`
-- [ ] Add minimal syntax/lexing fixtures: literals, comments, whitespace, indentation boundaries, unary/binary operators, grouping
-- [ ] Add identifier fixtures: valid identifiers, reserved keyword rejection, shadowing behavior, naming edge cases
-- [ ] Add parser-recovery fixtures: malformed blocks/annotations with multi-error stability expectations
-- [ ] Add type-check fixtures: inference boundaries, mismatch diagnostics, unknown symbol/function handling, deterministic error ordering
+- [x] Define fixture taxonomy and naming convention for progression levels (`basic`, `intermediate`, `advanced`, `stress`) under `compiler/tests/fixtures/phase7/` (evidence: `compiler/tests/fixtures/phase7/README.md`, level READMEs under `phase7/basic|intermediate|advanced|stress`)
+- [x] Add minimal syntax/lexing fixtures: literals, comments, whitespace, indentation boundaries, unary/binary operators, grouping (evidence: fixtures `phase7/basic/syntax/*.yb`, test `crates/vibe_cli/tests/frontend_fixtures.rs` `phase7_basic_and_intermediate_matrix`)
+- [x] Add identifier fixtures: valid identifiers, reserved keyword rejection, shadowing behavior, naming edge cases (evidence: fixtures `phase7/basic/identifiers/*.yb` + `.diag`, test `crates/vibe_cli/tests/frontend_fixtures.rs`)
+- [x] Add parser-recovery fixtures: malformed blocks/annotations with multi-error stability expectations (evidence: fixtures `phase7/basic/parser_recovery/*.yb` + `.diag`, deterministic test `phase7_frontend_outputs_are_deterministic`)
+- [x] Add type-check fixtures: inference boundaries, mismatch diagnostics, unknown symbol/function handling, deterministic error ordering (evidence: fixtures `phase7/basic/typecheck/*.yb` + `.diag`, tests `phase7_basic_and_intermediate_matrix`, `phase7_frontend_outputs_are_deterministic`)
 
 #### 7.1.b Annotation/Contract/Intent Coverage
 
-- [ ] Add dedicated fixtures for `@intent`, `@examples`, `@require`, `@ensure`, `@effect` individually and in valid combinations
-- [ ] Add invalid-annotation fixtures (unknown tags, malformed payloads, wrong placement) with stable diagnostics
-- [ ] Add runtime contract policy tests covering dev/test default behavior and explicit overrides
-- [ ] Add `@examples` correctness tests for pass/fail reporting quality (function, input, expected/actual, source span)
-- [ ] Add effect conformance tests proving `@effect` declarations align with observed behavior
+- [x] Add dedicated fixtures for `@intent`, `@examples`, `@require`, `@ensure`, `@effect` individually and in valid combinations (evidence: fixtures `phase7/intermediate/annotations/annotations__all_valid_combo.yb`, `phase7/advanced/intent_validation/*.yb`)
+- [x] Add invalid-annotation fixtures (unknown tags, malformed payloads, wrong placement) with stable diagnostics (evidence: fixtures `phase7/intermediate/annotations/annotations__unknown_tag.yb`, `annotations__intent_missing_string.yb`, `annotations__wrong_position.yb` + `.diag`)
+- [x] Add runtime contract policy tests covering dev/test default behavior and explicit overrides (evidence: tests `crates/vibe_cli/tests/phase2_native.rs` `vibe_test_enforces_contract_runtime_checks_by_default`, `vibe_test_can_disable_contract_runtime_checks_with_env_override`)
+- [x] Add `@examples` correctness tests for pass/fail reporting quality (function, input, expected/actual, source span) (evidence: fixtures with examples in `phase7/intermediate/annotations` and `phase7/advanced/intent_validation`, test `crates/vibe_cli/tests/phase7_validation.rs` `phase7_language_tour_contract_examples_pass_in_vibe_test`)
+- [x] Add effect conformance tests proving `@effect` declarations align with observed behavior (evidence: fixtures `annotations__effect_declared_match.yb`, `annotations__effect_drift.yb` + `.diag`, lint drift fixture `intent_validation__effect_drift.yb`)
 
 #### 7.1.c Single-Threaded Program Suite
 
-- [ ] Add canonical single-thread sample programs: hello world, calculator, collection transform pipeline, small state machine
-- [ ] Add deterministic output assertions for repeated runs (same input => identical stdout and exit code)
-- [ ] Add build artifacts determinism checks for each sample (`.o`, binary hash, debug map stability)
-- [ ] Add small "language tour" sample showing functions, control flow, contracts, and examples in one file
+- [x] Add canonical single-thread sample programs: hello world, calculator, collection transform pipeline, small state machine (evidence: fixtures `phase7/advanced/single_thread/single_thread__hello_world.yb`, `single_thread__calculator.yb`, `single_thread__pipeline_transform.yb`, `single_thread__state_machine.yb`)
+- [x] Add deterministic output assertions for repeated runs (same input => identical stdout and exit code) (evidence: test `crates/vibe_cli/tests/phase7_validation.rs` `phase7_single_thread_samples_run_expected_outputs`)
+- [x] Add build artifacts determinism checks for each sample (`.o`, binary hash, debug map stability) (evidence: test `crates/vibe_cli/tests/phase7_validation.rs` `phase7_single_thread_build_artifacts_are_deterministic`)
+- [x] Add small "language tour" sample showing functions, control flow, contracts, and examples in one file (evidence: fixture `phase7/advanced/single_thread/single_thread__language_tour.yb`, test `phase7_language_tour_contract_examples_pass_in_vibe_test`)
 
 #### 7.1.d Multi-Threaded/Concurrency Program Suite
 
-- [ ] Add bounded worker-pool sample using `go`, `chan`, `select`, cancellation token propagation
-- [ ] Add fan-in/fan-out sample with fairness assertions on `select`
-- [ ] Add timeout/retry sample using `after` branch behavior in `select`
-- [ ] Add concurrency stress scenario fixtures with deterministic pass/fail criteria and bounded runtime
-- [ ] Add negative tests for concurrency misuse with actionable diagnostics
+- [x] Add bounded worker-pool sample using `go`, `chan`, `select`, cancellation token propagation (evidence: fixture `phase7/advanced/concurrency/concurrency__worker_pool.yb`, test `crates/vibe_cli/tests/phase7_concurrency.rs`)
+- [x] Add fan-in/fan-out sample with fairness assertions on `select` (evidence: fixtures `phase7/advanced/concurrency/concurrency__fan_in.yb`, `concurrency__fan_out.yb`, deterministic checks in `phase7_concurrency_samples_are_deterministic_and_bounded`)
+- [x] Add timeout/retry sample using `after` branch behavior in `select` (evidence: fixture `phase7/advanced/concurrency/concurrency__timeout_retry.yb`, expected output assertion in `phase7_concurrency_samples_run_expected_outputs`)
+- [x] Add concurrency stress scenario fixtures with deterministic pass/fail criteria and bounded runtime (evidence: fixture `phase7/stress/concurrency/concurrency__bounded_stress.yb`, bounded-time assertion in `phase7_concurrency_samples_are_deterministic_and_bounded`)
+- [x] Add negative tests for concurrency misuse with actionable diagnostics (evidence: fixtures `phase7/advanced/concurrency_err/*.yb` + `.diag`, test `phase7_concurrency_negative_fixtures_match_golden`)
 
 #### 7.1.e Intent-Driven Development Validation
 
-- [ ] Add intent lint fixtures for "good intent matches implementation" and "intent drift" cases
-- [ ] Add changed-only lint mode validation for both git-present and no-git flows
-- [ ] Add verifier-gated suggestion tests ensuring rejected suggestions never alter compile determinism
-- [ ] Add intent lint quality scoring harness update (`precision`, `recall`, `false-positive trend`) with report output
+- [x] Add intent lint fixtures for "good intent matches implementation" and "intent drift" cases (evidence: fixtures `phase7/advanced/intent_validation/*.yb`, test `crates/vibe_cli/tests/phase7_intent_validation.rs` `intent_lint_detects_good_match_vs_drift_cases`)
+- [x] Add changed-only lint mode validation for both git-present and no-git flows (evidence: test `intent_lint_changed_mode_supports_no_git_and_git_present_flows`)
+- [x] Add verifier-gated suggestion tests ensuring rejected suggestions never alter compile determinism (evidence: test `intent_lint_verifier_gate_rejects_invalid_suggestions`)
+- [x] Add intent lint quality scoring harness update (`precision`, `recall`, `false-positive trend`) with report output (evidence: `tooling/metrics/collect_intent_lint_quality.py`, `tooling/metrics/validate_intent_lint_quality.py`, report `reports/phase7/intent_lint_quality_trend.json`)
 
 #### 7.1.f CI and Evidence for Item 1
 
-- [ ] Add dedicated workflow `.github/workflows/phase7-language-validation.yml` for corpus execution
-- [ ] Publish report `reports/phase7/language_validation_matrix.md` with pass/fail matrix (feature x test level)
-- [ ] Publish report `reports/phase7/sample_programs_catalog.md` with run/build/test commands and expected outputs
+- [x] Add dedicated workflow `.github/workflows/phase7-language-validation.yml` for corpus execution (evidence: workflow jobs `frontend_corpus_matrix`, `single_thread_determinism`, `concurrency_advanced_and_stress`, `intent_validation_and_quality_trend`)
+- [x] Publish report `reports/phase7/language_validation_matrix.md` with pass/fail matrix (feature x test level) (evidence: `reports/phase7/language_validation_matrix.md`)
+- [x] Publish report `reports/phase7/sample_programs_catalog.md` with run/build/test commands and expected outputs (evidence: `reports/phase7/sample_programs_catalog.md`)
 
 ### 7.2 Ordered Item 2 — GitHub README (Product-Grade)
 
@@ -476,7 +476,7 @@ Execution order is fixed and should be followed top to bottom.
 
 ### Phase 7 Exit Criteria (Ordered Plan Complete)
 
-- [ ] Item 1 completed: comprehensive language validation matrix and sample program catalog are green with reproducible evidence (`workflow .github/workflows/phase7-language-validation.yml`, reports under `reports/phase7/`)
+- [x] Item 1 completed: comprehensive language validation matrix and sample program catalog are green with reproducible evidence (`workflow .github/workflows/phase7-language-validation.yml`, reports under `reports/phase7/`)
 - [ ] Item 2 completed: README is public-ready, accurate, and CI-validated against command drift (`README.md`, README smoke workflow job)
 - [ ] Item 3 completed: v1 production release gates are explicitly defined, owned, and passing for at least one release-candidate cycle (`workflow .github/workflows/v1-release-gates.yml`, `reports/v1/`)
 - [ ] Item 4 completed: book/docs program is structured, CI-gated, and includes tested chapter examples across core language/tooling surfaces (`book/`, docs CI jobs, `reports/docs/documentation_quality.md`)

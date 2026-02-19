@@ -1,0 +1,95 @@
+{
+  "schema": "phase7-intent-lint-quality-v1",
+  "entries": [
+    {
+      "timestamp_epoch_s": 1771511528,
+      "quality": {
+        "tp": 3,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "false_positive_rate": 0.0
+      },
+      "cases": [
+        {
+          "name": "missing_intent",
+          "expected": [
+            "I5001"
+          ],
+          "predicted": [
+            "I5001"
+          ]
+        },
+        {
+          "name": "vague_intent",
+          "expected": [
+            "I5002"
+          ],
+          "predicted": [
+            "I5002"
+          ]
+        },
+        {
+          "name": "effect_drift",
+          "expected": [
+            "I5003"
+          ],
+          "predicted": [
+            "I5003"
+          ]
+        },
+        {
+          "name": "good_intent",
+          "expected": [],
+          "predicted": []
+        }
+      ]
+    },
+    {
+      "timestamp_epoch_s": 1771511762,
+      "quality": {
+        "tp": 3,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "false_positive_rate": 0.0
+      },
+      "cases": [
+        {
+          "name": "missing_intent",
+          "expected": [
+            "I5001"
+          ],
+          "predicted": [
+            "I5001"
+          ]
+        },
+        {
+          "name": "vague_intent",
+          "expected": [
+            "I5002"
+          ],
+          "predicted": [
+            "I5002"
+          ]
+        },
+        {
+          "name": "effect_drift",
+          "expected": [
+            "I5003"
+          ],
+          "predicted": [
+            "I5003"
+          ]
+        },
+        {
+          "name": "good_intent",
+          "expected": [],
+          "predicted": []
+        }
+      ]
+    }
+  ]
+}
