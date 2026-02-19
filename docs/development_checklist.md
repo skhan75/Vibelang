@@ -20,7 +20,7 @@ Use rules:
 
 - [ ] Reproducible build mode (`--locked`, pinned toolchain, normalized artifacts)
 - [ ] Determinism tests: same source + same toolchain => bit-identical output
-- [ ] AI sidecar proven non-blocking for parse/type/codegen/link paths
+- [x] AI sidecar proven non-blocking for parse/type/codegen/link paths (evidence: workflow `.github/workflows/phase5-ai-sidecar.yml` job `non_blocking_compile`, report `reports/phase5/workflow_impact.md`)
 - [x] Deterministic diagnostics ordering in compiler output
 
 ### Safety Defaults
@@ -48,6 +48,16 @@ Use rules:
 - [ ] Baseline compile benchmarks for clean/no-op/incremental scenarios
 - [ ] Incremental cache hit-rate telemetry in CI and local runs
 - [ ] Regression thresholds configured for compile latency
+
+### Immediate Guardrail Gaps (Audit: 2026-02-17)
+
+- [ ] **P0:** Implement true reproducible build mode in CLI (`--locked`) and CI usage (`cargo ... --locked`) to match documented policy (evidence gap: `tooling/build_system.md` documents `vibe build --offline --locked`, but `crates/vibe_cli/src/main.rs` `parse_build_like_args` rejects `--locked`)
+- [ ] **P0:** Enforce `@require/@ensure` in native dev/test execution path (not only example-runner path) and add failure-mode tests for `vibe run`/native binaries (evidence gap: `crates/vibe_cli/src/example_runner.rs` enforces contracts, while `crates/vibe_mir/src/lib.rs` has no contract lowering)
+- [ ] **P0:** Fix sendability safety mismatch for unknown types in concurrent calls and align implementation with spec (evidence gap: `docs/spec/ownership_sendability.md` says unknown values are not sendable, but `crates/vibe_types/src/ownership.rs` currently treats `TypeKind::Unknown` as sendable)
+- [ ] **P1:** Normalize reproducibility metadata and artifact paths so outputs are machine/path-stable (evidence gap: `crates/vibe_cli/src/main.rs` `write_debug_map` writes `source_path.display()` directly)
+- [ ] **P1:** Pin toolchain to an exact Rust version (not moving `stable`) and add release evidence for toolchain hash + lockfile state
+- [ ] **P1:** Expose incremental cache hit/miss telemetry in CLI/CI and gate minimum hit-rate in regression checks (evidence gap: telemetry fields exist in `crates/vibe_indexer/src/incremental.rs` but are not surfaced by `vibe index --stats`)
+- [ ] **P1:** Replace compile timing smoke (`cargo run` wall time) with direct `vibe` binary clean/no-op/incremental benchmarks and enforce numeric thresholds (evidence gap: `tooling/metrics/collect_phase6_metrics.py` measures `cargo run` time and `tooling/metrics/validate_phase6_metrics.py` only validates `> 0`)
 
 ---
 
