@@ -69,7 +69,10 @@ pub noGitCase(x: Int) -> Int {
         "--intent",
         "--changed",
     ]);
-    assert!(first.status.success(), "initial changed lint should succeed");
+    assert!(
+        first.status.success(),
+        "initial changed lint should succeed"
+    );
 
     let second = run_vibe(&[
         "lint",
@@ -115,13 +118,7 @@ pub gitCase(x: Int) -> Int {
         .trim_start(),
     )
     .expect("write git case");
-    run_git(
-        &git_project,
-        &[
-            "init",
-            "--initial-branch=main",
-        ],
-    );
+    run_git(&git_project, &["init", "--initial-branch=main"]);
     run_git(&git_project, &["add", "."]);
     run_git(
         &git_project,

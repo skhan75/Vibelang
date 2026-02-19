@@ -10,14 +10,26 @@ use vibe_types::check_and_lower;
 #[test]
 fn phase7_concurrency_samples_run_expected_outputs() {
     let fixtures = [
-        ("phase7/advanced/concurrency/concurrency__worker_pool.yb", "worker-pool-ok\n"),
-        ("phase7/advanced/concurrency/concurrency__fan_in.yb", "fan-in-ok\n"),
-        ("phase7/advanced/concurrency/concurrency__fan_out.yb", "fan-out-ok\n"),
+        (
+            "phase7/advanced/concurrency/concurrency__worker_pool.yb",
+            "worker-pool-ok\n",
+        ),
+        (
+            "phase7/advanced/concurrency/concurrency__fan_in.yb",
+            "fan-in-ok\n",
+        ),
+        (
+            "phase7/advanced/concurrency/concurrency__fan_out.yb",
+            "fan-out-ok\n",
+        ),
         (
             "phase7/advanced/concurrency/concurrency__timeout_retry.yb",
             "retry-attempt-1\nretry-ok\n",
         ),
-        ("phase7/stress/concurrency/concurrency__bounded_stress.yb", "stress-ok\n"),
+        (
+            "phase7/stress/concurrency/concurrency__bounded_stress.yb",
+            "stress-ok\n",
+        ),
     ];
 
     for (relative, expected_stdout) in fixtures {

@@ -6,8 +6,14 @@ use std::time::{SystemTime, UNIX_EPOCH};
 #[test]
 fn phase7_single_thread_samples_run_expected_outputs() {
     let fixtures = [
-        ("phase7/advanced/single_thread/single_thread__hello_world.yb", "phase7-hello\n"),
-        ("phase7/advanced/single_thread/single_thread__calculator.yb", "calc-ok\n"),
+        (
+            "phase7/advanced/single_thread/single_thread__hello_world.yb",
+            "phase7-hello\n",
+        ),
+        (
+            "phase7/advanced/single_thread/single_thread__calculator.yb",
+            "calc-ok\n",
+        ),
         (
             "phase7/advanced/single_thread/single_thread__pipeline_transform.yb",
             "pipe-ok\n",
@@ -35,7 +41,10 @@ fn phase7_single_thread_samples_run_expected_outputs() {
             second.stdout,
             second.stderr
         );
-        assert_eq!(first.stdout, expected_stdout, "unexpected stdout for {relative}");
+        assert_eq!(
+            first.stdout, expected_stdout,
+            "unexpected stdout for {relative}"
+        );
         assert_eq!(
             first.stdout, second.stdout,
             "repeat run output should be deterministic for {relative}"
@@ -114,8 +123,14 @@ fn phase7_single_thread_build_artifacts_are_deterministic() {
         ))
         .expect("read second debug map");
 
-        assert_eq!(first_obj, second_obj, "object output mismatch for {relative}");
-        assert_eq!(first_bin, second_bin, "binary output mismatch for {relative}");
+        assert_eq!(
+            first_obj, second_obj,
+            "object output mismatch for {relative}"
+        );
+        assert_eq!(
+            first_bin, second_bin,
+            "binary output mismatch for {relative}"
+        );
         assert_eq!(
             first_debug, second_debug,
             "debug map output mismatch for {relative}"
