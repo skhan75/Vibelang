@@ -3,20 +3,31 @@
 > Fast like systems languages. Smooth like scripting languages.  
 > Built for the AI era with **Intent Driven Development**.
 
-## Branding Placeholders
+<p align="center">
+  <img src="assets/branding/mascot-logo.png" alt="VibeLang mascot logo" width="460" />
+</p>
+
+<p align="center">
+  <a href="#roadmap-snapshot"><img src="https://img.shields.io/badge/status-active%20development-22c55e" alt="status" /></a>
+  <a href="#what-vibelang-is"><img src="https://img.shields.io/badge/native-AOT-2563eb" alt="native" /></a>
+  <a href="#why-i-built-this"><img src="https://img.shields.io/badge/intent-driven%20development-a855f7" alt="intent" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="license" /></a>
+</p>
+
+<p align="center">
+  <a href="#60-second-quickstart">Quickstart</a> ·
+  <a href="#why-i-built-this">Why I Built This</a> ·
+  <a href="#what-vibelang-solves-today">What VibeLang Solves Today</a> ·
+  <a href="#roadmap-snapshot">Roadmap</a>
+</p>
+
+## Branding Assets
 
 <!-- Replace these when brand assets are ready -->
-- Mascot logo placeholder: `assets/branding/mascot-logo.png`
+- Mascot logo: `assets/branding/mascot-logo.png`
 - Text logo placeholder: `assets/branding/vibelang-wordmark.svg`
 - Hero/banner placeholder: `assets/branding/vibelang-readme-hero.png`
 - Favicon/app icon placeholder: `assets/branding/vibelang-icon.png`
-
-[![Status](https://img.shields.io/badge/status-active%20development-22c55e)](#roadmap-snapshot)
-[![Native](https://img.shields.io/badge/native-AOT-2563eb)](#what-vibelang-is)
-[![Intent](https://img.shields.io/badge/intent-driven%20development-a855f7)](#why-i-built-this)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-
-[Quickstart](#60-second-quickstart) · [Why I Built This](#why-i-built-this) · [What VibeLang Solves Today](#what-vibelang-solves-today) · [Roadmap](#roadmap-snapshot)
 
 ## Table of Contents
 
