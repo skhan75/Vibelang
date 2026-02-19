@@ -67,7 +67,7 @@ Contracts impact invalidation:
 
 ## Storage
 
-- Local disk cache in `.vibe/cache`
+- Local disk cache in `.yb/cache` (`.vibe/cache` retained only for legacy migration windows)
 - Content-addressed blobs for IR and object artifacts
 - LRU eviction with size cap
 

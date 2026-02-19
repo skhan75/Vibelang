@@ -250,8 +250,8 @@ mod tests {
     #[test]
     fn open_document_publishes_diagnostics() {
         let dir = tempdir().expect("temp dir");
-        let root = dir.path().join(".vibe/index");
-        let file = dir.path().join("broken.vibe");
+        let root = dir.path().join(".yb/index");
+        let file = dir.path().join("broken.yb");
         let src = "broken() -> Int { unknown_name }";
         fs::write(&file, src).expect("write source");
 
@@ -268,8 +268,8 @@ mod tests {
     #[test]
     fn definition_and_references_are_available() {
         let dir = tempdir().expect("temp dir");
-        let root = dir.path().join(".vibe/index");
-        let file = dir.path().join("nav.vibe");
+        let root = dir.path().join(".yb/index");
+        let file = dir.path().join("nav.yb");
         let src = r#"foo() -> Int { 1 }
 bar() -> Int { foo() }
 "#;
@@ -289,8 +289,8 @@ bar() -> Int { foo() }
     #[test]
     fn hover_surfaces_intent_and_effects() {
         let dir = tempdir().expect("temp dir");
-        let root = dir.path().join(".vibe/index");
-        let file = dir.path().join("hover.vibe");
+        let root = dir.path().join(".yb/index");
+        let file = dir.path().join("hover.yb");
         let src = r#"foo() -> Int {
   @intent "compute a deterministic value"
   @effect alloc

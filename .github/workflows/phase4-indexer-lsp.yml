@@ -49,6 +49,12 @@ jobs:
           test "$incremental_ms" -le 5000
           test "$memory_bytes" -le 50000000
 
+          mixed_dir="$(mktemp -d)"
+          cp compiler/tests/fixtures/build/hello_world.vibe "$mixed_dir/hello_world.vibe"
+          cp compiler/tests/fixtures/build/function_calls.vibe "$mixed_dir/function_calls.yb"
+          cargo run -q -p vibe_cli -- index "$mixed_dir" --rebuild > /tmp/index_mixed_ext.out
+          grep -q "indexed 2 files" /tmp/index_mixed_ext.out
+
   deterministic_index_snapshot:
     runs-on: ubuntu-latest
     steps:
@@ -58,7 +64,7 @@ jobs:
         run: |
           set -euo pipefail
           dir="compiler/tests/fixtures/snapshots"
-          snapshot="$dir/.vibe/index/index_v1.json"
+          snapshot="$dir/.yb/index/index_v1.json"
 
           cargo run -q -p vibe_cli -- index "$dir" --rebuild
           cp "$snapshot" /tmp/index_1.json

@@ -31,7 +31,7 @@ fn vibe_index_rebuild_writes_snapshot() {
         "stats output should include performance metrics:\n{}",
         out.stdout
     );
-    let snapshot = project_dir.join(".vibe/index/index_v1.json");
+    let snapshot = project_dir.join(".yb/index/index_v1.json");
     assert!(
         snapshot.exists(),
         "index snapshot should exist at {}",
@@ -52,7 +52,7 @@ fn vibe_check_best_effort_refreshes_index() {
     let snapshot = file
         .parent()
         .expect("file parent")
-        .join(".vibe/index/index_v1.json");
+        .join(".yb/index/index_v1.json");
     assert!(
         snapshot.exists(),
         "best-effort check index refresh should persist snapshot at {}",
@@ -75,7 +75,7 @@ fn index_snapshot_is_deterministic_for_same_inputs() {
         first.stdout,
         first.stderr
     );
-    let snapshot = project_dir.join(".vibe/index/index_v1.json");
+    let snapshot = project_dir.join(".yb/index/index_v1.json");
     let first_snapshot = fs::read_to_string(&snapshot).expect("read first snapshot");
 
     let second = run_vibe(&args);
@@ -95,7 +95,7 @@ fn index_snapshot_is_deterministic_for_same_inputs() {
 #[test]
 fn lsp_stdio_supports_shutdown_command() {
     let project_dir = temp_fixture_project("snapshots/pipeline_sample.vibe");
-    let index_root = project_dir.join(".vibe/index");
+    let index_root = project_dir.join(".yb/index");
     let mut child = Command::new(vibe_bin())
         .args([
             "lsp",
@@ -142,6 +142,31 @@ fn temp_fixture_project(relative: &str) -> PathBuf {
     );
     fs::write(&destination, contents).expect("write fixture source");
     temp_dir
+}
+
+#[test]
+fn vibe_index_accepts_yb_source_files() {
+    let project_dir = unique_temp_dir("vibe_phase4_indexer_yb");
+    fs::create_dir_all(&project_dir).expect("create temp project dir");
+    fs::write(project_dir.join("main.yb"), "main() -> Int { 0 }\n").expect("write yb source");
+
+    let out = run_vibe(&[
+        "index",
+        project_dir.to_str().expect("project dir str"),
+        "--rebuild",
+    ]);
+    assert!(
+        out.status.success(),
+        "vibe index failed on .yb source:\nstdout:\n{}\nstderr:\n{}",
+        out.stdout,
+        out.stderr
+    );
+    let snapshot = project_dir.join(".yb/index/index_v1.json");
+    assert!(
+        snapshot.exists(),
+        "index snapshot should exist at {}",
+        snapshot.display()
+    );
 }
 
 fn temp_fixture_file(relative: &str) -> PathBuf {

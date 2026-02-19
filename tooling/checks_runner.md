@@ -22,7 +22,7 @@
 
 - `vibe test <path>` run deterministic checks/examples for a file or directory
 - `vibe checks` run all checks for workspace
-- `vibe checks --file app/math.vibe` scoped run
+- `vibe checks --file app/math.yb` scoped run
 - `vibe checks --changed` run checks for changed files only
 - `vibe checks --format json` output for CI annotation
 
@@ -36,7 +36,7 @@ Contract/example execution should use deterministic helpers only (`len`, `min`, 
 checks: 42 passed, 1 failed, 0 skipped
 failed:
   topK @ensure len(.) == min(k, len(xs))
-  at app/math.vibe:21:3
+  at app/math.yb:21:3
 ```
 
 ## Output Format (JSON)
@@ -50,7 +50,7 @@ failed:
     {
       "function": "topK",
       "contract": "@ensure len(.) == min(k, len(xs))",
-      "file": "app/math.vibe",
+      "file": "app/math.yb",
       "line": 21,
       "column": 3
     }

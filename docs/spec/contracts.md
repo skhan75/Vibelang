@@ -164,7 +164,7 @@ Example format:
 Contract violation in topK(xs, k):
   failed: len(.) == min(k, len(xs))
   values: len(.)=3, k=2, len(xs)=5
-  at app/math.vibe:18:3
+  at app/math.yb:18:3
 ```
 
 ## Future Expansion (Post-v1)

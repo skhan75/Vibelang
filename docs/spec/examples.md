@@ -9,6 +9,11 @@ They serve as:
 - Generated tests
 - Regression guards during refactors
 
+Source file extension note:
+
+- `.yb` is the canonical extension in v1 docs.
+- `.vibe` remains accepted for backward compatibility during migration.
+
 ## Basic Form
 
 ```txt
@@ -100,7 +105,7 @@ Sample:
 ```txt
 Example failed: topK([3,1,2], 2) => [3,2]
 actual: [3,1]
-at app/math.vibe:12:5
+at app/math.yb:12:5
 ```
 
 ## Anti-Patterns

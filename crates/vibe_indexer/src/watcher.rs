@@ -3,6 +3,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use crate::extract::stable_hash_hex;
+use crate::is_supported_source_file;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FileChangeKind {
@@ -82,7 +83,7 @@ fn compute_hashes(paths: &[PathBuf]) -> Result<BTreeMap<String, String>, String>
             continue;
         }
         if path.is_file() {
-            if path.extension().and_then(|e| e.to_str()) == Some("vibe") {
+            if is_supported_source_file(path) {
                 let key = normalize_path(path);
                 let source = fs::read_to_string(path)
                     .map_err(|e| format!("failed to read `{}`: {e}", path.display()))?;
@@ -107,7 +108,7 @@ fn collect_file_hashes(dir: &Path, out: &mut BTreeMap<String, String>) -> Result
             collect_file_hashes(&path, out)?;
             continue;
         }
-        if path.extension().and_then(|e| e.to_str()) != Some("vibe") {
+        if !is_supported_source_file(&path) {
             continue;
         }
         let source = fs::read_to_string(&path)

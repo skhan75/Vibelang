@@ -21,6 +21,11 @@ Common flags:
 - `--backend cranelift|llvm` (llvm future)
 - `--offline`
 
+Source extension policy (Phase 6.0):
+
+- `.yb` is canonical for new projects and examples.
+- `.vibe` remains supported during migration for backward compatibility.
+
 ## Build Graph Model
 
 Each package/module compiles as a node in directed acyclic build graph.
@@ -76,7 +81,7 @@ Deterministic build requires:
 Suggested output layout:
 
 ```txt
-.vibe/
+.yb/
   cache/
   index/
   artifacts/

@@ -34,10 +34,13 @@ jobs:
       - name: deterministic check and hir output
         run: |
           set -euo pipefail
-          file="compiler/tests/fixtures/parse_ok/basic_function.vibe"
-          cargo run -q -p vibe_cli -- check "$file" > /tmp/check_1.txt
-          cargo run -q -p vibe_cli -- check "$file" > /tmp/check_2.txt
-          diff -u /tmp/check_1.txt /tmp/check_2.txt
-          cargo run -q -p vibe_cli -- hir "$file" > /tmp/hir_1.txt
-          cargo run -q -p vibe_cli -- hir "$file" > /tmp/hir_2.txt
-          diff -u /tmp/hir_1.txt /tmp/hir_2.txt
+          for ext in vibe yb; do
+            file="/tmp/basic_function.$ext"
+            cp compiler/tests/fixtures/parse_ok/basic_function.vibe "$file"
+            cargo run -q -p vibe_cli -- check "$file" > "/tmp/check_${ext}_1.txt"
+            cargo run -q -p vibe_cli -- check "$file" > "/tmp/check_${ext}_2.txt"
+            diff -u "/tmp/check_${ext}_1.txt" "/tmp/check_${ext}_2.txt"
+            cargo run -q -p vibe_cli -- hir "$file" > "/tmp/hir_${ext}_1.txt"
+            cargo run -q -p vibe_cli -- hir "$file" > "/tmp/hir_${ext}_2.txt"
+            diff -u "/tmp/hir_${ext}_1.txt" "/tmp/hir_${ext}_2.txt"
+          done

@@ -32,6 +32,34 @@ fn hello_world_build_and_run() {
 }
 
 #[test]
+fn hello_world_build_and_run_with_yb_extension() {
+    let source = temp_fixture_copy_with_extension("build/hello_world.vibe", "yb");
+    let build = run_vibe(&["build", source.to_str().expect("source path str")]);
+    assert!(
+        build.status.success(),
+        "build failed:\nstdout:\n{}\nstderr:\n{}",
+        build.stdout,
+        build.stderr
+    );
+
+    let binary = artifact_binary_path(&source, "dev", "x86_64-unknown-linux-gnu");
+    assert!(
+        binary.exists(),
+        "binary should be emitted at {}",
+        binary.display()
+    );
+
+    let run = run_vibe(&["run", source.to_str().expect("source path str")]);
+    assert!(
+        run.status.success(),
+        "run failed:\nstdout:\n{}\nstderr:\n{}",
+        run.stdout,
+        run.stderr
+    );
+    assert_eq!(run.stdout, "hello from vibelang\n");
+}
+
+#[test]
 fn function_call_fixture_runs() {
     let source = temp_fixture_copy("build/function_calls.vibe");
     let run = run_vibe(&["run", source.to_str().expect("source path str")]);
@@ -305,6 +333,44 @@ fn unsupported_member_access_has_stable_codegen_diagnostic() {
     );
 }
 
+#[test]
+fn vibe_test_directory_accepts_mixed_extensions_when_stems_differ() {
+    let temp_dir = unique_temp_dir("vibe_phase2_mixed_ext_ok");
+    fs::create_dir_all(&temp_dir).expect("create temp dir");
+    fs::write(temp_dir.join("alpha.vibe"), "alpha() -> Int { 0 }\n").expect("write alpha");
+    fs::write(temp_dir.join("beta.yb"), "beta() -> Int { 0 }\n").expect("write beta");
+
+    let out = run_vibe(&["test", temp_dir.to_str().expect("temp dir str")]);
+    assert!(
+        out.status.success(),
+        "vibe test should accept mixed source extensions:\nstdout:\n{}\nstderr:\n{}",
+        out.stdout,
+        out.stderr
+    );
+}
+
+#[test]
+fn vibe_test_rejects_same_stem_across_extensions() {
+    let temp_dir = unique_temp_dir("vibe_phase2_mixed_ext_conflict");
+    fs::create_dir_all(&temp_dir).expect("create temp dir");
+    fs::write(temp_dir.join("same.vibe"), "same() -> Int { 0 }\n").expect("write same vibe");
+    fs::write(temp_dir.join("same.yb"), "same() -> Int { 0 }\n").expect("write same yb");
+
+    let out = run_vibe(&["test", temp_dir.to_str().expect("temp dir str")]);
+    assert!(
+        !out.status.success(),
+        "vibe test unexpectedly succeeded with conflicting stems:\nstdout:\n{}\nstderr:\n{}",
+        out.stdout,
+        out.stderr
+    );
+    assert!(
+        out.stderr
+            .contains("conflicting source files share a stem across extensions"),
+        "expected collision guard diagnostic:\n{}",
+        out.stderr
+    );
+}
+
 fn temp_fixture_copy(relative: &str) -> PathBuf {
     let src = fixture_path(relative);
     let contents = fs::read_to_string(&src).expect("read fixture source");
@@ -316,6 +382,13 @@ fn temp_fixture_copy(relative: &str) -> PathBuf {
     fs::create_dir_all(&temp_dir).expect("create temp dir");
     let dst = temp_dir.join(file_name);
     fs::write(&dst, contents).expect("write temp fixture");
+    dst
+}
+
+fn temp_fixture_copy_with_extension(relative: &str, ext: &str) -> PathBuf {
+    let src = temp_fixture_copy(relative);
+    let dst = src.with_extension(ext);
+    fs::rename(&src, &dst).expect("rename temp fixture extension");
     dst
 }
 
@@ -370,7 +443,7 @@ fn artifact_binary_path(source: &Path, profile: &str, target: &str) -> PathBuf {
     source
         .parent()
         .expect("source parent")
-        .join(".vibe")
+        .join(".yb")
         .join("artifacts")
         .join(profile)
         .join(target)
@@ -385,7 +458,7 @@ fn artifact_debug_map_path(source: &Path, profile: &str, target: &str) -> PathBu
     source
         .parent()
         .expect("source parent")
-        .join(".vibe")
+        .join(".yb")
         .join("artifacts")
         .join(profile)
         .join(target)

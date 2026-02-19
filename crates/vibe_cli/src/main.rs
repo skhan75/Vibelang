@@ -11,7 +11,8 @@ use vibe_diagnostics::Diagnostic;
 use vibe_diagnostics::Diagnostics;
 use vibe_indexer::build_file_index;
 use vibe_indexer::{
-    default_index_root, IncrementalIndexer, IncrementalTelemetry, IndexStats, IndexStore,
+    default_metadata_root, is_supported_source_file, prepare_index_root, IncrementalIndexer,
+    IncrementalTelemetry, IndexStats, IndexStore, SUPPORTED_SOURCE_EXTS,
 };
 use vibe_lsp::run_line_stdio;
 use vibe_mir::MirProgram;
@@ -450,12 +451,13 @@ fn run_index(args: &IndexArgs) -> Result<ExitCode, String> {
     let files = collect_vibe_files(&args.target_path)?;
     if files.is_empty() {
         return Err(format!(
-            "no .vibe files found under `{}`",
+            "no source files ({}) found under `{}`",
+            supported_source_ext_display(),
             args.target_path.display()
         ));
     }
 
-    let index_root = default_index_root(&args.target_path);
+    let index_root = prepare_index_root(&args.target_path)?;
     let mut store = IndexStore::open_or_create(&index_root)?;
     if args.rebuild {
         store.clear();
@@ -514,19 +516,20 @@ fn run_lint(args: &LintArgs) -> Result<ExitCode, String> {
     let files = collect_vibe_files(&args.target_path)?;
     if files.is_empty() {
         return Err(format!(
-            "no .vibe files found under `{}`",
+            "no source files ({}) found under `{}`",
+            supported_source_ext_display(),
             args.target_path.display()
         ));
     }
 
-    let index_root = default_index_root(&args.target_path);
+    let index_root = prepare_index_root(&args.target_path)?;
     let store = IndexStore::open_or_create(&index_root)?;
     let mut incremental = IncrementalIndexer::new(store);
     let mut telemetry = IncrementalTelemetry::default();
     let mut changed_files = Vec::new();
 
     let git_changed = if args.changed {
-        git_changed_vibe_files(&args.target_path)?
+        git_changed_source_files(&args.target_path)?
     } else {
         None
     };
@@ -562,7 +565,10 @@ fn run_lint(args: &LintArgs) -> Result<ExitCode, String> {
     incremental.store().save()?;
 
     if args.changed && changed_files.is_empty() {
-        println!("no changed .vibe files detected");
+        println!(
+            "no changed source files ({}) detected",
+            supported_source_ext_display()
+        );
         return Ok(ExitCode::SUCCESS);
     }
 
@@ -728,7 +734,7 @@ fn compiler_revalidate_file(path: &Path) -> Result<bool, String> {
     Ok(!diags.has_errors())
 }
 
-fn git_changed_vibe_files(target_path: &Path) -> Result<Option<BTreeSet<String>>, String> {
+fn git_changed_source_files(target_path: &Path) -> Result<Option<BTreeSet<String>>, String> {
     let base_dir = if target_path.is_dir() {
         target_path.to_path_buf()
     } else {
@@ -752,38 +758,51 @@ fn git_changed_vibe_files(target_path: &Path) -> Result<Option<BTreeSet<String>>
     }
 
     let mut out = BTreeSet::new();
-    for args in [
-        vec!["diff", "--name-only", "--", "*.vibe"],
-        vec!["diff", "--cached", "--name-only", "--", "*.vibe"],
-    ] {
-        let output = Command::new("git")
-            .arg("-C")
-            .arg(&base_dir)
-            .args(&args)
-            .output()
-            .map_err(|e| format!("failed to query git changed files: {e}"))?;
-        if !output.status.success() {
-            continue;
-        }
-        let text = String::from_utf8_lossy(&output.stdout);
-        for line in text.lines().filter(|line| !line.trim().is_empty()) {
-            let absolute = base_dir.join(line.trim());
-            let normalized = absolute
-                .canonicalize()
-                .unwrap_or_else(|_| absolute.clone())
-                .to_string_lossy()
-                .to_string();
-            out.insert(normalized);
+    for ext in SUPPORTED_SOURCE_EXTS {
+        let glob = format!("*.{ext}");
+        for args in [
+            vec![
+                "diff".to_string(),
+                "--name-only".to_string(),
+                "--".to_string(),
+                glob.clone(),
+            ],
+            vec![
+                "diff".to_string(),
+                "--cached".to_string(),
+                "--name-only".to_string(),
+                "--".to_string(),
+                glob.clone(),
+            ],
+        ] {
+            let output = Command::new("git")
+                .arg("-C")
+                .arg(&base_dir)
+                .args(args)
+                .output()
+                .map_err(|e| format!("failed to query git changed files: {e}"))?;
+            if !output.status.success() {
+                continue;
+            }
+            let text = String::from_utf8_lossy(&output.stdout);
+            for line in text.lines().filter(|line| !line.trim().is_empty()) {
+                let absolute = base_dir.join(line.trim());
+                let normalized = absolute
+                    .canonicalize()
+                    .unwrap_or_else(|_| absolute.clone())
+                    .to_string_lossy()
+                    .to_string();
+                out.insert(normalized);
+            }
         }
     }
     Ok(Some(out))
 }
 
 fn run_lsp(args: &[String]) -> Result<ExitCode, String> {
-    let mut index_root = env::current_dir()
-        .map_err(|e| format!("failed to resolve current directory: {e}"))?
-        .join(".vibe")
-        .join("index");
+    let cwd =
+        env::current_dir().map_err(|e| format!("failed to resolve current directory: {e}"))?;
+    let mut index_root = prepare_index_root(&cwd)?;
     let mut idx = 0usize;
     while idx < args.len() {
         match args[idx].as_str() {
@@ -906,7 +925,7 @@ fn best_effort_refresh_index(
 ) -> Result<(), String> {
     let canonical = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
     let file_index = build_file_index(&canonical, source, ast, hir, diagnostics);
-    let index_root = default_index_root(&canonical);
+    let index_root = prepare_index_root(&canonical)?;
     let store = IndexStore::open_or_create(&index_root)?;
     let mut incremental = IncrementalIndexer::new(store);
     let mut telemetry = IncrementalTelemetry::default();
@@ -955,11 +974,7 @@ fn collect_total_source_bytes(target_path: &Path) -> Result<usize, String> {
 }
 
 fn artifact_directory(source_path: &Path, profile: &str, target: &str) -> PathBuf {
-    let base = source_path
-        .parent()
-        .map(Path::to_path_buf)
-        .unwrap_or_else(|| PathBuf::from("."));
-    base.join(".vibe")
+    default_metadata_root(source_path)
         .join("artifacts")
         .join(profile)
         .join(target)
@@ -969,7 +984,8 @@ fn run_test(args: &BuildArgs) -> Result<ExitCode, String> {
     let files = collect_vibe_files(&args.source_path)?;
     if files.is_empty() {
         return Err(format!(
-            "no .vibe files found under `{}`",
+            "no source files ({}) found under `{}`",
+            supported_source_ext_display(),
             args.source_path.display()
         ));
     }
@@ -1072,10 +1088,14 @@ fn contract_checks_enabled(profile: &str) -> bool {
 
 fn collect_vibe_files(path: &Path) -> Result<Vec<PathBuf>, String> {
     if path.is_file() {
-        if path.extension().and_then(|x| x.to_str()) == Some("vibe") {
+        if is_supported_source_file(path) {
             return Ok(vec![path.to_path_buf()]);
         }
-        return Err(format!("expected a .vibe file, got `{}`", path.display()));
+        return Err(format!(
+            "expected a source file ({}), got `{}`",
+            supported_source_ext_display(),
+            path.display()
+        ));
     }
     if !path.is_dir() {
         return Err(format!("path does not exist: `{}`", path.display()));
@@ -1083,6 +1103,7 @@ fn collect_vibe_files(path: &Path) -> Result<Vec<PathBuf>, String> {
     let mut out = Vec::new();
     collect_vibe_files_recursive(path, &mut out)?;
     out.sort();
+    detect_mixed_extension_stem_conflicts(&out)?;
     Ok(out)
 }
 
@@ -1098,11 +1119,57 @@ fn collect_vibe_files_recursive(dir: &Path, out: &mut Vec<PathBuf>) -> Result<()
             collect_vibe_files_recursive(&path, out)?;
             continue;
         }
-        if path.extension().and_then(|x| x.to_str()) == Some("vibe") {
+        if is_supported_source_file(&path) {
             out.push(path);
         }
     }
     Ok(())
+}
+
+fn detect_mixed_extension_stem_conflicts(files: &[PathBuf]) -> Result<(), String> {
+    let mut stems = std::collections::BTreeMap::<String, Vec<PathBuf>>::new();
+    for file in files {
+        let parent = file
+            .parent()
+            .map(Path::to_path_buf)
+            .unwrap_or_else(|| PathBuf::from("."));
+        let stem = file
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .ok_or_else(|| format!("invalid source filename `{}`", file.display()))?;
+        let key = format!("{}::{}", parent.display(), stem);
+        stems.entry(key).or_default().push(file.clone());
+    }
+
+    for (_key, mut same_stem_files) in stems {
+        same_stem_files.sort();
+        let mut exts = same_stem_files
+            .iter()
+            .filter_map(|p| p.extension().and_then(|e| e.to_str()).map(str::to_string))
+            .collect::<Vec<_>>();
+        exts.sort();
+        exts.dedup();
+        if exts.len() > 1 {
+            let listed = same_stem_files
+                .iter()
+                .map(|p| format!("`{}`", p.display()))
+                .collect::<Vec<_>>()
+                .join(", ");
+            return Err(format!(
+                "conflicting source files share a stem across extensions: {listed}. \
+rename one file or keep a single extension per stem to avoid artifact collisions."
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn supported_source_ext_display() -> String {
+    SUPPORTED_SOURCE_EXTS
+        .iter()
+        .map(|ext| format!(".{ext}"))
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 fn has_main_function(ast: &vibe_ast::FileAst) -> bool {

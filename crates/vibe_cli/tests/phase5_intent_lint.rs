@@ -34,7 +34,7 @@ pub addOne(x: Int) -> Int {
 #[test]
 fn lint_intent_changed_mode_uses_index_delta_when_no_git() {
     let project = temp_project_with_source(
-        "changed_sample.vibe",
+        "changed_sample.yb",
         r#"
 pub increment(x: Int) -> Int {
   x + 1
@@ -67,12 +67,12 @@ pub increment(x: Int) -> Int {
         second.stderr
     );
     assert!(
-        second.stdout.contains("no changed .vibe files detected"),
+        second.stdout.contains("no changed source files"),
         "expected no changed files after immediate rerun:\n{}",
         second.stdout
     );
 
-    let source = project.join("changed_sample.vibe");
+    let source = project.join("changed_sample.yb");
     let mut updated = fs::read_to_string(&source).expect("read source");
     updated.push('\n');
     fs::write(&source, updated).expect("write source");
@@ -90,7 +90,7 @@ pub increment(x: Int) -> Int {
         third.stderr
     );
     assert!(
-        !third.stdout.contains("no changed .vibe files detected"),
+        !third.stdout.contains("no changed source files"),
         "expected changed file detection after edit:\n{}",
         third.stdout
     );
@@ -99,7 +99,7 @@ pub increment(x: Int) -> Int {
 #[test]
 fn lint_intent_suggestions_are_verifier_gated() {
     let project = temp_project_with_source(
-        "suggest_sample.vibe",
+        "suggest_sample.yb",
         r#"
 pub sum(a: Int, b: Int) -> Int {
   a + b
@@ -133,7 +133,7 @@ pub sum(a: Int, b: Int) -> Int {
 #[test]
 fn lint_intent_supports_budget_mode_and_opt_in_telemetry() {
     let project = temp_project_with_source(
-        "telemetry_sample.vibe",
+        "telemetry_sample.yb",
         r#"
 pub multiply(a: Int, b: Int) -> Int {
   a * b

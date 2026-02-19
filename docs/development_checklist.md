@@ -259,6 +259,15 @@ Goal: add AI productivity features without compromising determinism, cost, or tr
 
 Goal: move from core compiler/runtime to a sustainable developer ecosystem.
 
+### 6.0 Source Extension Migration (`.vibe` -> `.yb`)
+
+- [ ] Add dual-extension source discovery support (`.vibe` + `.yb`) in CLI/indexer/LSP/watcher pipelines
+- [ ] Update changed-file detection and workspace scans to include both extensions (git diff globs, recursive collectors, incremental hashing)
+- [ ] Add compatibility test matrix proving command parity for both extensions (`check`, `build`, `run`, `test`, `lint`, `index`, `lsp`)
+- [ ] Make `vibe new` and docs/spec samples default to `.yb` while preserving `.vibe` backward compatibility
+- [ ] Publish extension migration guide with deprecation timeline and opt-in warning policy
+- [ ] Define `.vibe` removal gate using adoption + CI parity thresholds (no hard removal before thresholds are met)
+
 ### 6.1 Self-Hosting Roadmap
 
 - [ ] Define bootstrap strategy (host language -> VibeLang compiler transition)
@@ -283,6 +292,7 @@ Goal: move from core compiler/runtime to a sustainable developer ecosystem.
 - [ ] Versioning and compatibility policy
 - [ ] Release pipeline and changelog process
 - [ ] Migration guides between language/toolchain versions
+- [ ] Define source-extension compatibility policy (`.vibe` legacy, `.yb` canonical) for v1.x
 
 ### 6.5 Portability and Conformance Governance
 
@@ -297,6 +307,7 @@ Goal: move from core compiler/runtime to a sustainable developer ecosystem.
 - [ ] Teams can build, test, publish, and maintain VibeLang projects end-to-end (evidence: release pipeline dry-run report + package manager e2e CI)
 - [ ] Self-hosting path is demonstrated or scheduled with validated milestones (evidence: bootstrap-vs-self-host conformance report in `reports/phase6/self_hosting_conformance.md`)
 - [ ] Target-tier support and conformance governance process are operational in release workflow (evidence: CI matrix results + published support matrix)
+- [ ] `.yb` is canonical for new projects while `.vibe` remains regression-free during migration (evidence: dual-extension parity CI + report `reports/phase6/source_extension_migration.md`)
 
 ---
 
@@ -310,10 +321,11 @@ Goal: move from core compiler/runtime to a sustainable developer ecosystem.
 - [ ] Spec conformance dashboard (documented constructs vs runtime-validated coverage)
 - [ ] Unsupported-feature backlog trend (count, severity, time-to-resolution)
 - [ ] Cross-target compatibility pass rate by profile/target
+- [ ] Source-extension adoption ratio (`.yb` vs `.vibe`) and dual-support parity pass rate
 
 ## Current Status Snapshot
 
 - Core strategy/spec docs: drafted and phase-1 ambiguities resolved
 - Implementation code: Phase 5 conformance hardening and AI sidecar baseline delivered (`vibe_sidecar`, `vibe lint --intent`, verifier-gated suggestions, policy controls, telemetry and evidence bundle)
 - Verification: phase5 sidecar/lint integration + native conformance suites + compile parity and budget guard checks are green (workflows `.github/workflows/phase1-frontend.yml` through `.github/workflows/phase5-ai-sidecar.yml`)
-- Next execution focus: Phase 6 self-hosting path and ecosystem scale-out (package manager, formatter/docs/test UX, target-matrix governance)
+- Next execution focus: Phase 6 self-hosting path and ecosystem scale-out, starting with phased `.vibe` -> `.yb` migration (dual-support first), then package manager/formatter/docs/test UX and target-matrix governance

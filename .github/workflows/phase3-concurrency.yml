@@ -34,10 +34,14 @@ jobs:
       - name: go/chan/select native fixture smoke
         run: |
           set -euo pipefail
-          file="compiler/tests/fixtures/build/concurrency_go_select.vibe"
-          cargo run -q -p vibe_cli -- run "$file" > /tmp/concurrency.out
-          printf "go-worker\nselect-recv\n" > /tmp/concurrency.expected
-          diff -u /tmp/concurrency.expected /tmp/concurrency.out
+          for ext in vibe yb; do
+            tmpdir="$(mktemp -d)"
+            file="$tmpdir/concurrency_go_select.$ext"
+            cp compiler/tests/fixtures/build/concurrency_go_select.vibe "$file"
+            cargo run -q -p vibe_cli -- run "$file" > "/tmp/concurrency.$ext.out"
+            printf "go-worker\nselect-recv\n" > /tmp/concurrency.expected
+            diff -u /tmp/concurrency.expected "/tmp/concurrency.$ext.out"
+          done
 
   stress_smoke:
     runs-on: ubuntu-latest

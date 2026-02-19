@@ -2,6 +2,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use vibe_diagnostics::Diagnostics;
+use vibe_indexer::is_supported_source_file;
 use vibe_mir::{lower_hir_to_mir, mir_debug_dump};
 use vibe_parser::parse_source;
 use vibe_types::check_and_lower;
@@ -260,7 +261,7 @@ fn list_vibe_files(dir: &Path) -> Vec<PathBuf> {
         .expect("read fixtures directory")
         .filter_map(|e| e.ok())
         .map(|e| e.path())
-        .filter(|p| p.extension().and_then(|x| x.to_str()) == Some("vibe"))
+        .filter(|p| is_supported_source_file(p))
         .collect::<Vec<_>>();
     files.sort();
     files

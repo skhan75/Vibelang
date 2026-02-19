@@ -82,7 +82,7 @@ Example:
 
 ```txt
 E2104: invalid contract position: annotations must appear before executable statements
- --> app/math.vibe:12:3
+ --> app/math.yb:12:3
 ```
 
 ## Test Matrix
