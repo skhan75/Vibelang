@@ -11,9 +11,9 @@
 - Hero/banner placeholder: `assets/branding/vibelang-readme-hero.png`
 - Favicon/app icon placeholder: `assets/branding/vibelang-icon.png`
 
-[![Phase 1 Frontend](https://github.com/skhan75/VibeLang/actions/workflows/phase1-frontend.yml/badge.svg)](https://github.com/skhan75/VibeLang/actions/workflows/phase1-frontend.yml)
-[![Phase 2 Native](https://github.com/skhan75/VibeLang/actions/workflows/phase2-native.yml/badge.svg)](https://github.com/skhan75/VibeLang/actions/workflows/phase2-native.yml)
-[![Phase 7 Validation](https://github.com/skhan75/VibeLang/actions/workflows/phase7-language-validation.yml/badge.svg)](https://github.com/skhan75/VibeLang/actions/workflows/phase7-language-validation.yml)
+[![Status](https://img.shields.io/badge/status-active%20development-22c55e)](#roadmap-snapshot)
+[![Native](https://img.shields.io/badge/native-AOT-2563eb)](#what-vibelang-is)
+[![Intent](https://img.shields.io/badge/intent-driven%20development-a855f7)](#why-i-built-this)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 [Quickstart](#60-second-quickstart) · [Why I Built This](#why-i-built-this) · [What VibeLang Solves Today](#what-vibelang-solves-today) · [Roadmap](#roadmap-snapshot)
@@ -74,10 +74,16 @@ VibeLang is a native-first language + toolchain with:
 
 ## Use Cases
 
-- systems tooling and CLIs that need native speed
-- concurrent services that need clear task/channel semantics
-- deterministic CI/build pipelines
-- AI-assisted coding workflows where intent drift should be caught early
+- **LLM-generated production codebases** where teams need generated code to stay
+  correct, auditable, and deterministic
+- **Agentic systems and autonomous workflows** where multiple agents generate,
+  refactor, and verify code continuously
+- **Modern backend and platform services** that need concurrency, performance, and
+  clear correctness guardrails
+- **General application development** for teams that want a simpler developer
+  experience without giving up native performance
+- **High-signal AI-assisted teams** that want intent-aware linting to catch
+  requirement drift before it reaches prod
 
 ## What Is Experimental / In Progress
 
@@ -176,25 +182,49 @@ vibe lint . --intent --changed
 
 ## Architecture
 
+### 1) Intent-first development loop
+
 ```mermaid
 flowchart LR
-  A[".yb source"] --> B["vibe CLI"]
-  B --> C["Frontend + Types + MIR"]
-  C --> D["Codegen"]
-  D --> E["Object + Link"]
-  E --> F["Native binary"]
-  A --> G["Indexer/LSP"]
-  G --> H["AI sidecar (optional)"]
+  A["Feature idea"] --> B["Write intent + examples + contracts"]
+  B --> C["Implement function"]
+  C --> D["vibe lint --intent (optional AI)"]
+  D -->|"aligned"| E["build + run + test"]
+  D -->|"intent drift found early"| F["fix before shipping"]
+  F --> C
 ```
 
-Rule of thumb: AI can assist authoring and linting, but it does **not** decide compile
-correctness.
+### 2) Fast compile path to native
+
+```mermaid
+flowchart LR
+  A[".yb source"] --> B["Parse + type check"]
+  B --> C["Lower to IR"]
+  C --> D["Native codegen"]
+  D --> E["Object + link"]
+  E --> F["Native executable"]
+  A -. "editor/index feedback" .-> G["Indexer/LSP"]
+```
+
+### 3) Why it stays efficient
+
+```mermaid
+flowchart LR
+  A["Native AOT output"] --> D["Low runtime overhead"]
+  B["Structured concurrency (go/chan/select)"] --> D
+  C["Deterministic builds + diagnostics"] --> E["Stable CI + faster debugging"]
+  D --> F["Ship faster with predictable performance"]
+  E --> F
+```
+
+Rule of thumb: AI can assist writing and linting, but compile correctness stays in the
+deterministic compiler path.
 
 ## Roadmap Snapshot
 
 - Main tracker: [`docs/development_checklist.md`](docs/development_checklist.md)
-- Language validation matrix: [`reports/phase7/language_validation_matrix.md`](reports/phase7/language_validation_matrix.md)
-- Sample program catalog: [`reports/phase7/sample_programs_catalog.md`](reports/phase7/sample_programs_catalog.md)
+- [Language validation matrix](docs/language_validation_matrix.md)
+- [Sample programs catalog](docs/sample_programs_catalog.md)
 
 ## Troubleshooting
 
