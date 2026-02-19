@@ -1,0 +1,8 @@
+pub main() -> Int {
+  @effect alloc
+  @effect io
+  @effect concurrency
+  ch := chan(1)
+  println(ch.size)
+  0
+}

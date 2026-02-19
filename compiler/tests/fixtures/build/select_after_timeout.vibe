@@ -1,0 +1,13 @@
+pub main() -> Int {
+  @effect concurrency
+  @effect io
+  @effect alloc
+  @effect nondet
+
+  ch := chan(1)
+  select {
+    case value := ch.recv() => println("recv")
+    case after 1 => println("after")
+  }
+  0
+}

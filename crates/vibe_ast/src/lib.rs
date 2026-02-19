@@ -108,6 +108,7 @@ pub enum SelectPattern {
     Receive { binding: String, expr: Expr },
     After { duration_literal: String },
     Closed { ident: String },
+    Default,
 }
 
 #[derive(Debug, Clone)]

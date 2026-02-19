@@ -1,6 +1,7 @@
 mod deterministic_utils;
 mod example_runner;
 
+use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitCode};
 use std::{env, fs};
@@ -17,9 +18,12 @@ use vibe_mir::MirProgram;
 use vibe_mir::{lower_hir_to_mir, mir_debug_dump};
 use vibe_parser::parse_source;
 use vibe_runtime::{compile_runtime_object, link_executable, RuntimeBuildOptions};
+use vibe_sidecar::models::FindingSeverity;
+use vibe_sidecar::{BudgetPolicy, IntentLintRequest, SidecarService};
+use vibe_sidecar::SidecarMode;
 use vibe_types::check_and_lower;
 
-use crate::example_runner::{run_examples, ExampleRunSummary};
+use crate::example_runner::{run_examples_with_policy, ExampleRunSummary};
 
 fn main() -> ExitCode {
     match run() {
@@ -89,12 +93,16 @@ fn run() -> Result<ExitCode, String> {
             run_index(&index_args)
         }
         "lsp" => run_lsp(&args),
+        "lint" => {
+            let lint_args = parse_lint_args(&args)?;
+            run_lint(&lint_args)
+        }
         _ => Err(usage()),
     }
 }
 
 fn usage() -> String {
-    "usage: vibe <check|ast|hir|mir|build|run|test|index|lsp> <path> [--profile dev|release] [--target x86_64-unknown-linux-gnu] [--offline] [--debuginfo none|line|full]".to_string()
+    "usage: vibe <check|ast|hir|mir|build|run|test|index|lsp|lint> <path> [--profile dev|release] [--target x86_64-unknown-linux-gnu] [--offline] [--debuginfo none|line|full] (lint: --intent [--changed] [--suggest] [--mode local|hybrid|cloud] [--telemetry-out path])".to_string()
 }
 
 fn run_check(path: &str) -> Result<ExitCode, String> {
@@ -204,6 +212,19 @@ struct IndexArgs {
     target_path: PathBuf,
     rebuild: bool,
     stats: bool,
+}
+
+#[derive(Debug, Clone)]
+struct LintArgs {
+    target_path: PathBuf,
+    intent: bool,
+    changed: bool,
+    include_suggestions: bool,
+    mode: SidecarMode,
+    telemetry_out: Option<PathBuf>,
+    max_local_ms: Option<u64>,
+    max_cloud_ms: Option<u64>,
+    max_requests_per_day: Option<u64>,
 }
 
 fn parse_build_like_args(args: &[String], allow_exec_args: bool) -> Result<BuildArgs, String> {
@@ -317,6 +338,114 @@ fn parse_index_args(args: &[String]) -> Result<IndexArgs, String> {
     })
 }
 
+fn parse_lint_args(args: &[String]) -> Result<LintArgs, String> {
+    let mut idx = 0usize;
+    let mut target_path = PathBuf::from(".");
+    let mut intent = false;
+    let mut changed = false;
+    let mut include_suggestions = false;
+    let mut mode = SidecarMode::LocalOnly;
+    let mut telemetry_out = None;
+    let mut max_local_ms = None;
+    let mut max_cloud_ms = None;
+    let mut max_requests_per_day = None;
+
+    if let Some(first) = args.first() {
+        if !first.starts_with("--") {
+            target_path = PathBuf::from(first);
+            idx = 1;
+        }
+    }
+
+    while idx < args.len() {
+        match args[idx].as_str() {
+            "--intent" => intent = true,
+            "--changed" => changed = true,
+            "--suggest" => include_suggestions = true,
+            "--mode" => {
+                idx += 1;
+                let val = args
+                    .get(idx)
+                    .ok_or_else(|| "missing value for `--mode`".to_string())?;
+                mode = parse_sidecar_mode(val)?;
+            }
+            "--telemetry-out" => {
+                idx += 1;
+                let val = args
+                    .get(idx)
+                    .ok_or_else(|| "missing value for `--telemetry-out`".to_string())?;
+                telemetry_out = Some(PathBuf::from(val));
+            }
+            "--max-local-ms" => {
+                idx += 1;
+                let val = args
+                    .get(idx)
+                    .ok_or_else(|| "missing value for `--max-local-ms`".to_string())?;
+                max_local_ms = Some(
+                    val.parse::<u64>()
+                        .map_err(|_| "invalid value for `--max-local-ms`".to_string())?,
+                );
+            }
+            "--max-cloud-ms" => {
+                idx += 1;
+                let val = args
+                    .get(idx)
+                    .ok_or_else(|| "missing value for `--max-cloud-ms`".to_string())?;
+                max_cloud_ms = Some(
+                    val.parse::<u64>()
+                        .map_err(|_| "invalid value for `--max-cloud-ms`".to_string())?,
+                );
+            }
+            "--max-requests-per-day" => {
+                idx += 1;
+                let val = args
+                    .get(idx)
+                    .ok_or_else(|| "missing value for `--max-requests-per-day`".to_string())?;
+                max_requests_per_day = Some(
+                    val.parse::<u64>()
+                        .map_err(|_| "invalid value for `--max-requests-per-day`".to_string())?,
+                );
+            }
+            "--path" => {
+                idx += 1;
+                let val = args
+                    .get(idx)
+                    .ok_or_else(|| "missing value for `--path`".to_string())?;
+                target_path = PathBuf::from(val);
+            }
+            other => return Err(format!("unknown argument `{other}`")),
+        }
+        idx += 1;
+    }
+
+    if !intent {
+        return Err("`vibe lint` currently supports only `--intent` mode".to_string());
+    }
+
+    Ok(LintArgs {
+        target_path,
+        intent,
+        changed,
+        include_suggestions,
+        mode,
+        telemetry_out,
+        max_local_ms,
+        max_cloud_ms,
+        max_requests_per_day,
+    })
+}
+
+fn parse_sidecar_mode(raw: &str) -> Result<SidecarMode, String> {
+    match raw {
+        "local" | "local-only" => Ok(SidecarMode::LocalOnly),
+        "hybrid" => Ok(SidecarMode::Hybrid),
+        "cloud" => Ok(SidecarMode::Cloud),
+        other => Err(format!(
+            "unsupported mode `{other}` (expected local|hybrid|cloud)"
+        )),
+    }
+}
+
 fn run_index(args: &IndexArgs) -> Result<ExitCode, String> {
     let files = collect_vibe_files(&args.target_path)?;
     if files.is_empty() {
@@ -375,6 +504,274 @@ fn run_index(args: &IndexArgs) -> Result<ExitCode, String> {
         );
     }
     Ok(ExitCode::SUCCESS)
+}
+
+fn run_lint(args: &LintArgs) -> Result<ExitCode, String> {
+    if !args.intent {
+        return Err("`vibe lint` currently supports only `--intent`".to_string());
+    }
+
+    let files = collect_vibe_files(&args.target_path)?;
+    if files.is_empty() {
+        return Err(format!(
+            "no .vibe files found under `{}`",
+            args.target_path.display()
+        ));
+    }
+
+    let index_root = default_index_root(&args.target_path);
+    let store = IndexStore::open_or_create(&index_root)?;
+    let mut incremental = IncrementalIndexer::new(store);
+    let mut telemetry = IncrementalTelemetry::default();
+    let mut changed_files = Vec::new();
+
+    let git_changed = if args.changed {
+        git_changed_vibe_files(&args.target_path)?
+    } else {
+        None
+    };
+
+    for file in &files {
+        let file_index = build_index_for_file(file)?;
+        let key = file_index.file.clone();
+        let old_hash = incremental
+            .store()
+            .snapshot()
+            .files
+            .get(&key)
+            .map(|existing| existing.file_hash.as_str())
+            .unwrap_or("");
+        let changed_by_hash = old_hash != file_index.file_hash;
+        let changed_by_git = git_changed
+            .as_ref()
+            .is_some_and(|set| set.contains(&key));
+        let should_include = if args.changed {
+            if git_changed.is_some() {
+                changed_by_git
+            } else {
+                changed_by_hash
+            }
+        } else {
+            true
+        };
+        if should_include {
+            changed_files.push(key);
+        }
+        incremental.record_file_index(file_index, &mut telemetry);
+    }
+    changed_files.sort();
+    changed_files.dedup();
+    incremental.store().save()?;
+
+    if args.changed && changed_files.is_empty() {
+        println!("no changed .vibe files detected");
+        return Ok(ExitCode::SUCCESS);
+    }
+
+    let mut policy = BudgetPolicy {
+        mode: args.mode,
+        ..BudgetPolicy::default()
+    };
+    if let Some(max_local_ms) = args.max_local_ms {
+        policy.max_local_latency_ms = max_local_ms;
+    }
+    if let Some(max_cloud_ms) = args.max_cloud_ms {
+        policy.max_cloud_latency_ms = max_cloud_ms;
+    }
+    if let Some(max_requests_per_day) = args.max_requests_per_day {
+        policy.max_requests_per_day = max_requests_per_day;
+    }
+
+    let telemetry_out = args.telemetry_out.clone();
+    let mut sidecar = SidecarService::new(&index_root, policy, telemetry_out.is_some())?;
+    let request = IntentLintRequest {
+        query: None,
+        changed_only: args.changed,
+        changed_files,
+        include_suggestions: args.include_suggestions,
+    };
+    let mut response = sidecar.lint_intent(&request);
+    let (accepted_suggestions, rejected_suggestions) =
+        revalidate_and_gate_suggestions(response.suggestions)?;
+    response.suggestions = accepted_suggestions;
+    if rejected_suggestions > 0 {
+        response.findings.push(vibe_sidecar::IntentFinding {
+            code: "I6001".to_string(),
+            severity: FindingSeverity::Warning,
+            message: format!(
+                "{rejected_suggestions} suggestion(s) were rejected by compiler revalidation"
+            ),
+            confidence: 1.0,
+            evidence: Vec::new(),
+            incomplete: false,
+        });
+    }
+    response.findings.sort_by(|a, b| {
+        let a_file = a
+            .evidence
+            .first()
+            .map(|e| e.file.as_str())
+            .unwrap_or_default();
+        let b_file = b
+            .evidence
+            .first()
+            .map(|e| e.file.as_str())
+            .unwrap_or_default();
+        (a_file, a.code.as_str(), a.message.as_str())
+            .cmp(&(b_file, b.code.as_str(), b.message.as_str()))
+    });
+    response
+        .suggestions
+        .sort_by(|a, b| (a.id.as_str(), a.title.as_str()).cmp(&(b.id.as_str(), b.title.as_str())));
+
+    if response.findings.is_empty() {
+        println!("OK");
+    } else {
+        for finding in &response.findings {
+            let severity = match finding.severity {
+                FindingSeverity::Info => "info",
+                FindingSeverity::Warning => "warning",
+                FindingSeverity::Error => "error",
+            };
+            let evidence = finding
+                .evidence
+                .iter()
+                .map(|e| {
+                    if let Some(symbol) = &e.symbol {
+                        format!("{}::{symbol}", e.file)
+                    } else {
+                        e.file.clone()
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join(", ");
+            println!(
+                "{}: {}: {} (confidence={:.2}{})",
+                finding.code,
+                severity,
+                finding.message,
+                finding.confidence,
+                if finding.incomplete {
+                    ", incomplete=true"
+                } else {
+                    ""
+                }
+            );
+            if !evidence.is_empty() {
+                println!("  evidence: {evidence}");
+            }
+        }
+    }
+
+    if args.include_suggestions && !response.suggestions.is_empty() {
+        println!("suggestions:");
+        for suggestion in &response.suggestions {
+            println!(
+                "- {} [{}] confidence={:.2} verified={}",
+                suggestion.title, suggestion.id, suggestion.confidence, suggestion.verified
+            );
+        }
+    }
+
+    if response.incomplete {
+        println!("intent lint returned partial results (latency/budget guard).");
+    }
+    if let Some(path) = telemetry_out {
+        sidecar.telemetry().write_json(&path)?;
+        println!("telemetry written to {}", path.display());
+    }
+    Ok(ExitCode::SUCCESS)
+}
+
+fn revalidate_and_gate_suggestions(
+    suggestions: Vec<vibe_sidecar::CandidateSuggestion>,
+) -> Result<(Vec<vibe_sidecar::CandidateSuggestion>, usize), String> {
+    let mut accepted = Vec::new();
+    let mut rejected = 0usize;
+    for mut suggestion in suggestions {
+        let Some(evidence_file) = suggestion
+            .evidence
+            .iter()
+            .find(|e| !e.file.trim().is_empty())
+            .map(|e| PathBuf::from(&e.file))
+        else {
+            rejected += 1;
+            continue;
+        };
+        let verified = compiler_revalidate_file(&evidence_file)?;
+        if verified {
+            suggestion.verified = true;
+            accepted.push(suggestion);
+        } else {
+            rejected += 1;
+        }
+    }
+    Ok((accepted, rejected))
+}
+
+fn compiler_revalidate_file(path: &Path) -> Result<bool, String> {
+    if !path.exists() {
+        return Ok(false);
+    }
+    let src = fs::read_to_string(path)
+        .map_err(|e| format!("failed to read suggestion evidence file `{}`: {e}", path.display()))?;
+    let parsed = parse_source(&src);
+    let checked = check_and_lower(&parsed.ast);
+    let mut diags = Diagnostics::default();
+    diags.extend(parsed.diagnostics.into_sorted());
+    diags.extend(checked.diagnostics.into_sorted());
+    Ok(!diags.has_errors())
+}
+
+fn git_changed_vibe_files(target_path: &Path) -> Result<Option<BTreeSet<String>>, String> {
+    let base_dir = if target_path.is_dir() {
+        target_path.to_path_buf()
+    } else {
+        target_path
+            .parent()
+            .map(Path::to_path_buf)
+            .unwrap_or_else(|| PathBuf::from("."))
+    };
+
+    let probe = Command::new("git")
+        .arg("-C")
+        .arg(&base_dir)
+        .arg("rev-parse")
+        .arg("--is-inside-work-tree")
+        .output();
+    let Ok(probe_out) = probe else {
+        return Ok(None);
+    };
+    if !probe_out.status.success() {
+        return Ok(None);
+    }
+
+    let mut out = BTreeSet::new();
+    for args in [
+        vec!["diff", "--name-only", "--", "*.vibe"],
+        vec!["diff", "--cached", "--name-only", "--", "*.vibe"],
+    ] {
+        let output = Command::new("git")
+            .arg("-C")
+            .arg(&base_dir)
+            .args(&args)
+            .output()
+            .map_err(|e| format!("failed to query git changed files: {e}"))?;
+        if !output.status.success() {
+            continue;
+        }
+        let text = String::from_utf8_lossy(&output.stdout);
+        for line in text.lines().filter(|line| !line.trim().is_empty()) {
+            let absolute = base_dir.join(line.trim());
+            let normalized = absolute
+                .canonicalize()
+                .unwrap_or_else(|_| absolute.clone())
+                .to_string_lossy()
+                .to_string();
+            out.insert(normalized);
+        }
+    }
+    Ok(Some(out))
 }
 
 fn run_lsp(args: &[String]) -> Result<ExitCode, String> {
@@ -577,6 +974,7 @@ fn run_test(args: &BuildArgs) -> Result<ExitCode, String> {
     let mut examples = ExampleRunSummary::default();
     let mut main_run_total = 0usize;
     let mut main_run_failures = 0usize;
+    let enforce_contract_checks = contract_checks_enabled(&args.profile);
 
     for file in files {
         let src = fs::read_to_string(&file)
@@ -596,7 +994,7 @@ fn run_test(args: &BuildArgs) -> Result<ExitCode, String> {
             continue;
         }
 
-        let current_examples = run_examples(&parsed.ast);
+        let current_examples = run_examples_with_policy(&parsed.ast, enforce_contract_checks);
         examples.total += current_examples.total;
         examples.passed += current_examples.passed;
         examples.failed += current_examples.failed;
@@ -652,6 +1050,19 @@ fn run_test(args: &BuildArgs) -> Result<ExitCode, String> {
     } else {
         Ok(ExitCode::SUCCESS)
     }
+}
+
+fn contract_checks_enabled(profile: &str) -> bool {
+    if let Ok(raw) = env::var("VIBE_CONTRACT_CHECKS") {
+        let normalized = raw.trim().to_ascii_lowercase();
+        if normalized == "0" || normalized == "false" || normalized == "off" {
+            return false;
+        }
+        if normalized == "1" || normalized == "true" || normalized == "on" {
+            return true;
+        }
+    }
+    profile != "release"
 }
 
 fn collect_vibe_files(path: &Path) -> Result<Vec<PathBuf>, String> {

@@ -570,6 +570,7 @@ fn check_stmt(
                             ));
                         }
                     }
+                    SelectPattern::Default => {}
                 }
                 let _ = infer_expr(
                     &c.action,
@@ -621,6 +622,7 @@ fn lower_select_pattern(
         SelectPattern::Closed { ident } => HirSelectPattern::Closed {
             ident: ident.clone(),
         },
+        SelectPattern::Default => HirSelectPattern::Default,
     }
 }
 

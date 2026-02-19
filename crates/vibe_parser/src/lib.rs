@@ -542,6 +542,10 @@ impl Parser {
     }
 
     fn parse_select_pattern(&mut self) -> SelectPattern {
+        if self.at_keyword(Keyword::Default) {
+            self.bump();
+            return SelectPattern::Default;
+        }
         if self.at_keyword(Keyword::After) {
             self.bump();
             let lit = self.bump().lexeme;

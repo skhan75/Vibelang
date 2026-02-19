@@ -1,0 +1,14 @@
+pub main() -> Int {
+  @effect concurrency
+  @effect io
+  @effect alloc
+
+  ch := chan(1)
+  ch.close()
+
+  select {
+    case closed ch => println("closed")
+    case default => println("default")
+  }
+  0
+}

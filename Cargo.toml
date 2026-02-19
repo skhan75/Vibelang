@@ -11,6 +11,7 @@ members = [
   "crates/vibe_mir",
   "crates/vibe_parser",
   "crates/vibe_runtime",
+  "crates/vibe_sidecar",
   "crates/vibe_types",
 ]
 resolver = "2"
@@ -32,4 +33,5 @@ vibe_mir = { path = "crates/vibe_mir" }
 vibe_parser = { path = "crates/vibe_parser" }
 vibe_codegen = { path = "crates/vibe_codegen" }
 vibe_runtime = { path = "crates/vibe_runtime" }
+vibe_sidecar = { path = "crates/vibe_sidecar" }
 vibe_types = { path = "crates/vibe_types" }

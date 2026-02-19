@@ -1,0 +1,35 @@
+{
+  "date": "2026-02-17",
+  "targets": {
+    "local_latency_ms_max": 250,
+    "cloud_latency_ms_max": 1500,
+    "compile_path_ai_dependency": "none",
+    "default_mode": "local-only"
+  },
+  "observations": {
+    "local_lint_sample": {
+      "source": "reports/phase5/telemetry_sample.json",
+      "requests": 1,
+      "findings_emitted": 21,
+      "partial_responses": 0,
+      "last_elapsed_ms": 0
+    },
+    "budget_guard_sample": {
+      "source": "reports/phase5/telemetry_budget_guard.json",
+      "requests": 1,
+      "findings_emitted": 1,
+      "partial_responses": 1,
+      "last_elapsed_ms": 0,
+      "guard_message": "daily request budget exhausted"
+    },
+    "non_blocking_compile_parity": {
+      "fixture": "compiler/tests/fixtures/build/hello_world.vibe",
+      "sidecar_env_off_vs_on_diff": "no_diff"
+    }
+  },
+  "status": {
+    "latency_budget_enforced": true,
+    "budget_guards_enforced": true,
+    "non_blocking_compile_pipeline": true
+  }
+}

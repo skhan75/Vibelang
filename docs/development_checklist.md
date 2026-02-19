@@ -209,49 +209,49 @@ Goal: add AI productivity features without compromising determinism, cost, or tr
 
 ### 5.0 Core Conformance Hardening (Carry-Over)
 
-- [ ] Implement native codegen support for `while` and `repeat` (remove phase-baseline fallback errors)
-- [ ] Implement true task spawning semantics for `go` in generated binaries
-- [ ] Implement full multi-case `select` lowering semantics (receive/after/closed/default with fairness policy)
-- [ ] Implement backend support for documented core forms used in official specs/examples (`List/Map` paths, member access, method-call lowering)
-- [ ] Add stable diagnostics for unsupported constructs with actionable migration/feature-status guidance
-- [ ] Add conformance fixtures proving runtime behavior matches `docs/spec/semantics.md` for control flow and concurrency primitives
-- [ ] Activate `@require/@ensure` runtime checks by default in dev/test and verify policy behavior in integration tests
+- [x] Implement native codegen support for `while` and `repeat` (remove phase-baseline fallback errors)
+- [x] Implement true task spawning semantics for `go` in generated binaries
+- [x] Implement full multi-case `select` lowering semantics (receive/after/closed/default with fairness policy)
+- [x] Implement backend support for documented core forms used in official specs/examples (`List/Map` paths, member access, method-call lowering)
+- [x] Add stable diagnostics for unsupported constructs with actionable migration/feature-status guidance
+- [x] Add conformance fixtures proving runtime behavior matches `docs/spec/semantics.md` for control flow and concurrency primitives
+- [x] Activate `@require/@ensure` runtime checks by default in dev/test and verify policy behavior in integration tests
 
 ### 5.1 AI Sidecar Core
 
 - [x] Sidecar architecture drafted (`ai/sidecar/architecture.md`)
 - [x] Cost model drafted (`ai/sidecar/cost_model.md`)
 - [x] Offline mode drafted (`ai/sidecar/offline_mode.md`)
-- [ ] Implement sidecar service with local-first execution
-- [ ] Integrate read-only semantic index access
+- [x] Implement sidecar service with local-first execution
+- [x] Integrate read-only semantic index access
 
 ### 5.2 Intent Lint and Suggestions
 
-- [ ] Implement on-demand intent lint command (`vibe lint --intent`)
-- [ ] Implement changed-only mode (`vibe lint --intent --changed`)
-- [ ] Add confidence + evidence in AI diagnostics output
-- [ ] Ensure suggestions are verifier-gated and compiler-revalidated
+- [x] Implement on-demand intent lint command (`vibe lint --intent`)
+- [x] Implement changed-only mode (`vibe lint --intent --changed`)
+- [x] Add confidence + evidence in AI diagnostics output
+- [x] Ensure suggestions are verifier-gated and compiler-revalidated
 
 ### 5.3 Risk Controls
 
-- [ ] Enforce latency and cost budgets in runtime policy
-- [ ] Enforce non-blocking compile pipeline under AI failure/timeouts
-- [ ] Add policy controls for local-only / hybrid / cloud modes
-- [ ] Add telemetry dashboards (opt-in only)
+- [x] Enforce latency and cost budgets in runtime policy
+- [x] Enforce non-blocking compile pipeline under AI failure/timeouts
+- [x] Add policy controls for local-only / hybrid / cloud modes
+- [x] Add telemetry dashboards (opt-in only)
 
 ### 5.4 Evidence Artifacts and Gating
 
-- [ ] Add Phase 5 CI workflow with explicit sidecar/lint gates (`.github/workflows/phase5-ai-sidecar.yml`)
-- [ ] Add compile non-blocking parity test suite (AI enabled vs disabled compile/check/build parity)
-- [ ] Publish Phase 5 evidence bundle (`reports/phase5/summary.md`, `reports/phase5/cost_latency.json`, `reports/phase5/intent_lint_quality.json`)
-- [ ] Add regression thresholds for sidecar latency/cost and intent-lint quality in CI policy
+- [x] Add Phase 5 CI workflow with explicit sidecar/lint gates (`.github/workflows/phase5-ai-sidecar.yml`)
+- [x] Add compile non-blocking parity test suite (AI enabled vs disabled compile/check/build parity)
+- [x] Publish Phase 5 evidence bundle (`reports/phase5/summary.md`, `reports/phase5/cost_latency.json`, `reports/phase5/intent_lint_quality.json`)
+- [x] Add regression thresholds for sidecar latency/cost and intent-lint quality in CI policy
 
 ### Phase 5 Exit Criteria
 
-- [ ] Documented v0.1 semantics for core control-flow/concurrency are executable in native backend or explicitly marked as release-blocking exceptions (evidence: conformance tests + report `reports/phase5/semantics_conformance.md`)
-- [ ] AI features clearly improve workflow without compile dependency (evidence: workflow `.github/workflows/phase5-ai-sidecar.yml` job `non_blocking_compile`, report `reports/phase5/workflow_impact.md`)
-- [ ] Cost/latency budgets consistently respected (evidence: report `reports/phase5/cost_latency.json`, CI threshold gate results)
-- [ ] Intent lint trusted as advisory signal with low false positives (evidence: report `reports/phase5/intent_lint_quality.json` with precision/recall breakdown)
+- [x] Documented v0.1 semantics for core control-flow/concurrency are executable in native backend or explicitly marked as release-blocking exceptions (evidence: conformance tests + report `reports/phase5/semantics_conformance.md`)
+- [x] AI features clearly improve workflow without compile dependency (evidence: workflow `.github/workflows/phase5-ai-sidecar.yml` job `non_blocking_compile`, report `reports/phase5/workflow_impact.md`)
+- [x] Cost/latency budgets consistently respected (evidence: report `reports/phase5/cost_latency.json`, CI threshold gate results)
+- [x] Intent lint trusted as advisory signal with low false positives (evidence: report `reports/phase5/intent_lint_quality.json` with precision/recall breakdown)
 
 ---
 
@@ -314,6 +314,6 @@ Goal: move from core compiler/runtime to a sustainable developer ecosystem.
 ## Current Status Snapshot
 
 - Core strategy/spec docs: drafted and phase-1 ambiguities resolved
-- Implementation code: Phase 4 local-first indexer and LSP baseline delivered (`vibe_indexer`, `vibe_lsp`, `vibe index`, `vibe lsp`, non-blocking `vibe check` index refresh)
-- Verification: phase4 index/lsp unit + CLI integration + deterministic snapshot + medium-corpus stability smoke + performance threshold checks are green (workflow `.github/workflows/phase4-indexer-lsp.yml`)
-- Next execution focus: Phase 5 AI intent engine plus core conformance hardening (`go/select/while/repeat` + contract runtime policy) before broader ecosystem scale-out
+- Implementation code: Phase 5 conformance hardening and AI sidecar baseline delivered (`vibe_sidecar`, `vibe lint --intent`, verifier-gated suggestions, policy controls, telemetry and evidence bundle)
+- Verification: phase5 sidecar/lint integration + native conformance suites + compile parity and budget guard checks are green (workflows `.github/workflows/phase1-frontend.yml` through `.github/workflows/phase5-ai-sidecar.yml`)
+- Next execution focus: Phase 6 self-hosting path and ecosystem scale-out (package manager, formatter/docs/test UX, target-matrix governance)

@@ -1,0 +1,11 @@
+selectDefault() -> Int {
+  @effect concurrency
+  @effect io
+  @effect alloc
+  ch := chan(1)
+  select {
+    case value := ch.recv() => value
+    case default => 0
+  }
+  0
+}

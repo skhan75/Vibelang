@@ -125,7 +125,8 @@ fn collect_calls_from_stmt(stmt: &Stmt, out: &mut BTreeSet<String>) {
                         collect_calls_from_expr(expr, out);
                     }
                     vibe_ast::SelectPattern::After { .. }
-                    | vibe_ast::SelectPattern::Closed { .. } => {}
+                    | vibe_ast::SelectPattern::Closed { .. }
+                    | vibe_ast::SelectPattern::Default => {}
                 }
                 collect_calls_from_expr(&case.action, out);
             }

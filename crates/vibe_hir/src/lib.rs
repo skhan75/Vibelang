@@ -79,6 +79,7 @@ pub enum HirSelectPattern {
     Receive { binding: String, expr: HirExpr },
     After { duration_literal: String },
     Closed { ident: String },
+    Default,
 }
 
 #[derive(Debug, Clone)]
@@ -225,6 +226,7 @@ fn verify_stmt_list(stmts: &[HirStmt], scope: &mut BTreeMap<String, String>) -> 
                                 return Err("empty identifier in select closed pattern".to_string());
                             }
                         }
+                        HirSelectPattern::Default => {}
                     }
                     verify_expr(&case.action)?;
                 }

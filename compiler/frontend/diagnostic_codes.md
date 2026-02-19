@@ -90,6 +90,17 @@ This catalog reserves deterministic code ranges for frontend diagnostics.
 - `E3201` non-sendable value passed to `go`
 - `E3202` unsafe member capture in `go` argument
 - `E3203` shared mutable member assignment in concurrent context without explicit synchronization
+- `E3301` unsupported `go` target shape in native backend
+- `E3302` unknown function target in `go` native lowering
+- `E3303` unsupported `go` argument type in native backend
+- `E3304` unsupported `go` argument arity in native backend
+- `E3401` list/map native lowering unavailable in v0.1 backend
+- `E3402` member access native lowering unavailable in v0.1 backend
+- `E3403` unknown call target in native backend
+- `E3404` unsupported member-call lowering in native backend
+- `E3405` dynamic call target unsupported in native backend
+- `E3406` unsupported binary op in native backend
+- `E3407` unsupported unary op in native backend
 
 ## Deterministic Ordering
 

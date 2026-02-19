@@ -1,0 +1,10 @@
+pub main() -> Int {
+  repeat 3 {
+    noop(1)
+  }
+  0
+}
+
+noop(x: Int) -> Int {
+  x
+}

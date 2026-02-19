@@ -514,7 +514,7 @@ fn collect_stmt_refs(
                             span: IndexSpan::from(case.span),
                         });
                     }
-                    SelectPattern::After { .. } => {}
+                    SelectPattern::After { .. } | SelectPattern::Default => {}
                     SelectPattern::Closed { ident } => {
                         if let Some(symbol_id) = locals.get(ident) {
                             references.push(Reference {

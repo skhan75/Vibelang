@@ -1,0 +1,16 @@
+pub main() -> Int {
+  @effect concurrency
+  @effect io
+  @effect alloc
+
+  ch1 := chan(1)
+  ch2 := chan(1)
+  ch2.send(7)
+
+  select {
+    case a := ch1.recv() => println("from-ch1")
+    case b := ch2.recv() => println("from-ch2")
+    case default => println("default")
+  }
+  0
+}

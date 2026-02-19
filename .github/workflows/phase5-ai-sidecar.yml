@@ -1,0 +1,77 @@
+name: phase5-ai-sidecar
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  sidecar_and_lint_tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: run sidecar and lint test suites
+        run: |
+          set -euo pipefail
+          cargo test -p vibe_sidecar
+          cargo test -p vibe_cli --test phase5_intent_lint
+
+  non_blocking_compile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: compile parity with sidecar knobs
+        run: |
+          set -euo pipefail
+          file="compiler/tests/fixtures/build/hello_world.vibe"
+
+          cargo run -q -p vibe_cli -- build "$file" > /tmp/build_off.out 2> /tmp/build_off.err
+          VIBE_SIDECAR_MODE=cloud VIBE_SIDECAR_TELEMETRY=1 cargo run -q -p vibe_cli -- build "$file" > /tmp/build_on.out 2> /tmp/build_on.err
+
+          diff -u /tmp/build_off.out /tmp/build_on.out
+          diff -u /tmp/build_off.err /tmp/build_on.err
+
+  budget_latency_and_policy_guards:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: verify budget guard and telemetry output
+        run: |
+          set -euo pipefail
+          tmpdir="$(mktemp -d)"
+          cat > "$tmpdir/sample.vibe" <<'EOF'
+          pub multiply(a: Int, b: Int) -> Int {
+            a * b
+          }
+          EOF
+
+          cargo run -q -p vibe_cli -- lint "$tmpdir" --intent --max-requests-per-day 0 > /tmp/lint_budget.out
+          grep -q "partial results" /tmp/lint_budget.out
+
+          cargo run -q -p vibe_cli -- lint "$tmpdir" --intent --telemetry-out "$tmpdir/reports/phase5/telemetry.json" > /tmp/lint_telemetry.out
+          test -s "$tmpdir/reports/phase5/telemetry.json"
+          grep -q "\"requests\"" "$tmpdir/reports/phase5/telemetry.json"
+
+  intent_lint_quality_smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: verify expected intent lint findings and verified suggestions
+        run: |
+          set -euo pipefail
+          tmpdir="$(mktemp -d)"
+          cat > "$tmpdir/sample.vibe" <<'EOF'
+          pub addOne(x: Int) -> Int {
+            x + 1
+          }
+          EOF
+
+          cargo run -q -p vibe_cli -- lint "$tmpdir" --intent > /tmp/lint_quality.out
+          grep -q "I5001" /tmp/lint_quality.out
+
+          cargo run -q -p vibe_cli -- lint "$tmpdir" --intent --suggest > /tmp/lint_quality_suggest.out
+          grep -q "verified=true" /tmp/lint_quality_suggest.out

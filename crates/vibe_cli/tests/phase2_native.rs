@@ -71,6 +71,58 @@ fn concurrency_go_select_fixture_runs() {
 }
 
 #[test]
+fn select_default_fixture_runs() {
+    let source = temp_fixture_copy("build/select_default.vibe");
+    let run = run_vibe(&["run", source.to_str().expect("source path str")]);
+    assert!(
+        run.status.success(),
+        "run failed:\nstdout:\n{}\nstderr:\n{}",
+        run.stdout,
+        run.stderr
+    );
+    assert_eq!(run.stdout, "default\n");
+}
+
+#[test]
+fn select_closed_fixture_runs() {
+    let source = temp_fixture_copy("build/select_closed.vibe");
+    let run = run_vibe(&["run", source.to_str().expect("source path str")]);
+    assert!(
+        run.status.success(),
+        "run failed:\nstdout:\n{}\nstderr:\n{}",
+        run.stdout,
+        run.stderr
+    );
+    assert_eq!(run.stdout, "closed\n");
+}
+
+#[test]
+fn select_multi_receive_fixture_runs() {
+    let source = temp_fixture_copy("build/select_multi_receive.vibe");
+    let run = run_vibe(&["run", source.to_str().expect("source path str")]);
+    assert!(
+        run.status.success(),
+        "run failed:\nstdout:\n{}\nstderr:\n{}",
+        run.stdout,
+        run.stderr
+    );
+    assert_eq!(run.stdout, "from-ch2\n");
+}
+
+#[test]
+fn select_after_timeout_fixture_runs() {
+    let source = temp_fixture_copy("build/select_after_timeout.vibe");
+    let run = run_vibe(&["run", source.to_str().expect("source path str")]);
+    assert!(
+        run.status.success(),
+        "run failed:\nstdout:\n{}\nstderr:\n{}",
+        run.stdout,
+        run.stderr
+    );
+    assert_eq!(run.stdout, "after\n");
+}
+
+#[test]
 fn deterministic_build_binary_and_metadata() {
     let source = temp_fixture_copy("build/hello_world.vibe");
     let source_str = source.to_str().expect("source path str");
@@ -144,6 +196,48 @@ fn vibe_test_runs_contract_examples() {
 }
 
 #[test]
+fn vibe_test_enforces_contract_runtime_checks_by_default() {
+    let source = temp_fixture_copy("build/contract_runtime_require.vibe");
+    let out = run_vibe(&["test", source.to_str().expect("source path str")]);
+    assert!(
+        !out.status.success(),
+        "vibe test unexpectedly succeeded:\nstdout:\n{}\nstderr:\n{}",
+        out.stdout,
+        out.stderr
+    );
+    assert!(
+        out.stdout.contains("failed=1"),
+        "expected one failing example in summary:\n{}",
+        out.stdout
+    );
+    assert!(
+        out.stderr.contains("contract @require failed"),
+        "expected require failure details:\n{}",
+        out.stderr
+    );
+}
+
+#[test]
+fn vibe_test_can_disable_contract_runtime_checks_with_env_override() {
+    let source = temp_fixture_copy("build/contract_runtime_require.vibe");
+    let out = run_vibe_with_env(
+        &["test", source.to_str().expect("source path str")],
+        &[("VIBE_CONTRACT_CHECKS", "off")],
+    );
+    assert!(
+        out.status.success(),
+        "vibe test should pass when runtime contract checks are disabled:\nstdout:\n{}\nstderr:\n{}",
+        out.stdout,
+        out.stderr
+    );
+    assert!(
+        out.stdout.contains("failed=0"),
+        "expected no failing examples when checks are disabled:\n{}",
+        out.stdout
+    );
+}
+
+#[test]
 fn build_accepts_debuginfo_flag_and_writes_metadata() {
     let source = temp_fixture_copy("build/hello_world.vibe");
     let source_str = source.to_str().expect("source path str");
@@ -167,8 +261,34 @@ fn build_accepts_debuginfo_flag_and_writes_metadata() {
 }
 
 #[test]
-fn unsupported_while_loop_returns_codegen_error() {
-    let source = temp_fixture_copy("build_err/while_loop.vibe");
+fn while_loop_fixture_runs() {
+    let source = temp_fixture_copy("build/while_loop.vibe");
+    let run = run_vibe(&["run", source.to_str().expect("source path str")]);
+    assert!(
+        run.status.success(),
+        "run failed:\nstdout:\n{}\nstderr:\n{}",
+        run.stdout,
+        run.stderr
+    );
+    assert_eq!(run.stdout, "");
+}
+
+#[test]
+fn repeat_loop_fixture_runs() {
+    let source = temp_fixture_copy("build/repeat_loop.vibe");
+    let run = run_vibe(&["run", source.to_str().expect("source path str")]);
+    assert!(
+        run.status.success(),
+        "run failed:\nstdout:\n{}\nstderr:\n{}",
+        run.stdout,
+        run.stderr
+    );
+    assert_eq!(run.stdout, "");
+}
+
+#[test]
+fn unsupported_member_access_has_stable_codegen_diagnostic() {
+    let source = temp_fixture_copy("build_err/member_access_unsupported.vibe");
     let out = run_vibe(&["build", source.to_str().expect("source path str")]);
     assert!(
         !out.status.success(),
@@ -176,7 +296,7 @@ fn unsupported_while_loop_returns_codegen_error() {
         out.stdout,
         out.stderr
     );
-    let expected = fs::read_to_string(fixture_path("build_err/while_loop.diag"))
+    let expected = fs::read_to_string(fixture_path("build_err/member_access_unsupported.diag"))
         .expect("read build_err golden");
     assert_eq!(
         expected.trim(),
@@ -208,11 +328,16 @@ fn unique_temp_dir(prefix: &str) -> PathBuf {
 }
 
 fn run_vibe(args: &[&str]) -> CmdOutput {
-    let output = Command::new(vibe_bin())
-        .args(args)
-        .current_dir(workspace_root())
-        .output()
-        .expect("run vibe command");
+    run_vibe_with_env(args, &[])
+}
+
+fn run_vibe_with_env(args: &[&str], envs: &[(&str, &str)]) -> CmdOutput {
+    let mut command = Command::new(vibe_bin());
+    command.args(args).current_dir(workspace_root());
+    for (key, value) in envs {
+        command.env(key, value);
+    }
+    let output = command.output().expect("run vibe command");
     CmdOutput {
         status: output.status,
         stdout: String::from_utf8_lossy(&output.stdout).to_string(),

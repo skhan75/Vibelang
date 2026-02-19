@@ -623,6 +623,7 @@ dependencies = [
  "vibe_mir",
  "vibe_parser",
  "vibe_runtime",
+ "vibe_sidecar",
  "vibe_types",
 ]
 
@@ -704,6 +705,15 @@ dependencies = [
 [[package]]
 name = "vibe_runtime"
 version = "0.1.0"
+
+[[package]]
+name = "vibe_sidecar"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "vibe_indexer",
+]
 
 [[package]]
 name = "vibe_types"

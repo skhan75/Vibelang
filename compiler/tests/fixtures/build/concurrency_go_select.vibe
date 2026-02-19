@@ -8,10 +8,20 @@ notify(value: Int) -> Int {
   0
 }
 
-worker(dummy: Int) -> Int {
+worker(signal) -> Int {
+  @effect concurrency
+  signal.send(1)
+  0
+}
+
+reportGo(done: Int) -> Int {
   @effect io
-  println("go-worker")
-  dummy
+  if done == 1 {
+    println("go-worker")
+  } else {
+    println("go-other")
+  }
+  0
 }
 
 pub main() -> Int {
@@ -20,7 +30,13 @@ pub main() -> Int {
   @effect alloc
   @effect nondet
 
-  go worker(1)
+  signal := chan(1)
+  go worker(signal)
+
+  select {
+    case done := signal.recv() => reportGo(done)
+    case after 50 => println("go-timeout")
+  }
 
   ch := chan(2)
   ch.send(42)

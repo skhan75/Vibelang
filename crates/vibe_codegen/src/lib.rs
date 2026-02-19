@@ -5,7 +5,7 @@ use cranelift_codegen::ir::condcodes::IntCC;
 use cranelift_codegen::ir::{self, AbiParam, InstBuilder, UserFuncName};
 use cranelift_codegen::isa;
 use cranelift_codegen::settings::{self, Configurable};
-use cranelift_frontend::{FunctionBuilder, FunctionBuilderContext, Variable};
+use cranelift_frontend::{FunctionBuilder, FunctionBuilderContext, Switch, Variable};
 use cranelift_module::DataDescription;
 use cranelift_module::{default_libcall_names, FuncId, Linkage, Module};
 use cranelift_object::{ObjectBuilder, ObjectModule};
@@ -37,8 +37,12 @@ struct RuntimeFunctions {
     chan_new_fn: FuncId,
     chan_send_fn: FuncId,
     chan_recv_fn: FuncId,
+    chan_has_data_fn: FuncId,
     chan_close_fn: FuncId,
     chan_is_closed_fn: FuncId,
+    spawn0_fn: FuncId,
+    spawn1_i64_fn: FuncId,
+    select_cursor_fn: FuncId,
     sleep_ms_fn: FuncId,
 }
 
@@ -173,6 +177,13 @@ fn declare_runtime_functions(
         .declare_function("vibe_chan_recv_i64", Linkage::Import, &chan_recv_sig)
         .map_err(|e| format!("failed to declare runtime chan_recv symbol: {e}"))?;
 
+    let mut chan_has_data_sig = module.make_signature();
+    chan_has_data_sig.params.push(AbiParam::new(ptr_ty));
+    chan_has_data_sig.returns.push(AbiParam::new(ir::types::I64));
+    let chan_has_data_fn = module
+        .declare_function("vibe_chan_has_data_i64", Linkage::Import, &chan_has_data_sig)
+        .map_err(|e| format!("failed to declare runtime chan_has_data symbol: {e}"))?;
+
     let mut chan_close_sig = module.make_signature();
     chan_close_sig.params.push(AbiParam::new(ptr_ty));
     let chan_close_fn = module
@@ -186,6 +197,28 @@ fn declare_runtime_functions(
         .declare_function("vibe_chan_is_closed_i64", Linkage::Import, &chan_closed_sig)
         .map_err(|e| format!("failed to declare runtime chan_is_closed symbol: {e}"))?;
 
+    let mut spawn0_sig = module.make_signature();
+    spawn0_sig.params.push(AbiParam::new(ptr_ty));
+    spawn0_sig.returns.push(AbiParam::new(ir::types::I64));
+    let spawn0_fn = module
+        .declare_function("vibe_spawn0", Linkage::Import, &spawn0_sig)
+        .map_err(|e| format!("failed to declare runtime spawn0 symbol: {e}"))?;
+
+    let mut spawn1_i64_sig = module.make_signature();
+    spawn1_i64_sig.params.push(AbiParam::new(ptr_ty));
+    spawn1_i64_sig.params.push(AbiParam::new(ir::types::I64));
+    spawn1_i64_sig.returns.push(AbiParam::new(ir::types::I64));
+    let spawn1_i64_fn = module
+        .declare_function("vibe_spawn1_i64", Linkage::Import, &spawn1_i64_sig)
+        .map_err(|e| format!("failed to declare runtime spawn1_i64 symbol: {e}"))?;
+
+    let mut select_cursor_sig = module.make_signature();
+    select_cursor_sig.params.push(AbiParam::new(ir::types::I64));
+    select_cursor_sig.returns.push(AbiParam::new(ir::types::I64));
+    let select_cursor_fn = module
+        .declare_function("vibe_select_next_cursor", Linkage::Import, &select_cursor_sig)
+        .map_err(|e| format!("failed to declare runtime select_cursor symbol: {e}"))?;
+
     let mut sleep_sig = module.make_signature();
     sleep_sig.params.push(AbiParam::new(ir::types::I64));
     let sleep_ms_fn = module
@@ -197,8 +230,12 @@ fn declare_runtime_functions(
         chan_new_fn,
         chan_send_fn,
         chan_recv_fn,
+        chan_has_data_fn,
         chan_close_fn,
         chan_is_closed_fn,
+        spawn0_fn,
+        spawn1_i64_fn,
+        select_cursor_fn,
         sleep_ms_fn,
     })
 }
@@ -452,7 +489,7 @@ fn emit_stmt(
             }
         }
         MirStmt::Go(expr) => {
-            let _ = emit_expr(
+            emit_go_stmt(
                 expr,
                 module,
                 builder,
@@ -482,10 +519,262 @@ fn emit_stmt(
             )?;
             Ok(false)
         }
-        MirStmt::While { .. } | MirStmt::Repeat { .. } => {
-            Err("codegen for this control-flow construct is not yet implemented".to_string())
+        MirStmt::While { cond, body } => {
+            emit_while_stmt(
+                cond,
+                body,
+                module,
+                builder,
+                locals,
+                next_var,
+                function_ids,
+                function_returns,
+                runtime_fns,
+                ptr_ty,
+                str_data_counter,
+                owner,
+            )?;
+            Ok(false)
+        }
+        MirStmt::Repeat { count, body } => {
+            emit_repeat_stmt(
+                count,
+                body,
+                module,
+                builder,
+                locals,
+                next_var,
+                function_ids,
+                function_returns,
+                runtime_fns,
+                ptr_ty,
+                str_data_counter,
+                owner,
+            )?;
+            Ok(false)
         }
     }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn emit_go_stmt(
+    expr: &MirExpr,
+    module: &mut ObjectModule,
+    builder: &mut FunctionBuilder<'_>,
+    locals: &BTreeMap<String, Variable>,
+    function_ids: &BTreeMap<String, FuncId>,
+    function_returns: &BTreeMap<String, MirType>,
+    runtime_fns: RuntimeFunctions,
+    ptr_ty: ir::Type,
+    str_data_counter: &mut usize,
+    owner: &MirFunction,
+) -> Result<(), String> {
+    let MirExpr::Call { callee, args } = expr else {
+        return Err("E3301: unsupported `go` target: expected direct function call".to_string());
+    };
+    let MirExpr::Var(name) = &**callee else {
+        return Err("E3301: unsupported `go` target: expected direct function call".to_string());
+    };
+    let Some(fid) = function_ids.get(name) else {
+        return Err(format!("E3302: unknown go call target `{name}`"));
+    };
+    let local_target = module.declare_func_in_func(*fid, builder.func);
+    let fn_ptr = builder.ins().func_addr(ptr_ty, local_target);
+
+    match args.len() {
+        0 => {
+            let local_spawn0 = module.declare_func_in_func(runtime_fns.spawn0_fn, builder.func);
+            let _ = builder.ins().call(local_spawn0, &[fn_ptr]);
+            Ok(())
+        }
+        1 => {
+            let arg = emit_expr(
+                &args[0],
+                module,
+                builder,
+                locals,
+                function_ids,
+                function_returns,
+                runtime_fns,
+                ptr_ty,
+                str_data_counter,
+                owner,
+            )?;
+            let arg_ty = builder.func.dfg.value_type(arg);
+            let arg_i64 = if arg_ty == ir::types::I64 {
+                arg
+            } else if arg_ty.is_int() && arg_ty.bits() < 64 {
+                builder.ins().sextend(ir::types::I64, arg)
+            } else if arg_ty.is_int() && arg_ty.bits() > 64 {
+                builder.ins().ireduce(ir::types::I64, arg)
+            } else {
+                return Err(
+                    "E3303: unsupported `go` argument type (expected integer-compatible value)"
+                        .to_string(),
+                );
+            };
+            let local_spawn1 =
+                module.declare_func_in_func(runtime_fns.spawn1_i64_fn, builder.func);
+            let _ = builder.ins().call(local_spawn1, &[fn_ptr, arg_i64]);
+            Ok(())
+        }
+        n => Err(format!(
+            "E3304: unsupported `go` call shape: expected 0 or 1 argument, got {n}"
+        )),
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn emit_while_stmt(
+    cond: &MirExpr,
+    body: &[MirStmt],
+    module: &mut ObjectModule,
+    builder: &mut FunctionBuilder<'_>,
+    locals: &mut BTreeMap<String, Variable>,
+    next_var: &mut usize,
+    function_ids: &BTreeMap<String, FuncId>,
+    function_returns: &BTreeMap<String, MirType>,
+    runtime_fns: RuntimeFunctions,
+    ptr_ty: ir::Type,
+    str_data_counter: &mut usize,
+    owner: &MirFunction,
+) -> Result<(), String> {
+    let header_block = builder.create_block();
+    let body_block = builder.create_block();
+    let exit_block = builder.create_block();
+    builder.ins().jump(header_block, &[]);
+
+    builder.switch_to_block(header_block);
+    let cond_v = emit_expr(
+        cond,
+        module,
+        builder,
+        locals,
+        function_ids,
+        function_returns,
+        runtime_fns,
+        ptr_ty,
+        str_data_counter,
+        owner,
+    )?;
+    let cond_ty = builder.func.dfg.value_type(cond_v);
+    let zero = builder.ins().iconst(cond_ty, 0);
+    let cond_b = builder.ins().icmp(IntCC::NotEqual, cond_v, zero);
+    builder.ins().brif(cond_b, body_block, &[], exit_block, &[]);
+
+    builder.switch_to_block(body_block);
+    let mut body_terminated = false;
+    for stmt in body {
+        if body_terminated {
+            break;
+        }
+        body_terminated = emit_stmt(
+            stmt,
+            module,
+            builder,
+            locals,
+            next_var,
+            function_ids,
+            function_returns,
+            runtime_fns,
+            ptr_ty,
+            str_data_counter,
+            owner,
+        )?;
+    }
+    if !body_terminated {
+        builder.ins().jump(header_block, &[]);
+    }
+    builder.seal_block(body_block);
+    builder.seal_block(header_block);
+
+    builder.switch_to_block(exit_block);
+    builder.seal_block(exit_block);
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn emit_repeat_stmt(
+    count: &MirExpr,
+    body: &[MirStmt],
+    module: &mut ObjectModule,
+    builder: &mut FunctionBuilder<'_>,
+    locals: &mut BTreeMap<String, Variable>,
+    next_var: &mut usize,
+    function_ids: &BTreeMap<String, FuncId>,
+    function_returns: &BTreeMap<String, MirType>,
+    runtime_fns: RuntimeFunctions,
+    ptr_ty: ir::Type,
+    str_data_counter: &mut usize,
+    owner: &MirFunction,
+) -> Result<(), String> {
+    let loop_count = emit_expr(
+        count,
+        module,
+        builder,
+        locals,
+        function_ids,
+        function_returns,
+        runtime_fns,
+        ptr_ty,
+        str_data_counter,
+        owner,
+    )?;
+    let idx_var = Variable::from_u32(*next_var as u32);
+    *next_var += 1;
+    builder.declare_var(idx_var, ir::types::I64);
+    let zero = builder.ins().iconst(ir::types::I64, 0);
+    builder.def_var(idx_var, zero);
+
+    let header_block = builder.create_block();
+    let body_block = builder.create_block();
+    let exit_block = builder.create_block();
+    builder.ins().jump(header_block, &[]);
+
+    builder.switch_to_block(header_block);
+    let idx_val = builder.use_var(idx_var);
+    let loop_count_ty = builder.func.dfg.value_type(loop_count);
+    let idx_cast = if loop_count_ty == ir::types::I64 {
+        idx_val
+    } else {
+        builder.ins().ireduce(loop_count_ty, idx_val)
+    };
+    let cond_b = builder.ins().icmp(IntCC::SignedLessThan, idx_cast, loop_count);
+    builder.ins().brif(cond_b, body_block, &[], exit_block, &[]);
+
+    builder.switch_to_block(body_block);
+    let mut body_terminated = false;
+    for stmt in body {
+        if body_terminated {
+            break;
+        }
+        body_terminated = emit_stmt(
+            stmt,
+            module,
+            builder,
+            locals,
+            next_var,
+            function_ids,
+            function_returns,
+            runtime_fns,
+            ptr_ty,
+            str_data_counter,
+            owner,
+        )?;
+    }
+    if !body_terminated {
+        let one = builder.ins().iconst(ir::types::I64, 1);
+        let current_idx = builder.use_var(idx_var);
+        let next_idx = builder.ins().iadd(current_idx, one);
+        builder.def_var(idx_var, next_idx);
+        builder.ins().jump(header_block, &[]);
+    }
+    builder.seal_block(body_block);
+    builder.seal_block(header_block);
+
+    builder.switch_to_block(exit_block);
+    builder.seal_block(exit_block);
+    Ok(())
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -502,30 +791,145 @@ fn emit_select_stmt(
     str_data_counter: &mut usize,
     owner: &MirFunction,
 ) -> Result<(), String> {
-    let Some(first_case) = cases.first() else {
+    if cases.is_empty() {
         return Ok(());
-    };
+    }
 
-    match &first_case.pattern {
-        MirSelectPattern::Receive { binding, source } => {
-            let recv_value = match source {
-                MirExpr::Call { callee, .. } if matches!(&**callee, MirExpr::Member { field, .. } if field == "recv") => {
-                    emit_expr(
-                        source,
-                        module,
-                        builder,
-                        locals,
-                        function_ids,
-                        function_returns,
-                        runtime_fns,
-                        ptr_ty,
-                        str_data_counter,
-                        owner,
-                    )?
-                }
-                _ => {
+    let poll_case_indices = cases
+        .iter()
+        .enumerate()
+        .filter_map(|(idx, case)| match case.pattern {
+            MirSelectPattern::Receive { .. } | MirSelectPattern::Closed { .. } => Some(idx),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    let default_case_idx = cases
+        .iter()
+        .position(|case| matches!(case.pattern, MirSelectPattern::Default));
+    let after_case_idx = cases
+        .iter()
+        .position(|case| matches!(case.pattern, MirSelectPattern::After { .. }));
+    let after_duration_ms = after_case_idx.and_then(|idx| match &cases[idx].pattern {
+        MirSelectPattern::After { duration_literal } => Some(parse_duration_literal(duration_literal)),
+        _ => None,
+    });
+
+    if poll_case_indices.is_empty() {
+        if let Some(default_idx) = default_case_idx {
+            let _ = emit_expr(
+                &cases[default_idx].action,
+                module,
+                builder,
+                locals,
+                function_ids,
+                function_returns,
+                runtime_fns,
+                ptr_ty,
+                str_data_counter,
+                owner,
+            )?;
+            return Ok(());
+        }
+        if let Some(after_idx) = after_case_idx {
+            if let MirSelectPattern::After { duration_literal } = &cases[after_idx].pattern {
+                let millis = parse_duration_literal(duration_literal);
+                let delay = builder.ins().iconst(ir::types::I64, millis);
+                let sleep_local =
+                    module.declare_func_in_func(runtime_fns.sleep_ms_fn, builder.func);
+                builder.ins().call(sleep_local, &[delay]);
+            }
+            let _ = emit_expr(
+                &cases[after_idx].action,
+                module,
+                builder,
+                locals,
+                function_ids,
+                function_returns,
+                runtime_fns,
+                ptr_ty,
+                str_data_counter,
+                owner,
+            )?;
+            return Ok(());
+        }
+        return Ok(());
+    }
+
+    let entry_block = builder.create_block();
+    let exit_block = builder.create_block();
+    let wait_block = if default_case_idx.is_none() && after_case_idx.is_none() {
+        Some(builder.create_block())
+    } else {
+        None
+    };
+    let dispatch_blocks = (0..poll_case_indices.len())
+        .map(|_| builder.create_block())
+        .collect::<Vec<_>>();
+    let after_waited_var = after_case_idx.map(|_| {
+        let var = Variable::from_u32(*next_var as u32);
+        *next_var += 1;
+        builder.declare_var(var, ir::types::I64);
+        let zero = builder.ins().iconst(ir::types::I64, 0);
+        builder.def_var(var, zero);
+        var
+    });
+
+    builder.ins().jump(entry_block, &[]);
+    builder.switch_to_block(entry_block);
+    let count_value = builder.ins().iconst(ir::types::I64, poll_case_indices.len() as i64);
+    let select_cursor_local =
+        module.declare_func_in_func(runtime_fns.select_cursor_fn, builder.func);
+    let cursor_call = builder.ins().call(select_cursor_local, &[count_value]);
+    let cursor_value = builder
+        .inst_results(cursor_call)
+        .first()
+        .copied()
+        .unwrap_or_else(|| builder.ins().iconst(ir::types::I64, 0));
+    let mut switch = Switch::new();
+    for (idx, block) in dispatch_blocks.iter().enumerate() {
+        switch.set_entry(idx as u128, *block);
+    }
+    switch.emit(builder, cursor_value, dispatch_blocks[0]);
+
+    for (start_pos, dispatch_block) in dispatch_blocks.iter().enumerate() {
+        builder.switch_to_block(*dispatch_block);
+        let tail_block = builder.create_block();
+
+        let ordered_case_indices = (0..poll_case_indices.len())
+            .map(|offset| {
+                let rotated = (start_pos + offset) % poll_case_indices.len();
+                poll_case_indices[rotated]
+            })
+            .collect::<Vec<_>>();
+
+        for (order_idx, case_idx) in ordered_case_indices.iter().enumerate() {
+            let case = &cases[*case_idx];
+            let continue_block = if order_idx + 1 == ordered_case_indices.len() {
+                tail_block
+            } else {
+                builder.create_block()
+            };
+
+            match &case.pattern {
+                MirSelectPattern::Receive { binding, source } => {
+                    let channel_source = match source {
+                        MirExpr::Call { callee, args }
+                            if args.is_empty()
+                                && matches!(
+                                    &**callee,
+                                    MirExpr::Member { field, .. } if field == "recv"
+                                ) =>
+                        {
+                            if let MirExpr::Member { object, .. } = &**callee {
+                                object.as_ref()
+                            } else {
+                                source
+                            }
+                        }
+                        _ => source,
+                    };
                     let channel = emit_expr(
-                        source,
+                        channel_source,
                         module,
                         builder,
                         locals,
@@ -536,66 +940,107 @@ fn emit_select_stmt(
                         str_data_counter,
                         owner,
                     )?;
-                    let recv_local =
-                        module.declare_func_in_func(runtime_fns.chan_recv_fn, builder.func);
-                    let call = builder.ins().call(recv_local, &[channel]);
-                    builder
-                        .inst_results(call)
+                    let has_data_local =
+                        module.declare_func_in_func(runtime_fns.chan_has_data_fn, builder.func);
+                    let has_data_call = builder.ins().call(has_data_local, &[channel]);
+                    let ready_value = builder
+                        .inst_results(has_data_call)
                         .first()
                         .copied()
-                        .unwrap_or_else(|| builder.ins().iconst(ir::types::I64, 0))
+                        .unwrap_or_else(|| builder.ins().iconst(ir::types::I64, 0));
+                    let is_ready = builder.ins().icmp_imm(IntCC::NotEqual, ready_value, 0);
+                    let ready_block = builder.create_block();
+                    builder
+                        .ins()
+                        .brif(is_ready, ready_block, &[], continue_block, &[]);
+
+                    builder.switch_to_block(ready_block);
+                    let recv_local =
+                        module.declare_func_in_func(runtime_fns.chan_recv_fn, builder.func);
+                    let recv_call = builder.ins().call(recv_local, &[channel]);
+                    let recv_value = builder
+                        .inst_results(recv_call)
+                        .first()
+                        .copied()
+                        .unwrap_or_else(|| builder.ins().iconst(ir::types::I64, 0));
+                    let var = if let Some(existing) = locals.get(binding) {
+                        *existing
+                    } else {
+                        let created = Variable::from_u32(*next_var as u32);
+                        *next_var += 1;
+                        builder.declare_var(created, ir::types::I64);
+                        locals.insert(binding.clone(), created);
+                        created
+                    };
+                    builder.def_var(var, recv_value);
+                    let _ = emit_expr(
+                        &case.action,
+                        module,
+                        builder,
+                        locals,
+                        function_ids,
+                        function_returns,
+                        runtime_fns,
+                        ptr_ty,
+                        str_data_counter,
+                        owner,
+                    )?;
+                    builder.ins().jump(exit_block, &[]);
+                    builder.seal_block(ready_block);
+                    builder.switch_to_block(continue_block);
+                    builder.seal_block(continue_block);
                 }
-            };
-            let var = if let Some(existing) = locals.get(binding) {
-                *existing
-            } else {
-                let created = Variable::from_u32(*next_var as u32);
-                *next_var += 1;
-                builder.declare_var(created, ir::types::I64);
-                locals.insert(binding.clone(), created);
-                created
-            };
-            builder.def_var(var, recv_value);
-            let _ = emit_expr(
-                &first_case.action,
-                module,
-                builder,
-                locals,
-                function_ids,
-                function_returns,
-                runtime_fns,
-                ptr_ty,
-                str_data_counter,
-                owner,
-            )?;
-        }
-        MirSelectPattern::After { duration_literal } => {
-            let millis = parse_duration_literal(duration_literal);
-            let delay = builder.ins().iconst(ir::types::I64, millis);
-            let sleep_local = module.declare_func_in_func(runtime_fns.sleep_ms_fn, builder.func);
-            builder.ins().call(sleep_local, &[delay]);
-            let _ = emit_expr(
-                &first_case.action,
-                module,
-                builder,
-                locals,
-                function_ids,
-                function_returns,
-                runtime_fns,
-                ptr_ty,
-                str_data_counter,
-                owner,
-            )?;
-        }
-        MirSelectPattern::Closed { ident } => {
-            if let Some(var) = locals.get(ident) {
-                let channel = builder.use_var(*var);
-                let closed_local =
-                    module.declare_func_in_func(runtime_fns.chan_is_closed_fn, builder.func);
-                let _ = builder.ins().call(closed_local, &[channel]);
+                MirSelectPattern::Closed { ident } => {
+                    let Some(var) = locals.get(ident).copied() else {
+                        builder.ins().jump(continue_block, &[]);
+                        builder.switch_to_block(continue_block);
+                        builder.seal_block(continue_block);
+                        continue;
+                    };
+                    let channel = builder.use_var(var);
+                    let closed_local =
+                        module.declare_func_in_func(runtime_fns.chan_is_closed_fn, builder.func);
+                    let closed_call = builder.ins().call(closed_local, &[channel]);
+                    let closed_value = builder
+                        .inst_results(closed_call)
+                        .first()
+                        .copied()
+                        .unwrap_or_else(|| builder.ins().iconst(ir::types::I64, 0));
+                    let is_closed = builder.ins().icmp_imm(IntCC::NotEqual, closed_value, 0);
+                    let ready_block = builder.create_block();
+                    builder
+                        .ins()
+                        .brif(is_closed, ready_block, &[], continue_block, &[]);
+                    builder.switch_to_block(ready_block);
+                    let _ = emit_expr(
+                        &case.action,
+                        module,
+                        builder,
+                        locals,
+                        function_ids,
+                        function_returns,
+                        runtime_fns,
+                        ptr_ty,
+                        str_data_counter,
+                        owner,
+                    )?;
+                    builder.ins().jump(exit_block, &[]);
+                    builder.seal_block(ready_block);
+                    builder.switch_to_block(continue_block);
+                    builder.seal_block(continue_block);
+                }
+                MirSelectPattern::After { .. } | MirSelectPattern::Default => {
+                    builder.ins().jump(continue_block, &[]);
+                    builder.switch_to_block(continue_block);
+                    builder.seal_block(continue_block);
+                }
             }
+        }
+
+        builder.switch_to_block(tail_block);
+        if let Some(default_idx) = default_case_idx {
             let _ = emit_expr(
-                &first_case.action,
+                &cases[default_idx].action,
                 module,
                 builder,
                 locals,
@@ -606,8 +1051,65 @@ fn emit_select_stmt(
                 str_data_counter,
                 owner,
             )?;
+            builder.ins().jump(exit_block, &[]);
+        } else if let Some(after_idx) = after_case_idx {
+            let waited_var = after_waited_var.expect("after wait variable should exist");
+            let waited = builder.use_var(waited_var);
+            let needs_sleep = builder.ins().icmp_imm(IntCC::Equal, waited, 0);
+            let sleep_block = builder.create_block();
+            let after_block = builder.create_block();
+            builder
+                .ins()
+                .brif(needs_sleep, sleep_block, &[], after_block, &[]);
+
+            builder.switch_to_block(sleep_block);
+            let one = builder.ins().iconst(ir::types::I64, 1);
+            builder.def_var(waited_var, one);
+            let delay = builder
+                .ins()
+                .iconst(ir::types::I64, after_duration_ms.unwrap_or(0));
+            let sleep_local =
+                module.declare_func_in_func(runtime_fns.sleep_ms_fn, builder.func);
+            builder.ins().call(sleep_local, &[delay]);
+            builder.ins().jump(entry_block, &[]);
+            builder.seal_block(sleep_block);
+
+            builder.switch_to_block(after_block);
+            let _ = emit_expr(
+                &cases[after_idx].action,
+                module,
+                builder,
+                locals,
+                function_ids,
+                function_returns,
+                runtime_fns,
+                ptr_ty,
+                str_data_counter,
+                owner,
+            )?;
+            builder.ins().jump(exit_block, &[]);
+            builder.seal_block(after_block);
+        } else if let Some(wait_block) = wait_block {
+            builder.ins().jump(wait_block, &[]);
+        } else {
+            builder.ins().jump(exit_block, &[]);
         }
+
+        builder.seal_block(*dispatch_block);
     }
+
+    if let Some(wait_block) = wait_block {
+        builder.switch_to_block(wait_block);
+        let delay = builder.ins().iconst(ir::types::I64, 1);
+        let sleep_local = module.declare_func_in_func(runtime_fns.sleep_ms_fn, builder.func);
+        builder.ins().call(sleep_local, &[delay]);
+        builder.ins().jump(entry_block, &[]);
+        builder.seal_block(wait_block);
+    }
+
+    builder.switch_to_block(exit_block);
+    builder.seal_block(entry_block);
+    builder.seal_block(exit_block);
     Ok(())
 }
 
@@ -644,7 +1146,10 @@ fn emit_expr(
         MirExpr::Bool(v) => builder.ins().iconst(ir::types::I8, i64::from(*v)),
         MirExpr::Str(s) => emit_string_data(module, builder, s, ptr_ty, str_data_counter, owner)?,
         MirExpr::List(_) | MirExpr::Map(_) => {
-            return Err("list/map codegen not implemented yet".to_string())
+            return Err(
+                "E3401: list/map native lowering is not available in v0.1 backend; use scalar/channel-friendly forms or run frontend checks only"
+                    .to_string(),
+            )
         }
         MirExpr::Member { object, field } => {
             let _ = emit_expr(
@@ -660,7 +1165,7 @@ fn emit_expr(
                 owner,
             )?;
             return Err(format!(
-                "member access `{field}` codegen not implemented yet"
+                "E3402: member access `{field}` native lowering is not available in v0.1 backend"
             ));
         }
         MirExpr::Call { callee, args } => {
@@ -737,7 +1242,7 @@ fn emit_expr(
                     }
                     return Ok(builder.ins().iconst(ir::types::I64, 0));
                 }
-                return Err(format!("unknown call target `{name}`"));
+                return Err(format!("E3403: unknown call target `{name}`"));
             }
             if let MirExpr::Member { object, field } = &**callee {
                 let channel = emit_expr(
@@ -802,12 +1307,14 @@ fn emit_expr(
                     }
                     _ => {
                         return Err(format!(
-                            "member call `.{field}()` is not supported in phase 3 baseline"
+                            "E3404: member call `.{field}()` is not supported in v0.1 native backend"
                         ));
                     }
                 }
             }
-            return Err("dynamic call targets are not supported in phase 3 baseline".to_string());
+            return Err(
+                "E3405: dynamic call targets are not supported in v0.1 native backend".to_string(),
+            );
         }
         MirExpr::Binary { left, op, right } => {
             let l = emit_expr(
@@ -852,7 +1359,7 @@ fn emit_expr(
                     let cmp = builder.ins().icmp(cc, l, r);
                     builder.ins().uextend(ir::types::I64, cmp)
                 }
-                _ => return Err(format!("unsupported binary op `{op}`")),
+                _ => return Err(format!("E3406: unsupported binary op `{op}` in native backend")),
             }
         }
         MirExpr::Unary { op, expr } => {
@@ -876,7 +1383,7 @@ fn emit_expr(
                     let cmp = builder.ins().icmp(IntCC::Equal, v, zero);
                     builder.ins().uextend(ir::types::I64, cmp)
                 }
-                _ => return Err(format!("unsupported unary op `{op}`")),
+                _ => return Err(format!("E3407: unsupported unary op `{op}` in native backend")),
             }
         }
         MirExpr::Question { expr } | MirExpr::Old { expr } => emit_expr(

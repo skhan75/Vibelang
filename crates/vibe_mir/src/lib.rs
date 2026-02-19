@@ -75,6 +75,7 @@ pub enum MirSelectPattern {
     Receive { binding: String, source: MirExpr },
     After { duration_literal: String },
     Closed { ident: String },
+    Default,
 }
 
 #[derive(Debug, Clone)]
@@ -214,6 +215,7 @@ fn lower_stmt_list(stmts: &[HirStmt]) -> Result<Vec<MirStmt>, String> {
                                 HirSelectPattern::Closed { ident } => MirSelectPattern::Closed {
                                     ident: ident.clone(),
                                 },
+                                HirSelectPattern::Default => MirSelectPattern::Default,
                             },
                             action: lower_expr(&c.action)?,
                         })
@@ -351,6 +353,7 @@ fn verify_stmt_list(
                                 return Err("empty select closed identifier in MIR".to_string());
                             }
                         }
+                        MirSelectPattern::Default => {}
                     }
                     verify_expr(&case.action)?;
                 }

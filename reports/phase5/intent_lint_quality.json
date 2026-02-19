@@ -1,0 +1,23 @@
+{
+  "date": "2026-02-17",
+  "suite": "crates/vibe_cli/tests/phase5_intent_lint.rs",
+  "cases": {
+    "missing_public_intent_detection": "pass",
+    "changed_only_index_delta_detection": "pass",
+    "verifier_gated_suggestions": "pass",
+    "budget_and_telemetry_controls": "pass"
+  },
+  "metrics": {
+    "smoke_cases_total": 4,
+    "smoke_cases_passed": 4,
+    "precision": 1.0,
+    "recall": 1.0,
+    "false_positive_rate": 0.0
+  },
+  "thresholds": {
+    "precision_min": 0.8,
+    "recall_min": 0.7,
+    "false_positive_rate_max": 0.2
+  },
+  "threshold_result": "pass"
+}
