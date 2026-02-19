@@ -1,0 +1,305 @@
+{
+  "schema_version": 1,
+  "files": {
+    "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/advanced/concurrency_err/concurrency_err__member_capture_in_go.yb": {
+      "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/advanced/concurrency_err/concurrency_err__member_capture_in_go.yb",
+      "file_hash": "9ff7797fcc852a13011be7096bb644c06a28ac11ec2f948bd00d9c64b9b896cd",
+      "symbols": [
+        {
+          "id": 4013090797804976211,
+          "name": "worker_capture",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/advanced/concurrency_err/concurrency_err__member_capture_in_go.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 3,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 4763606762541062859,
+          "name": "v",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/advanced/concurrency_err/concurrency_err__member_capture_in_go.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 3,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 10111676643321270670,
+          "name": "unsafe_capture",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/advanced/concurrency_err/concurrency_err__member_capture_in_go.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 1,
+            "line_end": 9,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 18446598121921633314,
+          "name": "account",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/advanced/concurrency_err/concurrency_err__member_capture_in_go.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 1,
+            "line_end": 9,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 5565129434760831620,
+          "name": "concurrency",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/advanced/concurrency_err/concurrency_err__member_capture_in_go.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 3,
+            "line_end": 6,
+            "col_end": 3
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 4763606762541062859,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/advanced/concurrency_err/concurrency_err__member_capture_in_go.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        },
+        {
+          "symbol_id": 4013090797804976211,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/advanced/concurrency_err/concurrency_err__member_capture_in_go.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 6,
+            "line_end": 7,
+            "col_end": 19
+          }
+        },
+        {
+          "symbol_id": 18446598121921633314,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/advanced/concurrency_err/concurrency_err__member_capture_in_go.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 21,
+            "line_end": 7,
+            "col_end": 27
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 10111676643321270670,
+          "function_name": "unsafe_capture",
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/advanced/concurrency_err/concurrency_err__member_capture_in_go.yb",
+          "signature_hash": "fa34bafa9b2aa14aefbcec0a65fc4015e200beb11e3138e9b44c1c8fd6fc2e35",
+          "effects_declared": [
+            "concurrency"
+          ],
+          "effects_observed": [
+            "concurrency"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        },
+        {
+          "symbol_id": 4013090797804976211,
+          "function_name": "worker_capture",
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/advanced/concurrency_err/concurrency_err__member_capture_in_go.yb",
+          "signature_hash": "7e5c9432b685f966b5ef19b24936b1de0c326a33626ad59d23c3985313c0f4f6",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [
+        {
+          "code": "E3202",
+          "severity": "Error",
+          "message": "capturing member access in `go` may alias shared mutable state; use explicit synchronization",
+          "span": {
+            "line_start": 7,
+            "col_start": 21,
+            "line_end": 7,
+            "col_end": 35
+          }
+        }
+      ],
+      "dependencies": []
+    },
+    "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/advanced/concurrency_err/concurrency_err__shared_member_write.yb": {
+      "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/advanced/concurrency_err/concurrency_err__shared_member_write.yb",
+      "file_hash": "2730d3c38a6a5d391ce9457b8be08185f8a0e1a903cddf6deeb424b6bf40d302",
+      "symbols": [
+        {
+          "id": 11883636817242335920,
+          "name": "noop",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/advanced/concurrency_err/concurrency_err__shared_member_write.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 3,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 4772706459381012324,
+          "name": "unsafe_write",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/advanced/concurrency_err/concurrency_err__shared_member_write.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 1,
+            "line_end": 10,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 5458854615583205558,
+          "name": "account",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/advanced/concurrency_err/concurrency_err__shared_member_write.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 1,
+            "line_end": 10,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 10310089190025624100,
+          "name": "concurrency",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/advanced/concurrency_err/concurrency_err__shared_member_write.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 3,
+            "line_end": 6,
+            "col_end": 3
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 11883636817242335920,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/advanced/concurrency_err/concurrency_err__shared_member_write.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 6,
+            "line_end": 7,
+            "col_end": 9
+          }
+        },
+        {
+          "symbol_id": 5458854615583205558,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/advanced/concurrency_err/concurrency_err__shared_member_write.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 3,
+            "line_end": 8,
+            "col_end": 9
+          }
+        },
+        {
+          "symbol_id": 5458854615583205558,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/advanced/concurrency_err/concurrency_err__shared_member_write.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 21,
+            "line_end": 8,
+            "col_end": 27
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 11883636817242335920,
+          "function_name": "noop",
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/advanced/concurrency_err/concurrency_err__shared_member_write.yb",
+          "signature_hash": "8a6f3dbe2b258ca4ff335fd96f7220547e52cb3851c3b9fdd2ca4bc88b43ea97",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        },
+        {
+          "symbol_id": 4772706459381012324,
+          "function_name": "unsafe_write",
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/advanced/concurrency_err/concurrency_err__shared_member_write.yb",
+          "signature_hash": "627dfa6fd03d5dced5bf2ef9b84eff126544ec54d23b78575fe3c2050e6f90f0",
+          "effects_declared": [
+            "concurrency"
+          ],
+          "effects_observed": [
+            "concurrency",
+            "mut_state"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        }
+      ],
+      "effect_mismatches": [
+        {
+          "function_name": "unsafe_write",
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/advanced/concurrency_err/concurrency_err__shared_member_write.yb",
+          "declared_only": [],
+          "observed_only": [
+            "mut_state"
+          ]
+        }
+      ],
+      "diagnostics": [
+        {
+          "code": "E3002",
+          "severity": "Warning",
+          "message": "observed effect `mut_state` is not declared in `@effect` (including transitive calls)",
+          "span": {
+            "line_start": 5,
+            "col_start": 1,
+            "line_end": 10,
+            "col_end": 1
+          }
+        },
+        {
+          "code": "E3203",
+          "severity": "Error",
+          "message": "shared mutable member assignment in concurrent function requires explicit synchronization primitive",
+          "span": {
+            "line_start": 5,
+            "col_start": 1,
+            "line_end": 10,
+            "col_end": 1
+          }
+        }
+      ],
+      "dependencies": []
+    }
+  }
+}

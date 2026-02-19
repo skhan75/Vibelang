@@ -1,0 +1,9 @@
+pub addTwo(x: Int) -> Int {
+  @intent "return the input increased by two deterministically"
+  @examples {
+    addTwo(1) => 3
+    addTwo(5) => 7
+  }
+  @ensure . == x + 2
+  x + 2
+}

@@ -1,0 +1,26 @@
+stress_producer_16(ch) -> Int {
+  @effect concurrency
+  repeat 16 {
+    ch.send(1)
+  }
+  0
+}
+
+pub main() -> Int {
+  @effect concurrency
+  @effect io
+  @effect alloc
+  ch := chan(64)
+  go stress_producer_16(ch)
+  go stress_producer_16(ch)
+  total := 0
+  repeat 32 {
+    total = total + ch.recv()
+  }
+  if total == 32 {
+    println("stress-ok")
+  } else {
+    println("stress-bad")
+  }
+  0
+}

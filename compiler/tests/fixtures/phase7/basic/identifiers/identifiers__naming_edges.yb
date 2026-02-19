@@ -1,0 +1,5 @@
+pub identifiers_edges(_start: Int, camelCase: Int) -> Int {
+  @intent "verify underscore and mixed case identifier support"
+  snake_case_1 := _start + camelCase
+  snake_case_1
+}

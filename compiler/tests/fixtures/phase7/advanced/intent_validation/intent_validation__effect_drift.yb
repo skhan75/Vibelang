@@ -1,0 +1,9 @@
+pub noisyIdentity(x: Int) -> Int {
+  @intent "log input and return it unchanged"
+  @examples {
+    noisyIdentity(1) => 1
+  }
+  @effect alloc
+  println("value")
+  x
+}

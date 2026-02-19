@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "files": {
+    "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/basic/typecheck/typecheck__unknown_symbol_and_mismatch.yb": {
+      "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/basic/typecheck/typecheck__unknown_symbol_and_mismatch.yb",
+      "file_hash": "85038db309693b0553c39146e5208f2b7fdb9dcac0eaadb5b8a8f948a2215d30",
+      "symbols": [
+        {
+          "id": 17807618285777438826,
+          "name": "type_unknown_and_mismatch",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/basic/typecheck/typecheck__unknown_symbol_and_mismatch.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 5,
+            "line_end": 6,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 4157469034502630919,
+          "name": "x",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/basic/typecheck/typecheck__unknown_symbol_and_mismatch.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 5,
+            "line_end": 6,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 12490895929397282070,
+          "name": "y",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/basic/typecheck/typecheck__unknown_symbol_and_mismatch.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 4157469034502630919,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/basic/typecheck/typecheck__unknown_symbol_and_mismatch.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 8,
+            "line_end": 2,
+            "col_end": 8
+          }
+        },
+        {
+          "symbol_id": 12490895929397282070,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/basic/typecheck/typecheck__unknown_symbol_and_mismatch.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 3
+          }
+        },
+        {
+          "symbol_id": 4157469034502630919,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/basic/typecheck/typecheck__unknown_symbol_and_mismatch.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 11,
+            "line_end": 4,
+            "col_end": 11
+          }
+        },
+        {
+          "symbol_id": 12490895929397282070,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/basic/typecheck/typecheck__unknown_symbol_and_mismatch.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 3,
+            "line_end": 5,
+            "col_end": 3
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 17807618285777438826,
+          "function_name": "type_unknown_and_mismatch",
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/basic/typecheck/typecheck__unknown_symbol_and_mismatch.yb",
+          "signature_hash": "9f5bf2c85a90c8b644ebce96781ce4765dd6fe0da8e4c171030986b4c11da7a6",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [
+        {
+          "code": "E2102",
+          "severity": "Error",
+          "message": "type mismatch in assignment to `y`: lhs `Int`, rhs `Str`",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 3
+          }
+        },
+        {
+          "code": "E2001",
+          "severity": "Error",
+          "message": "unknown identifier `missing`",
+          "span": {
+            "line_start": 4,
+            "col_start": 3,
+            "line_end": 4,
+            "col_end": 9
+          }
+        }
+      ],
+      "dependencies": [
+        "missing"
+      ]
+    }
+  }
+}

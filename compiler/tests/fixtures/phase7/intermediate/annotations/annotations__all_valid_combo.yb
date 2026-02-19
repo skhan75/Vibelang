@@ -1,0 +1,10 @@
+pub annotations_all_valid(x: Int) -> Int {
+  @intent "ensure all core annotations compose correctly"
+  @examples {
+    annotations_all_valid(1) => 2
+  }
+  @require x >= 0
+  @ensure . >= x
+  @effect alloc
+  x + 1
+}

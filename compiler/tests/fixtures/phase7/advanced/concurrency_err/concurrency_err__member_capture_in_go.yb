@@ -1,0 +1,9 @@
+worker_capture(v: Int) -> Int {
+  v
+}
+
+unsafe_capture(account) -> Int {
+  @effect concurrency
+  go worker_capture(account.balance)
+  0
+}

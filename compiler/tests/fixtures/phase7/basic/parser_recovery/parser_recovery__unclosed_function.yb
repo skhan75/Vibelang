@@ -1,0 +1,2 @@
+broken_block(x: Int) -> Int {
+  x + 1

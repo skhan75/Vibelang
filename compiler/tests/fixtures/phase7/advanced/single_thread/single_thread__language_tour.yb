@@ -1,0 +1,26 @@
+score(x: Int) -> Int {
+  @intent "increase score deterministically"
+  @examples {
+    score(1) => 2
+    score(2) => 3
+  }
+  @require x >= 0
+  @ensure . >= x
+  @effect alloc
+  x + 1
+}
+
+pub main() -> Int {
+  @effect io
+  @effect alloc
+  value := score(2)
+  repeat 2 {
+    value = score(value)
+  }
+  if value == 5 {
+    println("tour-ok")
+  } else {
+    println("tour-bad")
+  }
+  0
+}

@@ -1,0 +1,4 @@
+bad_intent_payload() -> Int {
+  @intent 42
+  0
+}

@@ -1,0 +1,1 @@
+E3202: error: capturing member access in `go` may alias shared mutable state; use explicit synchronization @ 7:21-7:35

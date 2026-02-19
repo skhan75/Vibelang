@@ -1,0 +1,162 @@
+{
+  "schema_version": 1,
+  "files": {
+    "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/basic/parser_recovery/parser_recovery__missing_examples_arrow.yb": {
+      "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/basic/parser_recovery/parser_recovery__missing_examples_arrow.yb",
+      "file_hash": "4df9f121ddef8aa8c48c0f5973d593c1f5991f190cf79454f5ae65b7a03ee83c",
+      "symbols": [
+        {
+          "id": 7875842331979176748,
+          "name": "broken_examples",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/basic/parser_recovery/parser_recovery__missing_examples_arrow.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 6,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 8673627005226428454,
+          "name": "x",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/basic/parser_recovery/parser_recovery__missing_examples_arrow.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 6,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 1429737894124582102,
+          "name": "@examples",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/basic/parser_recovery/parser_recovery__missing_examples_arrow.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 8673627005226428454,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/basic/parser_recovery/parser_recovery__missing_examples_arrow.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 3,
+            "line_end": 5,
+            "col_end": 3
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 7875842331979176748,
+          "function_name": "broken_examples",
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/basic/parser_recovery/parser_recovery__missing_examples_arrow.yb",
+          "signature_hash": "c763ddea0dccc403f50d26bf5732efdc33e1e90eb96e5121a15b28446c213e51",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": null,
+          "has_examples": true,
+          "is_public": false
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [
+        {
+          "code": "E1307",
+          "severity": "Error",
+          "message": "expected `=>` in example case",
+          "span": {
+            "line_start": 3,
+            "col_start": 24,
+            "line_end": 3,
+            "col_end": 24
+          }
+        }
+      ],
+      "dependencies": []
+    },
+    "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/basic/parser_recovery/parser_recovery__unclosed_function.yb": {
+      "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/basic/parser_recovery/parser_recovery__unclosed_function.yb",
+      "file_hash": "75f6f184c144f37ce479323f3b933cd3b9e25e451d457295cb64c2878a670284",
+      "symbols": [
+        {
+          "id": 511071939865630818,
+          "name": "broken_block",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/basic/parser_recovery/parser_recovery__unclosed_function.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 3,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 10454484370818565483,
+          "name": "x",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/basic/parser_recovery/parser_recovery__unclosed_function.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 3,
+            "col_end": 1
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 10454484370818565483,
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/basic/parser_recovery/parser_recovery__unclosed_function.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 511071939865630818,
+          "function_name": "broken_block",
+          "file": "/home/azskdev/workspace/vibelang/compiler/tests/fixtures/phase7/basic/parser_recovery/parser_recovery__unclosed_function.yb",
+          "signature_hash": "26e4fbad94b4b556629c8f8a0215711d44668f42adbcf196a4568a109aafc23f",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [
+        {
+          "code": "E1106",
+          "severity": "Error",
+          "message": "expected `}` to close function body",
+          "span": {
+            "line_start": 3,
+            "col_start": 1,
+            "line_end": 3,
+            "col_end": 1
+          }
+        }
+      ],
+      "dependencies": []
+    }
+  }
+}

@@ -1,0 +1,10 @@
+grouping_and_unary(x: Int) -> Int {
+  @effect io
+  neg := -(x + 1)
+  if !(x == 0) {
+    println("nz")
+  } else {
+    println("z")
+  }
+  neg
+}

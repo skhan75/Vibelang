@@ -1,0 +1,23 @@
+pub main() -> Int {
+  @effect io
+  state := 0
+  ticks := 0
+  while ticks < 4 {
+    if state == 0 {
+      state = 1
+    } else {
+      if state == 1 {
+        state = 2
+      } else {
+        state = 2
+      }
+    }
+    ticks = ticks + 1
+  }
+  if state == 2 {
+    println("state-ok")
+  } else {
+    println("state-bad")
+  }
+  0
+}

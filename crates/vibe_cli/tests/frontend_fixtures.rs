@@ -234,6 +234,35 @@ fn docs_syntax_samples_compile_without_errors() {
     );
 }
 
+#[test]
+fn phase7_basic_and_intermediate_matrix() {
+    for level in ["basic", "intermediate"] {
+        let dir = fixture_dir("phase7").join(level);
+        for file in list_vibe_files_recursive(&dir) {
+            let src = fs::read_to_string(&file).expect("read phase7 fixture");
+            let all = check_output(&src);
+            let expected = golden_path(&file, "diag");
+            if expected.exists() {
+                assert_golden(&expected, &all.to_golden());
+            } else {
+                assert!(
+                    !all.has_errors(),
+                    "phase7 fixture should compile without errors: {}\n{}",
+                    file.display(),
+                    all.to_golden()
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn phase7_frontend_outputs_are_deterministic() {
+    let first = collect_phase7_outputs();
+    let second = collect_phase7_outputs();
+    assert_eq!(first, second, "phase7 frontend output should be stable");
+}
+
 fn run_and_capture(src: &str) -> (String, String, String) {
     let parsed = parse_source(src);
     let checked = check_and_lower(&parsed.ast);
@@ -265,6 +294,42 @@ fn list_vibe_files(dir: &Path) -> Vec<PathBuf> {
         .collect::<Vec<_>>();
     files.sort();
     files
+}
+
+fn list_vibe_files_recursive(dir: &Path) -> Vec<PathBuf> {
+    let mut out = Vec::new();
+    collect_vibe_files_recursive(dir, &mut out);
+    out.sort();
+    out
+}
+
+fn collect_vibe_files_recursive(dir: &Path, out: &mut Vec<PathBuf>) {
+    let entries = fs::read_dir(dir)
+        .expect("read fixtures directory recursively")
+        .filter_map(|e| e.ok())
+        .map(|e| e.path())
+        .collect::<Vec<_>>();
+    for path in entries {
+        if path.is_dir() {
+            collect_vibe_files_recursive(&path, out);
+        } else if is_supported_source_file(&path) {
+            out.push(path);
+        }
+    }
+}
+
+fn collect_phase7_outputs() -> Vec<(String, String)> {
+    let mut out = Vec::new();
+    for level in ["basic", "intermediate"] {
+        let dir = fixture_dir("phase7").join(level);
+        for file in list_vibe_files_recursive(&dir) {
+            let src = fs::read_to_string(&file).expect("read phase7 fixture");
+            let diags = check_output(&src).to_golden();
+            out.push((file.display().to_string(), diags));
+        }
+    }
+    out.sort();
+    out
 }
 
 fn golden_path(src_path: &Path, ext: &str) -> PathBuf {

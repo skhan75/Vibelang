@@ -1,0 +1,10 @@
+caller_drift() -> Int {
+  @effect alloc
+  helper_drift()
+}
+
+helper_drift() -> Int {
+  @effect io
+  println("drift")
+  0
+}

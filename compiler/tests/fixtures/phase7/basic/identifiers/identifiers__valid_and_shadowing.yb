@@ -1,0 +1,11 @@
+pub identifiers_shadowing(value: Int) -> Int {
+  @intent "allow local rebinding and deterministic updates"
+  acc := value
+  acc := acc + 1
+  if acc > 0 {
+    acc := acc + 1
+  } else {
+    acc = 0
+  }
+  acc
+}

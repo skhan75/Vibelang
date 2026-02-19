@@ -1,0 +1,4 @@
+bad_unknown_annotation() -> Int {
+  @foobar "unknown"
+  0
+}

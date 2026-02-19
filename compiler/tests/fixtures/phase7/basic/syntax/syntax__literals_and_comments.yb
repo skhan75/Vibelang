@@ -1,0 +1,14 @@
+pub syntax_literals() -> Int {
+  @intent "validate literals comments and grouped arithmetic"
+  @effect io
+  // lexer should ignore this comment.
+  flag := true
+  count := (3 + 4) * 2
+  text := "phase7\nsyntax"
+  if flag {
+    println(text)
+  } else {
+    println("no")
+  }
+  count
+}

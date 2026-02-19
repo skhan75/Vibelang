@@ -1,0 +1,25 @@
+inc(x: Int) -> Int {
+  x + 1
+}
+
+double(x: Int) -> Int {
+  x * 2
+}
+
+pipe(x: Int) -> Int {
+  double(inc(x))
+}
+
+pub main() -> Int {
+  @effect io
+  value := 1
+  repeat 3 {
+    value = pipe(value)
+  }
+  if value == 22 {
+    println("pipe-ok")
+  } else {
+    println("pipe-bad")
+  }
+  0
+}

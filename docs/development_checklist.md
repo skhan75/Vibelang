@@ -328,4 +328,155 @@ Goal: move from core compiler/runtime to a sustainable developer ecosystem.
 - Core strategy/spec docs: drafted and phase-1 through phase-6 policy docs are now published (package/release/targets/migration/self-host reports)
 - Implementation code: Phase 6 ecosystem baseline is delivered (`vibe pkg`, `vibe fmt`, `vibe doc`, `vibe new`, selfhost seed, cross-target governance updates)
 - Verification: phase1-6 workflows and local validation suites are green (including clippy, parity tests, selfhost conformance, and metrics thresholds)
-- Next execution focus: harden production-grade selfhost execution path (M1+) and raise `.yb` adoption ratio through migration automation
+- Next execution focus: execute the ordered post-phase-6 readiness plan (test corpus + sample programs, GitHub README, v1 release tightening, and book-quality documentation roadmap)
+
+---
+
+## Phase 7: V1 Readiness Execution Plan (Ordered)
+
+Goal: convert the current strong engineering baseline into a polished, public, production-ready v1 launch path.
+
+Execution order is fixed and should be followed top to bottom.
+
+### 7.1 Ordered Item 1 — Comprehensive Language Validation + Sample Programs
+
+#### 7.1.a Test Corpus Structure (Basic -> Advanced)
+
+- [ ] Define fixture taxonomy and naming convention for progression levels (`basic`, `intermediate`, `advanced`, `stress`) under `compiler/tests/fixtures/phase7/`
+- [ ] Add minimal syntax/lexing fixtures: literals, comments, whitespace, indentation boundaries, unary/binary operators, grouping
+- [ ] Add identifier fixtures: valid identifiers, reserved keyword rejection, shadowing behavior, naming edge cases
+- [ ] Add parser-recovery fixtures: malformed blocks/annotations with multi-error stability expectations
+- [ ] Add type-check fixtures: inference boundaries, mismatch diagnostics, unknown symbol/function handling, deterministic error ordering
+
+#### 7.1.b Annotation/Contract/Intent Coverage
+
+- [ ] Add dedicated fixtures for `@intent`, `@examples`, `@require`, `@ensure`, `@effect` individually and in valid combinations
+- [ ] Add invalid-annotation fixtures (unknown tags, malformed payloads, wrong placement) with stable diagnostics
+- [ ] Add runtime contract policy tests covering dev/test default behavior and explicit overrides
+- [ ] Add `@examples` correctness tests for pass/fail reporting quality (function, input, expected/actual, source span)
+- [ ] Add effect conformance tests proving `@effect` declarations align with observed behavior
+
+#### 7.1.c Single-Threaded Program Suite
+
+- [ ] Add canonical single-thread sample programs: hello world, calculator, collection transform pipeline, small state machine
+- [ ] Add deterministic output assertions for repeated runs (same input => identical stdout and exit code)
+- [ ] Add build artifacts determinism checks for each sample (`.o`, binary hash, debug map stability)
+- [ ] Add small "language tour" sample showing functions, control flow, contracts, and examples in one file
+
+#### 7.1.d Multi-Threaded/Concurrency Program Suite
+
+- [ ] Add bounded worker-pool sample using `go`, `chan`, `select`, cancellation token propagation
+- [ ] Add fan-in/fan-out sample with fairness assertions on `select`
+- [ ] Add timeout/retry sample using `after` branch behavior in `select`
+- [ ] Add concurrency stress scenario fixtures with deterministic pass/fail criteria and bounded runtime
+- [ ] Add negative tests for concurrency misuse with actionable diagnostics
+
+#### 7.1.e Intent-Driven Development Validation
+
+- [ ] Add intent lint fixtures for "good intent matches implementation" and "intent drift" cases
+- [ ] Add changed-only lint mode validation for both git-present and no-git flows
+- [ ] Add verifier-gated suggestion tests ensuring rejected suggestions never alter compile determinism
+- [ ] Add intent lint quality scoring harness update (`precision`, `recall`, `false-positive trend`) with report output
+
+#### 7.1.f CI and Evidence for Item 1
+
+- [ ] Add dedicated workflow `.github/workflows/phase7-language-validation.yml` for corpus execution
+- [ ] Publish report `reports/phase7/language_validation_matrix.md` with pass/fail matrix (feature x test level)
+- [ ] Publish report `reports/phase7/sample_programs_catalog.md` with run/build/test commands and expected outputs
+
+### 7.2 Ordered Item 2 — GitHub README (Product-Grade)
+
+#### 7.2.a README Content and Positioning
+
+- [ ] Rewrite root `README.md` with product-quality structure and clear sections
+- [ ] Add concise project pitch: what VibeLang is and why it was built
+- [ ] Add "What VibeLang solves today" section with concrete, current capabilities
+- [ ] Add "What is experimental / in-progress" section to set user expectations honestly
+- [ ] Add use-case section (systems tooling, concurrent services, deterministic build pipelines, intent-aware development)
+
+#### 7.2.b Quickstart and Installation UX
+
+- [ ] Add installation paths: from source, local binary usage, and future packaged release placeholder
+- [ ] Add 60-second quickstart (`vibe new`, `vibe run`, `vibe test`, `vibe fmt`, `vibe doc`)
+- [ ] Add hello-world + one contract/intent sample snippet
+- [ ] Add troubleshooting section (common setup/compiler toolchain issues)
+
+#### 7.2.c Visual and Navigation Quality
+
+- [ ] Add section anchors/table of contents for easy scanning
+- [ ] Add architecture diagram (compiler core, runtime, indexer/lsp, sidecar boundaries)
+- [ ] Add roadmap snapshot links to `docs/development_checklist.md` and phase reports
+- [ ] Add contribution/start-here section (build, test, lint, CI expectations)
+
+#### 7.2.d README Validation
+
+- [ ] Add markdown lint/link check for README in CI
+- [ ] Add quickstart smoke check in CI to ensure commands in README stay executable
+
+### 7.3 Ordered Item 3 — Tightened V1 Production Release Checklist
+
+#### 7.3.a Scope Freeze and Release Gates
+
+- [ ] Define explicit v1 feature scope freeze list and non-goals list
+- [ ] Convert all remaining top-level unchecked guardrails into owned release gates (owner/severity/target milestone)
+- [ ] Add release blocker policy (`P0`/`P1` criteria) and merge gate alignment
+- [ ] Create v1 release readiness dashboard report (`reports/v1/readiness_dashboard.md`)
+
+#### 7.3.b Engineering Quality Hardening
+
+- [ ] Close remaining determinism/safety/performance unchecked items in this checklist with evidence
+- [ ] Define minimum test coverage expectations for parser/type/runtime/cli/intent-lint paths
+- [ ] Add long-run stability/soak tests with bounded budgets and pass thresholds
+- [ ] Add packaging integrity checks (checksums/signatures/provenance plan)
+- [ ] Add upgrade/downgrade compatibility test path between adjacent v1.x versions
+
+#### 7.3.c Operational Readiness
+
+- [ ] Define release candidate process (`rc1`, `rc2`, promote/reject criteria)
+- [ ] Define rollback playbook for bad release detection and mitigation
+- [ ] Define issue triage SLA and bug severity taxonomy for public users
+- [ ] Define telemetry/privacy statement for optional AI-related signals
+- [ ] Add "known limitations" publication gate before each release
+
+#### 7.3.d CI/Reporting for V1 Tightening
+
+- [ ] Add workflow `.github/workflows/v1-release-gates.yml` for consolidated v1 blocking checks
+- [ ] Publish `reports/v1/release_candidate_checklist.md` template and first run
+- [ ] Require all v1 gate reports linked in release PR description
+
+### 7.4 Ordered Item 4 — VibeLang Book + Full Documentation Program
+
+#### 7.4.a Documentation Architecture
+
+- [ ] Define docs information architecture: tutorials, language book, reference, tooling guides, internals
+- [ ] Choose docs engine and repo layout (e.g., mdBook-style structure under `book/`)
+- [ ] Define versioning strategy for docs (`latest`, `v1.x`, archived versions)
+- [ ] Define docs style guide (tone, examples, conventions, glossary)
+
+#### 7.4.b "The VibeLang Book" Chapter Checklist (Rust-Book Quality Target)
+
+- [ ] Chapter 1: Getting started and mental model
+- [ ] Chapter 2: Core syntax and semantics
+- [ ] Chapter 3: Types, functions, and errors
+- [ ] Chapter 4: Contracts (`@require/@ensure`) and executable examples (`@examples`)
+- [ ] Chapter 5: Effects and performance reasoning
+- [ ] Chapter 6: Concurrency (`go`, `chan`, `select`, cancellation)
+- [ ] Chapter 7: Tooling (`check/build/run/test/fmt/doc/pkg/lint/index/lsp`)
+- [ ] Chapter 8: Intent-driven development and sidecar model
+- [ ] Chapter 9: Migration and compatibility policies (`.vibe` -> `.yb`, v1.x evolution)
+- [ ] Chapter 10: Advanced internals overview (compiler pipeline, runtime model, indexer/LSP architecture)
+
+#### 7.4.c Docs Quality and Automation
+
+- [ ] Add executable code-snippet tests for all tutorial/reference pages
+- [ ] Add link-check, spell-check, and stale-example CI gates
+- [ ] Add "docs coverage" metric (language features documented vs implemented)
+- [ ] Add periodic docs usability review checklist (new user walkthroughs)
+- [ ] Publish `reports/docs/documentation_quality.md` per release
+
+### Phase 7 Exit Criteria (Ordered Plan Complete)
+
+- [ ] Item 1 completed: comprehensive language validation matrix and sample program catalog are green with reproducible evidence (`workflow .github/workflows/phase7-language-validation.yml`, reports under `reports/phase7/`)
+- [ ] Item 2 completed: README is public-ready, accurate, and CI-validated against command drift (`README.md`, README smoke workflow job)
+- [ ] Item 3 completed: v1 production release gates are explicitly defined, owned, and passing for at least one release-candidate cycle (`workflow .github/workflows/v1-release-gates.yml`, `reports/v1/`)
+- [ ] Item 4 completed: book/docs program is structured, CI-gated, and includes tested chapter examples across core language/tooling surfaces (`book/`, docs CI jobs, `reports/docs/documentation_quality.md`)

@@ -1,0 +1,2 @@
+E3002: warning: observed effect `mut_state` is not declared in `@effect` (including transitive calls) @ 5:1-10:1
+E3203: error: shared mutable member assignment in concurrent function requires explicit synchronization primitive @ 5:1-10:1

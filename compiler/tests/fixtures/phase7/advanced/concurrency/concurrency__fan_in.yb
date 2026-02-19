@@ -1,0 +1,29 @@
+fan_in_producer_10(out) -> Int {
+  @effect concurrency
+  out.send(10)
+  0
+}
+
+fan_in_producer_20(out) -> Int {
+  @effect concurrency
+  out.send(20)
+  0
+}
+
+pub main() -> Int {
+  @effect concurrency
+  @effect io
+  @effect alloc
+  out := chan(4)
+  go fan_in_producer_10(out)
+  go fan_in_producer_20(out)
+  left := out.recv()
+  right := out.recv()
+  total := left + right
+  if total == 30 {
+    println("fan-in-ok")
+  } else {
+    println("fan-in-bad")
+  }
+  0
+}

@@ -1,0 +1,7 @@
+pub vagueIntent(x: Int) -> Int {
+  @intent "does stuff"
+  @examples {
+    vagueIntent(2) => 2
+  }
+  x
+}

@@ -1,0 +1,2 @@
+E2102: error: type mismatch in assignment to `y`: lhs `Int`, rhs `Str` @ 3:3-3:3
+E2001: error: unknown identifier `missing` @ 4:3-4:9

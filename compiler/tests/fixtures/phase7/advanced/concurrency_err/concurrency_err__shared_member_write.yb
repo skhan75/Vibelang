@@ -1,0 +1,10 @@
+noop() -> Int {
+  0
+}
+
+unsafe_write(account) -> Int {
+  @effect concurrency
+  go noop()
+  account.balance = account.balance + 1
+  0
+}

@@ -1,0 +1,29 @@
+worker_pool_worker_one(done) -> Int {
+  @effect concurrency
+  done.send(2)
+  0
+}
+
+worker_pool_worker_two(done) -> Int {
+  @effect concurrency
+  done.send(3)
+  0
+}
+
+pub main() -> Int {
+  @effect concurrency
+  @effect io
+  @effect alloc
+  done := chan(4)
+  go worker_pool_worker_one(done)
+  go worker_pool_worker_two(done)
+  first := done.recv()
+  second := done.recv()
+  total := first + second
+  if total == 5 {
+    println("worker-pool-ok")
+  } else {
+    println("worker-pool-bad")
+  }
+  0
+}

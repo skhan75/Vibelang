@@ -1,0 +1,10 @@
+caller_match() -> Int {
+  @effect io
+  helper_match()
+}
+
+helper_match() -> Int {
+  @effect io
+  println("ok")
+  0
+}

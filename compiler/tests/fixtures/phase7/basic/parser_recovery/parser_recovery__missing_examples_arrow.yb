@@ -1,0 +1,6 @@
+broken_examples(x: Int) -> Int {
+  @examples {
+    broken_examples(1) 1
+  }
+  x
+}

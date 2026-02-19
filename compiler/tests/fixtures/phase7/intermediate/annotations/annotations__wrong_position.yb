@@ -1,0 +1,5 @@
+bad_annotation_position() -> Int {
+  x := 1
+  @require x > 0
+  x
+}

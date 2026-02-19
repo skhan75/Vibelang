@@ -1,0 +1,19 @@
+add(a: Int, b: Int) -> Int {
+  a + b
+}
+
+mul(a: Int, b: Int) -> Int {
+  a * b
+}
+
+pub main() -> Int {
+  @effect io
+  total := add(2, 3)
+  total = mul(total, 4)
+  if total == 20 {
+    println("calc-ok")
+  } else {
+    println("calc-bad")
+  }
+  0
+}
