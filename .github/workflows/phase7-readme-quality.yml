@@ -1,0 +1,57 @@
+name: phase7-readme-quality
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  readme_markdown_and_links:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: lint README markdown
+        run: |
+          set -euo pipefail
+          npx --yes markdownlint-cli@latest README.md --disable MD013
+      - name: check README links
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: --no-progress --verbose -- README.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  readme_quickstart_smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: build vibe binary
+        run: |
+          set -euo pipefail
+          cargo build -p vibe_cli
+      - name: execute README quickstart commands
+        run: |
+          set -euo pipefail
+          VIBE_BIN="$PWD/target/debug/vibe"
+          WORKDIR="$RUNNER_TEMP/readme-quickstart"
+          rm -rf "$WORKDIR"
+          mkdir -p "$WORKDIR"
+
+          "$VIBE_BIN" new hello --path "$WORKDIR"
+          cd "$WORKDIR/hello"
+
+          "$VIBE_BIN" run main.yb > run.log
+          if ! tr -d '\n' < run.log | grep -q "hello from vibelang"; then
+            echo "quickstart run output mismatch"
+            cat run.log
+            exit 1
+          fi
+
+          "$VIBE_BIN" test main.yb
+          "$VIBE_BIN" fmt . --check
+          "$VIBE_BIN" doc . --out docs/api.md
+          test -f docs/api.md

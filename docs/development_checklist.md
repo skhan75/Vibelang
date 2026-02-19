@@ -388,30 +388,30 @@ Execution order is fixed and should be followed top to bottom.
 
 #### 7.2.a README Content and Positioning
 
-- [ ] Rewrite root `README.md` with product-quality structure and clear sections
-- [ ] Add concise project pitch: what VibeLang is and why it was built
-- [ ] Add "What VibeLang solves today" section with concrete, current capabilities
-- [ ] Add "What is experimental / in-progress" section to set user expectations honestly
-- [ ] Add use-case section (systems tooling, concurrent services, deterministic build pipelines, intent-aware development)
+- [x] Rewrite root `README.md` with product-quality structure and clear sections (evidence: `README.md` with TOC, architecture, install, quickstart, troubleshooting, roadmap, contribution sections)
+- [x] Add concise project pitch: what VibeLang is and why it was built (evidence: `README.md` section `Project Pitch`)
+- [x] Add "What VibeLang solves today" section with concrete, current capabilities (evidence: `README.md` section `What VibeLang Solves Today`)
+- [x] Add "What is experimental / in-progress" section to set user expectations honestly (evidence: `README.md` section `What Is Experimental / In Progress`)
+- [x] Add use-case section (systems tooling, concurrent services, deterministic build pipelines, intent-aware development) (evidence: `README.md` section `Use Cases`)
 
 #### 7.2.b Quickstart and Installation UX
 
-- [ ] Add installation paths: from source, local binary usage, and future packaged release placeholder
-- [ ] Add 60-second quickstart (`vibe new`, `vibe run`, `vibe test`, `vibe fmt`, `vibe doc`)
-- [ ] Add hello-world + one contract/intent sample snippet
-- [ ] Add troubleshooting section (common setup/compiler toolchain issues)
+- [x] Add installation paths: from source, local binary usage, and future packaged release placeholder (evidence: `README.md` section `Installation`)
+- [x] Add 60-second quickstart (`vibe new`, `vibe run`, `vibe test`, `vibe fmt`, `vibe doc`) (evidence: `README.md` section `60-Second Quickstart`)
+- [x] Add hello-world + one contract/intent sample snippet (evidence: `README.md` section `Code Samples`)
+- [x] Add troubleshooting section (common setup/compiler toolchain issues) (evidence: `README.md` section `Troubleshooting`)
 
 #### 7.2.c Visual and Navigation Quality
 
-- [ ] Add section anchors/table of contents for easy scanning
-- [ ] Add architecture diagram (compiler core, runtime, indexer/lsp, sidecar boundaries)
-- [ ] Add roadmap snapshot links to `docs/development_checklist.md` and phase reports
-- [ ] Add contribution/start-here section (build, test, lint, CI expectations)
+- [x] Add section anchors/table of contents for easy scanning (evidence: `README.md` section `Table of Contents`)
+- [x] Add architecture diagram (compiler core, runtime, indexer/lsp, sidecar boundaries) (evidence: `README.md` section `Architecture`)
+- [x] Add roadmap snapshot links to `docs/development_checklist.md` and phase reports (evidence: `README.md` section `Roadmap Snapshot`)
+- [x] Add contribution/start-here section (build, test, lint, CI expectations) (evidence: `README.md` section `Contributing: Start Here`)
 
 #### 7.2.d README Validation
 
-- [ ] Add markdown lint/link check for README in CI
-- [ ] Add quickstart smoke check in CI to ensure commands in README stay executable
+- [x] Add markdown lint/link check for README in CI (evidence: workflow `.github/workflows/phase7-readme-quality.yml`, job `readme_markdown_and_links`)
+- [x] Add quickstart smoke check in CI to ensure commands in README stay executable (evidence: workflow `.github/workflows/phase7-readme-quality.yml`, job `readme_quickstart_smoke`)
 
 ### 7.3 Ordered Item 3 — Tightened V1 Production Release Checklist
 
@@ -477,6 +477,6 @@ Execution order is fixed and should be followed top to bottom.
 ### Phase 7 Exit Criteria (Ordered Plan Complete)
 
 - [x] Item 1 completed: comprehensive language validation matrix and sample program catalog are green with reproducible evidence (`workflow .github/workflows/phase7-language-validation.yml`, reports under `reports/phase7/`)
-- [ ] Item 2 completed: README is public-ready, accurate, and CI-validated against command drift (`README.md`, README smoke workflow job)
+- [x] Item 2 completed: README is public-ready, accurate, and CI-validated against command drift (`README.md`, workflow `.github/workflows/phase7-readme-quality.yml`)
 - [ ] Item 3 completed: v1 production release gates are explicitly defined, owned, and passing for at least one release-candidate cycle (`workflow .github/workflows/v1-release-gates.yml`, `reports/v1/`)
 - [ ] Item 4 completed: book/docs program is structured, CI-gated, and includes tested chapter examples across core language/tooling surfaces (`book/`, docs CI jobs, `reports/docs/documentation_quality.md`)
