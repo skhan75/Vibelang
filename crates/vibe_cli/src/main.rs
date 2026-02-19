@@ -9,6 +9,8 @@ use std::{env, fs};
 use vibe_codegen::{emit_object, CodegenOptions};
 use vibe_diagnostics::Diagnostic;
 use vibe_diagnostics::Diagnostics;
+use vibe_doc::{extract_docs, render_markdown};
+use vibe_fmt::{format_source, needs_formatting};
 use vibe_indexer::build_file_index;
 use vibe_indexer::{
     default_metadata_root, is_supported_source_file, prepare_index_root, IncrementalIndexer,
@@ -18,6 +20,7 @@ use vibe_lsp::run_line_stdio;
 use vibe_mir::MirProgram;
 use vibe_mir::{lower_hir_to_mir, mir_debug_dump};
 use vibe_parser::parse_source;
+use vibe_pkg::{default_mirror_root, install_project, resolve_project, write_lockfile};
 use vibe_runtime::{compile_runtime_object, link_executable, RuntimeBuildOptions};
 use vibe_sidecar::models::FindingSeverity;
 use vibe_sidecar::SidecarMode;
@@ -73,6 +76,9 @@ fn run() -> Result<ExitCode, String> {
         }
         "run" => {
             let build_args = parse_build_like_args(&args, true)?;
+            if build_args.emit_obj_only {
+                return Err("`--emit-obj-only` is not valid for `vibe run`".to_string());
+            }
             let artifacts = build_source(&build_args)?;
             let status = Command::new(&artifacts.binary_path)
                 .args(&build_args.exec_args)
@@ -87,6 +93,9 @@ fn run() -> Result<ExitCode, String> {
         }
         "test" => {
             let test_args = parse_build_like_args(&args, false)?;
+            if test_args.emit_obj_only {
+                return Err("`--emit-obj-only` is not valid for `vibe test`".to_string());
+            }
             run_test(&test_args)
         }
         "index" => {
@@ -94,6 +103,22 @@ fn run() -> Result<ExitCode, String> {
             run_index(&index_args)
         }
         "lsp" => run_lsp(&args),
+        "fmt" => {
+            let fmt_args = parse_fmt_args(&args)?;
+            run_fmt(&fmt_args)
+        }
+        "doc" => {
+            let doc_args = parse_doc_args(&args)?;
+            run_doc(&doc_args)
+        }
+        "new" => {
+            let new_args = parse_new_args(&args)?;
+            run_new(&new_args)
+        }
+        "pkg" => {
+            let pkg_args = parse_pkg_args(&args)?;
+            run_pkg(&pkg_args)
+        }
         "lint" => {
             let lint_args = parse_lint_args(&args)?;
             run_lint(&lint_args)
@@ -103,7 +128,7 @@ fn run() -> Result<ExitCode, String> {
 }
 
 fn usage() -> String {
-    "usage: vibe <check|ast|hir|mir|build|run|test|index|lsp|lint> <path> [--profile dev|release] [--target x86_64-unknown-linux-gnu] [--offline] [--debuginfo none|line|full] (lint: --intent [--changed] [--suggest] [--mode local|hybrid|cloud] [--telemetry-out path])".to_string()
+    "usage: vibe <check|ast|hir|mir|build|run|test|index|lsp|fmt|doc|new|pkg|lint> <path> [--profile dev|release] [--target <triple>] [--offline] [--debuginfo none|line|full] [--emit-obj-only] (lint: --intent [--changed] [--suggest] [--mode local|hybrid|cloud] [--telemetry-out path]) (pkg: lock|resolve|install [--path dir] [--mirror dir])".to_string()
 }
 
 fn run_check(path: &str) -> Result<ExitCode, String> {
@@ -197,6 +222,7 @@ struct BuildArgs {
     target: String,
     debuginfo: String,
     offline: bool,
+    emit_obj_only: bool,
     exec_args: Vec<String>,
 }
 
@@ -228,6 +254,46 @@ struct LintArgs {
     max_requests_per_day: Option<u64>,
 }
 
+#[derive(Debug, Clone)]
+struct FmtArgs {
+    target_path: PathBuf,
+    check: bool,
+}
+
+#[derive(Debug, Clone)]
+struct DocArgs {
+    target_path: PathBuf,
+    out: Option<PathBuf>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum NewTemplate {
+    App,
+    Lib,
+}
+
+#[derive(Debug, Clone)]
+struct NewArgs {
+    name: String,
+    base_dir: PathBuf,
+    template: NewTemplate,
+    extension: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PkgCommand {
+    Resolve,
+    Lock,
+    Install,
+}
+
+#[derive(Debug, Clone)]
+struct PkgArgs {
+    command: PkgCommand,
+    project_root: PathBuf,
+    mirror_root: Option<PathBuf>,
+}
+
 fn parse_build_like_args(args: &[String], allow_exec_args: bool) -> Result<BuildArgs, String> {
     if args.is_empty() {
         return Err("missing source path".to_string());
@@ -240,6 +306,7 @@ fn parse_build_like_args(args: &[String], allow_exec_args: bool) -> Result<Build
     let mut target = "x86_64-unknown-linux-gnu".to_string();
     let mut debuginfo = "line".to_string();
     let mut offline = false;
+    let mut emit_obj_only = false;
     let mut exec_args = Vec::new();
 
     while idx < args.len() {
@@ -286,6 +353,9 @@ fn parse_build_like_args(args: &[String], allow_exec_args: bool) -> Result<Build
             "--offline" => {
                 offline = true;
             }
+            "--emit-obj-only" => {
+                emit_obj_only = true;
+            }
             other => {
                 return Err(format!("unknown argument `{other}`"));
             }
@@ -299,6 +369,7 @@ fn parse_build_like_args(args: &[String], allow_exec_args: bool) -> Result<Build
         target,
         debuginfo,
         offline,
+        emit_obj_only,
         exec_args,
     })
 }
@@ -433,6 +504,164 @@ fn parse_lint_args(args: &[String]) -> Result<LintArgs, String> {
         max_local_ms,
         max_cloud_ms,
         max_requests_per_day,
+    })
+}
+
+fn parse_fmt_args(args: &[String]) -> Result<FmtArgs, String> {
+    let mut idx = 0usize;
+    let mut target_path = PathBuf::from(".");
+    let mut check = false;
+
+    if let Some(first) = args.first() {
+        if !first.starts_with("--") {
+            target_path = PathBuf::from(first);
+            idx = 1;
+        }
+    }
+
+    while idx < args.len() {
+        match args[idx].as_str() {
+            "--check" => check = true,
+            "--path" => {
+                idx += 1;
+                let val = args
+                    .get(idx)
+                    .ok_or_else(|| "missing value for `--path`".to_string())?;
+                target_path = PathBuf::from(val);
+            }
+            other => return Err(format!("unknown argument `{other}`")),
+        }
+        idx += 1;
+    }
+    Ok(FmtArgs { target_path, check })
+}
+
+fn parse_doc_args(args: &[String]) -> Result<DocArgs, String> {
+    let mut idx = 0usize;
+    let mut target_path = PathBuf::from(".");
+    let mut out = None;
+
+    if let Some(first) = args.first() {
+        if !first.starts_with("--") {
+            target_path = PathBuf::from(first);
+            idx = 1;
+        }
+    }
+
+    while idx < args.len() {
+        match args[idx].as_str() {
+            "--out" => {
+                idx += 1;
+                let val = args
+                    .get(idx)
+                    .ok_or_else(|| "missing value for `--out`".to_string())?;
+                out = Some(PathBuf::from(val));
+            }
+            "--path" => {
+                idx += 1;
+                let val = args
+                    .get(idx)
+                    .ok_or_else(|| "missing value for `--path`".to_string())?;
+                target_path = PathBuf::from(val);
+            }
+            other => return Err(format!("unknown argument `{other}`")),
+        }
+        idx += 1;
+    }
+
+    Ok(DocArgs { target_path, out })
+}
+
+fn parse_new_args(args: &[String]) -> Result<NewArgs, String> {
+    if args.is_empty() {
+        return Err("missing project name".to_string());
+    }
+
+    let name = args[0].clone();
+    if name.contains('/') || name.contains('\\') {
+        return Err("project name must not contain path separators".to_string());
+    }
+
+    let mut idx = 1usize;
+    let mut base_dir = PathBuf::from(".");
+    let mut template = NewTemplate::App;
+    let mut extension = "yb".to_string();
+    while idx < args.len() {
+        match args[idx].as_str() {
+            "--path" => {
+                idx += 1;
+                let val = args
+                    .get(idx)
+                    .ok_or_else(|| "missing value for `--path`".to_string())?;
+                base_dir = PathBuf::from(val);
+            }
+            "--lib" => template = NewTemplate::Lib,
+            "--app" => template = NewTemplate::App,
+            "--ext" => {
+                idx += 1;
+                let val = args
+                    .get(idx)
+                    .ok_or_else(|| "missing value for `--ext`".to_string())?;
+                if !SUPPORTED_SOURCE_EXTS.iter().any(|ext| ext == val) {
+                    return Err(format!(
+                        "unsupported extension `{val}` (expected {})",
+                        supported_source_ext_display()
+                    ));
+                }
+                extension = val.clone();
+            }
+            other => return Err(format!("unknown argument `{other}`")),
+        }
+        idx += 1;
+    }
+
+    Ok(NewArgs {
+        name,
+        base_dir,
+        template,
+        extension,
+    })
+}
+
+fn parse_pkg_args(args: &[String]) -> Result<PkgArgs, String> {
+    let Some(first) = args.first() else {
+        return Err("missing pkg subcommand (expected resolve|lock|install)".to_string());
+    };
+    let command = match first.as_str() {
+        "resolve" => PkgCommand::Resolve,
+        "lock" => PkgCommand::Lock,
+        "install" => PkgCommand::Install,
+        other => return Err(format!("unknown pkg subcommand `{other}`")),
+    };
+
+    let mut idx = 1usize;
+    let mut project_root = PathBuf::from(".");
+    let mut mirror_root = None;
+    while idx < args.len() {
+        match args[idx].as_str() {
+            "--path" => {
+                idx += 1;
+                let val = args
+                    .get(idx)
+                    .ok_or_else(|| "missing value for `--path`".to_string())?;
+                project_root = PathBuf::from(val);
+            }
+            "--mirror" => {
+                idx += 1;
+                let val = args
+                    .get(idx)
+                    .ok_or_else(|| "missing value for `--mirror`".to_string())?;
+                mirror_root = Some(PathBuf::from(val));
+            }
+            other => return Err(format!("unknown argument `{other}`")),
+        }
+        idx += 1;
+    }
+
+    Ok(PkgArgs {
+        command,
+        project_root,
+        mirror_root,
     })
 }
 
@@ -821,6 +1050,234 @@ fn run_lsp(args: &[String]) -> Result<ExitCode, String> {
     Ok(ExitCode::SUCCESS)
 }
 
+fn run_fmt(args: &FmtArgs) -> Result<ExitCode, String> {
+    let files = collect_vibe_files(&args.target_path)?;
+    if files.is_empty() {
+        return Err(format!(
+            "no source files ({}) found under `{}`",
+            supported_source_ext_display(),
+            args.target_path.display()
+        ));
+    }
+    let mut changed = Vec::new();
+    let mut total_scanned = 0usize;
+    let mut rewritten = 0usize;
+    for file in files {
+        total_scanned += 1;
+        let src = fs::read_to_string(&file)
+            .map_err(|e| format!("failed to read `{}`: {e}", file.display()))?;
+        if needs_formatting(&src) {
+            let formatted = format_source(&src);
+            changed.push(file.clone());
+            if !args.check {
+                fs::write(&file, formatted)
+                    .map_err(|e| format!("failed to write `{}`: {e}", file.display()))?;
+                rewritten += 1;
+            }
+        }
+    }
+
+    if args.check {
+        if changed.is_empty() {
+            println!("format check: clean");
+            return Ok(ExitCode::SUCCESS);
+        }
+        eprintln!("format check failed; files requiring formatting:");
+        for path in &changed {
+            eprintln!("  - {}", path.display());
+        }
+        return Ok(ExitCode::from(1));
+    }
+
+    println!(
+        "format complete: scanned={} rewritten={}",
+        total_scanned, rewritten
+    );
+    Ok(ExitCode::SUCCESS)
+}
+
+fn run_doc(args: &DocArgs) -> Result<ExitCode, String> {
+    let files = collect_vibe_files(&args.target_path)?;
+    if files.is_empty() {
+        return Err(format!(
+            "no source files ({}) found under `{}`",
+            supported_source_ext_display(),
+            args.target_path.display()
+        ));
+    }
+    let default_out = if args.target_path.is_file() {
+        args.target_path
+            .parent()
+            .unwrap_or_else(|| Path::new("."))
+            .join("api.md")
+    } else {
+        args.target_path.join("docs").join("api.md")
+    };
+    let out_path = args.out.clone().unwrap_or(default_out);
+    if let Some(parent) = out_path.parent() {
+        fs::create_dir_all(parent)
+            .map_err(|e| format!("failed to create doc output directory: {e}"))?;
+    }
+
+    let mut out = String::new();
+    out.push_str("# VibeLang Generated Docs\n\n");
+    out.push_str("Generated by `vibe doc`.\n\n");
+    let mut total_items = 0usize;
+
+    for file in files {
+        let src = fs::read_to_string(&file)
+            .map_err(|e| format!("failed to read `{}`: {e}", file.display()))?;
+        let items = extract_docs(&src);
+        total_items += items.len();
+        out.push_str(&format!("## Module: `{}`\n\n", file.display()));
+        out.push_str(&render_markdown(
+            file.file_name()
+                .and_then(|s| s.to_str())
+                .unwrap_or("module"),
+            &items,
+        ));
+        out.push('\n');
+    }
+
+    fs::write(&out_path, out)
+        .map_err(|e| format!("failed to write docs `{}`: {e}", out_path.display()))?;
+    println!(
+        "doc generation complete: functions={} output={}",
+        total_items,
+        out_path.display()
+    );
+    Ok(ExitCode::SUCCESS)
+}
+
+fn run_new(args: &NewArgs) -> Result<ExitCode, String> {
+    let project_dir = args.base_dir.join(&args.name);
+    if project_dir.exists() {
+        return Err(format!(
+            "target project path already exists: `{}`",
+            project_dir.display()
+        ));
+    }
+    fs::create_dir_all(&project_dir).map_err(|e| {
+        format!(
+            "failed to create project directory `{}`: {e}",
+            project_dir.display()
+        )
+    })?;
+    let source_name = if args.template == NewTemplate::Lib {
+        format!("lib.{}", args.extension)
+    } else {
+        format!("main.{}", args.extension)
+    };
+    let source_path = project_dir.join(source_name);
+    let source = if args.template == NewTemplate::Lib {
+        r#"pub add(a: Int, b: Int) -> Int {
+  a + b
+}
+"#
+    } else {
+        r#"pub main() -> Int {
+  @effect io
+  println("hello from vibelang")
+  0
+}
+"#
+    };
+    fs::write(&source_path, source).map_err(|e| {
+        format!(
+            "failed to write source template `{}`: {e}",
+            source_path.display()
+        )
+    })?;
+
+    let manifest = format!(
+        "[package]\nname = \"{}\"\nversion = \"0.1.0\"\n\n[dependencies]\n",
+        args.name
+    );
+    fs::write(project_dir.join("vibe.toml"), manifest).map_err(|e| {
+        format!(
+            "failed to write project manifest `{}`: {e}",
+            project_dir.join("vibe.toml").display()
+        )
+    })?;
+    fs::write(project_dir.join(".gitignore"), ".yb/\n")
+        .map_err(|e| format!("failed to write .gitignore: {e}"))?;
+    let readme = if args.template == NewTemplate::Lib {
+        format!(
+            "# {}\n\nLibrary template.\n\n- Build checks: `vibe check {}`\n",
+            args.name,
+            source_path
+                .file_name()
+                .and_then(|s| s.to_str())
+                .unwrap_or("lib.yb")
+        )
+    } else {
+        format!(
+            "# {}\n\nApplication template.\n\n- Run app: `vibe run {}`\n",
+            args.name,
+            source_path
+                .file_name()
+                .and_then(|s| s.to_str())
+                .unwrap_or("main.yb")
+        )
+    };
+    fs::write(project_dir.join("README.md"), readme)
+        .map_err(|e| format!("failed to write README.md: {e}"))?;
+
+    if args.extension == "vibe" && legacy_warning_enabled() {
+        eprintln!(
+            "warning: `.vibe` extension is legacy; prefer `.yb` for new projects (see docs/policy/source_extension_policy_v1x.md)"
+        );
+    }
+    println!(
+        "created project `{}` ({:?} template, extension .{})",
+        project_dir.display(),
+        args.template,
+        args.extension
+    );
+    Ok(ExitCode::SUCCESS)
+}
+
+fn run_pkg(args: &PkgArgs) -> Result<ExitCode, String> {
+    let mirror_root = args
+        .mirror_root
+        .clone()
+        .unwrap_or_else(|| default_mirror_root(&args.project_root));
+    match args.command {
+        PkgCommand::Resolve => {
+            let resolution = resolve_project(&args.project_root, &mirror_root)?;
+            println!(
+                "resolved root package `{}` v{} with {} transitive package(s) from mirror `{}`",
+                resolution.root.name,
+                resolution.root.version,
+                resolution.packages.len(),
+                mirror_root.display()
+            );
+            for pkg in resolution.packages {
+                println!("  - {} {} [{}]", pkg.name, pkg.version, pkg.source);
+            }
+        }
+        PkgCommand::Lock => {
+            let resolution = resolve_project(&args.project_root, &mirror_root)?;
+            let lock = write_lockfile(&args.project_root, &resolution)?;
+            println!(
+                "wrote deterministic lockfile `{}` (packages={})",
+                lock.display(),
+                resolution.packages.len()
+            );
+        }
+        PkgCommand::Install => {
+            let report = install_project(&args.project_root, &mirror_root)?;
+            println!(
+                "install complete: packages={} lock={} store={}",
+                report.installed,
+                report.lock_path.display(),
+                report.store_root.display()
+            );
+        }
+    }
+    Ok(ExitCode::SUCCESS)
+}
+
 fn build_source(args: &BuildArgs) -> Result<BuildArtifacts, String> {
     let src = fs::read_to_string(&args.source_path).map_err(|e| {
         format!(
@@ -876,13 +1333,32 @@ fn build_source(args: &BuildArgs) -> Result<BuildArtifacts, String> {
         profile: args.profile.clone(),
         debuginfo: args.debuginfo.clone(),
     };
-    let runtime_object_path = compile_runtime_object(&artifacts_dir, &runtime_options)?;
-    link_executable(
-        &object_path,
-        &runtime_object_path,
-        &binary_path,
-        &runtime_options,
-    )?;
+    let (runtime_object_path, binary_path) = if args.emit_obj_only {
+        let runtime_stub = artifacts_dir.join("vibe_runtime.obj_only");
+        let binary_stub = artifacts_dir.join(format!("{stem}.obj_only"));
+        fs::write(&runtime_stub, "obj-only build; runtime compile skipped\n").map_err(|e| {
+            format!(
+                "failed to write runtime stub `{}`: {e}",
+                runtime_stub.display()
+            )
+        })?;
+        fs::write(&binary_stub, "obj-only build; binary link skipped\n").map_err(|e| {
+            format!(
+                "failed to write binary stub `{}`: {e}",
+                binary_stub.display()
+            )
+        })?;
+        (runtime_stub, binary_stub)
+    } else {
+        let runtime_object_path = compile_runtime_object(&artifacts_dir, &runtime_options)?;
+        link_executable(
+            &object_path,
+            &runtime_object_path,
+            &binary_path,
+            &runtime_options,
+        )?;
+        (runtime_object_path, binary_path)
+    };
     let debug_map_path = write_debug_map(&artifacts_dir, &args.source_path, args, &mir, stem)
         .map_err(|e| {
             format!(
@@ -981,6 +1457,7 @@ fn artifact_directory(source_path: &Path, profile: &str, target: &str) -> PathBu
 }
 
 fn run_test(args: &BuildArgs) -> Result<ExitCode, String> {
+    let start = std::time::Instant::now();
     let files = collect_vibe_files(&args.source_path)?;
     if files.is_empty() {
         return Err(format!(
@@ -1029,6 +1506,7 @@ fn run_test(args: &BuildArgs) -> Result<ExitCode, String> {
                 target: args.target.clone(),
                 debuginfo: args.debuginfo.clone(),
                 offline: args.offline,
+                emit_obj_only: false,
                 exec_args: Vec::new(),
             };
             let artifacts = build_source(&single_file_args)?;
@@ -1056,14 +1534,16 @@ fn run_test(args: &BuildArgs) -> Result<ExitCode, String> {
         }
     }
     println!(
-        "test summary: files={}, compile_failures={}, examples={} passed={} failed={}, mains={} main_failures={}",
+        "test summary: files={}, compile_failures={}, examples={} passed={} failed={}, mains={} main_failures={} contract_checks={} duration_ms={}",
         total_files,
         compile_failures,
         examples.total,
         examples.passed,
         examples.failed,
         main_run_total,
-        main_run_failures
+        main_run_failures,
+        if enforce_contract_checks { "on" } else { "off" },
+        start.elapsed().as_millis()
     );
 
     if compile_failures > 0 || examples.failed > 0 || main_run_failures > 0 {
@@ -1089,7 +1569,9 @@ fn contract_checks_enabled(profile: &str) -> bool {
 fn collect_vibe_files(path: &Path) -> Result<Vec<PathBuf>, String> {
     if path.is_file() {
         if is_supported_source_file(path) {
-            return Ok(vec![path.to_path_buf()]);
+            let single = vec![path.to_path_buf()];
+            maybe_warn_legacy_sources(&single);
+            return Ok(single);
         }
         return Err(format!(
             "expected a source file ({}), got `{}`",
@@ -1104,6 +1586,7 @@ fn collect_vibe_files(path: &Path) -> Result<Vec<PathBuf>, String> {
     collect_vibe_files_recursive(path, &mut out)?;
     out.sort();
     detect_mixed_extension_stem_conflicts(&out)?;
+    maybe_warn_legacy_sources(&out);
     Ok(out)
 }
 
@@ -1116,6 +1599,13 @@ fn collect_vibe_files_recursive(dir: &Path, out: &mut Vec<PathBuf>) -> Result<()
     entries.sort();
     for path in entries {
         if path.is_dir() {
+            let skip = path
+                .file_name()
+                .and_then(|s| s.to_str())
+                .is_some_and(|name| name == ".yb" || name == ".vibe");
+            if skip {
+                continue;
+            }
             collect_vibe_files_recursive(&path, out)?;
             continue;
         }
@@ -1170,6 +1660,36 @@ fn supported_source_ext_display() -> String {
         .map(|ext| format!(".{ext}"))
         .collect::<Vec<_>>()
         .join(", ")
+}
+
+fn legacy_warning_enabled() -> bool {
+    if let Ok(raw) = env::var("VIBE_WARN_LEGACY_EXT") {
+        let normalized = raw.trim().to_ascii_lowercase();
+        return normalized == "1" || normalized == "true" || normalized == "on";
+    }
+    false
+}
+
+fn maybe_warn_legacy_sources(files: &[PathBuf]) {
+    if !legacy_warning_enabled() {
+        return;
+    }
+    let mut warned = BTreeSet::new();
+    for file in files {
+        let Some(ext) = file.extension().and_then(|s| s.to_str()) else {
+            continue;
+        };
+        if ext == "vibe" {
+            warned.insert(file.display().to_string());
+        }
+    }
+    if !warned.is_empty() {
+        eprintln!("warning: legacy `.vibe` source detected in canonical `.yb` mode:");
+        for path in warned {
+            eprintln!("  - {path}");
+        }
+        eprintln!("set extension to `.yb` for new source files; `.vibe` remains supported during migration.");
+    }
 }
 
 fn has_main_function(ast: &vibe_ast::FileAst) -> bool {

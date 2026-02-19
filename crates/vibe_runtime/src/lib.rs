@@ -14,6 +14,11 @@ pub use select::{select_recv, SelectRecvStatus};
 pub use task::{spawn_task, TaskHandle, TaskId};
 
 pub const RUNTIME_C_SOURCE: &str = include_str!("../../../runtime/native/vibe_runtime.c");
+pub const SUPPORTED_TARGETS: &[&str] = &[
+    "x86_64-unknown-linux-gnu",
+    "aarch64-unknown-linux-gnu",
+    "aarch64-apple-darwin",
+];
 
 #[derive(Debug, Clone)]
 pub struct RuntimeBuildOptions {
@@ -74,8 +79,8 @@ pub fn compile_runtime_object(
         cmd.arg("-g0");
     }
 
-    if options.target == "x86_64-unknown-linux-gnu" {
-        cmd.arg("-m64");
+    if let Some(flag) = cc_target_flag(&options.target) {
+        cmd.arg(flag);
     }
 
     let output = cmd
@@ -125,8 +130,8 @@ pub fn link_executable(
     if options.debuginfo != "none" {
         cmd.arg("-g");
     }
-    if options.target == "x86_64-unknown-linux-gnu" {
-        cmd.arg("-m64");
+    if let Some(flag) = cc_target_flag(&options.target) {
+        cmd.arg(flag);
     }
 
     let output = cmd
@@ -142,12 +147,22 @@ pub fn link_executable(
 }
 
 pub fn ensure_supported_target(target: &str) -> Result<(), String> {
-    if target == "x86_64-unknown-linux-gnu" {
+    if SUPPORTED_TARGETS.contains(&target) {
         return Ok(());
     }
     Err(format!(
-        "unsupported target `{target}` in phase 3 baseline (supported: x86_64-unknown-linux-gnu)"
+        "unsupported target `{target}` (supported: {})",
+        SUPPORTED_TARGETS.join(", ")
     ))
+}
+
+fn cc_target_flag(target: &str) -> Option<&'static str> {
+    match target {
+        "x86_64-unknown-linux-gnu" => Some("-m64"),
+        "aarch64-unknown-linux-gnu" => Some("--target=aarch64-linux-gnu"),
+        "aarch64-apple-darwin" => Some("--target=arm64-apple-darwin"),
+        _ => None,
+    }
 }
 
 #[cfg(test)]
@@ -158,8 +173,8 @@ mod tests {
     use std::time::{Duration, Instant};
 
     use super::{
-        select_recv, spawn_task, BoundedChannel, CancellationToken, RecvStatus, Scheduler,
-        SelectRecvStatus, SendStatus,
+        ensure_supported_target, select_recv, spawn_task, BoundedChannel, CancellationToken,
+        RecvStatus, Scheduler, SelectRecvStatus, SendStatus,
     };
 
     #[test]
@@ -325,5 +340,19 @@ mod tests {
             err.contains("join failed"),
             "unexpected join error format: {err}"
         );
+    }
+
+    #[test]
+    fn ensure_supported_target_accepts_phase6_targets() {
+        assert!(ensure_supported_target("x86_64-unknown-linux-gnu").is_ok());
+        assert!(ensure_supported_target("aarch64-unknown-linux-gnu").is_ok());
+        assert!(ensure_supported_target("aarch64-apple-darwin").is_ok());
+    }
+
+    #[test]
+    fn ensure_supported_target_rejects_unknown_target() {
+        let err =
+            ensure_supported_target("wasm32-unknown-unknown").expect_err("target should fail");
+        assert!(err.contains("unsupported target"));
     }
 }

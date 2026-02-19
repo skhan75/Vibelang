@@ -1,0 +1,46 @@
+name: phase6-extension-parity
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  command_parity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: extension parity across core commands
+        run: |
+          set -euo pipefail
+          cp compiler/tests/fixtures/build/hello_world.vibe /tmp/phase6_hello.vibe
+          cp compiler/tests/fixtures/build/hello_world.vibe /tmp/phase6_hello.yb
+          for ext in vibe yb; do
+            file="/tmp/phase6_hello.$ext"
+            cargo run -q -p vibe_cli -- check "$file"
+            cargo run -q -p vibe_cli -- build "$file"
+            cargo run -q -p vibe_cli -- run "$file"
+            cargo run -q -p vibe_cli -- test "$file"
+            cargo run -q -p vibe_cli -- lint "$file" --intent
+            cargo run -q -p vibe_cli -- index /tmp
+          done
+      - name: lsp smoke
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/phase6_lsp_index
+          printf '' | cargo run -q -p vibe_cli -- lsp --index-root /tmp/phase6_lsp_index
+
+  new_defaults:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: vibe new defaults to .yb and supports legacy opt-in
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/phase6_new_default /tmp/phase6_new_legacy
+          cargo run -q -p vibe_cli -- new demo_default --path /tmp/phase6_new_default
+          test -f /tmp/phase6_new_default/demo_default/main.yb
+          cargo run -q -p vibe_cli -- new demo_legacy --path /tmp/phase6_new_legacy --ext vibe
+          test -f /tmp/phase6_new_legacy/demo_legacy/main.vibe

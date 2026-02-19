@@ -4,12 +4,15 @@ members = [
   "crates/vibe_ast",
   "crates/vibe_codegen",
   "crates/vibe_diagnostics",
+  "crates/vibe_doc",
+  "crates/vibe_fmt",
   "crates/vibe_hir",
   "crates/vibe_indexer",
   "crates/vibe_lexer",
   "crates/vibe_lsp",
   "crates/vibe_mir",
   "crates/vibe_parser",
+  "crates/vibe_pkg",
   "crates/vibe_runtime",
   "crates/vibe_sidecar",
   "crates/vibe_types",
@@ -32,6 +35,9 @@ vibe_lsp = { path = "crates/vibe_lsp" }
 vibe_mir = { path = "crates/vibe_mir" }
 vibe_parser = { path = "crates/vibe_parser" }
 vibe_codegen = { path = "crates/vibe_codegen" }
+vibe_doc = { path = "crates/vibe_doc" }
+vibe_fmt = { path = "crates/vibe_fmt" }
+vibe_pkg = { path = "crates/vibe_pkg" }
 vibe_runtime = { path = "crates/vibe_runtime" }
 vibe_sidecar = { path = "crates/vibe_sidecar" }
 vibe_types = { path = "crates/vibe_types" }

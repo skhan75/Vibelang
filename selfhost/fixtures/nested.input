@@ -1,0 +1,8 @@
+
+
+sum(xs: List<Int>) -> Int {
+  @intent "sum values"   
+  0		
+}
+
+

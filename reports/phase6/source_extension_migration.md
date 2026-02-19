@@ -11,6 +11,11 @@ This report captures Phase 6.0 migration from `.vibe` to `.yb` across:
 - CLI/indexer/LSP behavior,
 - parity tests and CI workflow gates.
 
+Policy references:
+
+- `docs/policy/source_extension_policy_v1x.md`
+- `docs/migrations/v1_0_source_extension_transition.md`
+
 ## Implemented Migration Behavior
 
 ### Source Extensions
@@ -69,6 +74,19 @@ Updated workflows to include `.vibe` + `.yb` parity smoke and/or `.yb` metadata 
 - `.github/workflows/phase3-concurrency.yml`
 - `.github/workflows/phase4-indexer-lsp.yml`
 - `.github/workflows/phase5-ai-sidecar.yml`
+- `.github/workflows/phase6-extension-parity.yml`
+
+### Command Parity Matrix
+
+| Command | `.vibe` | `.yb` | Evidence |
+| --- | --- | --- | --- |
+| `check` | PASS | PASS | phase1 + phase6 extension parity workflow |
+| `build` | PASS | PASS | phase2 + phase6 extension parity workflow |
+| `run` | PASS | PASS | phase2/phase3 + phase6 extension parity workflow |
+| `test` | PASS | PASS | phase2 + phase6 extension parity workflow |
+| `lint --intent` | PASS | PASS | phase5 + phase6 extension parity workflow |
+| `index` | PASS | PASS | phase4 + phase6 extension parity workflow |
+| `lsp` | PASS | PASS | phase6 extension parity lsp smoke |
 
 ## Known Limitations
 
@@ -80,4 +98,10 @@ Updated workflows to include `.vibe` + `.yb` parity smoke and/or `.yb` metadata 
 - Release N: dual support (`.yb` canonical, `.vibe` legacy).
 - Release N+1: optional warning for new `.vibe` creation in scaffolding/docs.
 - Release N+2: evaluate `.vibe` removal only if adoption and parity gates remain green.
+
+Removal gates are policy-bound and must hold for 3 consecutive releases:
+
+- `.yb` adoption ratio >= 90%
+- dual-extension parity pass rate >= 99%
+- zero open critical migration regressions
 

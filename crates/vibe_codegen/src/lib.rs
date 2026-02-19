@@ -1519,4 +1519,32 @@ mod tests {
             "object output should be stable for same input"
         );
     }
+
+    #[test]
+    fn emits_objects_for_phase6_target_triples() {
+        let program = MirProgram {
+            functions: vec![MirFunction {
+                name: "main".to_string(),
+                is_public: true,
+                params: vec![],
+                return_type: MirType::I64,
+                body: vec![MirStmt::Return(MirExpr::Int(0))],
+            }],
+        };
+        for target in [
+            "x86_64-unknown-linux-gnu",
+            "aarch64-unknown-linux-gnu",
+            "aarch64-apple-darwin",
+        ] {
+            let object = emit_object(
+                &program,
+                &CodegenOptions {
+                    target: target.to_string(),
+                    ..CodegenOptions::default()
+                },
+            )
+            .expect("target object emission should succeed");
+            assert!(!object.is_empty(), "target object should not be empty");
+        }
+    }
 }

@@ -1,0 +1,57 @@
+module samples.contracts
+
+pub topK(xs: List<Int>, k: Int) -> List<Int> {
+  @intent "k largest numbers, sorted desc"
+  @examples {
+    topK([3,1,2], 2) => [3,2]
+    topK([], 5)      => []
+  }
+  @require k >= 0
+  @ensure len(.) == min(k, len(xs))
+  @ensure sorted_desc(.)
+  @effect alloc
+
+  xs
+    .sort_desc()
+    .take(k)
+}
+
+pub transfer(from: Account, to: Account, amount: Int) -> Result<Void, Error> {
+  @intent "move funds safely between accounts"
+  @require amount > 0
+  @require from.balance >= amount
+  @ensure from.balance == old(from.balance) - amount
+  @ensure to.balance == old(to.balance) + amount
+  @effect mut_state
+
+  from.balance = from.balance - amount
+  to.balance = to.balance + amount
+  ok()
+}
+
+pub runAll(tasks: List<Job>) -> List<JobResult> {
+  @intent "process all tasks concurrently"
+  @ensure len(.) == len(tasks)
+  @effect alloc
+  @effect concurrency
+
+  jobs := chan(1024)
+  out := chan(1024)
+
+  repeat cpu_count() {
+    go worker(jobs, out)
+  }
+
+  for task in tasks {
+    jobs.send(task)
+  }
+  jobs.close()
+
+  out.take(len(tasks))
+}
+
+worker(jobs, out) {
+  @intent "worker example stub for docs sample"
+  @effect concurrency
+  jobs.recv()
+}

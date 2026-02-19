@@ -1,0 +1,9 @@
+module selfhost.formatter
+
+@intent "normalize source formatting in a deterministic, idempotent way"
+pub format_source(src: Str) -> Str {
+  // Prototype sketch for self-host formatter milestone.
+  // Host implementation currently lives in `crates/vibe_fmt`.
+  // Conformance fixtures must match host output exactly.
+  src
+}

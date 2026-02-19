@@ -1,0 +1,6 @@
+pub main() -> Int {
+	println("hi")   
+
+
+  0
+}

@@ -1,0 +1,54 @@
+name: phase6-portability
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  cross_target_build_determinism:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+          - aarch64-unknown-linux-gnu
+          - aarch64-apple-darwin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: cross-target build and object determinism
+        run: |
+          set -euo pipefail
+          cp compiler/tests/fixtures/build/hello_world.vibe /tmp/phase6_port.yb
+          extra=""
+          if [ "${{ matrix.target }}" != "x86_64-unknown-linux-gnu" ]; then
+            extra="--emit-obj-only"
+          fi
+          cargo run -q -p vibe_cli -- build /tmp/phase6_port.yb --target "${{ matrix.target }}" $extra
+          obj="/tmp/.yb/artifacts/dev/${{ matrix.target }}/phase6_port.o"
+          cp "$obj" "/tmp/obj_${{ matrix.target }}_1.o"
+          cargo run -q -p vibe_cli -- build /tmp/phase6_port.yb --target "${{ matrix.target }}" $extra
+          cmp "/tmp/obj_${{ matrix.target }}_1.o" "$obj"
+
+  runtime_smoke_host:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: host runtime smoke
+        run: |
+          set -euo pipefail
+          cargo test -p vibe_runtime ensure_supported_target_accepts_phase6_targets
+          cargo run -q -p vibe_cli -- run compiler/tests/fixtures/build/hello_world.vibe
+
+  governance_docs_gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: support matrix and limitations register present
+        run: |
+          set -euo pipefail
+          test -f docs/targets/support_matrix.md
+          test -f docs/targets/limitations_register.md

@@ -224,7 +224,7 @@ fn deterministic_repeat_runs_for_check_hir_and_mir() {
 
 #[test]
 fn docs_syntax_samples_compile_without_errors() {
-    let sample = workspace_root().join("docs/spec/syntax_samples.vibe");
+    let sample = workspace_root().join("docs/spec/syntax_samples.yb");
     let src = fs::read_to_string(&sample).expect("read syntax samples");
     let all = check_output(&src);
     assert!(
