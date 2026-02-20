@@ -69,6 +69,33 @@ jobs:
           python3 tooling/metrics/collect_phase6_metrics.py
           python3 tooling/metrics/validate_phase6_metrics.py
 
+  quality_and_coverage_gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: validate coverage policy and v1 quality budgets
+        run: |
+          set -euo pipefail
+          python3 tooling/metrics/validate_phase7_coverage_matrix.py
+          python3 tooling/metrics/validate_v1_quality_budgets.py
+      - name: run v1 tightening smoke suite
+        run: |
+          set -euo pipefail
+          cargo test -p vibe_cli --test phase7_v1_tightening
+
+  compatibility_gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: run adjacent-version and lock-mode compatibility path
+        run: |
+          set -euo pipefail
+          cargo test -p vibe_cli --test phase2_native vibe_test_directory_accepts_mixed_extensions_when_stems_differ
+          cargo test -p vibe_cli --test phase2_native vibe_test_rejects_same_stem_across_extensions
+          cargo test -p vibe_cli --test phase2_native build_locked_requires_lockfile_when_manifest_exists
+
   readiness_docs_gate:
     runs-on: ubuntu-latest
     steps:
@@ -84,6 +111,7 @@ jobs:
           test -f docs/release/known_limitations_gate.md
           test -f docs/support/issue_triage_sla.md
           test -f docs/privacy/telemetry_statement.md
+          test -f docs/testing/coverage_policy.md
 
   reports_gate:
     runs-on: ubuntu-latest
@@ -115,6 +143,8 @@ jobs:
       - intent_validation_smokes
       - packaging_integrity_smoke
       - metrics_threshold_smoke
+      - quality_and_coverage_gate
+      - compatibility_gate
       - readiness_docs_gate
       - reports_gate
     steps:

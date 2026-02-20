@@ -1,0 +1,15 @@
+checkPositive(x: Int) -> Int {
+  @require x > 0
+  @ensure . > 0
+  @examples {
+    checkPositive(1) => 1
+    checkPositive(0) => 0
+  }
+  x
+}
+
+pub main() -> Int {
+  @effect io
+  println("preflight-main")
+  0
+}

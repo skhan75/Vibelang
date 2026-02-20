@@ -22,6 +22,21 @@ Date: 2026-02-17
 | Timeout + Retry Pattern | `compiler/tests/fixtures/phase7/advanced/concurrency/concurrency__timeout_retry.yb` | `vibe run <file>` | `retry-attempt-1` then `retry-ok` |
 | Bounded Stress Scenario | `compiler/tests/fixtures/phase7/stress/concurrency/concurrency__bounded_stress.yb` | `vibe run <file>` | `stress-ok` |
 
+## Algorithmic + Recursion Stress Samples
+
+| Sample | Fixture Path | Command | Expected Output |
+| --- | --- | --- | --- |
+| Recursive Fibonacci | `compiler/tests/fixtures/phase7/stress/algorithmic/algorithmic__fibonacci_recursive.yb` | `vibe run <file>` | `fib-ok` |
+| Recursive Factorial | `compiler/tests/fixtures/phase7/stress/algorithmic/algorithmic__factorial_recursive.yb` | `vibe run <file>` | `factorial-ok` |
+
+## Memory / Ownership Stress Samples
+
+| Sample | Fixture Path | Command | Expected Output |
+| --- | --- | --- | --- |
+| Heap Pressure Loop | `compiler/tests/fixtures/phase7/stress/memory/memory__heap_pressure_loop.yb` | `vibe run <file>` | `heap-ok` |
+| Channel Sendability Positive | `compiler/tests/fixtures/phase7/stress/ownership/ownership__chan_sendable.yb` | `vibe run <file>` | `ownership-ok` |
+| Unknown Sendability Negative | `compiler/tests/fixtures/phase7/stress/ownership/ownership_err__unknown_sendability_go.yb` | `vibe check <file>` | `E3201` |
+
 ## Concurrency Misuse Diagnostics
 
 | Fixture | Expected Diagnostic |
@@ -32,4 +47,5 @@ Date: 2026-02-17
 ## Notes
 
 - Run all sample checks via `cargo test -p vibe_cli --test phase7_validation` and `cargo test -p vibe_cli --test phase7_concurrency`.
-- Determinism checks for outputs and build artifacts are part of the same test suites.
+- Run v1 tightening smokes via `cargo test -p vibe_cli --test phase7_v1_tightening`.
+- Determinism checks for outputs/build artifacts and bounded memory/concurrency checks are part of these suites.

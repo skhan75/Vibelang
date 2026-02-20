@@ -10,6 +10,7 @@ pub fn is_sendable_type(ty: &TypeKind) -> bool {
         TypeKind::Int | TypeKind::Float | TypeKind::Bool | TypeKind::Str | TypeKind::Void => true,
         TypeKind::List(inner) => is_sendable_type(inner),
         TypeKind::Result(ok, err) => is_sendable_type(ok) && is_sendable_type(err),
+        TypeKind::Chan(_) => true,
         // Unknown types are treated as non-sendable so unresolved values do not silently cross
         // concurrency boundaries.
         TypeKind::Unknown => false,
@@ -135,6 +136,7 @@ fn type_name(t: &TypeKind) -> String {
         TypeKind::Str => "Str".to_string(),
         TypeKind::List(inner) => format!("List<{}>", type_name(inner)),
         TypeKind::Result(ok, err) => format!("Result<{}, {}>", type_name(ok), type_name(err)),
+        TypeKind::Chan(inner) => format!("Chan<{}>", type_name(inner)),
         TypeKind::Void => "Void".to_string(),
         TypeKind::Unknown => "Unknown".to_string(),
     }

@@ -1,0 +1,35 @@
+# V1 Tightening Smoke Validation (Local Dry-Run)
+
+Date: 2026-02-20
+
+## Executed Commands
+
+All commands were executed from workspace root.
+
+- `cargo test -p vibe_cli --test phase2_native`
+- `cargo test -p vibe_cli --test frontend_fixtures ownership_err_golden`
+- `cargo test -p vibe_cli --test phase4_indexer`
+- `cargo test -p vibe_cli --test phase7_validation`
+- `cargo test -p vibe_cli --test phase7_concurrency`
+- `cargo test -p vibe_cli --test phase7_v1_tightening`
+- `python3 tooling/metrics/validate_phase7_coverage_matrix.py`
+- `python3 tooling/metrics/validate_v1_quality_budgets.py`
+
+## Result Summary
+
+- Determinism-related integration tests: PASS
+- Concurrency and bounded stress tests: PASS
+- Algorithmic recursion smokes (Fibonacci/Factorial): PASS
+- Ownership/sendability safety smokes: PASS
+- Heap-pressure bounded smoke: PASS
+- Coverage/budget validators: PASS
+
+## Feature-Gated Lanes (Not Enabled by Default)
+
+- `VIBE_ENABLE_MEMORY_TOOLS=1` valgrind leak lane: SKIPPED in default local dry-run
+- `VIBE_ENABLE_GC_SMOKE=1` GC-observable lane: SKIPPED in default local dry-run
+
+## Notes
+
+- Native execution-path contract enforcement remains an open P0 for GA and is tracked in
+  `reports/v1/readiness_dashboard.md`.

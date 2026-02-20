@@ -17,6 +17,9 @@ Date: 2026-02-17
 | Intent Lint Match/Drift/Changed Mode | - | - | PASS | - | `phase7_intent_validation.rs` |
 | Verifier-gated Suggestion Rejection | - | - | PASS | - | `phase7_intent_validation.rs` |
 | Intent Lint Quality Trend | - | - | PASS | PASS | `reports/phase7/intent_lint_quality_trend.json` |
+| Algorithmic Recursion Programs | - | - | PASS | PASS | `phase7_v1_tightening.rs` recursion smokes |
+| Memory and Ownership Safety Smokes | - | - | PASS | PASS | `phase7_v1_tightening.rs` heap/ownership smokes |
+| GC-Observable Feature-Gated Smoke | - | - | PASS | PASS | `phase7_v1_tightening.rs` (`VIBE_ENABLE_GC_SMOKE=1`) |
 
 ## Validation Commands
 
@@ -25,6 +28,7 @@ Date: 2026-02-17
 - `cargo test -p vibe_cli --test phase7_validation`
 - `cargo test -p vibe_cli --test phase7_concurrency`
 - `cargo test -p vibe_cli --test phase7_intent_validation`
+- `cargo test -p vibe_cli --test phase7_v1_tightening`
 - `python3 tooling/metrics/collect_intent_lint_quality.py`
 - `python3 tooling/metrics/validate_intent_lint_quality.py`
 

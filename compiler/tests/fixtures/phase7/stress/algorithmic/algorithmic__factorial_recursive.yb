@@ -1,0 +1,17 @@
+factorial(n: Int) -> Int {
+  if n <= 1 {
+    return 1
+  }
+  n * factorial(n - 1)
+}
+
+pub main() -> Int {
+  @effect io
+  value := factorial(6)
+  if value == 720 {
+    println("factorial-ok")
+  } else {
+    println("factorial-bad")
+  }
+  0
+}

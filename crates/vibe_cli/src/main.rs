@@ -723,6 +723,10 @@ fn run_index(args: &IndexArgs) -> Result<ExitCode, String> {
             }
             Ok(Some(build_index_for_file(&path)?))
         })?;
+        telemetry.files_reindexed += report.files_reindexed;
+        telemetry.invalidation_fanout += report.invalidation_fanout;
+        telemetry.cache_hits += report.cache_hits;
+        telemetry.cache_misses += report.cache_misses;
         single_file_incremental_ms = report.incremental_update_latency_ms;
     }
 
@@ -739,6 +743,8 @@ fn run_index(args: &IndexArgs) -> Result<ExitCode, String> {
             &stats,
             cold_ms,
             single_file_incremental_ms,
+            telemetry.cache_hits,
+            telemetry.cache_misses,
             &index_root,
             &args.target_path,
         );
@@ -1300,7 +1306,7 @@ fn build_source(args: &BuildArgs) -> Result<BuildArtifacts, String> {
     let parsed = parse_source(&src);
     let checked = check_and_lower(&parsed.ast);
     let mut all = Diagnostics::default();
-    all.extend(parsed.diagnostics.into_sorted());
+    all.extend(parsed.diagnostics.clone().into_sorted());
     all.extend(checked.diagnostics.into_sorted());
     let diags = all.to_golden();
     if !diags.trim().is_empty() {
@@ -1309,6 +1315,7 @@ fn build_source(args: &BuildArgs) -> Result<BuildArtifacts, String> {
     if all.has_errors() {
         return Err("build failed due to errors".to_string());
     }
+    enforce_contract_preflight(&parsed.ast, &args.source_path, &args.profile)?;
 
     let mir =
         lower_hir_to_mir(&checked.hir).map_err(|e| format!("HIR->MIR lowering failed: {e}"))?;
@@ -1426,6 +1433,8 @@ fn print_index_stats(
     stats: &IndexStats,
     cold_ms: u128,
     incremental_ms: u128,
+    cache_hits: usize,
+    cache_misses: usize,
     index_root: &Path,
     target_path: &Path,
 ) {
@@ -1435,8 +1444,14 @@ fn print_index_stats(
     } else {
         stats.memory_estimate_bytes as f64 / total_source_bytes as f64
     };
+    let cache_total = cache_hits + cache_misses;
+    let cache_hit_rate = if cache_total == 0 {
+        0.0
+    } else {
+        cache_hits as f64 / cache_total as f64
+    };
     println!(
-        "index stats: files={} symbols={} references={} function_meta={} diagnostics={} cold_ms={} incremental_ms={} memory_bytes={} memory_ratio={:.4} root={}",
+        "index stats: files={} symbols={} references={} function_meta={} diagnostics={} cold_ms={} incremental_ms={} cache_hits={} cache_misses={} cache_hit_rate={:.4} memory_bytes={} memory_ratio={:.4} root={}",
         stats.files,
         stats.symbols,
         stats.references,
@@ -1444,6 +1459,9 @@ fn print_index_stats(
         stats.diagnostics,
         cold_ms,
         incremental_ms,
+        cache_hits,
+        cache_misses,
+        cache_hit_rate,
         stats.memory_estimate_bytes,
         memory_ratio,
         index_root.display()
@@ -1629,6 +1647,31 @@ fn contract_checks_enabled(profile: &str) -> bool {
         }
     }
     profile != "release"
+}
+
+fn enforce_contract_preflight(
+    ast: &vibe_ast::FileAst,
+    source_path: &Path,
+    profile: &str,
+) -> Result<(), String> {
+    if !contract_checks_enabled(profile) {
+        return Ok(());
+    }
+    let summary = run_examples_with_policy(ast, true);
+    if summary.failed == 0 {
+        return Ok(());
+    }
+    let mut details = String::new();
+    for failure in &summary.failures {
+        details.push_str(&format!("  - {failure}\n"));
+    }
+    Err(format!(
+        "contract/example preflight failed for `{}`: {} of {} example(s) failed\n{}",
+        source_path.display(),
+        summary.failed,
+        summary.total,
+        details
+    ))
 }
 
 fn collect_vibe_files(path: &Path) -> Result<Vec<PathBuf>, String> {

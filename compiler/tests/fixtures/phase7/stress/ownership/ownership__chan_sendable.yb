@@ -1,0 +1,19 @@
+worker(signal) -> Int {
+  @effect concurrency
+  signal.send(1)
+  0
+}
+
+pub main() -> Int {
+  @effect concurrency
+  @effect io
+  signal := chan(1)
+  go worker(signal)
+  done := signal.recv()
+  if done == 1 {
+    println("ownership-ok")
+  } else {
+    println("ownership-bad")
+  }
+  0
+}

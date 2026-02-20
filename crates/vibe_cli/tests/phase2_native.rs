@@ -266,6 +266,38 @@ fn vibe_test_can_disable_contract_runtime_checks_with_env_override() {
 }
 
 #[test]
+fn build_fails_when_contract_examples_fail_in_preflight() {
+    let source = temp_fixture_copy("build/contract_runtime_preflight_fail.vibe");
+    let out = run_vibe(&["build", source.to_str().expect("source path str")]);
+    assert!(
+        !out.status.success(),
+        "build unexpectedly succeeded despite failing contract examples:\nstdout:\n{}\nstderr:\n{}",
+        out.stdout,
+        out.stderr
+    );
+    assert!(
+        out.stderr.contains("contract/example preflight failed"),
+        "expected contract preflight failure:\n{}",
+        out.stderr
+    );
+}
+
+#[test]
+fn build_can_skip_contract_preflight_with_env_override() {
+    let source = temp_fixture_copy("build/contract_runtime_preflight_fail.vibe");
+    let out = run_vibe_with_env(
+        &["build", source.to_str().expect("source path str")],
+        &[("VIBE_CONTRACT_CHECKS", "off")],
+    );
+    assert!(
+        out.status.success(),
+        "build should pass when contract preflight is disabled:\nstdout:\n{}\nstderr:\n{}",
+        out.stdout,
+        out.stderr
+    );
+}
+
+#[test]
 fn build_accepts_debuginfo_flag_and_writes_metadata() {
     let source = temp_fixture_copy("build/hello_world.vibe");
     let source_str = source.to_str().expect("source path str");

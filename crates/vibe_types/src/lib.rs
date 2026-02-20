@@ -27,6 +27,7 @@ pub enum TypeKind {
     Str,
     List(Box<TypeKind>),
     Result(Box<TypeKind>, Box<TypeKind>),
+    Chan(Box<TypeKind>),
     Void,
     Unknown,
 }
@@ -791,7 +792,7 @@ fn infer_expr(
             }
         }
         Expr::Call { callee, args, .. } => {
-            let _ = infer_expr(callee, env, sigs, context, diagnostics, observed_effects);
+            let callee_ty = infer_expr(callee, env, sigs, context, diagnostics, observed_effects);
             for arg in args {
                 let _ = infer_expr(arg, env, sigs, context, diagnostics, observed_effects);
             }
@@ -800,7 +801,7 @@ fn infer_expr(
                     "chan" => {
                         observed_effects.insert("alloc".to_string());
                         observed_effects.insert("concurrency".to_string());
-                        return TypeKind::Unknown;
+                        return TypeKind::Chan(Box::new(TypeKind::Unknown));
                     }
                     "len" | "min" | "cpu_count" => return TypeKind::Int,
                     "sorted_desc" => return TypeKind::Bool,
@@ -826,13 +827,24 @@ fn infer_expr(
                         observed_effects.insert("alloc".to_string());
                         return TypeKind::Unknown;
                     }
-                    "recv" | "send" | "close" => {
+                    "recv" => {
                         observed_effects.insert("concurrency".to_string());
+                        if let TypeKind::Chan(inner) = callee_ty {
+                            return *inner;
+                        }
                         return TypeKind::Unknown;
                     }
-                    "warn" | "listen" => {
+                    "send" | "close" => {
+                        observed_effects.insert("concurrency".to_string());
+                        return TypeKind::Void;
+                    }
+                    "listen" => {
                         observed_effects.insert("io".to_string());
                         return TypeKind::Unknown;
+                    }
+                    "warn" => {
+                        observed_effects.insert("io".to_string());
+                        return TypeKind::Void;
                     }
                     _ => {}
                 }
@@ -1014,6 +1026,12 @@ fn parse_type_ref(t: &TypeRef) -> TypeKind {
             );
         }
     }
+    if raw.starts_with("Chan<") && raw.ends_with('>') {
+        let inner = &raw[5..raw.len() - 1];
+        return TypeKind::Chan(Box::new(parse_type_ref(&TypeRef {
+            raw: inner.to_string(),
+        })));
+    }
     TypeKind::Unknown
 }
 
@@ -1033,6 +1051,7 @@ fn type_name(t: &TypeKind) -> String {
         TypeKind::Str => "Str".to_string(),
         TypeKind::List(inner) => format!("List<{}>", type_name(inner)),
         TypeKind::Result(ok, err) => format!("Result<{}, {}>", type_name(ok), type_name(err)),
+        TypeKind::Chan(inner) => format!("Chan<{}>", type_name(inner)),
         TypeKind::Void => "Void".to_string(),
         TypeKind::Unknown => "Unknown".to_string(),
     }

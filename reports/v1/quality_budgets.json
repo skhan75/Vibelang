@@ -1,0 +1,18 @@
+{
+  "compile_benchmarks": {
+    "max_clean_ms": 1500,
+    "max_noop_ms": 1000,
+    "max_runtime_smoke_ms": 1500
+  },
+  "stress_budgets": {
+    "max_concurrency_smoke_seconds": 5,
+    "max_memory_smoke_seconds": 5
+  },
+  "coverage_requirements": {
+    "require_frontend_fixtures": true,
+    "require_phase7_validation": true,
+    "require_phase7_concurrency": true,
+    "require_phase7_intent_validation": true,
+    "require_phase7_v1_tightening": true
+  }
+}

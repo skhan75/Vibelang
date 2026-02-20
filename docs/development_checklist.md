@@ -427,32 +427,32 @@ Execution order is fixed and should be followed top to bottom.
 
 #### 7.3.a Scope Freeze and Release Gates
 
-- [ ] Define explicit v1 feature scope freeze list and non-goals list
-- [ ] Convert all remaining top-level unchecked guardrails into owned release gates (owner/severity/target milestone)
-- [ ] Add release blocker policy (`P0`/`P1` criteria) and merge gate alignment
-- [ ] Create v1 release readiness dashboard report (`reports/v1/readiness_dashboard.md`)
+- [x] Define explicit v1 feature scope freeze list and non-goals list (evidence: `docs/release/v1_scope_freeze.md`)
+- [x] Convert all remaining top-level unchecked guardrails into owned release gates (owner/severity/target milestone) (evidence: `docs/release/v1_release_gates.md`)
+- [x] Add release blocker policy (`P0`/`P1` criteria) and merge gate alignment (evidence: `docs/release/release_blocker_policy.md`)
+- [x] Create v1 release readiness dashboard report (`reports/v1/readiness_dashboard.md`) (evidence: `reports/v1/readiness_dashboard.md`)
 
 #### 7.3.b Engineering Quality Hardening
 
 - [ ] Close remaining determinism/safety/performance unchecked items in this checklist with evidence
-- [ ] Define minimum test coverage expectations for parser/type/runtime/cli/intent-lint paths
-- [ ] Add long-run stability/soak tests with bounded budgets and pass thresholds
-- [ ] Add packaging integrity checks (checksums/signatures/provenance plan)
-- [ ] Add upgrade/downgrade compatibility test path between adjacent v1.x versions
+- [x] Define minimum test coverage expectations for parser/type/runtime/cli/intent-lint paths (evidence: `docs/testing/coverage_policy.md`, `tooling/metrics/validate_phase7_coverage_matrix.py`)
+- [x] Add long-run stability/soak tests with bounded budgets and pass thresholds (evidence: `crates/vibe_cli/tests/phase7_v1_tightening.rs`, `reports/v1/quality_budgets.json`, workflow `.github/workflows/v1-release-gates.yml` job `quality_and_coverage_gate`)
+- [x] Add packaging integrity checks (checksums/signatures/provenance plan) (evidence: workflow `.github/workflows/v1-release-gates.yml` job `packaging_integrity_smoke`)
+- [x] Add upgrade/downgrade compatibility test path between adjacent v1.x versions (evidence: workflow `.github/workflows/v1-release-gates.yml` job `compatibility_gate`)
 
 #### 7.3.c Operational Readiness
 
-- [ ] Define release candidate process (`rc1`, `rc2`, promote/reject criteria)
-- [ ] Define rollback playbook for bad release detection and mitigation
-- [ ] Define issue triage SLA and bug severity taxonomy for public users
-- [ ] Define telemetry/privacy statement for optional AI-related signals
-- [ ] Add "known limitations" publication gate before each release
+- [x] Define release candidate process (`rc1`, `rc2`, promote/reject criteria) (evidence: `docs/release/rc_process.md`)
+- [x] Define rollback playbook for bad release detection and mitigation (evidence: `docs/release/rollback_playbook.md`)
+- [x] Define issue triage SLA and bug severity taxonomy for public users (evidence: `docs/support/issue_triage_sla.md`)
+- [x] Define telemetry/privacy statement for optional AI-related signals (evidence: `docs/privacy/telemetry_statement.md`)
+- [x] Add "known limitations" publication gate before each release (evidence: `docs/release/known_limitations_gate.md`)
 
 #### 7.3.d CI/Reporting for V1 Tightening
 
-- [ ] Add workflow `.github/workflows/v1-release-gates.yml` for consolidated v1 blocking checks
-- [ ] Publish `reports/v1/release_candidate_checklist.md` template and first run
-- [ ] Require all v1 gate reports linked in release PR description
+- [x] Add workflow `.github/workflows/v1-release-gates.yml` for consolidated v1 blocking checks (evidence: `.github/workflows/v1-release-gates.yml`)
+- [x] Publish `reports/v1/release_candidate_checklist.md` template and first run (evidence: `reports/v1/release_candidate_checklist.md`, `reports/v1/smoke_validation.md`)
+- [x] Require all v1 gate reports linked in release PR description (evidence: `.github/pull_request_template.md`, workflow `.github/workflows/v1-release-gates.yml` job `release_pr_report_links_gate`)
 
 ### 7.4 Ordered Item 4 — VibeLang Book + Full Documentation Program
 
@@ -488,5 +488,5 @@ Execution order is fixed and should be followed top to bottom.
 
 - [x] Item 1 completed: comprehensive language validation matrix and sample program catalog are green with reproducible evidence (`workflow .github/workflows/phase7-language-validation.yml`, reports under `reports/phase7/`)
 - [x] Item 2 completed: README is public-ready, accurate, and CI-validated against command drift (`README.md`, workflow `.github/workflows/phase7-readme-quality.yml`)
-- [ ] Item 3 completed: v1 production release gates are explicitly defined, owned, and passing for at least one release-candidate cycle (`workflow .github/workflows/v1-release-gates.yml`, `reports/v1/`)
+- [ ] Item 3 completed: v1 production release gates are explicitly defined, owned, and passing for at least one release-candidate cycle (evidence path: `workflow .github/workflows/v1-release-gates.yml`, `reports/v1/readiness_dashboard.md`, `reports/v1/release_candidate_checklist.md`, `reports/v1/smoke_validation.md`; remaining blockers tracked in `reports/v1/readiness_dashboard.md`)
 - [ ] Item 4 completed: book/docs program is structured, CI-gated, and includes tested chapter examples across core language/tooling surfaces (`book/`, docs CI jobs, `reports/docs/documentation_quality.md`)
