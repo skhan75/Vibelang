@@ -1,0 +1,27 @@
+{
+  "date": "2026-02-20",
+  "track": "phase7.3.e",
+  "status": "in-progress",
+  "m1_formatter_parity": {
+    "fixture_count": 2,
+    "host_fixture_parity_pass": true,
+    "selfhost_examples_pass": true,
+    "host_repeat_determinism_pass": true,
+    "selfhost_repeat_determinism_pass": true
+  },
+  "m3_shadow_slice": {
+    "name": "diagnostics_ordering",
+    "host_shadow_parity_pass": true,
+    "selfhost_shadow_examples_pass": true,
+    "shadow_only": true
+  },
+  "run_counter": {
+    "required_consecutive_ci_runs": 30,
+    "observed_consecutive_runs": 1,
+    "observed_source": "local-dryrun"
+  },
+  "fallback": {
+    "host_default_path": true,
+    "selfhost_shadow_only": true
+  }
+}

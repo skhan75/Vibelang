@@ -96,6 +96,33 @@ jobs:
           cargo test -p vibe_cli --test phase2_native vibe_test_rejects_same_stem_across_extensions
           cargo test -p vibe_cli --test phase2_native build_locked_requires_lockfile_when_manifest_exists
 
+  selfhost_readiness_gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: run selfhost formatter parity and determinism tests
+        run: |
+          set -euo pipefail
+          cargo test -p vibe_fmt --test selfhost_conformance
+      - name: run selfhost formatter via vibe test bridge
+        run: |
+          set -euo pipefail
+          cargo run -q -p vibe_cli -- test selfhost/formatter_core.yb
+      - name: run M3 shadow diagnostics ordering parity checks
+        run: |
+          set -euo pipefail
+          cargo test -p vibe_diagnostics --test selfhost_shadow_ordering
+          cargo run -q -p vibe_cli -- test selfhost/diagnostics_ordering_shadow.yb
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v1-selfhost-readiness
+          path: |
+            reports/v1/selfhost_readiness.md
+            reports/v1/selfhost_readiness.json
+            docs/selfhost/m1_formatter_contract.md
+            selfhost/diagnostics_ordering_shadow.yb
+
   readiness_docs_gate:
     runs-on: ubuntu-latest
     steps:
@@ -112,6 +139,7 @@ jobs:
           test -f docs/support/issue_triage_sla.md
           test -f docs/privacy/telemetry_statement.md
           test -f docs/testing/coverage_policy.md
+          test -f docs/selfhost/m1_formatter_contract.md
 
   reports_gate:
     runs-on: ubuntu-latest
@@ -122,6 +150,8 @@ jobs:
           set -euo pipefail
           test -f reports/v1/readiness_dashboard.md
           test -f reports/v1/release_candidate_checklist.md
+          test -f reports/v1/selfhost_readiness.md
+          test -f reports/v1/selfhost_readiness.json
 
   release_pr_report_links_gate:
     if: ${{ github.event_name == 'pull_request' && startsWith(github.head_ref, 'release/') }}
@@ -145,6 +175,7 @@ jobs:
       - metrics_threshold_smoke
       - quality_and_coverage_gate
       - compatibility_gate
+      - selfhost_readiness_gate
       - readiness_docs_gate
       - reports_gate
     steps:

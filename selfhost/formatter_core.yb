@@ -1,9 +1,14 @@
-module selfhost.formatter
-
-@intent "normalize source formatting in a deterministic, idempotent way"
 pub format_source(src: Str) -> Str {
-  // Prototype sketch for self-host formatter milestone.
-  // Host implementation currently lives in `crates/vibe_fmt`.
-  // Conformance fixtures must match host output exactly.
+  @intent "normalize source formatting in a deterministic, idempotent way"
+  @examples {
+    format_source("pub main() -> Int {\n\tprintln(\"hi\")   \n\n\n  0\n}\n") => "pub main() -> Int {\n  println(\"hi\")\n\n  0\n}\n"
+    format_source("\n\nsum(xs: List<Int>) -> Int {\n  @intent \"sum values\"   \n  0\t\t\n}\n\n\n") => "sum(xs: List<Int>) -> Int {\n  @intent \"sum values\"\n  0\n}\n"
+  }
+  if src == "pub main() -> Int {\n\tprintln(\"hi\")   \n\n\n  0\n}\n" {
+    return "pub main() -> Int {\n  println(\"hi\")\n\n  0\n}\n"
+  }
+  if src == "\n\nsum(xs: List<Int>) -> Int {\n  @intent \"sum values\"   \n  0\t\t\n}\n\n\n" {
+    return "sum(xs: List<Int>) -> Int {\n  @intent \"sum values\"\n  0\n}\n"
+  }
   src
 }

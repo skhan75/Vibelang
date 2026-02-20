@@ -1,0 +1,18 @@
+ordering_key(line_start, col_start, line_end, col_end, code_rank, severity_rank) -> Int {
+  (((((line_start * 1000 + col_start) * 1000 + line_end) * 1000 + col_end) * 1000 + code_rank) * 10 + severity_rank)
+}
+
+comes_before(a_line_start, a_col_start, a_line_end, a_col_end, a_code_rank, a_severity_rank, b_line_start, b_col_start, b_line_end, b_col_end, b_code_rank, b_severity_rank) -> Bool {
+  ordering_key(a_line_start, a_col_start, a_line_end, a_col_end, a_code_rank, a_severity_rank) < ordering_key(b_line_start, b_col_start, b_line_end, b_col_end, b_code_rank, b_severity_rank)
+}
+
+pub diagnostics_sort_shadow_contract() -> Int {
+  @intent "shadow executable contract for deterministic diagnostics ordering"
+  @examples {
+    comes_before(1, 1, 1, 5, 1, 0, 2, 1, 2, 5, 1, 0) => true
+    comes_before(2, 1, 2, 5, 1, 0, 2, 1, 2, 5, 2, 0) => true
+    comes_before(3, 1, 3, 5, 2, 0, 3, 1, 3, 5, 2, 1) => true
+    comes_before(3, 1, 3, 5, 2, 1, 3, 1, 3, 5, 2, 2) => true
+  }
+  0
+}

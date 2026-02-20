@@ -54,6 +54,7 @@ Use rules:
 - [ ] **P0:** Implement true reproducible build mode in CLI (`--locked`) and CI usage (`cargo ... --locked`) to match documented policy (evidence gap: `tooling/build_system.md` documents `vibe build --offline --locked`, but `crates/vibe_cli/src/main.rs` `parse_build_like_args` rejects `--locked`)
 - [ ] **P0:** Enforce `@require/@ensure` in native dev/test execution path (not only example-runner path) and add failure-mode tests for `vibe run`/native binaries (evidence gap: `crates/vibe_cli/src/example_runner.rs` enforces contracts, while `crates/vibe_mir/src/lib.rs` has no contract lowering)
 - [ ] **P0:** Fix sendability safety mismatch for unknown types in concurrent calls and align implementation with spec (evidence gap: `docs/spec/ownership_sendability.md` says unknown values are not sendable, but `crates/vibe_types/src/ownership.rs` currently treats `TypeKind::Unknown` as sendable)
+- [ ] **P0:** Implement native dynamic data-structure support for `Str`/`List`/`Map` construction and mutation paths, and remove release-critical `E3401`/`E3402` fallbacks from official sample coverage (sequence: execute after `7.3.e Compiler Self-Host Readiness` gate) (evidence gap: `crates/vibe_codegen/src/lib.rs` still emits unsupported-form diagnostics for list/map/member lowering in v0.1 backend)
 - [ ] **P1:** Normalize reproducibility metadata and artifact paths so outputs are machine/path-stable (evidence gap: `crates/vibe_cli/src/main.rs` `write_debug_map` writes `source_path.display()` directly)
 - [ ] **P1:** Pin toolchain to an exact Rust version (not moving `stable`) and add release evidence for toolchain hash + lockfile state
 - [ ] **P1:** Expose incremental cache hit/miss telemetry in CLI/CI and gate minimum hit-rate in regression checks (evidence gap: telemetry fields exist in `crates/vibe_indexer/src/incremental.rs` but are not surfaced by `vibe index --stats`)
@@ -222,7 +223,7 @@ Goal: add AI productivity features without compromising determinism, cost, or tr
 - [x] Implement native codegen support for `while` and `repeat` (remove phase-baseline fallback errors)
 - [x] Implement true task spawning semantics for `go` in generated binaries
 - [x] Implement full multi-case `select` lowering semantics (receive/after/closed/default with fairness policy)
-- [x] Implement backend support for documented core forms used in official specs/examples (`List/Map` paths, member access, method-call lowering)
+- [ ] Implement backend support for documented core forms used in official specs/examples (`List/Map` paths, member access, method-call lowering) (open gap: native backend still reports `E3401`/`E3402` for key dynamic container/member paths)
 - [x] Add stable diagnostics for unsupported constructs with actionable migration/feature-status guidance
 - [x] Add conformance fixtures proving runtime behavior matches `docs/spec/semantics.md` for control flow and concurrency primitives
 - [x] Activate `@require/@ensure` runtime checks by default in dev/test and verify policy behavior in integration tests
@@ -453,6 +454,27 @@ Execution order is fixed and should be followed top to bottom.
 - [x] Add workflow `.github/workflows/v1-release-gates.yml` for consolidated v1 blocking checks (evidence: `.github/workflows/v1-release-gates.yml`)
 - [x] Publish `reports/v1/release_candidate_checklist.md` template and first run (evidence: `reports/v1/release_candidate_checklist.md`, `reports/v1/smoke_validation.md`)
 - [x] Require all v1 gate reports linked in release PR description (evidence: `.github/pull_request_template.md`, workflow `.github/workflows/v1-release-gates.yml` job `release_pr_report_links_gate`)
+
+#### 7.3.e Compiler Self-Host Readiness (First)
+
+- [ ] Promote self-host milestone M1 from scheduled to release-gated execution (selfhost formatter executable path in CI with host fallback retained) (evidence target: `reports/phase6/self_hosting_milestones.md`, CI job under `.github/workflows/v1-release-gates.yml`)
+- [ ] Add bootstrap-vs-selfhost deterministic parity gate for release candidates (byte-for-byte output + repeat-run stability) (evidence target: `crates/vibe_fmt/tests/selfhost_conformance.rs`, new v1 gate artifact)
+- [ ] Define and implement one self-host compiler/frontend slice in shadow mode (`M3` readiness starter) to prove compiler internals can be authored in VibeLang (evidence target: report + CI shadow execution logs)
+- [ ] Publish `reports/v1/selfhost_readiness.md` with milestone status, parity metrics, fallback toggles, and go/no-go criteria
+- [ ] Add blocking self-host readiness job in `.github/workflows/v1-release-gates.yml`
+- [ ] Exit gate: `7.3.f` language-surface expansion does not close until `7.3.e` has one successful RC dry-run evidence cycle
+
+#### 7.3.f Language Surface + Dynamic Runtime Data Structures (Second, After 7.3.e)
+
+- [ ] Define v1 language-surface completion scope (dynamic `Str`/`List`/`Map`, required keywords, literal forms, and container API behavior) with determinism/ordering guarantees
+- [ ] Add parser/type-check coverage for remaining keyword/literal/container forms with deterministic diagnostics and migration guidance
+- [ ] Add MIR/container IR operations for dynamic construction, append/concat, indexing, and iteration
+- [ ] Implement runtime ABI intrinsics and allocation strategy for container operations with deterministic behavior
+- [ ] Implement native codegen lowering for container/member forms currently covered by `E3401`/`E3402` fallbacks
+- [ ] Add concurrency/sendability safety checks for container values crossing `go` boundaries
+- [ ] Add algorithmic conformance fixtures requiring dynamic containers (e.g., generate parentheses backtracking) with deterministic output tests
+- [ ] Add container-heavy memory/GC observability checks and bounded leak-test lane evidence
+- [ ] Publish `reports/v1/dynamic_containers_conformance.md` and wire a blocking CI gate in `.github/workflows/v1-release-gates.yml`
 
 ### 7.4 Ordered Item 4 — VibeLang Book + Full Documentation Program
 
