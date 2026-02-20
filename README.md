@@ -25,8 +25,7 @@
 
 ## Branding Assets
 
-<!-- Replace these when brand assets are ready -->
-- Mascot logo: `assets/branding/mascot-logo.png`
+- Mascot logo (current): `assets/branding/mascot-logo.png`
 - Text logo placeholder: `assets/branding/vibelang-wordmark.svg`
 - Hero/banner placeholder: `assets/branding/vibelang-readme-hero.png`
 - Favicon/app icon placeholder: `assets/branding/vibelang-icon.png`
