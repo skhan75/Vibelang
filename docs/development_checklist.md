@@ -457,12 +457,12 @@ Execution order is fixed and should be followed top to bottom.
 
 #### 7.3.e Compiler Self-Host Readiness (First)
 
-- [ ] Promote self-host milestone M1 from scheduled to release-gated execution (selfhost formatter executable path in CI with host fallback retained) (evidence target: `reports/phase6/self_hosting_milestones.md`, CI job under `.github/workflows/v1-release-gates.yml`)
-- [ ] Add bootstrap-vs-selfhost deterministic parity gate for release candidates (byte-for-byte output + repeat-run stability) (evidence target: `crates/vibe_fmt/tests/selfhost_conformance.rs`, new v1 gate artifact)
-- [ ] Define and implement one self-host compiler/frontend slice in shadow mode (`M3` readiness starter) to prove compiler internals can be authored in VibeLang (evidence target: report + CI shadow execution logs)
-- [ ] Publish `reports/v1/selfhost_readiness.md` with milestone status, parity metrics, fallback toggles, and go/no-go criteria
-- [ ] Add blocking self-host readiness job in `.github/workflows/v1-release-gates.yml`
-- [ ] Exit gate: `7.3.f` language-surface expansion does not close until `7.3.e` has one successful RC dry-run evidence cycle
+- [x] Promote self-host milestone M1 from scheduled to release-gated execution (selfhost formatter executable path in CI with host fallback retained) (evidence: `.github/workflows/v1-release-gates.yml` job `selfhost_readiness_gate`, `selfhost/formatter_core.yb`, `docs/selfhost/m1_formatter_contract.md`)
+- [x] Add bootstrap-vs-selfhost deterministic parity gate for release candidates (byte-for-byte output + repeat-run stability) (evidence: `crates/vibe_fmt/tests/selfhost_conformance.rs`, `reports/v1/selfhost_readiness.md`)
+- [x] Define and implement one self-host compiler/frontend slice in shadow mode (`M3` readiness starter) to prove compiler internals can be authored in VibeLang (evidence: `selfhost/diagnostics_ordering_shadow.yb`, `crates/vibe_diagnostics/tests/selfhost_shadow_ordering.rs`, `reports/v1/selfhost_readiness.md`)
+- [x] Publish `reports/v1/selfhost_readiness.md` with milestone status, parity metrics, fallback toggles, and go/no-go criteria (evidence: `reports/v1/selfhost_readiness.md`, `reports/v1/selfhost_readiness.json`)
+- [x] Add blocking self-host readiness job in `.github/workflows/v1-release-gates.yml` (evidence: workflow job `selfhost_readiness_gate` and `summary` dependency wiring)
+- [x] Exit gate: `7.3.f` language-surface expansion does not close until `7.3.e` has one successful RC dry-run evidence cycle (evidence: `reports/v1/selfhost_readiness.md` run counter + `rc1-dryrun-local`; `7.3.f` remains unchecked)
 
 #### 7.3.f Language Surface + Dynamic Runtime Data Structures (Second, After 7.3.e)
 

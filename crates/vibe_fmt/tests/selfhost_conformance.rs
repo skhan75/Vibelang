@@ -73,7 +73,15 @@ fn fixture_names() -> Vec<&'static str> {
 
 fn run_vibe_test_for_selfhost() -> CmdOutput {
     let output = Command::new("cargo")
-        .args(["run", "-q", "-p", "vibe_cli", "--", "test", "selfhost/formatter_core.yb"])
+        .args([
+            "run",
+            "-q",
+            "-p",
+            "vibe_cli",
+            "--",
+            "test",
+            "selfhost/formatter_core.yb",
+        ])
         .current_dir(workspace_root())
         .output()
         .expect("run vibe test for selfhost formatter");

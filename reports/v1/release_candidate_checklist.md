@@ -15,7 +15,7 @@ Owner: `vibelang-core`
 - [x] Deterministic build smoke passed
 - [x] Frontend determinism smoke passed
 - [ ] Native contract enforcement smoke passed
-- [ ] Compiler self-host readiness gate passed (`7.3.e`: M1 parity + one RC dry-run evidence cycle)
+- [x] Compiler self-host readiness gate passed (`7.3.e`: M1 parity + one RC dry-run evidence cycle)
 - [ ] Native dynamic container smoke passed (`Str`/`List`/`Map` construction + member/container lowering without `E3401`/`E3402`) after self-host readiness gate
 - [x] Intent verifier-gate smoke passed
 
@@ -49,4 +49,4 @@ Owner: `vibelang-core`
 
 - Decision: `not-ready-for-ga`
 - Decision owner: `vibelang-core`
-- Notes: `P0 native contract enforcement, P0 compiler self-host readiness, and P0 native dynamic container support (`Str`/`List`/`Map`) remain open; memory/GC tool lanes are feature-gated and not executed in default local dry-run.`
+- Notes: `P0 native contract enforcement and P0 native dynamic container support (`Str`/`List`/`Map`) remain open; memory/GC tool lanes are feature-gated and not executed in default local dry-run.`

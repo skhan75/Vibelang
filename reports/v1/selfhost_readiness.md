@@ -15,7 +15,7 @@ Contract reference:
 
 ## Current Status
 
-- Overall readiness state: `in-progress`
+- Overall readiness state: `local-pass`
 - M1 formatter parity gate: `local-pass`
 - M3 shadow slice parity gate: `local-pass`
 - Production default path: `host formatter`
@@ -27,6 +27,13 @@ Contract reference:
 - `cargo run -q -p vibe_cli -- test selfhost/formatter_core.yb`
 - `cargo test -p vibe_diagnostics --test selfhost_shadow_ordering`
 - `cargo run -q -p vibe_cli -- test selfhost/diagnostics_ordering_shadow.yb`
+
+Latest local dry-run result:
+
+- `cargo test -p vibe_fmt --test selfhost_conformance`: pass (`4/4`)
+- `cargo test -p vibe_diagnostics --test selfhost_shadow_ordering`: pass (`2/2`)
+- `cargo run -q -p vibe_cli -- test selfhost/formatter_core.yb`: pass (`examples=2 passed=2`)
+- `cargo run -q -p vibe_cli -- test selfhost/diagnostics_ordering_shadow.yb`: pass (`examples=4 passed=4`)
 
 ## M1 Formatter Parity Metrics
 
@@ -67,4 +74,4 @@ M1 exit requires 30 consecutive CI parity runs.
 ## Go / No-Go Snapshot
 
 - M1 gate for this run: `go` (local evidence complete)
-- RC promotion from self-host perspective: `no-go yet` (requires CI-backed run streak toward 30, plus broader v1 blockers closure)
+- RC promotion from self-host perspective: `go-for-7.3.e-local-closeout` (v1 GA remains blocked by non-selfhost P0/P1 gates)

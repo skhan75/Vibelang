@@ -51,7 +51,11 @@ fn host_diagnostics_sort_matches_shadow_contract_cases() {
         ("E1001".to_string(), Severity::Error, Span::new(2, 1, 2, 5)),
         ("E1001".to_string(), Severity::Error, Span::new(3, 1, 3, 5)),
         ("E1002".to_string(), Severity::Error, Span::new(3, 1, 3, 5)),
-        ("E1002".to_string(), Severity::Warning, Span::new(3, 1, 3, 5)),
+        (
+            "E1002".to_string(),
+            Severity::Warning,
+            Span::new(3, 1, 3, 5),
+        ),
         ("E1002".to_string(), Severity::Info, Span::new(3, 1, 3, 5)),
     ];
 

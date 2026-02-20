@@ -14,11 +14,18 @@ Exit signal:
 
 - `cargo test -p vibe_fmt --test selfhost_conformance` passes.
 
-## M1: Executable Selfhost Formatter
+## M1: Executable Selfhost Formatter (Local RC Dry-Run Pass)
 
 - Implement parser + formatter core in VibeLang for fixture corpus.
 - Produce output artifacts from selfhost implementation in CI.
 - Keep host formatter as fallback.
+
+Current evidence:
+
+- `selfhost/formatter_core.yb`
+- `crates/vibe_fmt/tests/selfhost_conformance.rs`
+- `.github/workflows/v1-release-gates.yml` job `selfhost_readiness_gate`
+- `reports/v1/selfhost_readiness.md`
 
 Exit signal:
 
@@ -34,11 +41,17 @@ Exit signal:
 
 - Stable parity and deterministic run evidence for docs/diagnostic component.
 
-## M3: Compiler Frontend Slice
+## M3: Compiler Frontend Slice (Starter Landed, Shadow Mode)
 
 - Port one deterministic frontend slice (e.g. AST pretty printer or diagnostics
   sorting pass).
 - Integrate as optional CI shadow execution path.
+
+Current evidence:
+
+- `selfhost/diagnostics_ordering_shadow.yb`
+- `crates/vibe_diagnostics/tests/selfhost_shadow_ordering.rs`
+- `reports/v1/selfhost_readiness.md`
 
 Exit signal:
 
