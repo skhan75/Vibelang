@@ -1,0 +1,9 @@
+unknownSendability() -> Int {
+  @effect concurrency
+  go consume([])
+  0
+}
+
+consume(items) -> Int {
+  0
+}

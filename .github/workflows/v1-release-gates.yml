@@ -1,0 +1,122 @@
+name: v1-release-gates
+
+on:
+  push:
+    branches: ["main", "release/**"]
+  pull_request:
+    branches: ["main", "release/**"]
+  workflow_dispatch:
+
+jobs:
+  determinism_and_core_smokes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: deterministic build + frontend determinism
+        run: |
+          set -euo pipefail
+          cargo test -p vibe_cli --test phase2_native deterministic_build_binary_and_metadata
+          cargo test -p vibe_cli --test frontend_fixtures phase7_basic_and_intermediate_matrix
+          cargo test -p vibe_cli --test frontend_fixtures phase7_frontend_outputs_are_deterministic
+
+  runtime_and_concurrency_smokes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: runtime and concurrency bounded stress
+        run: |
+          set -euo pipefail
+          cargo test -p vibe_cli --test phase7_concurrency phase7_concurrency_samples_are_deterministic_and_bounded
+          cargo test -p vibe_runtime scheduler_bounded_soak_stability
+          cargo test -p vibe_runtime channel_contention_close_stress
+
+  intent_validation_smokes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: intent verifier-gate smoke
+        run: |
+          set -euo pipefail
+          cargo test -p vibe_cli --test phase7_intent_validation intent_lint_verifier_gate_rejects_invalid_suggestions
+
+  packaging_integrity_smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: build release binary and emit checksum
+        run: |
+          set -euo pipefail
+          cargo build --release -p vibe_cli
+          sha256sum target/release/vibe > /tmp/vibe.sha256
+          test -s /tmp/vibe.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v1-release-checksums
+          path: /tmp/vibe.sha256
+
+  metrics_threshold_smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: collect and validate metrics thresholds
+        run: |
+          set -euo pipefail
+          python3 tooling/metrics/collect_phase6_metrics.py
+          python3 tooling/metrics/validate_phase6_metrics.py
+
+  readiness_docs_gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: verify operational readiness docs exist
+        run: |
+          set -euo pipefail
+          test -f docs/release/v1_scope_freeze.md
+          test -f docs/release/v1_release_gates.md
+          test -f docs/release/release_blocker_policy.md
+          test -f docs/release/rc_process.md
+          test -f docs/release/rollback_playbook.md
+          test -f docs/release/known_limitations_gate.md
+          test -f docs/support/issue_triage_sla.md
+          test -f docs/privacy/telemetry_statement.md
+
+  reports_gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: verify v1 reports exist
+        run: |
+          set -euo pipefail
+          test -f reports/v1/readiness_dashboard.md
+          test -f reports/v1/release_candidate_checklist.md
+
+  release_pr_report_links_gate:
+    if: ${{ github.event_name == 'pull_request' && startsWith(github.head_ref, 'release/') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: enforce required v1 report links in release PR body
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          set -euo pipefail
+          echo "$PR_BODY" | grep -q "reports/v1/readiness_dashboard.md"
+          echo "$PR_BODY" | grep -q "reports/v1/release_candidate_checklist.md"
+
+  summary:
+    runs-on: ubuntu-latest
+    needs:
+      - determinism_and_core_smokes
+      - runtime_and_concurrency_smokes
+      - intent_validation_smokes
+      - packaging_integrity_smoke
+      - metrics_threshold_smoke
+      - readiness_docs_gate
+      - reports_gate
+    steps:
+      - name: v1 gates summary
+        run: echo "v1 release gates passed"

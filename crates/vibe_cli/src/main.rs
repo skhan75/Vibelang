@@ -20,7 +20,10 @@ use vibe_lsp::run_line_stdio;
 use vibe_mir::MirProgram;
 use vibe_mir::{lower_hir_to_mir, mir_debug_dump};
 use vibe_parser::parse_source;
-use vibe_pkg::{default_mirror_root, install_project, resolve_project, write_lockfile};
+use vibe_pkg::{
+    default_mirror_root, install_project, resolve_project, write_lockfile, LOCK_FILENAME,
+    MANIFEST_FILENAME,
+};
 use vibe_runtime::{compile_runtime_object, link_executable, RuntimeBuildOptions};
 use vibe_sidecar::models::FindingSeverity;
 use vibe_sidecar::SidecarMode;
@@ -128,7 +131,7 @@ fn run() -> Result<ExitCode, String> {
 }
 
 fn usage() -> String {
-    "usage: vibe <check|ast|hir|mir|build|run|test|index|lsp|fmt|doc|new|pkg|lint> <path> [--profile dev|release] [--target <triple>] [--offline] [--debuginfo none|line|full] [--emit-obj-only] (lint: --intent [--changed] [--suggest] [--mode local|hybrid|cloud] [--telemetry-out path]) (pkg: lock|resolve|install [--path dir] [--mirror dir])".to_string()
+    "usage: vibe <check|ast|hir|mir|build|run|test|index|lsp|fmt|doc|new|pkg|lint> <path> [--profile dev|release] [--target <triple>] [--offline] [--locked] [--debuginfo none|line|full] [--emit-obj-only] (lint: --intent [--changed] [--suggest] [--mode local|hybrid|cloud] [--telemetry-out path]) (pkg: lock|resolve|install [--path dir] [--mirror dir])".to_string()
 }
 
 fn run_check(path: &str) -> Result<ExitCode, String> {
@@ -222,6 +225,7 @@ struct BuildArgs {
     target: String,
     debuginfo: String,
     offline: bool,
+    locked: bool,
     emit_obj_only: bool,
     exec_args: Vec<String>,
 }
@@ -306,6 +310,7 @@ fn parse_build_like_args(args: &[String], allow_exec_args: bool) -> Result<Build
     let mut target = "x86_64-unknown-linux-gnu".to_string();
     let mut debuginfo = "line".to_string();
     let mut offline = false;
+    let mut locked = false;
     let mut emit_obj_only = false;
     let mut exec_args = Vec::new();
 
@@ -353,6 +358,9 @@ fn parse_build_like_args(args: &[String], allow_exec_args: bool) -> Result<Build
             "--offline" => {
                 offline = true;
             }
+            "--locked" => {
+                locked = true;
+            }
             "--emit-obj-only" => {
                 emit_obj_only = true;
             }
@@ -369,6 +377,7 @@ fn parse_build_like_args(args: &[String], allow_exec_args: bool) -> Result<Build
         target,
         debuginfo,
         offline,
+        locked,
         emit_obj_only,
         exec_args,
     })
@@ -1285,6 +1294,9 @@ fn build_source(args: &BuildArgs) -> Result<BuildArtifacts, String> {
             args.source_path.as_path().display()
         )
     })?;
+    if args.locked {
+        enforce_locked_mode(&args.source_path)?;
+    }
     let parsed = parse_source(&src);
     let checked = check_and_lower(&parsed.ast);
     let mut all = Diagnostics::default();
@@ -1456,6 +1468,58 @@ fn artifact_directory(source_path: &Path, profile: &str, target: &str) -> PathBu
         .join(target)
 }
 
+fn find_project_root(path: &Path) -> Option<PathBuf> {
+    let mut current = if path.is_dir() {
+        path.to_path_buf()
+    } else {
+        path.parent()?.to_path_buf()
+    };
+    loop {
+        if current.join(MANIFEST_FILENAME).is_file() {
+            return Some(current);
+        }
+        if !current.pop() {
+            break;
+        }
+    }
+    None
+}
+
+fn enforce_locked_mode(source_path: &Path) -> Result<(), String> {
+    let Some(project_root) = find_project_root(source_path) else {
+        return Err(
+            "`--locked` requires a project manifest (`vibe.toml`) in the source path hierarchy"
+                .to_string(),
+        );
+    };
+    let lock_path = project_root.join(LOCK_FILENAME);
+    if !lock_path.is_file() {
+        return Err(format!(
+            "`--locked` requires lockfile `{}`; run `vibe pkg lock --path {}`",
+            lock_path.display(),
+            project_root.display()
+        ));
+    }
+    Ok(())
+}
+
+fn normalize_source_for_debug_map(source_path: &Path) -> String {
+    let canonical = source_path
+        .canonicalize()
+        .unwrap_or_else(|_| source_path.to_path_buf());
+    if let Some(project_root) = find_project_root(&canonical) {
+        if let Ok(rel) = canonical.strip_prefix(&project_root) {
+            return format!("project://{}", rel.to_string_lossy().replace('\\', "/"));
+        }
+    }
+    if let Ok(cwd) = env::current_dir() {
+        if let Ok(rel) = canonical.strip_prefix(cwd) {
+            return format!("./{}", rel.to_string_lossy().replace('\\', "/"));
+        }
+    }
+    canonical.to_string_lossy().replace('\\', "/")
+}
+
 fn run_test(args: &BuildArgs) -> Result<ExitCode, String> {
     let start = std::time::Instant::now();
     let files = collect_vibe_files(&args.source_path)?;
@@ -1506,6 +1570,7 @@ fn run_test(args: &BuildArgs) -> Result<ExitCode, String> {
                 target: args.target.clone(),
                 debuginfo: args.debuginfo.clone(),
                 offline: args.offline,
+                locked: args.locked,
                 emit_obj_only: false,
                 exec_args: Vec::new(),
             };
@@ -1722,7 +1787,10 @@ fn write_debug_map(
 
     let mut out = String::new();
     out.push_str("vibe-debug-map-v0\n");
-    out.push_str(&format!("source={}\n", source_path.display()));
+    out.push_str(&format!(
+        "source={}\n",
+        normalize_source_for_debug_map(source_path)
+    ));
     out.push_str(&format!("profile={}\n", args.profile));
     out.push_str(&format!("target={}\n", args.target));
     out.push_str(&format!("debuginfo={}\n", args.debuginfo));

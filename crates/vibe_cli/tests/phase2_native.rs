@@ -289,6 +289,50 @@ fn build_accepts_debuginfo_flag_and_writes_metadata() {
 }
 
 #[test]
+fn build_locked_requires_lockfile_when_manifest_exists() {
+    let (project_root, source) = temp_project_source("vibe_locked_missing_lock");
+    let out = run_vibe(&[
+        "build",
+        source.to_str().expect("source path str"),
+        "--locked",
+    ]);
+    assert!(
+        !out.status.success(),
+        "build unexpectedly succeeded without lockfile:\nstdout:\n{}\nstderr:\n{}",
+        out.stdout,
+        out.stderr
+    );
+    assert!(
+        out.stderr.contains("`--locked` requires lockfile"),
+        "expected missing lockfile diagnostic:\n{}",
+        out.stderr
+    );
+    assert!(
+        out.stderr
+            .contains(project_root.to_str().expect("project root str")),
+        "expected project root path in diagnostic:\n{}",
+        out.stderr
+    );
+}
+
+#[test]
+fn build_locked_succeeds_with_lockfile_when_manifest_exists() {
+    let (project_root, source) = temp_project_source("vibe_locked_with_lock");
+    fs::write(project_root.join("vibe.lock"), "version = 1\n").expect("write lockfile");
+    let out = run_vibe(&[
+        "build",
+        source.to_str().expect("source path str"),
+        "--locked",
+    ]);
+    assert!(
+        out.status.success(),
+        "build failed with lockfile present:\nstdout:\n{}\nstderr:\n{}",
+        out.stdout,
+        out.stderr
+    );
+}
+
+#[test]
 fn while_loop_fixture_runs() {
     let source = temp_fixture_copy("build/while_loop.vibe");
     let run = run_vibe(&["run", source.to_str().expect("source path str")]);
@@ -383,6 +427,23 @@ fn temp_fixture_copy(relative: &str) -> PathBuf {
     let dst = temp_dir.join(file_name);
     fs::write(&dst, contents).expect("write temp fixture");
     dst
+}
+
+fn temp_project_source(prefix: &str) -> (PathBuf, PathBuf) {
+    let project_root = unique_temp_dir(prefix);
+    fs::create_dir_all(&project_root).expect("create project root");
+    fs::write(
+        project_root.join("vibe.toml"),
+        "[package]\nname = \"locked-test\"\nversion = \"0.1.0\"\n\n[dependencies]\n",
+    )
+    .expect("write manifest");
+    let source = project_root.join("main.yb");
+    fs::write(
+        &source,
+        "pub main() -> Int {\n  @effect io\n  println(\"locked\")\n  0\n}\n",
+    )
+    .expect("write source");
+    (project_root, source)
 }
 
 fn temp_fixture_copy_with_extension(relative: &str, ext: &str) -> PathBuf {

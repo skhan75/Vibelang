@@ -10,10 +10,13 @@ Date: 2026-02-17
 ## Release Steps
 
 1. Run full CI and ensure all phase workflows are green.
-2. Run release dry-run workflow (`.github/workflows/release.yml`).
-3. Update `CHANGELOG.md` with release notes and migration entries.
-4. Verify migration guide examples compile/run.
-5. Publish tag and release artifacts after approvals.
+2. Run consolidated release gates workflow (`.github/workflows/v1-release-gates.yml`).
+3. Execute the current RC process in `docs/release/rc_process.md`.
+4. Update `CHANGELOG.md` with release notes and migration entries.
+5. Verify migration guide examples compile/run.
+6. Review limitations gate (`docs/release/known_limitations_gate.md`).
+7. Confirm rollback readiness (`docs/release/rollback_playbook.md`).
+8. Publish tag and release artifacts after approvals.
 
 ## Changelog Requirements
 
@@ -32,3 +35,14 @@ Every release candidate should include links to:
 - self-host conformance report (`reports/phase6/self_hosting_conformance.md`)
 - metrics artifacts under `reports/phase6/metrics/`
 - support matrix and known limitations docs
+- v1 readiness dashboard (`reports/v1/readiness_dashboard.md`)
+- v1 release candidate checklist (`reports/v1/release_candidate_checklist.md`)
+
+## Required Operational Docs
+
+- `docs/release/rc_process.md`
+- `docs/release/rollback_playbook.md`
+- `docs/release/release_blocker_policy.md`
+- `docs/release/known_limitations_gate.md`
+- `docs/support/issue_triage_sla.md`
+- `docs/privacy/telemetry_statement.md`
