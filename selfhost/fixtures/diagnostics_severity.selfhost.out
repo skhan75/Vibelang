@@ -1,0 +1,4 @@
+E3001: error: error same span @ 5:2-5:6
+E3001: warning: warning same span @ 5:2-5:6
+  related: context note @ 9:1-9:2
+E3001: info: info same span @ 5:2-5:6

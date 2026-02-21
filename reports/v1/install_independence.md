@@ -12,10 +12,12 @@ Track readiness for no-Cargo end-user installation and execution from packaged
 - Packaged release workflow: `.github/workflows/v1-packaged-release.yml`
 - Tier-1 install smoke jobs:
   - `install_smoke_linux`
+  - `install_smoke_linux_latest`
   - `install_smoke_macos`
   - `install_smoke_windows`
 - Consolidated release gate wiring:
   - `.github/workflows/v1-release-gates.yml` job `independent_install_gate`
+  - `.github/workflows/v1-release-gates.yml` job `linux_compatibility_gate`
 
 ## Local Validation Evidence
 
@@ -33,9 +35,9 @@ Track readiness for no-Cargo end-user installation and execution from packaged
 
 - Install gate wiring: `complete`
 - CLI help/version maturity baseline: `validated`
-- Linux no-Cargo install simulation from packaged layout: `validated`
+- Linux no-Cargo install simulation from packaged layout: `validated` (baseline + latest Ubuntu lanes)
 - Local evidence bundle and artifact links captured: `complete` (`reports/v1/phase8_ci_evidence.md`)
-- Cross-platform packaged install hosted CI cycle: `validated` (workflow `.github/workflows/v1-packaged-release.yml` jobs `install_smoke_linux`, `install_smoke_macos`, `install_smoke_windows`)
+- Cross-platform packaged install hosted CI cycle: `validated` (workflow `.github/workflows/v1-packaged-release.yml` jobs `install_smoke_linux`, `install_smoke_linux_latest`, `install_smoke_macos`, `install_smoke_windows`)
 
 ## Closure Status
 

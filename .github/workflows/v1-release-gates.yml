@@ -147,6 +147,74 @@ jobs:
           test -f docs/install/update_and_rollback.md
           test -f docs/install/troubleshooting.md
 
+  linux_compatibility_gate:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-22.04
+          - ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: build release binary for linux compatibility lane
+        run: |
+          set -euo pipefail
+          cargo build --release -p vibe_cli
+      - name: enforce glibc baseline on compatibility floor
+        if: ${{ matrix.os == 'ubuntu-22.04' }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import re
+          import subprocess
+
+          baseline = (2, 35)
+          out = subprocess.check_output(
+              ["objdump", "-T", "target/release/vibe"], text=True, stderr=subprocess.STDOUT
+          )
+          versions = []
+          for match in re.finditer(r"GLIBC_(\d+)\.(\d+)", out):
+              versions.append((int(match.group(1)), int(match.group(2))))
+          if not versions:
+              raise SystemExit("could not detect GLIBC symbol versions from target/release/vibe")
+          max_seen = max(versions)
+          if max_seen > baseline:
+              raise SystemExit(
+                  f"binary requires GLIBC_{max_seen[0]}.{max_seen[1]}, "
+                  f"exceeds baseline GLIBC_{baseline[0]}.{baseline[1]}"
+              )
+          print(f"glibc floor check passed: max symbol GLIBC_{max_seen[0]}.{max_seen[1]}")
+          PY
+      - name: simulate packaged install and run hello
+        run: |
+          set -euo pipefail
+          bundle_root="/tmp/v1_linux_compat_bundle"
+          install_root="/tmp/v1_linux_compat_install"
+          rm -rf "${bundle_root}" "${install_root}"
+          mkdir -p "${bundle_root}/vibe-x86_64-unknown-linux-gnu/bin"
+          cp target/release/vibe "${bundle_root}/vibe-x86_64-unknown-linux-gnu/bin/vibe"
+          tar -czf /tmp/vibe-x86_64-unknown-linux-gnu.tar.gz -C "${bundle_root}" "vibe-x86_64-unknown-linux-gnu"
+          mkdir -p "${install_root}"
+          tar -xzf /tmp/vibe-x86_64-unknown-linux-gnu.tar.gz -C "${install_root}"
+          vibe_bin="${install_root}/vibe-x86_64-unknown-linux-gnu/bin/vibe"
+          test -x "${vibe_bin}"
+          "${vibe_bin}" --version
+          cat > /tmp/v1_linux_compat_hello.yb <<'EOF'
+          pub main() -> Int {
+            @effect io
+            println("hello from linux compatibility gate")
+            0
+          }
+          EOF
+          out="$("${vibe_bin}" run /tmp/v1_linux_compat_hello.yb)"
+          test "${out}" = "hello from linux compatibility gate"
+      - name: verify linux compatibility policy doc exists
+        run: |
+          set -euo pipefail
+          test -f docs/release/linux_runtime_compatibility_policy.md
+
   dynamic_containers_gate:
     runs-on: ubuntu-latest
     steps:
@@ -263,6 +331,151 @@ jobs:
             docs/selfhost/m1_formatter_contract.md
             selfhost/diagnostics_ordering_shadow.yb
 
+  selfhost_m2_gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: run M2 docs and diagnostics parity suites
+        run: |
+          set -euo pipefail
+          cargo test -p vibe_doc --test selfhost_conformance
+          cargo test -p vibe_diagnostics --test selfhost_formatter_conformance
+      - name: run M2 selfhost contracts via vibe test bridge
+        run: |
+          set -euo pipefail
+          cargo run -q -p vibe_cli -- test selfhost/docs_formatter_core.yb
+          cargo run -q -p vibe_cli -- test selfhost/diagnostics_formatter_core.yb
+      - name: verify M2 contract and readiness report documents
+        run: |
+          set -euo pipefail
+          test -f docs/selfhost/m2_formatter_diagnostics_contract.md
+          test -f reports/v1/selfhost_m2_readiness.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v1-selfhost-m2-readiness
+          path: |
+            docs/selfhost/m2_formatter_diagnostics_contract.md
+            reports/v1/selfhost_m2_readiness.md
+            selfhost/docs_formatter_core.yb
+            selfhost/diagnostics_formatter_core.yb
+
+  selfhost_m3_shadow_gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: run expanded M3 shadow parity + determinism checks
+        env:
+          VIBE_SELFHOST_M3_ARTIFACT_DIR: /tmp/v1-selfhost-m3
+          VIBE_M3_PERF_LOOPS: "20"
+          VIBE_M3_MAX_LATENCY_OVERHEAD_PCT: "400"
+          VIBE_M3_MAX_MEMORY_OVERHEAD_BYTES: "32768"
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/v1-selfhost-m3
+          cargo test -p vibe_cli --test selfhost_m3_expansion
+      - name: run expanded M3 selfhost shadow contract
+        run: |
+          set -euo pipefail
+          cargo run -q -p vibe_cli -- test selfhost/frontend_shadow_slices.yb
+      - name: verify M3 report and shadow contract files
+        run: |
+          set -euo pipefail
+          test -f reports/v1/selfhost_m3_expansion.md
+          test -f selfhost/frontend_shadow_slices.yb
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: v1-selfhost-m3-shadow
+          path: |
+            /tmp/v1-selfhost-m3
+            reports/v1/selfhost_m3_expansion.md
+            selfhost/frontend_shadow_slices.yb
+
+  selfhost_m4_rc_cycle_gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: run promoted selfhost diagnostics ordering candidate checks
+        env:
+          VIBE_DIAGNOSTICS_SORT_MODE: selfhost-default
+        run: |
+          set -euo pipefail
+          cargo test -p vibe_diagnostics --test selfhost_shadow_ordering
+          cargo test -p vibe_diagnostics --test selfhost_transition_toggle promoted_diagnostics_mode_matches_host_ordering
+      - name: run fallback rollback drill for promoted candidate
+        env:
+          VIBE_DIAGNOSTICS_SORT_MODE: selfhost-default
+          VIBE_SELFHOST_FORCE_HOST_FALLBACK: "1"
+        run: |
+          set -euo pipefail
+          cargo test -p vibe_diagnostics --test selfhost_transition_toggle fallback_toggle_forces_host_mode_immediately
+      - name: record RC cycle summary artifact
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/v1-selfhost-m4
+          cat > /tmp/v1-selfhost-m4/rc-cycle-summary.md <<'EOF'
+          # Selfhost M4 RC Cycle Summary
+
+          - promoted component: diagnostics ordering
+          - promoted mode: `VIBE_DIAGNOSTICS_SORT_MODE=selfhost-default`
+          - fallback drill: `VIBE_SELFHOST_FORCE_HOST_FALLBACK=1`
+          - required tests: pass
+          EOF
+      - name: verify transition docs and RC checklist
+        run: |
+          set -euo pipefail
+          test -f docs/selfhost/m4_transition_criteria.md
+          test -f docs/release/selfhost_transition_playbook.md
+          test -f reports/v1/release_candidate_checklist.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v1-selfhost-m4-rc-cycle
+          path: /tmp/v1-selfhost-m4
+
+  selfhost_transition_gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: verify required selfhost evidence documents exist
+        run: |
+          set -euo pipefail
+          test -f reports/v1/selfhost_m2_readiness.md
+          test -f reports/v1/selfhost_m3_expansion.md
+          test -f reports/v1/selfhost_readiness.md
+          test -f reports/v1/selfhost_readiness.json
+          test -f docs/selfhost/m2_formatter_diagnostics_contract.md
+          test -f docs/selfhost/m4_transition_criteria.md
+          test -f docs/selfhost/component_ownership.md
+          test -f docs/release/selfhost_transition_playbook.md
+      - name: run selfhost transition parity suite (M2 + M3 + M4)
+        env:
+          VIBE_DIAGNOSTICS_SORT_MODE: selfhost-default
+          VIBE_SELFHOST_FORCE_HOST_FALLBACK: "1"
+          VIBE_SELFHOST_M3_ARTIFACT_DIR: /tmp/v1-selfhost-m3-transition
+          VIBE_M3_PERF_LOOPS: "20"
+          VIBE_M3_MAX_LATENCY_OVERHEAD_PCT: "400"
+          VIBE_M3_MAX_MEMORY_OVERHEAD_BYTES: "32768"
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/v1-selfhost-m3-transition
+          cargo test -p vibe_doc --test selfhost_conformance
+          cargo test -p vibe_diagnostics --test selfhost_formatter_conformance
+          cargo test -p vibe_cli --test selfhost_m3_expansion
+          cargo test -p vibe_diagnostics --test selfhost_transition_toggle
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: v1-selfhost-transition-gate
+          path: |
+            /tmp/v1-selfhost-m3-transition
+            reports/v1/selfhost_m2_readiness.md
+            reports/v1/selfhost_m3_expansion.md
+            reports/v1/selfhost_readiness.md
+
   readiness_docs_gate:
     runs-on: ubuntu-latest
     steps:
@@ -280,12 +493,17 @@ jobs:
           test -f docs/privacy/telemetry_statement.md
           test -f docs/testing/coverage_policy.md
           test -f docs/selfhost/m1_formatter_contract.md
+          test -f docs/selfhost/m2_formatter_diagnostics_contract.md
+          test -f docs/selfhost/m4_transition_criteria.md
+          test -f docs/selfhost/component_ownership.md
           test -f docs/spec/README.md
           test -f docs/spec/grammar_v1_0.ebnf
           test -f docs/spec/spec_coverage_matrix.md
           test -f docs/release/distribution_matrix.md
           test -f docs/release/distribution_security.md
           test -f docs/release/offline_install_policy.md
+          test -f docs/release/linux_runtime_compatibility_policy.md
+          test -f docs/release/selfhost_transition_playbook.md
           test -f docs/policy/install_channels_v1.md
           test -f docs/cli/help_manual.md
           test -f docs/cli/version_output.md
@@ -307,6 +525,8 @@ jobs:
           test -f reports/v1/release_candidate_checklist.md
           test -f reports/v1/selfhost_readiness.md
           test -f reports/v1/selfhost_readiness.json
+          test -f reports/v1/selfhost_m2_readiness.md
+          test -f reports/v1/selfhost_m3_expansion.md
           test -f reports/v1/spec_readiness.md
           test -f reports/v1/dynamic_containers_conformance.md
           test -f reports/v1/install_independence.md
@@ -330,6 +550,13 @@ jobs:
           echo "$PR_BODY" | grep -q "reports/v1/distribution_readiness.md"
           echo "$PR_BODY" | grep -q "reports/v1/phase8_ci_evidence.md"
           echo "$PR_BODY" | grep -q "reports/v1/phase8_closeout_summary.md"
+          echo "$PR_BODY" | grep -q "reports/v1/selfhost_m2_readiness.md"
+          echo "$PR_BODY" | grep -q "reports/v1/selfhost_m3_expansion.md"
+          echo "$PR_BODY" | grep -q "reports/v1/selfhost_readiness.md"
+          echo "$PR_BODY" | grep -q "docs/selfhost/m4_transition_criteria.md"
+          echo "$PR_BODY" | grep -q "docs/release/selfhost_transition_playbook.md"
+          echo "$PR_BODY" | grep -q "v1-selfhost-m3-shadow"
+          echo "$PR_BODY" | grep -q "v1-selfhost-m4-rc-cycle"
 
   summary:
     runs-on: ubuntu-latest
@@ -342,10 +569,15 @@ jobs:
       - quality_and_coverage_gate
       - cli_ux_gate
       - independent_install_gate
+      - linux_compatibility_gate
       - dynamic_containers_gate
       - spec_integrity_gate
       - compatibility_gate
       - selfhost_readiness_gate
+      - selfhost_m2_gate
+      - selfhost_m3_shadow_gate
+      - selfhost_m4_rc_cycle_gate
+      - selfhost_transition_gate
       - readiness_docs_gate
       - reports_gate
     steps:

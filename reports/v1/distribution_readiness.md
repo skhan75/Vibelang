@@ -11,7 +11,7 @@ integrity controls (checksums, signatures, provenance, SBOM).
 
 | Target | Artifact | Packaging Job | Install Smoke Job | Status |
 | --- | --- | --- | --- | --- |
-| `x86_64-unknown-linux-gnu` | `vibe-x86_64-unknown-linux-gnu.tar.gz` | `package_artifacts` | `install_smoke_linux` | validated |
+| `x86_64-unknown-linux-gnu` | `vibe-x86_64-unknown-linux-gnu.tar.gz` | `package_artifacts` (`ubuntu-22.04` baseline build) | `install_smoke_linux`, `install_smoke_linux_latest` | validated |
 | `x86_64-apple-darwin` | `vibe-x86_64-apple-darwin.tar.gz` | `package_artifacts` | `install_smoke_macos` | validated |
 | `x86_64-pc-windows-msvc` | `vibe-x86_64-pc-windows-msvc.zip` | `package_artifacts` | `install_smoke_windows` | validated |
 
@@ -24,11 +24,13 @@ integrity controls (checksums, signatures, provenance, SBOM).
 | Provenance statements | workflow `.github/workflows/v1-packaged-release.yml` job `sign_attest_and_sbom` | validated |
 | SBOM generation | workflow `.github/workflows/v1-packaged-release.yml` job `sign_attest_and_sbom` | validated |
 | RC-to-RC reproducibility policy check | workflow `.github/workflows/v1-packaged-release.yml` job `packaged_reproducibility`, tool `tooling/release/checksum_manifest.py` | validated |
+| Linux glibc baseline enforcement | workflow `.github/workflows/v1-packaged-release.yml` Linux packaging step `verify linux glibc compatibility baseline`, workflow `.github/workflows/v1-release-gates.yml` job `linux_compatibility_gate` | validated |
 
 ## Governance Alignment
 
 - Distribution policy: `docs/release/distribution_matrix.md`
 - Security policy: `docs/release/distribution_security.md`
+- Linux runtime compatibility policy: `docs/release/linux_runtime_compatibility_policy.md`
 - Offline policy: `docs/release/offline_install_policy.md`
 - Channel policy: `docs/policy/install_channels_v1.md`
 

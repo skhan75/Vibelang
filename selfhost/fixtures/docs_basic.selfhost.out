@@ -1,0 +1,12 @@
+# API: docs_basic
+
+## `pub sum(xs: List<Int>) -> Int`
+
+- Source: line 8
+- Intent: sum numbers
+- Effects: alloc
+- Requires: xs.len > 0
+- Ensures: . >= 0
+- Examples:
+  - `sum([1,2]) => 3`
+

@@ -1,27 +1,95 @@
 {
-  "date": "2026-02-20",
-  "track": "phase7.3.e",
-  "status": "local-pass",
-  "m1_formatter_parity": {
-    "fixture_count": 2,
-    "host_fixture_parity_pass": true,
-    "selfhost_examples_pass": true,
-    "host_repeat_determinism_pass": true,
-    "selfhost_repeat_determinism_pass": true
-  },
-  "m3_shadow_slice": {
-    "name": "diagnostics_ordering",
-    "host_shadow_parity_pass": true,
-    "selfhost_shadow_examples_pass": true,
-    "shadow_only": true
-  },
-  "run_counter": {
-    "required_consecutive_ci_runs": 30,
-    "observed_consecutive_runs": 1,
-    "observed_source": "local-dryrun"
-  },
+  "date": "2026-02-21",
+  "track": "phase9",
+  "status": "m4-rc-cycle-validated",
+  "gates": [
+    "selfhost_readiness_gate",
+    "selfhost_m2_gate",
+    "selfhost_m3_shadow_gate",
+    "selfhost_m4_rc_cycle_gate"
+  ],
+  "components": [
+    {
+      "stage": "M1",
+      "name": "formatter_core",
+      "mode": "shadow-conformance",
+      "parity_counter": {
+        "required": 30,
+        "observed": 2
+      },
+      "owner": "@fmt-owner",
+      "signoff_state": "active"
+    },
+    {
+      "stage": "M2",
+      "name": "docs_formatter_core",
+      "mode": "shadow-parity",
+      "parity_counter": {
+        "required": 10,
+        "observed": 2
+      },
+      "owner": "@tooling-owner",
+      "signoff_state": "active"
+    },
+    {
+      "stage": "M2",
+      "name": "diagnostics_formatter_core",
+      "mode": "shadow-parity",
+      "parity_counter": {
+        "required": 10,
+        "observed": 2
+      },
+      "owner": "@diag-owner",
+      "signoff_state": "active"
+    },
+    {
+      "stage": "M3",
+      "name": "parser_diag_normalization",
+      "mode": "shadow-parity",
+      "parity_counter": {
+        "required": 10,
+        "observed": 2
+      },
+      "owner": "@frontend-owner",
+      "signoff_state": "active"
+    },
+    {
+      "stage": "M3",
+      "name": "type_diag_ordering",
+      "mode": "shadow-parity",
+      "parity_counter": {
+        "required": 10,
+        "observed": 2
+      },
+      "owner": "@types-owner",
+      "signoff_state": "active"
+    },
+    {
+      "stage": "M3",
+      "name": "mir_formatting",
+      "mode": "shadow-parity",
+      "parity_counter": {
+        "required": 10,
+        "observed": 2
+      },
+      "owner": "@mir-owner",
+      "signoff_state": "active"
+    },
+    {
+      "stage": "M4",
+      "name": "diagnostics_ordering",
+      "mode": "promoted-rc",
+      "parity_counter": {
+        "required": 2,
+        "observed": 2
+      },
+      "owner": "@diag-owner",
+      "signoff_state": "rc-approved"
+    }
+  ],
   "fallback": {
-    "host_default_path": true,
-    "selfhost_shadow_only": true
+    "diagnostics_sort_mode_env": "VIBE_DIAGNOSTICS_SORT_MODE",
+    "host_fallback_env": "VIBE_SELFHOST_FORCE_HOST_FALLBACK",
+    "host_fallback_active": true
   }
 }

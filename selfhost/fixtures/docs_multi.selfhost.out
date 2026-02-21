@@ -1,0 +1,11 @@
+# API: docs_multi
+
+## `pub main() -> Int`
+
+- Source: line 2
+- Intent: entry
+
+## `helper(x: Int) -> Int`
+
+- Source: line 6
+

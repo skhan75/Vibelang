@@ -1,5 +1,18 @@
 # Install VibeLang on Linux (Packaged, No Cargo)
 
+## Minimum Runtime Requirements
+
+- Architecture: `x86_64`
+- Dynamic loader baseline for GNU package: `glibc >= 2.35`
+- Recommended validation command:
+
+```bash
+ldd --version | head -n 1
+```
+
+If your environment is below baseline, use the fallback path in
+`docs/install/troubleshooting.md` (`GLIBC_*` mismatch section).
+
 ## Download
 
 From a release page, download:
@@ -15,7 +28,11 @@ From a release page, download:
 ## Verify
 
 ```bash
-grep "  vibe-x86_64-unknown-linux-gnu.tar.gz$" checksums-x86_64-unknown-linux-gnu.txt | sha256sum -c -
+pkg="vibe-x86_64-unknown-linux-gnu.tar.gz"
+checks="checksums-x86_64-unknown-linux-gnu.txt"
+expected="$(awk -v p="$pkg" '$2==p {print $1}' "$checks")"
+actual="$(sha256sum "$pkg" | awk '{print $1}')"
+[ -n "$expected" ] && [ "$expected" = "$actual" ]
 
 cosign verify-blob \
   --certificate-identity-regexp ".*" \
@@ -42,3 +59,19 @@ vibe --version
 ```
 
 Persist `PATH` in your shell profile if desired.
+
+## Fallback Path
+
+If GNU packaged binaries fail to load due runtime ABI mismatch in your Linux
+environment, use one of these fallback options:
+
+1. Install from source in the same environment:
+
+```bash
+cargo build --release -p vibe_cli
+install -m 0755 target/release/vibe "$HOME/.local/bin/vibe"
+vibe --version
+```
+
+1. Use a static `musl` Linux package when published in release artifacts
+(`vibe-x86_64-unknown-linux-musl.tar.gz`).

@@ -89,24 +89,14 @@ impl Diagnostics {
     }
 
     pub fn into_sorted(mut self) -> Vec<Diagnostic> {
-        self.items.sort_by(|a, b| {
-            (
-                a.span.line_start,
-                a.span.col_start,
-                a.span.line_end,
-                a.span.col_end,
-                a.code.as_str(),
-                severity_rank(a.severity),
-            )
-                .cmp(&(
-                    b.span.line_start,
-                    b.span.col_start,
-                    b.span.line_end,
-                    b.span.col_end,
-                    b.code.as_str(),
-                    severity_rank(b.severity),
-                ))
-        });
+        match diagnostics_sort_mode() {
+            DiagnosticsSortMode::Host | DiagnosticsSortMode::HostFallback => {
+                sort_host(&mut self.items);
+            }
+            DiagnosticsSortMode::SelfhostDefault => {
+                sort_selfhost_candidate(&mut self.items);
+            }
+        }
         self.items
     }
 
@@ -146,6 +136,81 @@ impl Diagnostics {
         }
         out
     }
+}
+
+pub fn diagnostics_sort_mode_label() -> &'static str {
+    diagnostics_sort_mode().label()
+}
+
+#[derive(Clone, Copy)]
+enum DiagnosticsSortMode {
+    Host,
+    SelfhostDefault,
+    HostFallback,
+}
+
+impl DiagnosticsSortMode {
+    fn label(self) -> &'static str {
+        match self {
+            DiagnosticsSortMode::Host => "host",
+            DiagnosticsSortMode::SelfhostDefault => "selfhost-default",
+            DiagnosticsSortMode::HostFallback => "host-fallback",
+        }
+    }
+}
+
+fn diagnostics_sort_mode() -> DiagnosticsSortMode {
+    if std::env::var("VIBE_SELFHOST_FORCE_HOST_FALLBACK")
+        .ok()
+        .as_deref()
+        == Some("1")
+    {
+        return DiagnosticsSortMode::HostFallback;
+    }
+    match std::env::var("VIBE_DIAGNOSTICS_SORT_MODE").ok().as_deref() {
+        Some("selfhost-default") => DiagnosticsSortMode::SelfhostDefault,
+        _ => DiagnosticsSortMode::Host,
+    }
+}
+
+fn sort_host(items: &mut [Diagnostic]) {
+    items.sort_by(|a, b| {
+        (
+            a.span.line_start,
+            a.span.col_start,
+            a.span.line_end,
+            a.span.col_end,
+            a.code.as_str(),
+            severity_rank(a.severity),
+        )
+            .cmp(&(
+                b.span.line_start,
+                b.span.col_start,
+                b.span.line_end,
+                b.span.col_end,
+                b.code.as_str(),
+                severity_rank(b.severity),
+            ))
+    });
+}
+
+fn sort_selfhost_candidate(items: &mut [Diagnostic]) {
+    items.sort_by_key(|d| {
+        (
+            ordering_key(
+                d.span.line_start,
+                d.span.col_start,
+                d.span.line_end,
+                d.span.col_end,
+            ),
+            d.code.clone(),
+            severity_rank(d.severity),
+        )
+    });
+}
+
+fn ordering_key(line_start: usize, col_start: usize, line_end: usize, col_end: usize) -> usize {
+    (((line_start * 1000 + col_start) * 1000 + line_end) * 1000) + col_end
 }
 
 fn severity_rank(s: Severity) -> usize {

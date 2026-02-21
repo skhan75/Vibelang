@@ -1,0 +1,10 @@
+@intent "sum numbers"
+@effect alloc
+@require xs.len > 0
+@ensure . >= 0
+@examples {
+  sum([1,2]) => 3
+}
+pub sum(xs: List<Int>) -> Int {
+  0
+}

@@ -51,3 +51,19 @@ Actions:
 - verify executable permissions (`chmod +x` for Unix systems if needed)
 - verify required system linker/build tools are present
 - run `vibe --version` to confirm binary starts correctly
+
+## `GLIBC_*` / Loader Version Mismatch (Linux/WSL)
+
+Symptoms:
+
+- `vibe --version` fails with loader/runtime errors such as:
+  - `version 'GLIBC_2.xx' not found`
+
+Actions:
+
+- check your glibc version:
+  - `ldd --version | head -n 1`
+- compare against Linux package baseline documented in `docs/install/linux.md`
+- if below baseline, use fallback path:
+  - local source install (`cargo build --release -p vibe_cli`)
+  - or static `musl` package when published (`vibe-x86_64-unknown-linux-musl.tar.gz`)

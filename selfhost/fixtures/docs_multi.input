@@ -1,0 +1,8 @@
+@intent "entry"
+pub main() -> Int {
+  0
+}
+
+helper(x: Int) -> Int {
+  x + 1
+}

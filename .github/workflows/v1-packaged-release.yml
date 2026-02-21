@@ -18,7 +18,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
             archive: tar.gz
             binary_name: vibe
@@ -45,6 +45,38 @@ jobs:
         run: |
           set -euo pipefail
           cargo build --release --locked -p vibe_cli --target "${{ matrix.target }}"
+      - name: verify linux glibc compatibility baseline
+        if: ${{ matrix.target == 'x86_64-unknown-linux-gnu' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          binary="target/${{ matrix.target }}/release/${{ matrix.binary_name }}"
+          python3 - "${binary}" <<'PY'
+          import re
+          import subprocess
+          import sys
+
+          binary = sys.argv[1]
+          baseline = (2, 35)
+
+          out = subprocess.check_output(
+              ["objdump", "-T", binary], text=True, stderr=subprocess.STDOUT
+          )
+          versions = []
+          for match in re.finditer(r"GLIBC_(\d+)\.(\d+)", out):
+              versions.append((int(match.group(1)), int(match.group(2))))
+
+          if not versions:
+              raise SystemExit("could not detect GLIBC symbol versions in linux package")
+
+          max_seen = max(versions)
+          print(f"max GLIBC symbol requirement: {max_seen[0]}.{max_seen[1]}")
+          if max_seen > baseline:
+              raise SystemExit(
+                  f"linux package requires GLIBC_{max_seen[0]}.{max_seen[1]} "
+                  f"(baseline is GLIBC_{baseline[0]}.{baseline[1]})"
+              )
+          PY
       - name: package standalone artifact and checksum manifest
         shell: bash
         run: |
@@ -271,7 +303,7 @@ jobs:
 
   install_smoke_linux:
     name: install-smoke-linux
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: sign_attest_and_sbom
     steps:
       - uses: actions/download-artifact@v4
@@ -336,6 +368,89 @@ jobs:
           set -euo pipefail
           package="/tmp/v1-signed/vibe-x86_64-unknown-linux-gnu.tar.gz"
           install_root="/tmp/vibe-install-linux"
+          rm -rf "${install_root}"
+          mkdir -p "${install_root}"
+          tar -xzf "${package}" -C "${install_root}"
+          vibe_bin="$(echo "${install_root}"/vibe-*/bin/vibe)"
+          test -x "${vibe_bin}"
+          "${vibe_bin}" --version
+          cat > "${install_root}/hello.yb" <<'EOF'
+          pub main() -> Int {
+            @effect io
+            println("hello from packaged vibe")
+            0
+          }
+          EOF
+          out="$("${vibe_bin}" run "${install_root}/hello.yb")"
+          test "${out}" = "hello from packaged vibe"
+
+  install_smoke_linux_latest:
+    name: install-smoke-linux-latest
+    runs-on: ubuntu-latest
+    needs: sign_attest_and_sbom
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: v1-packaged-signed-bundle
+          path: /tmp/v1-signed
+      - uses: sigstore/cosign-installer@v3
+      - name: verify package checksum, signatures, and provenance
+        run: |
+          set -euo pipefail
+          package="/tmp/v1-signed/vibe-x86_64-unknown-linux-gnu.tar.gz"
+          checksums="/tmp/v1-signed/checksums-x86_64-unknown-linux-gnu.txt"
+          test -f "${package}"
+          test -f "${checksums}"
+          package_name="$(basename "${package}")"
+          expected="$(awk -v pkg="${package_name}" '$2 == pkg {print $1}' "${checksums}")"
+          if [ -z "${expected}" ]; then
+            echo "missing checksum entry for ${package_name}"
+            exit 1
+          fi
+          actual="$(sha256sum "${package}" | awk '{print $1}')"
+          if [ "${expected}" != "${actual}" ]; then
+            echo "checksum mismatch for ${package_name}"
+            echo "expected: ${expected}"
+            echo "actual:   ${actual}"
+            exit 1
+          fi
+          cosign verify-blob \
+            --certificate-identity-regexp ".*" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+            --signature "${package}.sig" \
+            --certificate "${package}.pem" \
+            "${package}"
+          cosign verify-blob \
+            --certificate-identity-regexp ".*" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+            --signature "${package}.provenance.json.sig" \
+            --certificate "${package}.provenance.json.pem" \
+            "${package}.provenance.json"
+          python3 - "${package}" "${package}.provenance.json" <<'PY'
+          import hashlib
+          import json
+          import pathlib
+          import sys
+
+          artifact = pathlib.Path(sys.argv[1])
+          provenance = pathlib.Path(sys.argv[2])
+
+          h = hashlib.sha256()
+          with artifact.open("rb") as f:
+              for chunk in iter(lambda: f.read(1024 * 1024), b""):
+                  h.update(chunk)
+          digest = h.hexdigest()
+
+          statement = json.loads(provenance.read_text(encoding="utf-8"))
+          subject = statement["subject"][0]
+          if subject["digest"]["sha256"] != digest:
+              raise SystemExit("provenance digest does not match package digest")
+          PY
+      - name: install packaged vibe and run hello world
+        run: |
+          set -euo pipefail
+          package="/tmp/v1-signed/vibe-x86_64-unknown-linux-gnu.tar.gz"
+          install_root="/tmp/vibe-install-linux-latest"
           rm -rf "${install_root}"
           mkdir -p "${install_root}"
           tar -xzf "${package}" -C "${install_root}"

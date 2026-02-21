@@ -1,77 +1,62 @@
 # V1 Self-Host Readiness Report
 
-Date: 2026-02-20
-Track: Phase 7.3.e Compiler Self-Host Readiness
+Date: 2026-02-21  
+Track: Phase 9 M1->M4 Progressive Transition
 
 ## Scope
 
-- M1 executable self-host formatter parity gate
-- M3 starter shadow slice for deterministic diagnostics ordering parity
-- Host fallback retained as default execution path
+- Maintain component-level parity evidence from M1 through M4.
+- Keep host fallback controls active for promoted components.
+- Ensure ownership + signoff for each promoted or shadow component.
 
-Contract reference:
+## Overall Status
 
-- `docs/selfhost/m1_formatter_contract.md`
+- Overall readiness state: `m4-rc-cycle-validated`
+- Release posture: `shadow-first with one promoted RC candidate`
+- Blocking gate set:
+  - `selfhost_readiness_gate`
+  - `selfhost_m2_gate`
+  - `selfhost_m3_shadow_gate`
+  - `selfhost_m4_rc_cycle_gate`
 
-## Current Status
+## Component Matrix (M1/M2/M3/M4)
 
-- Overall readiness state: `local-pass`
-- M1 formatter parity gate: `local-pass`
-- M3 shadow slice parity gate: `local-pass`
-- Production default path: `host formatter`
-- Self-host path mode: `shadow/conformance only`
+| Stage | Component | Mode | Parity Counter (Required/Observed) | Owner | Signoff State |
+| --- | --- | --- | --- | --- | --- |
+| M1 | `formatter_core` | shadow-conformance | `30 / 2` | `@fmt-owner` | active |
+| M2 | `docs_formatter_core` | shadow-parity | `10 / 2` | `@tooling-owner` | active |
+| M2 | `diagnostics_formatter_core` | shadow-parity | `10 / 2` | `@diag-owner` | active |
+| M3 | `parser_diag_normalization` | shadow-parity | `10 / 2` | `@frontend-owner` | active |
+| M3 | `type_diag_ordering` | shadow-parity | `10 / 2` | `@types-owner` | active |
+| M3 | `mir_formatting` | shadow-parity | `10 / 2` | `@mir-owner` | active |
+| M4 | `diagnostics_ordering` | promoted-rc (`selfhost-default`) | `2 / 2` | `@diag-owner` | rc-approved |
 
-## Evidence Commands (Latest Local Dry-Run)
+## Evidence Commands (Latest Local Gate-Equivalent Dry-Run)
 
 - `cargo test -p vibe_fmt --test selfhost_conformance`
 - `cargo run -q -p vibe_cli -- test selfhost/formatter_core.yb`
-- `cargo test -p vibe_diagnostics --test selfhost_shadow_ordering`
-- `cargo run -q -p vibe_cli -- test selfhost/diagnostics_ordering_shadow.yb`
+- `cargo test -p vibe_doc --test selfhost_conformance`
+- `cargo test -p vibe_diagnostics --test selfhost_formatter_conformance`
+- `cargo test -p vibe_cli --test selfhost_m3_expansion`
+- `cargo run -q -p vibe_cli -- test selfhost/frontend_shadow_slices.yb`
+- `VIBE_DIAGNOSTICS_SORT_MODE=selfhost-default cargo test -p vibe_diagnostics --test selfhost_shadow_ordering`
+- `VIBE_DIAGNOSTICS_SORT_MODE=selfhost-default VIBE_SELFHOST_FORCE_HOST_FALLBACK=1 cargo test -p vibe_diagnostics --test selfhost_transition_toggle fallback_toggle_forces_host_mode_immediately`
 
-Latest local dry-run result:
+## Safety Controls
 
-- `cargo test -p vibe_fmt --test selfhost_conformance`: pass (`4/4`)
-- `cargo test -p vibe_diagnostics --test selfhost_shadow_ordering`: pass (`2/2`)
-- `cargo run -q -p vibe_cli -- test selfhost/formatter_core.yb`: pass (`examples=2 passed=2`)
-- `cargo run -q -p vibe_cli -- test selfhost/diagnostics_ordering_shadow.yb`: pass (`examples=4 passed=4`)
-
-## M1 Formatter Parity Metrics
-
-| Metric | Value |
-| --- | --- |
-| Fixture corpus size | 2 |
-| Host vs expected fixture parity | pass |
-| Self-host executable example parity | pass |
-| Repeat-run determinism (host formatter) | pass |
-| Repeat-run determinism (self-host `vibe test` bridge) | pass |
-
-## M3 Shadow Slice Metrics
-
-| Metric | Value |
-| --- | --- |
-| Slice | deterministic diagnostics ordering contract |
-| Host parity test | `crates/vibe_diagnostics/tests/selfhost_shadow_ordering.rs` pass |
-| Self-host shadow executable examples | `selfhost/diagnostics_ordering_shadow.yb` pass |
-| Default compiler path impact | none (shadow-only evidence) |
-
-## Run Counter Toward M1 Exit
-
-M1 exit requires 30 consecutive CI parity runs.
-
-| Counter Field | Value |
-| --- | --- |
-| Consecutive passing runs required | 30 |
-| Consecutive passing runs observed | 1 |
-| Source of observed run | local dry-run |
-| CI sequence tracking mode | active (to be advanced by `selfhost_readiness_gate` workflow runs) |
-
-## Fallback and Safety Controls
-
-- Host formatter remains the authoritative default path.
-- Any parity regression in `selfhost_readiness_gate` blocks release promotion.
-- Self-host artifacts are evidence-only until M4 transition gate.
+- Promoted diagnostics ordering toggle:
+  - `VIBE_DIAGNOSTICS_SORT_MODE=selfhost-default`
+- Immediate fallback override:
+  - `VIBE_SELFHOST_FORCE_HOST_FALLBACK=1`
+- Fallback drill evidence:
+  - `crates/vibe_diagnostics/tests/selfhost_transition_toggle.rs`
+- Operational policy:
+  - `docs/selfhost/m4_transition_criteria.md`
+  - `docs/release/selfhost_transition_playbook.md`
+  - `docs/selfhost/component_ownership.md`
 
 ## Go / No-Go Snapshot
 
-- M1 gate for this run: `go` (local evidence complete)
-- RC promotion from self-host perspective: `go-for-7.3.e-local-closeout` (v1 GA remains blocked by non-selfhost P0/P1 gates)
+- M1/M2/M3 parity posture: `go` (shadow gates passing)
+- M4 promoted RC candidate posture: `go` (promotion + fallback drill validated)
+- GA posture: `conditional-go` (depends on non-selfhost release blockers outside Phase 9)

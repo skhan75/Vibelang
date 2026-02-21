@@ -570,6 +570,12 @@ Goal: make VibeLang installable/runnable like mainstream languages on end-user m
 - [x] `vibe --help` and `vibe --version` are stable, documented, and CI-regression-tested (evidence: `docs/cli/help_manual.md`, `docs/cli/version_output.md`, `reports/v1/phase8_ci_evidence.md`, workflow `.github/workflows/v1-cli-ux.yml` jobs `cli_help_and_version_regressions`, `cli_docs_presence`)
 - [x] Packaged release artifacts are signed, checksummed, and policy-compliant for tier-1 targets (evidence: `reports/v1/distribution_readiness.md`, `reports/v1/phase8_ci_evidence.md`, workflow `.github/workflows/v1-packaged-release.yml` jobs `packaged_reproducibility`, `sign_attest_and_sbom`)
 
+### 8.6 Linux Installer Compatibility Follow-Up (Post-Close)
+
+- [x] Ensure Linux packaged binary compatibility for common Ubuntu/WSL baselines (glibc 2.35+) or publish static `musl` artifact fallback (evidence: workflow `.github/workflows/v1-packaged-release.yml` Linux GNU baseline build on `ubuntu-22.04`, step `verify linux glibc compatibility baseline`, policy `docs/release/linux_runtime_compatibility_policy.md`)
+- [x] Add blocking CI lane that executes packaged Linux artifact on both `ubuntu-22.04` and latest Ubuntu runner to catch loader/runtime ABI drift before release (evidence: workflow `.github/workflows/v1-packaged-release.yml` jobs `install_smoke_linux`, `install_smoke_linux_latest`; workflow `.github/workflows/v1-release-gates.yml` job `linux_compatibility_gate`)
+- [x] Document minimum Linux runtime requirements and fallback install path in `docs/install/linux.md` and release notes (evidence: `docs/install/linux.md`, `docs/install/troubleshooting.md`, `docs/release/linux_runtime_compatibility_policy.md`)
+
 ---
 
 ## Phase 9: Progressive Self-Host Transition (M2 -> M3 Expansion -> M4 Default Switch)
@@ -578,35 +584,35 @@ Goal: safely move from host-implemented compiler/tooling components to VibeLang-
 
 ### 9.1 M2 Self-Host Expansion (Tooling Components)
 
-- [ ] Port docs/diagnostics formatter components to VibeLang with byte-for-byte parity harnesses
-- [ ] Add deterministic repeat-run tests for M2 components across fixture corpus
-- [ ] Publish M2 contract and component boundaries (evidence: `docs/selfhost/m2_formatter_diagnostics_contract.md`)
-- [ ] Publish M2 readiness evidence (evidence: `reports/v1/selfhost_m2_readiness.md`)
+- [x] Port docs/diagnostics formatter components to VibeLang with byte-for-byte parity harnesses (evidence: `selfhost/docs_formatter_core.yb`, `selfhost/diagnostics_formatter_core.yb`, fixture parity tests in `crates/vibe_doc/tests/selfhost_conformance.rs`, `crates/vibe_diagnostics/tests/selfhost_formatter_conformance.rs`)
+- [x] Add deterministic repeat-run tests for M2 components across fixture corpus (evidence: tests `selfhost_docs_formatter_repeat_runs_are_deterministic`, `selfhost_diagnostics_formatter_repeat_runs_are_deterministic`)
+- [x] Publish M2 contract and component boundaries (evidence: `docs/selfhost/m2_formatter_diagnostics_contract.md`)
+- [x] Publish M2 readiness evidence (evidence: `reports/v1/selfhost_m2_readiness.md`, workflow `.github/workflows/v1-release-gates.yml` job `selfhost_m2_gate`)
 
 ### 9.2 M3 Expansion (Compiler Frontend Slices in Shadow Mode)
 
-- [ ] Expand M3 from starter shadow slice to multiple frontend slices (parser diagnostics normalization, type diagnostic ordering, selected MIR formatting paths)
-- [ ] Run host + self-host shadow dual-path checks in CI and block on parity drift
-- [ ] Track and enforce shadow-mode performance budgets (latency/memory overhead ceilings)
-- [ ] Publish expanded M3 readiness evidence (evidence: `reports/v1/selfhost_m3_expansion.md`)
+- [x] Expand M3 from starter shadow slice to multiple frontend slices (parser diagnostics normalization, type diagnostic ordering, selected MIR formatting paths) (evidence: `selfhost/frontend_shadow_slices.yb`, fixtures `selfhost/fixtures/m3_parser_diag_normalization.*`, `selfhost/fixtures/m3_type_diag_ordering.*`, `selfhost/fixtures/m3_mir_formatting.*`)
+- [x] Run host + self-host shadow dual-path checks in CI and block on parity drift (evidence: test `crates/vibe_cli/tests/selfhost_m3_expansion.rs`, workflow `.github/workflows/v1-release-gates.yml` job `selfhost_m3_shadow_gate`, artifact `v1-selfhost-m3-shadow`)
+- [x] Track and enforce shadow-mode performance budgets (latency/memory overhead ceilings) (evidence: test `m3_shadow_performance_budgets_are_within_thresholds` in `crates/vibe_cli/tests/selfhost_m3_expansion.rs`, workflow `.github/workflows/v1-release-gates.yml` job `selfhost_m3_shadow_gate`)
+- [x] Publish expanded M3 readiness evidence (evidence: `reports/v1/selfhost_m3_expansion.md`)
 
 ### 9.3 M4 Transition Gate (Default Switch Strategy)
 
-- [ ] Define graduation criteria for switching selected components to self-host default path (evidence: `docs/selfhost/m4_transition_criteria.md`)
-- [ ] Implement explicit rollback/fallback toggles for each promoted component (host path remains immediately available)
-- [ ] Run at least one release-candidate cycle with promoted self-host default component(s) and no parity regressions
-- [ ] Publish self-host transition playbook (evidence: `docs/release/selfhost_transition_playbook.md`)
+- [x] Define graduation criteria for switching selected components to self-host default path (evidence: `docs/selfhost/m4_transition_criteria.md`, first-wave candidate `diagnostics ordering`)
+- [x] Implement explicit rollback/fallback toggles for each promoted component (host path remains immediately available) (evidence: `VIBE_DIAGNOSTICS_SORT_MODE`, `VIBE_SELFHOST_FORCE_HOST_FALLBACK`, `crates/vibe_diagnostics/tests/selfhost_transition_toggle.rs`)
+- [x] Run at least one release-candidate cycle with promoted self-host default component(s) and no parity regressions (evidence: workflow `.github/workflows/v1-release-gates.yml` job `selfhost_m4_rc_cycle_gate`, artifact `v1-selfhost-m4-rc-cycle`, `reports/v1/release_candidate_checklist.md`)
+- [x] Publish self-host transition playbook (evidence: `docs/release/selfhost_transition_playbook.md`)
 
 ### 9.4 Governance, Ownership, and Reporting
 
-- [ ] Extend `reports/v1/selfhost_readiness.md` to track M1/M2/M3/M4 component-level parity counters and ownership
-- [ ] Publish per-component ownership + signoff matrix (evidence: `docs/selfhost/component_ownership.md`)
-- [ ] Add blocking `selfhost_transition_gate` in `.github/workflows/v1-release-gates.yml` covering M2/M3/M4 evidence
-- [ ] Add PR template requirements for self-host parity artifacts in release candidate branches
+- [x] Extend `reports/v1/selfhost_readiness.md` to track M1/M2/M3/M4 component-level parity counters and ownership (evidence: `reports/v1/selfhost_readiness.md`, `reports/v1/selfhost_readiness.json`)
+- [x] Publish per-component ownership + signoff matrix (evidence: `docs/selfhost/component_ownership.md`)
+- [x] Add blocking `selfhost_transition_gate` in `.github/workflows/v1-release-gates.yml` covering M2/M3/M4 evidence (evidence: workflow job `selfhost_transition_gate`, artifact `v1-selfhost-transition-gate`)
+- [x] Add PR template requirements for self-host parity artifacts in release candidate branches (evidence: `.github/pull_request_template.md`, workflow `.github/workflows/v1-release-gates.yml` job `release_pr_report_links_gate`)
 
 ### Phase 9 Exit Criteria
 
-- [ ] VibeLang team can author and ship meaningful compiler/tooling logic in VibeLang on a regular path (not seed-only) with CI parity gates (evidence: selfhost reports and CI jobs)
-- [ ] M2 and expanded M3 components show deterministic parity in consecutive CI runs above agreed threshold (evidence: `reports/v1/selfhost_readiness.md`)
-- [ ] At least one component is promoted to self-host default path with proven rollback and successful RC cycle evidence (evidence: `docs/release/selfhost_transition_playbook.md`, `reports/v1/release_candidate_checklist.md`)
-- [ ] Self-host transition is production-safe: fallback controls, ownership, and incident-response procedures are documented and exercised (evidence: `docs/selfhost/component_ownership.md`, release runbooks)
+- [x] VibeLang team can author and ship meaningful compiler/tooling logic in VibeLang on a regular path (not seed-only) with CI parity gates (evidence: workflows `.github/workflows/v1-release-gates.yml` jobs `selfhost_m2_gate`, `selfhost_m3_shadow_gate`, `selfhost_transition_gate`; reports `reports/v1/selfhost_m2_readiness.md`, `reports/v1/selfhost_m3_expansion.md`)
+- [x] M2 and expanded M3 components show deterministic parity in consecutive CI runs above agreed threshold (evidence: `reports/v1/selfhost_readiness.md`, `reports/v1/selfhost_m2_readiness.md`, `reports/v1/selfhost_m3_expansion.md`)
+- [x] At least one component is promoted to self-host default path with proven rollback and successful RC cycle evidence (evidence: `docs/release/selfhost_transition_playbook.md`, `reports/v1/release_candidate_checklist.md`, workflow `.github/workflows/v1-release-gates.yml` job `selfhost_m4_rc_cycle_gate`)
+- [x] Self-host transition is production-safe: fallback controls, ownership, and incident-response procedures are documented and exercised (evidence: `docs/selfhost/component_ownership.md`, `docs/selfhost/m4_transition_criteria.md`, `docs/release/selfhost_transition_playbook.md`, test `crates/vibe_diagnostics/tests/selfhost_transition_toggle.rs`)

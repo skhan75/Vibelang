@@ -1,0 +1,22 @@
+slice_supported(name: Str) -> Bool {
+  if name == "m3_parser_diag_normalization" {
+    return true
+  }
+  if name == "m3_type_diag_ordering" {
+    return true
+  }
+  if name == "m3_mir_formatting" {
+    return true
+  }
+  false
+}
+
+pub m3_shadow_slices_contract() -> Int {
+  @intent "shadow executable contract for M3 frontend slice coverage"
+  @examples {
+    slice_supported("m3_parser_diag_normalization") => true
+    slice_supported("m3_type_diag_ordering") => true
+    slice_supported("m3_mir_formatting") => true
+  }
+  0
+}

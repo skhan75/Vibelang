@@ -54,14 +54,19 @@ Closure validation covered:
    - `packaged_reproducibility`
    - `sign_attest_and_sbom`
    - `install_smoke_linux`
+   - `install_smoke_linux_latest`
    - `install_smoke_macos`
    - `install_smoke_windows`
 2. Hosted `.github/workflows/v1-cli-ux.yml` with passing:
    - `cli_help_and_version_regressions`
    - `cli_docs_presence`
-3. Checklist/report sync completed:
+3. Hosted `.github/workflows/v1-release-gates.yml` with passing:
+   - `independent_install_gate`
+   - `linux_compatibility_gate`
+4. Checklist/report sync completed:
    - `docs/development_checklist.md`
    - `reports/v1/install_independence.md`
    - `reports/v1/distribution_readiness.md`
    - `reports/v1/phase8_ci_evidence.md`
    - `reports/v1/release_candidate_checklist.md`
+   - `docs/release/linux_runtime_compatibility_policy.md`

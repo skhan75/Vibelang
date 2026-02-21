@@ -19,14 +19,18 @@ Hosted CI gates for Phase 8 are now validated for the current closure cycle:
   - `cli_docs_presence`
 - `.github/workflows/v1-packaged-release.yml`:
   - `package_artifacts` (all tier-1 targets)
+  - Linux GNU baseline build on `ubuntu-22.04`
+  - `verify linux glibc compatibility baseline` step
   - `packaged_reproducibility`
   - `sign_attest_and_sbom`
   - `install_smoke_linux`
+  - `install_smoke_linux_latest`
   - `install_smoke_macos`
   - `install_smoke_windows`
 - `.github/workflows/v1-release-gates.yml`:
   - `cli_ux_gate`
   - `independent_install_gate`
+  - `linux_compatibility_gate` (matrix on `ubuntu-22.04`, `ubuntu-latest`)
 
 ## Local Workflow-Equivalent Evidence
 
@@ -73,11 +77,13 @@ Local artifact links:
 
 - Local workflow-equivalent commands remain documented here for reproducibility.
 - Hosted CI outcomes are now considered validated for Phase 8 checklist closure.
+- Linux runtime ABI compatibility guardrails are now tracked by
+  `docs/release/linux_runtime_compatibility_policy.md`.
 
 ## Phase 8 Exit-Criteria Mapping
 
 | Exit Criterion | Evidence | Current Status |
 | --- | --- | --- |
-| Fresh machine without Rust/Cargo can install and run from packaged artifacts | `reports/v1/install_independence.md`, local packaged-run artifacts under `/tmp/phase8_packaged_local`, workflow `.github/workflows/v1-packaged-release.yml` jobs `install_smoke_linux`, `install_smoke_macos`, `install_smoke_windows` | validated |
+| Fresh machine without Rust/Cargo can install and run from packaged artifacts | `reports/v1/install_independence.md`, local packaged-run artifacts under `/tmp/phase8_packaged_local`, workflow `.github/workflows/v1-packaged-release.yml` jobs `install_smoke_linux`, `install_smoke_linux_latest`, `install_smoke_macos`, `install_smoke_windows` | validated |
 | `vibe --help` and `vibe --version` are stable and regression-tested | tests `cli_help_snapshots`, `cli_version`, docs `docs/cli/help_manual.md`, `docs/cli/version_output.md`, workflow `.github/workflows/v1-cli-ux.yml` jobs `cli_help_and_version_regressions`, `cli_docs_presence` | validated |
 | Packaged artifacts are signed/checksummed/policy-compliant for tier-1 | workflow `.github/workflows/v1-packaged-release.yml` jobs `packaged_reproducibility`, `sign_attest_and_sbom`, docs `docs/release/distribution_security.md`, report `reports/v1/distribution_readiness.md` | validated |
