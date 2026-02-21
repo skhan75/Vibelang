@@ -5,35 +5,42 @@
 
 <!-- markdownlint-disable MD033 -->
 <p align="center">
-  <img src="assets/branding/mascot-logo.png" alt="VibeLang mascot logo" width="460" />
+  <img src="assets/branding/vibelang-mascot-hero.png" alt="VibeLang mascot logo" width="760" />
 </p>
 
-<p align="center">
-  <a href="#roadmap-snapshot"><img src="https://img.shields.io/badge/status-active%20development-22c55e" alt="status" /></a>
-  <a href="#what-vibelang-is"><img src="https://img.shields.io/badge/native-AOT-2563eb" alt="native" /></a>
-  <a href="#why-i-built-this"><img src="https://img.shields.io/badge/intent-driven%20development-a855f7" alt="intent" /></a>
-  <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="license" />
-</p>
+<table width="100%">
+  <tr>
+    <td align="center" width="25%">
+      <a href="#roadmap-snapshot"><img src="https://img.shields.io/badge/status-active%20development-22c55e" alt="status" /></a>
+    </td>
+    <td align="center" width="25%">
+      <a href="#what-vibelang-is"><img src="https://img.shields.io/badge/native-AOT-2563eb" alt="native" /></a>
+    </td>
+    <td align="center" width="25%">
+      <a href="#why-i-built-this"><img src="https://img.shields.io/badge/intent-driven%20development-a855f7" alt="intent" /></a>
+    </td>
+    <td align="center" width="25%">
+      <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="license" />
+    </td>
+  </tr>
+</table>
 
-<p align="center">
-  <a href="#60-second-quickstart">Quickstart</a> ·
-  <a href="#why-i-built-this">Why I Built This</a> ·
-  <a href="#what-vibelang-solves-today">What VibeLang Solves Today</a> ·
-  <a href="#roadmap-snapshot">Roadmap</a>
-</p>
+<table width="100%">
+  <tr>
+    <td align="center" width="25%"><a href="#60-second-quickstart"><strong>Quickstart</strong></a></td>
+    <td align="center" width="25%"><a href="#why-i-built-this"><strong>Why I Built This</strong></a></td>
+    <td align="center" width="25%"><a href="#what-vibelang-solves-today"><strong>What VibeLang Solves Today</strong></a></td>
+    <td align="center" width="25%"><a href="#roadmap-snapshot"><strong>Roadmap</strong></a></td>
+  </tr>
+</table>
 <!-- markdownlint-enable MD033 -->
-
-## Branding Assets
-
-- Mascot logo (current): `assets/branding/mascot-logo.png`
-- Text logo placeholder: `assets/branding/vibelang-wordmark.svg`
-- Hero/banner placeholder: `assets/branding/vibelang-readme-hero.png`
-- Favicon/app icon placeholder: `assets/branding/vibelang-icon.png`
 
 ## Table of Contents
 
 - [Project Pitch](#project-pitch)
+- [At a Glance](#at-a-glance)
 - [Why I Built This](#why-i-built-this)
+- [What VibeLang Is](#what-vibelang-is)
 - [What VibeLang Solves Today](#what-vibelang-solves-today)
 - [What Is Experimental / In Progress](#what-is-experimental--in-progress)
 - [Use Cases](#use-cases)
@@ -49,6 +56,16 @@
 
 VibeLang is a native-first language for builders who want low-level performance
 without low-level pain.
+
+## At a Glance
+
+| Area | Current V1 posture |
+| --- | --- |
+| Build model | Deterministic native AOT compile path with reproducibility gates |
+| Developer loop | `check`, `build`, `run`, `test`, `fmt`, `doc`, `lint --intent` |
+| Correctness features | Contracts, executable examples, effect annotations |
+| Concurrency | `go`, `chan`, `select`, cancellation, bounded stress coverage |
+| Distribution track | Packaged release workflow with checksum/signature/provenance/SBOM wiring |
 
 ## Why I Built This
 
