@@ -1,0 +1,427 @@
+name: v1-packaged-release
+
+on:
+  push:
+    branches: ["main", "release/**"]
+  pull_request:
+    branches: ["main", "release/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package_artifacts:
+    name: package-${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            archive: tar.gz
+            binary_name: vibe
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            archive: tar.gz
+            binary_name: vibe
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            archive: zip
+            binary_name: vibe.exe
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - name: build release binary
+        run: |
+          set -euo pipefail
+          cargo build --release -p vibe_cli --target "${{ matrix.target }}"
+      - name: package standalone artifact and checksum manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib
+          import os
+          import pathlib
+          import shutil
+          import tarfile
+          import zipfile
+
+          target = os.environ["TARGET"]
+          archive_format = os.environ["ARCHIVE_FORMAT"]
+          binary_name = os.environ["BINARY_NAME"]
+
+          root = pathlib.Path(".").resolve()
+          binary = root / "target" / target / "release" / binary_name
+          if not binary.exists():
+              raise SystemExit(f"missing built binary: {binary}")
+
+          dist = root / "dist"
+          dist.mkdir(parents=True, exist_ok=True)
+
+          stage = root / "package" / f"vibe-{target}"
+          if stage.exists():
+              shutil.rmtree(stage)
+          (stage / "bin").mkdir(parents=True, exist_ok=True)
+          shutil.copy2(binary, stage / "bin" / binary_name)
+
+          readme = stage / "README.txt"
+          readme.write_text(
+              "\n".join(
+                  [
+                      f"VibeLang packaged artifact for {target}",
+                      "",
+                      "Usage:",
+                      "  - add ./bin to PATH",
+                      "  - run `vibe --version`",
+                  ]
+              )
+              + "\n",
+              encoding="utf-8",
+          )
+
+          if archive_format == "tar.gz":
+              archive_name = f"vibe-{target}.tar.gz"
+              archive_path = dist / archive_name
+              with tarfile.open(archive_path, "w:gz") as tar:
+                  tar.add(stage, arcname=stage.name)
+          elif archive_format == "zip":
+              archive_name = f"vibe-{target}.zip"
+              archive_path = dist / archive_name
+              with zipfile.ZipFile(archive_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+                  for item in stage.rglob("*"):
+                      if item.is_file():
+                          zf.write(item, arcname=item.relative_to(stage.parent))
+          else:
+              raise SystemExit(f"unsupported archive format: {archive_format}")
+
+          def sha256(path: pathlib.Path) -> str:
+              h = hashlib.sha256()
+              with path.open("rb") as f:
+                  for chunk in iter(lambda: f.read(1024 * 1024), b""):
+                      h.update(chunk)
+              return h.hexdigest()
+
+          checksums = dist / f"checksums-{target}.txt"
+          checksums.write_text(
+              "\n".join(
+                  [
+                      f"{sha256(archive_path)}  {archive_path.name}",
+                      f"{sha256(binary)}  {binary.name}",
+                  ]
+              )
+              + "\n",
+              encoding="utf-8",
+          )
+          PY
+        env:
+          TARGET: ${{ matrix.target }}
+          ARCHIVE_FORMAT: ${{ matrix.archive }}
+          BINARY_NAME: ${{ matrix.binary_name }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v1-package-${{ matrix.target }}
+          path: dist/*
+
+  sign_attest_and_sbom:
+    name: sign-attest-sbom
+    runs-on: ubuntu-latest
+    needs: package_artifacts
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: v1-package-*
+          merge-multiple: true
+          path: /tmp/v1-packaged
+      - uses: sigstore/cosign-installer@v3
+      - name: install syft
+        run: |
+          set -euo pipefail
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+          syft version
+      - name: generate SBOM and provenance statements
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          assets=(/tmp/v1-packaged/vibe-*.tar.gz /tmp/v1-packaged/vibe-*.zip /tmp/v1-packaged/checksums-*.txt)
+          if [ "${#assets[@]}" -eq 0 ]; then
+            echo "no packaged artifacts found"
+            exit 1
+          fi
+          for asset in "${assets[@]}"; do
+            syft "file:${asset}" -o spdx-json > "${asset}.sbom.spdx.json"
+            python3 - "${asset}" "${asset}.provenance.json" <<'PY'
+          import hashlib
+          import json
+          import os
+          import pathlib
+          import sys
+
+          artifact = pathlib.Path(sys.argv[1])
+          out = pathlib.Path(sys.argv[2])
+
+          h = hashlib.sha256()
+          with artifact.open("rb") as f:
+              for chunk in iter(lambda: f.read(1024 * 1024), b""):
+                  h.update(chunk)
+
+          statement = {
+              "_type": "https://in-toto.io/Statement/v1",
+              "subject": [
+                  {
+                      "name": artifact.name,
+                      "digest": {"sha256": h.hexdigest()},
+                  }
+              ],
+              "predicateType": "https://slsa.dev/provenance/v1",
+              "predicate": {
+                  "buildType": "https://github.com/actions/workflow",
+                  "builder": {
+                      "id": f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"
+                  },
+                  "invocation": {
+                      "configSource": {
+                          "uri": f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/blob/{os.environ['GITHUB_SHA']}/.github/workflows/v1-packaged-release.yml"
+                      }
+                  },
+              },
+          }
+
+          out.write_text(json.dumps(statement, sort_keys=True, indent=2) + "\n", encoding="utf-8")
+          PY
+          done
+      - name: sign packaged assets, SBOMs, and provenance statements
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          assets=(/tmp/v1-packaged/vibe-*.tar.gz /tmp/v1-packaged/vibe-*.zip /tmp/v1-packaged/checksums-*.txt)
+          for asset in "${assets[@]}"; do
+            for blob in "${asset}" "${asset}.sbom.spdx.json" "${asset}.provenance.json"; do
+              cosign sign-blob --yes --output-signature "${blob}.sig" --output-certificate "${blob}.pem" "${blob}"
+            done
+          done
+      - name: verify signatures for packaged assets, SBOMs, and provenance statements
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          assets=(/tmp/v1-packaged/vibe-*.tar.gz /tmp/v1-packaged/vibe-*.zip /tmp/v1-packaged/checksums-*.txt)
+          for asset in "${assets[@]}"; do
+            for blob in "${asset}" "${asset}.sbom.spdx.json" "${asset}.provenance.json"; do
+              cosign verify-blob \
+                --certificate-identity-regexp ".*" \
+                --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+                --signature "${blob}.sig" \
+                --certificate "${blob}.pem" \
+                "${blob}"
+            done
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v1-packaged-signed-bundle
+          path: /tmp/v1-packaged/*
+
+  install_smoke_linux:
+    name: install-smoke-linux
+    runs-on: ubuntu-latest
+    needs: sign_attest_and_sbom
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: v1-packaged-signed-bundle
+          path: /tmp/v1-signed
+      - uses: sigstore/cosign-installer@v3
+      - name: verify package checksum, signatures, and provenance
+        run: |
+          set -euo pipefail
+          package="/tmp/v1-signed/vibe-x86_64-unknown-linux-gnu.tar.gz"
+          checksums="/tmp/v1-signed/checksums-x86_64-unknown-linux-gnu.txt"
+          test -f "${package}"
+          test -f "${checksums}"
+          grep "  $(basename "${package}")$" "${checksums}" | sha256sum -c -
+          cosign verify-blob \
+            --certificate-identity-regexp ".*" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+            --signature "${package}.sig" \
+            --certificate "${package}.pem" \
+            "${package}"
+          cosign verify-blob \
+            --certificate-identity-regexp ".*" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+            --signature "${package}.provenance.json.sig" \
+            --certificate "${package}.provenance.json.pem" \
+            "${package}.provenance.json"
+          python3 - "${package}" "${package}.provenance.json" <<'PY'
+          import hashlib
+          import json
+          import pathlib
+          import sys
+
+          artifact = pathlib.Path(sys.argv[1])
+          provenance = pathlib.Path(sys.argv[2])
+
+          h = hashlib.sha256()
+          with artifact.open("rb") as f:
+              for chunk in iter(lambda: f.read(1024 * 1024), b""):
+                  h.update(chunk)
+          digest = h.hexdigest()
+
+          statement = json.loads(provenance.read_text(encoding="utf-8"))
+          subject = statement["subject"][0]
+          if subject["digest"]["sha256"] != digest:
+              raise SystemExit("provenance digest does not match package digest")
+          PY
+      - name: install packaged vibe and run hello world
+        run: |
+          set -euo pipefail
+          package="/tmp/v1-signed/vibe-x86_64-unknown-linux-gnu.tar.gz"
+          install_root="/tmp/vibe-install-linux"
+          rm -rf "${install_root}"
+          mkdir -p "${install_root}"
+          tar -xzf "${package}" -C "${install_root}"
+          vibe_bin="$(echo "${install_root}"/vibe-*/bin/vibe)"
+          test -x "${vibe_bin}"
+          "${vibe_bin}" --version
+          cat > "${install_root}/hello.yb" <<'EOF'
+          pub main() -> Int {
+            @effect io
+            println("hello from packaged vibe")
+            0
+          }
+          EOF
+          out="$("${vibe_bin}" run "${install_root}/hello.yb")"
+          test "${out}" = "hello from packaged vibe"
+
+  install_smoke_macos:
+    name: install-smoke-macos
+    runs-on: macos-latest
+    needs: sign_attest_and_sbom
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: v1-packaged-signed-bundle
+          path: /tmp/v1-signed
+      - uses: sigstore/cosign-installer@v3
+      - name: verify package checksum, signatures, and provenance
+        run: |
+          set -euo pipefail
+          package="/tmp/v1-signed/vibe-x86_64-apple-darwin.tar.gz"
+          checksums="/tmp/v1-signed/checksums-x86_64-apple-darwin.txt"
+          test -f "${package}"
+          test -f "${checksums}"
+          grep "  $(basename "${package}")$" "${checksums}" | shasum -a 256 -c -
+          cosign verify-blob \
+            --certificate-identity-regexp ".*" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+            --signature "${package}.sig" \
+            --certificate "${package}.pem" \
+            "${package}"
+          cosign verify-blob \
+            --certificate-identity-regexp ".*" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+            --signature "${package}.provenance.json.sig" \
+            --certificate "${package}.provenance.json.pem" \
+            "${package}.provenance.json"
+          python3 - "${package}" "${package}.provenance.json" <<'PY'
+          import hashlib
+          import json
+          import pathlib
+          import sys
+
+          artifact = pathlib.Path(sys.argv[1])
+          provenance = pathlib.Path(sys.argv[2])
+          h = hashlib.sha256()
+          with artifact.open("rb") as f:
+              for chunk in iter(lambda: f.read(1024 * 1024), b""):
+                  h.update(chunk)
+          digest = h.hexdigest()
+          statement = json.loads(provenance.read_text(encoding="utf-8"))
+          subject = statement["subject"][0]
+          if subject["digest"]["sha256"] != digest:
+              raise SystemExit("provenance digest does not match package digest")
+          PY
+      - name: install packaged vibe and run hello world
+        run: |
+          set -euo pipefail
+          package="/tmp/v1-signed/vibe-x86_64-apple-darwin.tar.gz"
+          install_root="/tmp/vibe-install-macos"
+          rm -rf "${install_root}"
+          mkdir -p "${install_root}"
+          tar -xzf "${package}" -C "${install_root}"
+          vibe_bin="$(echo "${install_root}"/vibe-*/bin/vibe)"
+          test -x "${vibe_bin}"
+          "${vibe_bin}" --version
+          cat > "${install_root}/hello.yb" <<'EOF'
+          pub main() -> Int {
+            @effect io
+            println("hello from packaged vibe")
+            0
+          }
+          EOF
+          out="$("${vibe_bin}" run "${install_root}/hello.yb")"
+          test "${out}" = "hello from packaged vibe"
+
+  install_smoke_windows:
+    name: install-smoke-windows
+    runs-on: windows-latest
+    needs: sign_attest_and_sbom
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: v1-packaged-signed-bundle
+          path: C:\v1-signed
+      - uses: sigstore/cosign-installer@v3
+      - name: verify package checksum, signatures, and provenance
+        shell: pwsh
+        run: |
+          $package = "C:\v1-signed\vibe-x86_64-pc-windows-msvc.zip"
+          $checksums = "C:\v1-signed\checksums-x86_64-pc-windows-msvc.txt"
+          if (!(Test-Path $package)) { throw "missing package $package" }
+          if (!(Test-Path $checksums)) { throw "missing checksums $checksums" }
+
+          $pkgName = Split-Path $package -Leaf
+          $line = (Get-Content $checksums | Where-Object { $_ -match [regex]::Escape("  $pkgName") })
+          if ([string]::IsNullOrWhiteSpace($line)) { throw "missing checksum line for $pkgName" }
+          $expected = ($line -split '\s+')[0].ToLower()
+          $actual = (Get-FileHash -Algorithm SHA256 $package).Hash.ToLower()
+          if ($expected -ne $actual) { throw "checksum mismatch for $pkgName" }
+
+          cosign verify-blob --certificate-identity-regexp ".*" --certificate-oidc-issuer "https://token.actions.githubusercontent.com" --signature "$package.sig" --certificate "$package.pem" "$package"
+          cosign verify-blob --certificate-identity-regexp ".*" --certificate-oidc-issuer "https://token.actions.githubusercontent.com" --signature "$package.provenance.json.sig" --certificate "$package.provenance.json.pem" "$package.provenance.json"
+
+          $prov = Get-Content "$package.provenance.json" -Raw | ConvertFrom-Json
+          $provDigest = $prov.subject[0].digest.sha256.ToLower()
+          if ($provDigest -ne $actual) { throw "provenance digest does not match package digest" }
+      - name: install packaged vibe and run hello world
+        shell: pwsh
+        run: |
+          $package = "C:\v1-signed\vibe-x86_64-pc-windows-msvc.zip"
+          $installRoot = "C:\vibe-install-windows"
+          if (Test-Path $installRoot) { Remove-Item -Recurse -Force $installRoot }
+          New-Item -ItemType Directory -Path $installRoot | Out-Null
+          Expand-Archive -Path $package -DestinationPath $installRoot -Force
+
+          $vibe = Get-ChildItem -Path $installRoot -Recurse -Filter vibe.exe | Select-Object -First 1
+          if ($null -eq $vibe) { throw "vibe.exe not found after extraction" }
+          & $vibe.FullName --version
+
+          $hello = Join-Path $installRoot "hello.yb"
+          @"
+          pub main() -> Int {
+            @effect io
+            println("hello from packaged vibe")
+            0
+          }
+          "@ | Set-Content -Path $hello -Encoding utf8
+
+          $output = & $vibe.FullName run $hello
+          if ($output.Trim() -ne "hello from packaged vibe") {
+            throw "unexpected hello output: $output"
+          }

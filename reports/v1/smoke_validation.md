@@ -1,6 +1,6 @@
 # V1 Tightening Smoke Validation (Local Dry-Run)
 
-Date: 2026-02-20
+Date: 2026-02-21
 
 ## Executed Commands
 
@@ -12,6 +12,9 @@ All commands were executed from workspace root.
 - `cargo test -p vibe_cli --test frontend_fixtures type_ok_fixtures`
 - `cargo test -p vibe_cli --test frontend_fixtures type_err_golden`
 - `cargo test -p vibe_cli --test frontend_fixtures snapshots_container_ops_mir_is_deterministic`
+- `cargo test -p vibe_cli --test cli_help_snapshots`
+- `cargo test -p vibe_cli --test cli_version`
+- local packaged-install simulation (archive extract + extracted `vibe --version` + extracted `vibe run` hello-world)
 - `cargo test -p vibe_cli --test phase4_indexer`
 - `cargo test -p vibe_cli --test phase7_validation`
 - `cargo test -p vibe_cli --test phase7_concurrency`
@@ -30,6 +33,8 @@ All commands were executed from workspace root.
 - Ownership/sendability safety smokes: PASS
 - Heap-pressure bounded smoke: PASS
 - Dynamic container conformance smokes (`Str`/`List`/`Map`): PASS
+- CLI help/version regression smokes: PASS
+- Local no-Cargo packaged install simulation (Linux layout): PASS
 - Coverage/budget validators: PASS
 
 ## Feature-Gated Lanes (Not Enabled by Default)
@@ -43,3 +48,5 @@ All commands were executed from workspace root.
   `reports/v1/readiness_dashboard.md`.
 - Dynamic container closeout evidence is published in
   `reports/v1/dynamic_containers_conformance.md`.
+- Independent install and distribution trust wiring evidence is published in
+  `reports/v1/install_independence.md` and `reports/v1/distribution_readiness.md`.

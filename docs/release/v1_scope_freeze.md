@@ -16,6 +16,8 @@ Reference alignment:
 ## In Scope for v1
 
 - Deterministic native compile and run path (`vibe check/build/run/test`)
+- Independent packaged install path for end users (no Rust/Cargo required at install time)
+  across tier-1 platforms
 - Contracts and intent annotations as stable language features:
   - `@intent`, `@examples`, `@require`, `@ensure`, `@effect`
 - Concurrency primitives with safety diagnostics:
@@ -26,6 +28,8 @@ Reference alignment:
 - Optional AI intent linting that remains non-blocking and outside compile correctness
 - Release governance baseline:
   - scope freeze, blocker policy, RC process, rollback playbook, limitations gate
+- Release artifact trust baseline:
+  - checksums, signatures, provenance attestations, and SBOM artifacts for tier-1 packages
 
 ## Out of Scope for v1
 
@@ -41,7 +45,8 @@ Reference alignment:
 - Advanced AI code generation/autocomplete quality guarantees
 - Expanded target matrix requiring multi-host runtime smoke parity
 - Extended GC observability guarantees as a release blocker (until GC path is active in runtime)
-- Rich package registry trust stack (provenance/signing automation maturity beyond v1 baseline)
+- Rich package registry ecosystem trust controls beyond release artifact trust baseline
+  (for example, registry-level policy orchestration)
 
 ## Freeze Change Policy
 

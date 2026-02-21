@@ -47,7 +47,35 @@ fn run() -> Result<ExitCode, String> {
     if args.is_empty() {
         return Err(usage());
     }
+    if is_help_token(&args[0]) {
+        if args.len() > 2 {
+            return Err("`vibe --help` accepts at most one command argument".to_string());
+        }
+        let cmd = args.get(1).map(String::as_str);
+        print_help(cmd)?;
+        return Ok(ExitCode::SUCCESS);
+    }
+    if args[0] == "help" {
+        if args.len() > 2 {
+            return Err("usage: vibe help [command]".to_string());
+        }
+        let cmd = args.get(1).map(String::as_str);
+        print_help(cmd)?;
+        return Ok(ExitCode::SUCCESS);
+    }
+    if args[0] == "--version" || args[0] == "version" {
+        let json = matches!(args.get(1).map(String::as_str), Some("--json"));
+        if args.len() > 2 || (args.len() == 2 && !json) {
+            return Err("usage: vibe --version [--json]".to_string());
+        }
+        println!("{}", render_version(json));
+        return Ok(ExitCode::SUCCESS);
+    }
     let cmd = args.remove(0);
+    if args.len() == 1 && is_help_token(&args[0]) {
+        print_help(Some(&cmd))?;
+        return Ok(ExitCode::SUCCESS);
+    }
     match cmd.as_str() {
         "check" => {
             let path = args.first().ok_or_else(usage)?;
@@ -126,12 +154,285 @@ fn run() -> Result<ExitCode, String> {
             let lint_args = parse_lint_args(&args)?;
             run_lint(&lint_args)
         }
-        _ => Err(usage()),
+        _ => Err(format!("unknown command `{cmd}`\n{}", usage())),
     }
 }
 
 fn usage() -> String {
-    "usage: vibe <check|ast|hir|mir|build|run|test|index|lsp|fmt|doc|new|pkg|lint> <path> [--profile dev|release] [--target <triple>] [--offline] [--locked] [--debuginfo none|line|full] [--emit-obj-only] (lint: --intent [--changed] [--suggest] [--mode local|hybrid|cloud] [--telemetry-out path]) (pkg: lock|resolve|install [--path dir] [--mirror dir])".to_string()
+    "usage: vibe <command> [options]\nrun `vibe --help` for the full command manual.".to_string()
+}
+
+fn is_help_token(raw: &str) -> bool {
+    matches!(raw, "--help" | "-h")
+}
+
+fn print_help(command: Option<&str>) -> Result<(), String> {
+    let text = match command {
+        None => root_help(),
+        Some(cmd) => command_help(cmd)
+            .ok_or_else(|| format!("unknown command `{cmd}`\n{}", usage()))?
+            .to_string(),
+    };
+    println!("{text}");
+    Ok(())
+}
+
+fn root_help() -> String {
+    r#"VibeLang CLI Manual
+
+USAGE
+  vibe <command> [options]
+
+COMMANDS
+  check <path>              Parse + type-check source and print diagnostics
+  ast <path>                Print parsed AST
+  hir <path>                Print typed HIR
+  mir <path>                Print lowered MIR
+  build <path> [flags]      Build native artifact(s)
+  run <path> [flags] [-- <args...>]
+                            Build and execute compiled program
+  test <path|dir> [flags]   Run fixture-aware test flow
+  index [path] [flags]      Build/update semantic index
+  lsp [--index-root <dir>]  Start line-stdio LSP server
+  fmt [path] [flags]        Format source files
+  doc [path] [flags]        Generate markdown API docs
+  new <name> [flags]        Scaffold new app/library project
+  pkg <resolve|lock|install> [flags]
+                            Dependency resolution + lock + install
+  lint [path] --intent [flags]
+                            Run intent-aware lint checks
+
+GLOBAL OPTIONS
+  --help, -h                Show this manual or command help
+  help [command]            Show command help
+  --version                 Print CLI version metadata
+  --version --json          Print version metadata as JSON
+
+EXIT CODES
+  0                         Success
+  1                         Command/runtime failure
+  2                         CLI usage/argument error
+
+EXAMPLES
+  vibe --help
+  vibe --version --json
+  vibe help build
+  vibe build main.yb --profile release --target x86_64-unknown-linux-gnu
+  vibe run main.yb -- --arg1 value
+  vibe lint . --intent --changed --mode local
+"#
+    .to_string()
+}
+
+fn command_help(command: &str) -> Option<&'static str> {
+    match command {
+        "check" => Some(
+            r#"vibe check
+
+USAGE
+  vibe check <path>
+
+DESCRIPTION
+  Parses and type-checks a source file, printing deterministic diagnostics.
+"#,
+        ),
+        "ast" => Some(
+            r#"vibe ast
+
+USAGE
+  vibe ast <path>
+
+DESCRIPTION
+  Parses source and prints the AST plus parser diagnostics.
+"#,
+        ),
+        "hir" => Some(
+            r#"vibe hir
+
+USAGE
+  vibe hir <path>
+
+DESCRIPTION
+  Type-checks source and prints lowered typed HIR.
+"#,
+        ),
+        "mir" => Some(
+            r#"vibe mir
+
+USAGE
+  vibe mir <path>
+
+DESCRIPTION
+  Lowers HIR to MIR and prints deterministic MIR debug output.
+"#,
+        ),
+        "build" => Some(
+            r#"vibe build
+
+USAGE
+  vibe build <path> [--profile dev|release] [--target <triple>] [--debuginfo none|line|full] [--offline] [--locked] [--emit-obj-only]
+
+FLAGS
+  --profile <name>          Build profile (dev|release)
+  --target <triple>         Target triple for codegen/runtime
+  --debuginfo <mode>        Debug info level (none|line|full)
+  --offline                 Informational offline mode flag
+  --locked                  Enforce lockfile/manifest locked-mode checks
+  --emit-obj-only           Skip runtime compile/link and emit object-only artifacts
+"#,
+        ),
+        "run" => Some(
+            r#"vibe run
+
+USAGE
+  vibe run <path> [build flags] [-- <program args...>]
+
+DESCRIPTION
+  Builds source and executes produced native binary.
+
+NOTES
+  `--emit-obj-only` is not valid for `vibe run`.
+"#,
+        ),
+        "test" => Some(
+            r#"vibe test
+
+USAGE
+  vibe test <path|dir> [--profile dev|release] [--target <triple>] [--debuginfo none|line|full] [--offline] [--locked]
+
+DESCRIPTION
+  Runs file/directory tests, including contract/example checks where applicable.
+
+NOTES
+  `--emit-obj-only` is not valid for `vibe test`.
+"#,
+        ),
+        "index" => Some(
+            r#"vibe index
+
+USAGE
+  vibe index [path] [--path <dir>] [--rebuild] [--stats]
+
+FLAGS
+  --path <dir>              Explicit target root
+  --rebuild                 Force full index rebuild
+  --stats                   Print telemetry/statistics snapshot
+"#,
+        ),
+        "lsp" => Some(
+            r#"vibe lsp
+
+USAGE
+  vibe lsp [--index-root <dir>]
+
+DESCRIPTION
+  Starts line-stdio language-server protocol endpoint.
+"#,
+        ),
+        "fmt" => Some(
+            r#"vibe fmt
+
+USAGE
+  vibe fmt [path] [--path <dir>] [--check]
+
+FLAGS
+  --check                   Do not rewrite files; fail if formatting is needed
+"#,
+        ),
+        "doc" => Some(
+            r#"vibe doc
+
+USAGE
+  vibe doc [path] [--path <dir>] [--out <file>]
+
+DESCRIPTION
+  Generates markdown API docs for VibeLang sources.
+"#,
+        ),
+        "new" => Some(
+            r#"vibe new
+
+USAGE
+  vibe new <name> [--path <dir>] [--app|--lib] [--ext yb|vibe]
+
+FLAGS
+  --app                     Scaffold application template (default)
+  --lib                     Scaffold library template
+  --ext <ext>               Source extension for generated template
+"#,
+        ),
+        "pkg" => Some(
+            r#"vibe pkg
+
+USAGE
+  vibe pkg <resolve|lock|install> [--path <dir>] [--mirror <dir>]
+
+SUBCOMMANDS
+  resolve                   Resolve dependency graph
+  lock                      Resolve and write lockfile
+  install                   Resolve and install dependencies
+"#,
+        ),
+        "lint" => Some(
+            r#"vibe lint
+
+USAGE
+  vibe lint [path] --intent [--changed] [--suggest] [--mode local|hybrid|cloud] [--telemetry-out <file>] [--max-local-ms <n>] [--max-cloud-ms <n>] [--max-requests-per-day <n>] [--path <dir>]
+
+DESCRIPTION
+  Runs intent-aware lint checks and emits deterministic diagnostics.
+
+NOTES
+  Current lint mode requires `--intent`.
+"#,
+        ),
+        _ => None,
+    }
+}
+
+fn render_version(json: bool) -> String {
+    let version = env!("CARGO_PKG_VERSION");
+    let commit_raw = option_env!("VIBE_GIT_SHA")
+        .or(option_env!("GITHUB_SHA"))
+        .or(option_env!("VERGEN_GIT_SHA"))
+        .unwrap_or("unknown");
+    let commit_short = if commit_raw.len() > 12 {
+        &commit_raw[..12]
+    } else {
+        commit_raw
+    };
+    let profile = if cfg!(debug_assertions) {
+        "dev"
+    } else {
+        "release"
+    };
+    let os = if env::consts::OS == "macos" {
+        "darwin"
+    } else {
+        env::consts::OS
+    };
+    let target = format!("{}-{os}", env::consts::ARCH);
+
+    if json {
+        format!(
+            "{{\"name\":\"vibe\",\"version\":\"{}\",\"commit\":\"{}\",\"target\":\"{}\",\"profile\":\"{}\"}}",
+            json_escape(version),
+            json_escape(commit_short),
+            json_escape(&target),
+            json_escape(profile),
+        )
+    } else {
+        format!("vibe {version} (commit={commit_short}, target={target}, profile={profile})")
+    }
+}
+
+fn json_escape(input: &str) -> String {
+    input
+        .replace('\\', "\\\\")
+        .replace('"', "\\\"")
+        .replace('\n', "\\n")
+        .replace('\r', "\\r")
+        .replace('\t', "\\t")
 }
 
 fn run_check(path: &str) -> Result<ExitCode, String> {

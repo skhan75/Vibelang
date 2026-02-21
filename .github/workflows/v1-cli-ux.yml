@@ -1,0 +1,30 @@
+name: v1-cli-ux
+
+on:
+  push:
+    branches: ["main", "release/**"]
+  pull_request:
+    branches: ["main", "release/**"]
+  workflow_dispatch:
+
+jobs:
+  cli_help_and_version_regressions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: run CLI help/version tests
+        run: |
+          set -euo pipefail
+          cargo test -p vibe_cli --test cli_help_snapshots
+          cargo test -p vibe_cli --test cli_version
+
+  cli_docs_presence:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: verify CLI help/version docs exist
+        run: |
+          set -euo pipefail
+          test -f docs/cli/help_manual.md
+          test -f docs/cli/version_output.md

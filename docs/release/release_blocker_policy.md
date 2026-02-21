@@ -15,7 +15,7 @@ Any issue that can break correctness, determinism, safety, or release integrity:
 - Non-deterministic compile output for same source/toolchain
 - Compile correctness regressions in core language paths
 - Safety regressions in concurrency/ownership checks
-- Missing/failed release integrity checks (checksums/signatures/provenance, where required)
+- Missing/failed release integrity checks (checksums/signatures/provenance/SBOM for tier-1 packaged artifacts)
 - Critical CI gate failure in `v1-release-gates.yml`
 
 ### P1 (Must Fix Before Final GA Unless Exception)

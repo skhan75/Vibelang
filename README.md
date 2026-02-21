@@ -101,11 +101,25 @@ VibeLang is a native-first language + toolchain with:
 
 - deeper AI suggestions/autocomplete quality
 - full self-hosting path
-- release packaging/distribution polish
+- broader target expansion beyond current tier-1 packaged matrix
 
 ## Installation
 
-### From source (recommended now)
+### Packaged install (recommended)
+
+Use the platform guides:
+
+- Linux: `docs/install/linux.md`
+- macOS: `docs/install/macos.md`
+- Windows: `docs/install/windows.md`
+
+Then validate with:
+
+```bash
+vibe --version
+```
+
+### From source (contributor/developer path)
 
 ```bash
 git clone https://github.com/skhan75/VibeLang.git
@@ -123,8 +137,8 @@ vibe --help
 
 ### Packaged releases
 
-Prebuilt packages are planned as part of the v1 release track. For now, source build
-is the reliable path.
+Packaged binaries are produced by workflow `.github/workflows/v1-packaged-release.yml`
+with checksums, signatures, provenance statements, and SBOM artifacts.
 
 ## 60-Second Quickstart
 

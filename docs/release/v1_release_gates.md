@@ -22,6 +22,9 @@ gates with ownership and evidence requirements.
 | VG-011 | Baseline compile benchmarks for clean/no-op/incremental | Tooling + CI | P1 | rc1 | Compile baseline report + validator pass |
 | VG-012 | Incremental cache hit-rate telemetry in CI/local | Indexer + CLI | P1 | rc1 | Cache hit-rate metric and threshold gate |
 | VG-013 | Compile latency regression thresholds configured | Tooling + CI | P1 | rc1 | Threshold validator in v1 gate workflow |
+| VG-014 | Independent install path validated on clean tier-1 machines (no Cargo dependency) | Release + CI + DX | P0 | rc2 | Packaged-install workflow pass + install independence report |
+| VG-015 | Release artifacts are signed and attestable (checksums + signatures + provenance + SBOM) | Release + Security + CI | P0 | rc2 | Signing/provenance/SBOM workflow evidence + distribution readiness report |
+| VG-016 | CLI discoverability maturity (`vibe --help`, `vibe --version`) is stable and regression-gated | CLI + Docs + CI | P1 | rc2 | CLI UX workflow pass + help/version docs/tests |
 
 ## Gate Policy
 

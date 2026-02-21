@@ -39,6 +39,8 @@ Every release candidate should include links to:
 - v1 release candidate checklist (`reports/v1/release_candidate_checklist.md`)
 - self-host readiness report (`reports/v1/selfhost_readiness.md`)
 - spec readiness report (`reports/v1/spec_readiness.md`)
+- install independence report (`reports/v1/install_independence.md`)
+- distribution readiness report (`reports/v1/distribution_readiness.md`)
 
 ## Required Operational Docs
 

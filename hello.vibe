@@ -1,5 +1,0 @@
-pub main() -> Int {
-    @effect io
-    println("Hello from vibelang")
-    0
-}

@@ -523,3 +523,90 @@ Execution order is fixed and should be followed top to bottom.
 - [x] Item 2 completed: README is public-ready, accurate, and CI-validated against command drift (`README.md`, workflow `.github/workflows/phase7-readme-quality.yml`)
 - [ ] Item 3 completed: v1 production release gates are explicitly defined, owned, and passing for at least one release-candidate cycle (evidence path: `workflow .github/workflows/v1-release-gates.yml`, `reports/v1/readiness_dashboard.md`, `reports/v1/release_candidate_checklist.md`, `reports/v1/smoke_validation.md`, `reports/v1/spec_readiness.md`; remaining blockers tracked in `reports/v1/readiness_dashboard.md`)
 - [ ] Item 4 completed: book/docs program is structured, CI-gated, and includes tested chapter examples across core language/tooling surfaces (`book/`, docs CI jobs, `reports/docs/documentation_quality.md`)
+
+---
+
+## Phase 8: Independent Installation + CLI Maturity (No-Cargo End-User Path)
+
+Goal: make VibeLang installable/runnable like mainstream languages on end-user machines without requiring Rust/Cargo at install time.
+
+### 8.1 Distribution Scope and Policy
+
+- [x] Define packaged distribution matrix and tier policy (Linux tarball/deb/rpm, macOS pkg/Homebrew, Windows zip/msi) (evidence: `docs/release/distribution_matrix.md`)
+- [x] Define artifact trust policy (checksums, signatures, provenance/SBOM requirements) (evidence: `docs/release/distribution_security.md`)
+- [x] Define offline/air-gapped install + mirror strategy for packaged binaries (evidence: `docs/release/offline_install_policy.md`)
+- [x] Define update channels and compatibility policy for installer paths (`stable`, `rc`, rollback channel) (evidence: `docs/policy/install_channels_v1.md`)
+
+### 8.2 Packaging and Release Automation
+
+- [x] Add workflow `.github/workflows/v1-packaged-release.yml` to produce standalone `vibe` artifacts for tier-1 targets (evidence: workflow `.github/workflows/v1-packaged-release.yml` job `package_artifacts`)
+- [x] Add artifact signing/checksum/SBOM generation and publication in CI release jobs (evidence: workflow `.github/workflows/v1-packaged-release.yml` job `sign_attest_and_sbom`)
+- [ ] Add reproducibility checks between release candidates for packaged binaries (hash/metadata stability policy) (status: workflow wiring complete; first RC-to-RC comparison evidence pending)
+- [x] Add install-smoke jobs on clean runners that do not assume Rust/Cargo on PATH (evidence: workflow `.github/workflows/v1-packaged-release.yml` jobs `install_smoke_linux`, `install_smoke_macos`, `install_smoke_windows`)
+
+### 8.3 End-User Install UX (No Cargo Required)
+
+- [x] Publish install docs for each supported platform with copy-paste commands (evidence: `docs/install/linux.md`, `docs/install/macos.md`, `docs/install/windows.md`)
+- [x] Add install verification flow (`vibe --version`, hello-world run, uninstall path) (evidence: `docs/install/verification.md`)
+- [x] Add update + rollback instructions for packaged installs (evidence: `docs/install/update_and_rollback.md`)
+- [x] Add troubleshooting matrix for installer/network/signature failures (evidence: `docs/install/troubleshooting.md`)
+
+### 8.4 CLI Maturity and Discoverability
+
+- [x] Promote root `vibe --help` into a full manual-style command reference with examples and error-guided next steps (evidence: `docs/cli/help_manual.md`, `crates/vibe_cli/src/main.rs`)
+- [x] Add per-command help quality bar (`vibe <command> --help` has usage, flags, examples, exit behavior) and drift tests (evidence: test `crates/vibe_cli/tests/cli_help_snapshots.rs`)
+- [x] Add stable `vibe --version` output policy (semver, commit, target, profile) and machine-readable mode (evidence: `docs/cli/version_output.md`, test `crates/vibe_cli/tests/cli_version.rs`)
+- [x] Add CI gate for help/version UX regression (evidence: workflow `.github/workflows/v1-cli-ux.yml`)
+
+### 8.5 Reporting and Gate Wiring
+
+- [x] Publish `reports/v1/install_independence.md` with clean-machine install/run evidence (evidence: `reports/v1/install_independence.md`)
+- [x] Publish `reports/v1/distribution_readiness.md` with platform matrix status and known limitations (evidence: `reports/v1/distribution_readiness.md`)
+- [x] Wire blocking `independent_install_gate` into `.github/workflows/v1-release-gates.yml` summary dependency (evidence: workflow `.github/workflows/v1-release-gates.yml` job `independent_install_gate`, `summary.needs`)
+
+### Phase 8 Exit Criteria
+
+- [ ] A fresh machine without Rust/Cargo can install `vibe` from packaged artifacts and run programs successfully (evidence: `reports/v1/install_independence.md`, `workflow .github/workflows/v1-packaged-release.yml`; pending: first successful cross-platform packaged workflow run URL/artifacts)
+- [ ] `vibe --help` and `vibe --version` are stable, documented, and CI-regression-tested (evidence: `docs/cli/help_manual.md`, `docs/cli/version_output.md`, workflow `.github/workflows/v1-cli-ux.yml`; pending: first successful CI gate run URL)
+- [ ] Packaged release artifacts are signed, checksummed, and policy-compliant for tier-1 targets (evidence: `reports/v1/distribution_readiness.md`, release artifacts; pending: first successful signed packaged artifact cycle)
+
+---
+
+## Phase 9: Progressive Self-Host Transition (M2 -> M3 Expansion -> M4 Default Switch)
+
+Goal: safely move from host-implemented compiler/tooling components to VibeLang-authored components with deterministic parity, rollback controls, and production confidence.
+
+### 9.1 M2 Self-Host Expansion (Tooling Components)
+
+- [ ] Port docs/diagnostics formatter components to VibeLang with byte-for-byte parity harnesses
+- [ ] Add deterministic repeat-run tests for M2 components across fixture corpus
+- [ ] Publish M2 contract and component boundaries (evidence: `docs/selfhost/m2_formatter_diagnostics_contract.md`)
+- [ ] Publish M2 readiness evidence (evidence: `reports/v1/selfhost_m2_readiness.md`)
+
+### 9.2 M3 Expansion (Compiler Frontend Slices in Shadow Mode)
+
+- [ ] Expand M3 from starter shadow slice to multiple frontend slices (parser diagnostics normalization, type diagnostic ordering, selected MIR formatting paths)
+- [ ] Run host + self-host shadow dual-path checks in CI and block on parity drift
+- [ ] Track and enforce shadow-mode performance budgets (latency/memory overhead ceilings)
+- [ ] Publish expanded M3 readiness evidence (evidence: `reports/v1/selfhost_m3_expansion.md`)
+
+### 9.3 M4 Transition Gate (Default Switch Strategy)
+
+- [ ] Define graduation criteria for switching selected components to self-host default path (evidence: `docs/selfhost/m4_transition_criteria.md`)
+- [ ] Implement explicit rollback/fallback toggles for each promoted component (host path remains immediately available)
+- [ ] Run at least one release-candidate cycle with promoted self-host default component(s) and no parity regressions
+- [ ] Publish self-host transition playbook (evidence: `docs/release/selfhost_transition_playbook.md`)
+
+### 9.4 Governance, Ownership, and Reporting
+
+- [ ] Extend `reports/v1/selfhost_readiness.md` to track M1/M2/M3/M4 component-level parity counters and ownership
+- [ ] Publish per-component ownership + signoff matrix (evidence: `docs/selfhost/component_ownership.md`)
+- [ ] Add blocking `selfhost_transition_gate` in `.github/workflows/v1-release-gates.yml` covering M2/M3/M4 evidence
+- [ ] Add PR template requirements for self-host parity artifacts in release candidate branches
+
+### Phase 9 Exit Criteria
+
+- [ ] VibeLang team can author and ship meaningful compiler/tooling logic in VibeLang on a regular path (not seed-only) with CI parity gates (evidence: selfhost reports and CI jobs)
+- [ ] M2 and expanded M3 components show deterministic parity in consecutive CI runs above agreed threshold (evidence: `reports/v1/selfhost_readiness.md`)
+- [ ] At least one component is promoted to self-host default path with proven rollback and successful RC cycle evidence (evidence: `docs/release/selfhost_transition_playbook.md`, `reports/v1/release_candidate_checklist.md`)
+- [ ] Self-host transition is production-safe: fallback controls, ownership, and incident-response procedures are documented and exercised (evidence: `docs/selfhost/component_ownership.md`, release runbooks)
