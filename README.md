@@ -1,5 +1,3 @@
-# VibeLang
-
 > Fast like systems languages. Smooth like scripting languages.  
 > Built for the AI era with **Intent Driven Development**.
 
@@ -7,6 +5,7 @@
 <p align="center">
   <img src="assets/branding/vibelang-mascot-hero.png" alt="VibeLang mascot logo" width="480" />
 </p>
+
 
 <table width="100%">
   <tr>

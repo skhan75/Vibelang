@@ -50,16 +50,24 @@ pub fn compile_runtime_object(
         .map_err(|e| format!("failed to create runtime output directory: {e}"))?;
     let out_obj = output_dir.join("vibe_runtime.o");
     let src = runtime_source_path();
-    if !src.exists() {
-        return Err(format!(
-            "runtime source file not found at `{}`",
-            src.display()
-        ));
-    }
+    let source_for_compile = if src.exists() {
+        src
+    } else {
+        // Packaged CLI installs may run without the repository source tree.
+        // Materialize embedded runtime C source to a local temp path in that case.
+        let embedded_src = output_dir.join("vibe_runtime_embedded.c");
+        std::fs::write(&embedded_src, RUNTIME_C_SOURCE).map_err(|e| {
+            format!(
+                "failed to write embedded runtime source `{}`: {e}",
+                embedded_src.display()
+            )
+        })?;
+        embedded_src
+    };
 
     let mut cmd = Command::new("cc");
     cmd.arg("-c")
-        .arg(&src)
+        .arg(&source_for_compile)
         .arg("-o")
         .arg(&out_obj)
         .arg("-pthread")
