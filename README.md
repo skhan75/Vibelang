@@ -5,7 +5,7 @@
 
 <!-- markdownlint-disable MD033 -->
 <p align="center">
-  <img src="assets/branding/vibelang-mascot-hero.png" alt="VibeLang mascot logo" width="760" />
+  <img src="assets/branding/vibelang-mascot-hero.png" alt="VibeLang mascot logo" width="480" />
 </p>
 
 <table width="100%">
