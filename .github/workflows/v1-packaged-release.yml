@@ -286,7 +286,19 @@ jobs:
           checksums="/tmp/v1-signed/checksums-x86_64-unknown-linux-gnu.txt"
           test -f "${package}"
           test -f "${checksums}"
-          grep "  $(basename "${package}")$" "${checksums}" | sha256sum -c -
+          package_name="$(basename "${package}")"
+          expected="$(awk -v pkg="${package_name}" '$2 == pkg {print $1}' "${checksums}")"
+          if [ -z "${expected}" ]; then
+            echo "missing checksum entry for ${package_name}"
+            exit 1
+          fi
+          actual="$(sha256sum "${package}" | awk '{print $1}')"
+          if [ "${expected}" != "${actual}" ]; then
+            echo "checksum mismatch for ${package_name}"
+            echo "expected: ${expected}"
+            echo "actual:   ${actual}"
+            exit 1
+          fi
           cosign verify-blob \
             --certificate-identity-regexp ".*" \
             --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
@@ -357,7 +369,19 @@ jobs:
           checksums="/tmp/v1-signed/checksums-x86_64-apple-darwin.txt"
           test -f "${package}"
           test -f "${checksums}"
-          grep "  $(basename "${package}")$" "${checksums}" | shasum -a 256 -c -
+          package_name="$(basename "${package}")"
+          expected="$(awk -v pkg="${package_name}" '$2 == pkg {print $1}' "${checksums}")"
+          if [ -z "${expected}" ]; then
+            echo "missing checksum entry for ${package_name}"
+            exit 1
+          fi
+          actual="$(shasum -a 256 "${package}" | awk '{print $1}')"
+          if [ "${expected}" != "${actual}" ]; then
+            echo "checksum mismatch for ${package_name}"
+            echo "expected: ${expected}"
+            echo "actual:   ${actual}"
+            exit 1
+          fi
           cosign verify-blob \
             --certificate-identity-regexp ".*" \
             --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
@@ -419,6 +443,7 @@ jobs:
           name: v1-packaged-signed-bundle
           path: C:\v1-signed
       - uses: sigstore/cosign-installer@v3
+      - uses: ilammy/msvc-dev-cmd@v1
       - name: verify package checksum, signatures, and provenance
         shell: pwsh
         run: |
@@ -428,9 +453,10 @@ jobs:
           if (!(Test-Path $checksums)) { throw "missing checksums $checksums" }
 
           $pkgName = Split-Path $package -Leaf
-          $line = (Get-Content $checksums | Where-Object { $_ -match [regex]::Escape("  $pkgName") })
-          if ([string]::IsNullOrWhiteSpace($line)) { throw "missing checksum line for $pkgName" }
-          $expected = ($line -split '\s+')[0].ToLower()
+          $escapedPkg = [regex]::Escape($pkgName)
+          $entry = Select-String -Path $checksums -Pattern "^(?<hash>[0-9a-fA-F]{64})\s+$escapedPkg$" | Select-Object -First 1
+          if ($null -eq $entry) { throw "missing checksum line for $pkgName" }
+          $expected = $entry.Matches[0].Groups["hash"].Value.ToLower()
           $actual = (Get-FileHash -Algorithm SHA256 $package).Hash.ToLower()
           if ($expected -ne $actual) { throw "checksum mismatch for $pkgName" }
 
@@ -462,7 +488,7 @@ jobs:
           }
           "@ | Set-Content -Path $hello -Encoding utf8
 
-          $output = & $vibe.FullName run $hello
-          if ($output.Trim() -ne "hello from packaged vibe") {
+          $output = (& $vibe.FullName run $hello | Out-String).Trim()
+          if ($output -ne "hello from packaged vibe") {
             throw "unexpected hello output: $output"
           }
