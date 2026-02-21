@@ -19,10 +19,11 @@ integrity controls (checksums, signatures, provenance, SBOM).
 
 | Control | Evidence | Status |
 | --- | --- | --- |
-| SHA256 checksums | workflow `v1-packaged-release.yml` packaging steps | workflow-wired |
+| SHA256 checksums | workflow `v1-packaged-release.yml` packaging steps + local dry-run artifacts | local-pass + workflow-wired |
 | Sigstore/Cosign signatures | workflow job `sign_attest_and_sbom` | workflow-wired |
 | Provenance statements | workflow job `sign_attest_and_sbom` | workflow-wired |
 | SBOM generation | workflow job `sign_attest_and_sbom` | workflow-wired |
+| RC-to-RC reproducibility policy check | workflow job `packaged_reproducibility`, tool `tooling/release/checksum_manifest.py` | local-pass + workflow-wired |
 
 ## Governance Alignment
 
@@ -36,6 +37,7 @@ integrity controls (checksums, signatures, provenance, SBOM).
 - Policy/docs: `complete`
 - Workflow wiring: `complete`
 - Local Linux packaged-install simulation: `pass`
+- Local phase8 evidence index published: `complete` (`reports/v1/phase8_ci_evidence.md`)
 - First successful tier-1 signed package CI cycle: `pending`
 
 ## Open Follow-Up

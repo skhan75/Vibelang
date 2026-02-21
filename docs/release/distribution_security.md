@@ -25,6 +25,7 @@ For every tier-1 packaged artifact:
 Policy is enforced by workflow:
 
 - `.github/workflows/v1-packaged-release.yml`
+  - `packaged_reproducibility`
   - `sign_attest_and_sbom`
   - `install_smoke_linux`
   - `install_smoke_macos`
@@ -35,6 +36,8 @@ Policy is enforced by workflow:
 Release validation must confirm:
 
 - checksum digest matches artifact bytes,
+- reproducibility comparison passes policy check against baseline manifest
+  (`reports/v1/reproducibility/last_rc_checksums.json`),
 - signatures verify with OIDC issuer
   `https://token.actions.githubusercontent.com`,
 - provenance subject digest matches packaged artifact digest,

@@ -1,0 +1,10 @@
+{
+  "schema": "v1",
+  "generated_at_utc": "1970-01-01T00:00:00+00:00",
+  "source": {
+    "ref_name": "uninitialized",
+    "commit_sha": "uninitialized",
+    "version": "0.0.0"
+  },
+  "targets": {}
+}

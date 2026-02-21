@@ -16,4 +16,6 @@ If this PR is a release PR (for example, branch starts with `release/`), include
 - [ ] `reports/v1/release_candidate_checklist.md`
 - [ ] `reports/v1/install_independence.md`
 - [ ] `reports/v1/distribution_readiness.md`
+- [ ] `reports/v1/phase8_ci_evidence.md`
+- [ ] `reports/v1/phase8_closeout_summary.md`
 - [ ] link to successful `v1-release-gates.yml` run

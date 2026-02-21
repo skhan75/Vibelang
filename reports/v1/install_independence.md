@@ -34,7 +34,8 @@ Track readiness for no-Cargo end-user installation and execution from packaged
 - Install gate wiring: `complete`
 - CLI help/version maturity baseline: `local-pass`
 - Linux no-Cargo install simulation from packaged layout: `local-pass`
-- First successful cross-platform packaged install CI run: `pending`
+- Local evidence bundle and artifact links captured: `complete` (`reports/v1/phase8_ci_evidence.md`)
+- First successful cross-platform packaged install hosted CI run URL: `pending`
 
 ## Open Follow-Up
 

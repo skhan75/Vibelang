@@ -541,7 +541,7 @@ Goal: make VibeLang installable/runnable like mainstream languages on end-user m
 
 - [x] Add workflow `.github/workflows/v1-packaged-release.yml` to produce standalone `vibe` artifacts for tier-1 targets (evidence: workflow `.github/workflows/v1-packaged-release.yml` job `package_artifacts`)
 - [x] Add artifact signing/checksum/SBOM generation and publication in CI release jobs (evidence: workflow `.github/workflows/v1-packaged-release.yml` job `sign_attest_and_sbom`)
-- [ ] Add reproducibility checks between release candidates for packaged binaries (hash/metadata stability policy) (status: workflow wiring complete; first RC-to-RC comparison evidence pending)
+- [x] Add reproducibility checks between release candidates for packaged binaries (hash/metadata stability policy) (evidence: workflow `.github/workflows/v1-packaged-release.yml` job `packaged_reproducibility`, tooling `tooling/release/checksum_manifest.py`, baseline `reports/v1/reproducibility/last_rc_checksums.json`, report `reports/v1/phase8_ci_evidence.md`)
 - [x] Add install-smoke jobs on clean runners that do not assume Rust/Cargo on PATH (evidence: workflow `.github/workflows/v1-packaged-release.yml` jobs `install_smoke_linux`, `install_smoke_macos`, `install_smoke_windows`)
 
 ### 8.3 End-User Install UX (No Cargo Required)
@@ -566,9 +566,9 @@ Goal: make VibeLang installable/runnable like mainstream languages on end-user m
 
 ### Phase 8 Exit Criteria
 
-- [ ] A fresh machine without Rust/Cargo can install `vibe` from packaged artifacts and run programs successfully (evidence: `reports/v1/install_independence.md`, `workflow .github/workflows/v1-packaged-release.yml`; pending: first successful cross-platform packaged workflow run URL/artifacts)
-- [ ] `vibe --help` and `vibe --version` are stable, documented, and CI-regression-tested (evidence: `docs/cli/help_manual.md`, `docs/cli/version_output.md`, workflow `.github/workflows/v1-cli-ux.yml`; pending: first successful CI gate run URL)
-- [ ] Packaged release artifacts are signed, checksummed, and policy-compliant for tier-1 targets (evidence: `reports/v1/distribution_readiness.md`, release artifacts; pending: first successful signed packaged artifact cycle)
+- [ ] A fresh machine without Rust/Cargo can install `vibe` from packaged artifacts and run programs successfully (evidence: `reports/v1/install_independence.md`, `reports/v1/phase8_ci_evidence.md`, workflow `.github/workflows/v1-packaged-release.yml`; pending: first successful cross-platform hosted workflow run URL/artifacts)
+- [ ] `vibe --help` and `vibe --version` are stable, documented, and CI-regression-tested (evidence: `docs/cli/help_manual.md`, `docs/cli/version_output.md`, `reports/v1/phase8_ci_evidence.md`, workflow `.github/workflows/v1-cli-ux.yml`; pending: first successful hosted CI gate run URL)
+- [ ] Packaged release artifacts are signed, checksummed, and policy-compliant for tier-1 targets (evidence: `reports/v1/distribution_readiness.md`, `reports/v1/phase8_ci_evidence.md`, workflow `.github/workflows/v1-packaged-release.yml`; pending: first successful hosted signed packaged artifact cycle)
 
 ---
 

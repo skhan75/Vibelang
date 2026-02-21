@@ -39,7 +39,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cargo build --release -p vibe_cli --target "${{ matrix.target }}"
+          cargo build --release --locked -p vibe_cli --target "${{ matrix.target }}"
       - name: package standalone artifact and checksum manifest
         shell: bash
         run: |
@@ -128,10 +128,45 @@ jobs:
           name: v1-package-${{ matrix.target }}
           path: dist/*
 
+  packaged_reproducibility:
+    name: packaged-reproducibility
+    runs-on: ubuntu-latest
+    needs: package_artifacts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: v1-package-*
+          merge-multiple: true
+          path: /tmp/v1-packaged
+      - name: build and compare checksum manifests
+        run: |
+          set -euo pipefail
+          version="$(grep -E '^version = \"' Cargo.toml | head -n1 | sed -E 's/version = \"([^\"]+)\"/\1/')"
+          python3 tooling/release/checksum_manifest.py build \
+            --checksums-dir /tmp/v1-packaged \
+            --out /tmp/v1-current-checksums.json \
+            --ref-name "${GITHUB_REF_NAME}" \
+            --commit-sha "${GITHUB_SHA}" \
+            --version "${version}"
+          python3 tooling/release/checksum_manifest.py compare \
+            --current /tmp/v1-current-checksums.json \
+            --baseline reports/v1/reproducibility/last_rc_checksums.json \
+            --report /tmp/v1-packaged-reproducibility.md
+          cat /tmp/v1-packaged-reproducibility.md >> "${GITHUB_STEP_SUMMARY}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v1-packaged-reproducibility
+          path: |
+            /tmp/v1-current-checksums.json
+            /tmp/v1-packaged-reproducibility.md
+
   sign_attest_and_sbom:
     name: sign-attest-sbom
     runs-on: ubuntu-latest
-    needs: package_artifacts
+    needs:
+      - package_artifacts
+      - packaged_reproducibility
     permissions:
       contents: read
       id-token: write

@@ -41,6 +41,8 @@ Every release candidate should include links to:
 - spec readiness report (`reports/v1/spec_readiness.md`)
 - install independence report (`reports/v1/install_independence.md`)
 - distribution readiness report (`reports/v1/distribution_readiness.md`)
+- phase8 CI evidence index (`reports/v1/phase8_ci_evidence.md`)
+- phase8 closeout summary (`reports/v1/phase8_closeout_summary.md`)
 
 ## Required Operational Docs
 

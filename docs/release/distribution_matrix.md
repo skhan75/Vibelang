@@ -24,6 +24,20 @@ Each packaged artifact is accompanied by:
 - provenance statement: `<artifact>.provenance.json`
 - SBOM: `<artifact>.sbom.spdx.json`
 
+## Reproducibility Policy (RC-to-RC)
+
+- Workflow job `packaged_reproducibility` builds a consolidated checksum manifest
+  from all target checksum files.
+- Current manifest is compared against baseline:
+  `reports/v1/reproducibility/last_rc_checksums.json`.
+- Comparison policy:
+  - fail when checksum drift is detected for the same release identity
+    (`ref_name` + `version`)
+  - allow/report drift across different RC identities
+- Evidence artifacts:
+  - `v1-packaged-reproducibility` (`v1-current-checksums.json`,
+    `v1-packaged-reproducibility.md`)
+
 ## Promotion Rule
 
 A release candidate is not promotable if any tier-1 package:

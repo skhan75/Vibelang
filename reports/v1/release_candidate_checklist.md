@@ -48,8 +48,9 @@ Owner: `vibelang-core`
 - [x] `reports/v1/spec_readiness.md`
 - [x] `reports/v1/install_independence.md`
 - [x] `reports/v1/distribution_readiness.md`
+- [x] `reports/v1/phase8_ci_evidence.md`
 - [ ] Workflow run URL: `TBD`
-- [x] Additional artifact links: `reports/v1/smoke_validation.md`, `reports/v1/dynamic_containers_conformance.md`, `reports/v1/install_independence.md`, `reports/v1/distribution_readiness.md`, `reports/v1/selfhost_readiness.json`, `reports/v1/spec_readiness.md`
+- [x] Additional artifact links: `reports/v1/smoke_validation.md`, `reports/v1/dynamic_containers_conformance.md`, `reports/v1/install_independence.md`, `reports/v1/distribution_readiness.md`, `reports/v1/phase8_ci_evidence.md`, `reports/v1/phase8_closeout_summary.md`, `reports/v1/selfhost_readiness.json`, `reports/v1/spec_readiness.md`
 
 ## Promote / Reject Decision
 

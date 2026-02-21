@@ -24,9 +24,9 @@ Date: 2026-02-21
 | Coverage thresholds | LOCAL-PASS | `docs/testing/coverage_policy.md`, `tooling/metrics/validate_phase7_coverage_matrix.py`, `tooling/metrics/validate_v1_quality_budgets.py` | QA/CI | Threshold validation wired into v1 gates workflow |
 | Soak stability | LOCAL-PASS | workflow `v1-release-gates.yml` jobs `runtime_and_concurrency_smokes`, `quality_and_coverage_gate` | Runtime | Bounded runtime/concurrency smokes pass locally |
 | Packaging integrity | LOCAL-PASS | workflow `v1-release-gates.yml` job `packaging_integrity_smoke` | Release/Tooling | Checksum generation gate added |
-| Independent no-Cargo install | PARTIAL-P0 | `reports/v1/install_independence.md`, workflow `v1-release-gates.yml` job `independent_install_gate`, workflow `v1-packaged-release.yml` install-smoke jobs | Release/CI | Gate and install smoke wiring complete; first successful cross-platform packaged workflow evidence pending |
-| Distribution trust stack (signature/provenance/SBOM) | PARTIAL-P0 | `reports/v1/distribution_readiness.md`, workflow `v1-packaged-release.yml` job `sign_attest_and_sbom` | Release/Security/CI | Signing/attestation/SBOM pipeline wired; first successful signed artifact cycle evidence pending |
-| CLI help/version UX | LOCAL-PASS | `docs/cli/help_manual.md`, `docs/cli/version_output.md`, tests `cli_help_snapshots`, `cli_version`, workflow `v1-cli-ux.yml` | CLI/Docs | Manual-style help and stable version outputs implemented with regression tests |
+| Independent no-Cargo install | PARTIAL-P0 | `reports/v1/install_independence.md`, `reports/v1/phase8_ci_evidence.md`, workflow `v1-release-gates.yml` job `independent_install_gate`, workflow `v1-packaged-release.yml` install-smoke jobs | Release/CI | Local evidence is captured; first successful cross-platform packaged workflow URL/artifacts still pending |
+| Distribution trust stack (signature/provenance/SBOM) | PARTIAL-P0 | `reports/v1/distribution_readiness.md`, `reports/v1/phase8_ci_evidence.md`, workflow `v1-packaged-release.yml` job `sign_attest_and_sbom` | Release/Security/CI | Reproducibility + trust pipeline wiring complete with local evidence; first successful hosted signed artifact cycle remains pending |
+| CLI help/version UX | LOCAL-PASS | `docs/cli/help_manual.md`, `docs/cli/version_output.md`, tests `cli_help_snapshots`, `cli_version`, workflow `v1-cli-ux.yml`, `reports/v1/phase8_ci_evidence.md` | CLI/Docs | Manual-style help and stable version outputs implemented with regression tests and local workflow-equivalent evidence |
 | Compatibility (upgrade/downgrade) | LOCAL-PASS | workflow `v1-release-gates.yml` job `compatibility_gate` | CLI/Release | Adjacent compatibility path currently represented by extension/lock-mode compatibility tests |
 | Ops docs readiness | DONE | docs under `docs/release/`, `docs/support/`, `docs/privacy/` | Release | Required docs added |
 
@@ -50,4 +50,6 @@ Date: 2026-02-21
 - `reports/v1/dynamic_containers_conformance.md`
 - `reports/v1/install_independence.md`
 - `reports/v1/distribution_readiness.md`
+- `reports/v1/phase8_ci_evidence.md`
+- `reports/v1/phase8_closeout_summary.md`
 - Additional gate artifacts produced by `.github/workflows/v1-release-gates.yml`

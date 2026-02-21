@@ -50,3 +50,7 @@ All commands were executed from workspace root.
   `reports/v1/dynamic_containers_conformance.md`.
 - Independent install and distribution trust wiring evidence is published in
   `reports/v1/install_independence.md` and `reports/v1/distribution_readiness.md`.
+- Consolidated Phase 8 local workflow-equivalent evidence and artifact links are
+  published in `reports/v1/phase8_ci_evidence.md`.
+- Final Phase 8 compliance audit summary is published in
+  `reports/v1/phase8_closeout_summary.md`.
