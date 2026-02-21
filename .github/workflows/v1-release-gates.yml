@@ -84,6 +84,83 @@ jobs:
           set -euo pipefail
           cargo test -p vibe_cli --test phase7_v1_tightening
 
+  dynamic_containers_gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: run dynamic container frontend coverage
+        run: |
+          set -euo pipefail
+          cargo test -p vibe_cli --test frontend_fixtures parse_err_golden
+          cargo test -p vibe_cli --test frontend_fixtures type_ok_fixtures
+          cargo test -p vibe_cli --test frontend_fixtures type_err_golden
+          cargo test -p vibe_cli --test frontend_fixtures ownership_err_golden
+          cargo test -p vibe_cli --test frontend_fixtures snapshots_container_ops_mir_is_deterministic
+      - name: run dynamic container runtime conformance smokes
+        run: |
+          set -euo pipefail
+          cargo test -p vibe_cli --test phase7_v1_tightening phase7_algorithmic_recursion_samples_run_expected_outputs
+          cargo test -p vibe_cli --test phase7_v1_tightening phase7_memory_heap_pressure_smoke_is_bounded
+          cargo test -p vibe_cli --test phase7_v1_tightening phase7_ownership_sendability_smokes_cover_positive_and_negative_paths
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v1-dynamic-containers-conformance
+          path: reports/v1/dynamic_containers_conformance.md
+
+  spec_integrity_gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: lint spec markdown
+        run: |
+          set -euo pipefail
+          npx --yes markdownlint-cli@latest docs/spec/*.md --disable MD013
+      - name: verify local markdown links in spec docs
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import re
+          import sys
+          from pathlib import Path
+
+          root = Path(".").resolve()
+          spec_dir = root / "docs" / "spec"
+          pattern = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
+          missing = []
+
+          for md in sorted(spec_dir.glob("*.md")):
+              text = md.read_text()
+              for match in pattern.finditer(text):
+                  raw = match.group(1).strip()
+                  if not raw:
+                      continue
+                  target = raw.split()[0].strip("<>")
+                  if target.startswith(("http://", "https://", "mailto:", "#")):
+                      continue
+                  target = target.split("#", 1)[0]
+                  if not target:
+                      continue
+                  path = (md.parent / target).resolve()
+                  if not path.exists():
+                      missing.append(f"{md.relative_to(root)} -> {target}")
+
+          if missing:
+              print("spec local link check failed:")
+              for item in missing:
+                  print(f"  - {item}")
+              sys.exit(1)
+          print("spec local link check passed")
+          PY
+      - name: run spec consistency and coverage validators
+        run: |
+          set -euo pipefail
+          python3 tooling/spec/validate_spec_consistency.py
+          python3 tooling/spec/validate_spec_coverage.py
+
   compatibility_gate:
     runs-on: ubuntu-latest
     steps:
@@ -140,6 +217,9 @@ jobs:
           test -f docs/privacy/telemetry_statement.md
           test -f docs/testing/coverage_policy.md
           test -f docs/selfhost/m1_formatter_contract.md
+          test -f docs/spec/README.md
+          test -f docs/spec/grammar_v1_0.ebnf
+          test -f docs/spec/spec_coverage_matrix.md
 
   reports_gate:
     runs-on: ubuntu-latest
@@ -152,6 +232,8 @@ jobs:
           test -f reports/v1/release_candidate_checklist.md
           test -f reports/v1/selfhost_readiness.md
           test -f reports/v1/selfhost_readiness.json
+          test -f reports/v1/spec_readiness.md
+          test -f reports/v1/dynamic_containers_conformance.md
 
   release_pr_report_links_gate:
     if: ${{ github.event_name == 'pull_request' && startsWith(github.head_ref, 'release/') }}
@@ -164,6 +246,7 @@ jobs:
           set -euo pipefail
           echo "$PR_BODY" | grep -q "reports/v1/readiness_dashboard.md"
           echo "$PR_BODY" | grep -q "reports/v1/release_candidate_checklist.md"
+          echo "$PR_BODY" | grep -q "reports/v1/dynamic_containers_conformance.md"
 
   summary:
     runs-on: ubuntu-latest
@@ -174,6 +257,8 @@ jobs:
       - packaging_integrity_smoke
       - metrics_threshold_smoke
       - quality_and_coverage_gate
+      - dynamic_containers_gate
+      - spec_integrity_gate
       - compatibility_gate
       - selfhost_readiness_gate
       - readiness_docs_gate

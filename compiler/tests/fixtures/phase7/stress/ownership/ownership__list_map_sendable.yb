@@ -1,0 +1,16 @@
+consume_counts(counts: Map<Int, Int>) -> Int {
+  counts.len()
+}
+
+consume_values(values: List<Int>) -> Int {
+  values.len()
+}
+
+pub main() -> Int {
+  @effect concurrency
+  counts := {1: 10, 2: 20}
+  values := [3, 4, 5]
+  go consume_counts(counts)
+  go consume_values(values)
+  0
+}

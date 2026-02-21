@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 #include <pthread.h>
 #include <time.h>
 #include <unistd.h>
@@ -26,6 +27,43 @@ typedef struct vibe_spawn1_i64_ctx {
     int64_t arg0;
 } vibe_spawn1_i64_ctx;
 
+enum {
+    VIBE_CONTAINER_LIST_I64 = 1,
+    VIBE_CONTAINER_MAP_I64_I64 = 2,
+    VIBE_CONTAINER_MAP_STR_I64 = 3,
+};
+
+typedef struct vibe_list_i64 {
+    int64_t tag;
+    int64_t len;
+    int64_t cap;
+    int64_t *items;
+} vibe_list_i64;
+
+typedef struct vibe_map_i64_entry {
+    int64_t key;
+    int64_t value;
+} vibe_map_i64_entry;
+
+typedef struct vibe_map_i64_i64 {
+    int64_t tag;
+    int64_t len;
+    int64_t cap;
+    vibe_map_i64_entry *entries;
+} vibe_map_i64_i64;
+
+typedef struct vibe_map_str_entry {
+    char *key;
+    int64_t value;
+} vibe_map_str_entry;
+
+typedef struct vibe_map_str_i64 {
+    int64_t tag;
+    int64_t len;
+    int64_t cap;
+    vibe_map_str_entry *entries;
+} vibe_map_str_i64;
+
 static pthread_mutex_t vibe_select_cursor_mu = PTHREAD_MUTEX_INITIALIZER;
 static uint64_t vibe_select_cursor = 0;
 
@@ -50,6 +88,459 @@ void vibe_panic(const char *s) {
 
 void vibe_exit(int code) {
     exit(code);
+}
+
+static char *vibe_strdup_or_panic(const char *src) {
+    if (src == NULL) {
+        char *empty = (char *)calloc(1, sizeof(char));
+        if (empty == NULL) {
+            vibe_panic("failed to allocate empty string");
+        }
+        empty[0] = '\0';
+        return empty;
+    }
+    size_t len = strlen(src);
+    char *copy = (char *)calloc(len + 1, sizeof(char));
+    if (copy == NULL) {
+        vibe_panic("failed to allocate string copy");
+    }
+    memcpy(copy, src, len);
+    copy[len] = '\0';
+    return copy;
+}
+
+static void vibe_list_ensure_capacity(vibe_list_i64 *list, int64_t min_cap) {
+    if (list == NULL) {
+        vibe_panic("list handle is null");
+    }
+    if (list->cap >= min_cap) {
+        return;
+    }
+    int64_t next_cap = list->cap <= 0 ? 4 : list->cap;
+    while (next_cap < min_cap) {
+        next_cap *= 2;
+    }
+    int64_t *next_items = (int64_t *)calloc((size_t)next_cap, sizeof(int64_t));
+    if (next_items == NULL) {
+        vibe_panic("failed to grow list buffer");
+    }
+    if (list->items != NULL && list->len > 0) {
+        memcpy(next_items, list->items, (size_t)list->len * sizeof(int64_t));
+    }
+    free(list->items);
+    list->items = next_items;
+    list->cap = next_cap;
+}
+
+void *vibe_list_new_i64(int64_t capacity) {
+    if (capacity < 0) {
+        capacity = 0;
+    }
+    vibe_list_i64 *list = (vibe_list_i64 *)calloc(1, sizeof(vibe_list_i64));
+    if (list == NULL) {
+        vibe_panic("failed to allocate list");
+    }
+    list->tag = VIBE_CONTAINER_LIST_I64;
+    list->len = 0;
+    list->cap = 0;
+    list->items = NULL;
+    if (capacity > 0) {
+        vibe_list_ensure_capacity(list, capacity);
+    }
+    return (void *)list;
+}
+
+int64_t vibe_list_append_i64(void *handle, int64_t value) {
+    vibe_list_i64 *list = (vibe_list_i64 *)handle;
+    if (list == NULL || list->tag != VIBE_CONTAINER_LIST_I64) {
+        vibe_panic("list append called on non-list handle");
+    }
+    vibe_list_ensure_capacity(list, list->len + 1);
+    list->items[list->len] = value;
+    list->len += 1;
+    return list->len;
+}
+
+int64_t vibe_list_get_i64(void *handle, int64_t index) {
+    vibe_list_i64 *list = (vibe_list_i64 *)handle;
+    if (list == NULL || list->tag != VIBE_CONTAINER_LIST_I64) {
+        vibe_panic("list get called on non-list handle");
+    }
+    if (index < 0 || index >= list->len) {
+        vibe_panic("list index out of bounds");
+    }
+    return list->items[index];
+}
+
+int64_t vibe_list_set_i64(void *handle, int64_t index, int64_t value) {
+    vibe_list_i64 *list = (vibe_list_i64 *)handle;
+    if (list == NULL || list->tag != VIBE_CONTAINER_LIST_I64) {
+        vibe_panic("list set called on non-list handle");
+    }
+    if (index < 0 || index >= list->len) {
+        vibe_panic("list index out of bounds");
+    }
+    list->items[index] = value;
+    return 0;
+}
+
+int64_t vibe_list_len_i64(void *handle) {
+    vibe_list_i64 *list = (vibe_list_i64 *)handle;
+    if (list == NULL || list->tag != VIBE_CONTAINER_LIST_I64) {
+        vibe_panic("list len called on non-list handle");
+    }
+    return list->len;
+}
+
+static void vibe_map_i64_ensure_capacity(vibe_map_i64_i64 *map, int64_t min_cap) {
+    if (map == NULL) {
+        vibe_panic("map handle is null");
+    }
+    if (map->cap >= min_cap) {
+        return;
+    }
+    int64_t next_cap = map->cap <= 0 ? 8 : map->cap;
+    while (next_cap < min_cap) {
+        next_cap *= 2;
+    }
+    vibe_map_i64_entry *next_entries =
+        (vibe_map_i64_entry *)calloc((size_t)next_cap, sizeof(vibe_map_i64_entry));
+    if (next_entries == NULL) {
+        vibe_panic("failed to grow i64 map");
+    }
+    if (map->entries != NULL && map->len > 0) {
+        memcpy(next_entries, map->entries, (size_t)map->len * sizeof(vibe_map_i64_entry));
+    }
+    free(map->entries);
+    map->entries = next_entries;
+    map->cap = next_cap;
+}
+
+void *vibe_map_new_i64_i64(void) {
+    vibe_map_i64_i64 *map = (vibe_map_i64_i64 *)calloc(1, sizeof(vibe_map_i64_i64));
+    if (map == NULL) {
+        vibe_panic("failed to allocate i64 map");
+    }
+    map->tag = VIBE_CONTAINER_MAP_I64_I64;
+    map->len = 0;
+    map->cap = 0;
+    map->entries = NULL;
+    return (void *)map;
+}
+
+int64_t vibe_map_set_i64_i64(void *handle, int64_t key, int64_t value) {
+    vibe_map_i64_i64 *map = (vibe_map_i64_i64 *)handle;
+    if (map == NULL || map->tag != VIBE_CONTAINER_MAP_I64_I64) {
+        vibe_panic("map.set(i64, i64) called on non-map handle");
+    }
+    for (int64_t i = 0; i < map->len; i++) {
+        if (map->entries[i].key == key) {
+            map->entries[i].value = value;
+            return 0;
+        }
+    }
+    vibe_map_i64_ensure_capacity(map, map->len + 1);
+    map->entries[map->len].key = key;
+    map->entries[map->len].value = value;
+    map->len += 1;
+    return 0;
+}
+
+int64_t vibe_map_get_i64_i64(void *handle, int64_t key) {
+    vibe_map_i64_i64 *map = (vibe_map_i64_i64 *)handle;
+    if (map == NULL || map->tag != VIBE_CONTAINER_MAP_I64_I64) {
+        vibe_panic("map.get(i64) called on non-map handle");
+    }
+    for (int64_t i = 0; i < map->len; i++) {
+        if (map->entries[i].key == key) {
+            return map->entries[i].value;
+        }
+    }
+    return 0;
+}
+
+int64_t vibe_map_contains_i64_i64(void *handle, int64_t key) {
+    vibe_map_i64_i64 *map = (vibe_map_i64_i64 *)handle;
+    if (map == NULL || map->tag != VIBE_CONTAINER_MAP_I64_I64) {
+        vibe_panic("map.contains(i64) called on non-map handle");
+    }
+    for (int64_t i = 0; i < map->len; i++) {
+        if (map->entries[i].key == key) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int64_t vibe_map_remove_i64_i64(void *handle, int64_t key) {
+    vibe_map_i64_i64 *map = (vibe_map_i64_i64 *)handle;
+    if (map == NULL || map->tag != VIBE_CONTAINER_MAP_I64_I64) {
+        vibe_panic("map.remove(i64) called on non-map handle");
+    }
+    for (int64_t i = 0; i < map->len; i++) {
+        if (map->entries[i].key == key) {
+            for (int64_t j = i + 1; j < map->len; j++) {
+                map->entries[j - 1] = map->entries[j];
+            }
+            map->len -= 1;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int64_t vibe_map_len_i64_i64(void *handle) {
+    vibe_map_i64_i64 *map = (vibe_map_i64_i64 *)handle;
+    if (map == NULL || map->tag != VIBE_CONTAINER_MAP_I64_I64) {
+        vibe_panic("map.len called on non-map handle");
+    }
+    return map->len;
+}
+
+static void vibe_map_str_ensure_capacity(vibe_map_str_i64 *map, int64_t min_cap) {
+    if (map == NULL) {
+        vibe_panic("string map handle is null");
+    }
+    if (map->cap >= min_cap) {
+        return;
+    }
+    int64_t next_cap = map->cap <= 0 ? 8 : map->cap;
+    while (next_cap < min_cap) {
+        next_cap *= 2;
+    }
+    vibe_map_str_entry *next_entries =
+        (vibe_map_str_entry *)calloc((size_t)next_cap, sizeof(vibe_map_str_entry));
+    if (next_entries == NULL) {
+        vibe_panic("failed to grow string map");
+    }
+    if (map->entries != NULL && map->len > 0) {
+        memcpy(next_entries, map->entries, (size_t)map->len * sizeof(vibe_map_str_entry));
+    }
+    free(map->entries);
+    map->entries = next_entries;
+    map->cap = next_cap;
+}
+
+void *vibe_map_new_str_i64(void) {
+    vibe_map_str_i64 *map = (vibe_map_str_i64 *)calloc(1, sizeof(vibe_map_str_i64));
+    if (map == NULL) {
+        vibe_panic("failed to allocate string map");
+    }
+    map->tag = VIBE_CONTAINER_MAP_STR_I64;
+    map->len = 0;
+    map->cap = 0;
+    map->entries = NULL;
+    return (void *)map;
+}
+
+int64_t vibe_map_set_str_i64(void *handle, const char *key, int64_t value) {
+    vibe_map_str_i64 *map = (vibe_map_str_i64 *)handle;
+    if (map == NULL || map->tag != VIBE_CONTAINER_MAP_STR_I64) {
+        vibe_panic("map.set(Str, i64) called on non-map handle");
+    }
+    const char *safe_key = key == NULL ? "" : key;
+    for (int64_t i = 0; i < map->len; i++) {
+        if (strcmp(map->entries[i].key, safe_key) == 0) {
+            map->entries[i].value = value;
+            return 0;
+        }
+    }
+    vibe_map_str_ensure_capacity(map, map->len + 1);
+    map->entries[map->len].key = vibe_strdup_or_panic(safe_key);
+    map->entries[map->len].value = value;
+    map->len += 1;
+    return 0;
+}
+
+int64_t vibe_map_get_str_i64(void *handle, const char *key) {
+    vibe_map_str_i64 *map = (vibe_map_str_i64 *)handle;
+    if (map == NULL || map->tag != VIBE_CONTAINER_MAP_STR_I64) {
+        vibe_panic("map.get(Str) called on non-map handle");
+    }
+    const char *safe_key = key == NULL ? "" : key;
+    for (int64_t i = 0; i < map->len; i++) {
+        if (strcmp(map->entries[i].key, safe_key) == 0) {
+            return map->entries[i].value;
+        }
+    }
+    return 0;
+}
+
+int64_t vibe_map_contains_str_i64(void *handle, const char *key) {
+    vibe_map_str_i64 *map = (vibe_map_str_i64 *)handle;
+    if (map == NULL || map->tag != VIBE_CONTAINER_MAP_STR_I64) {
+        vibe_panic("map.contains(Str) called on non-map handle");
+    }
+    const char *safe_key = key == NULL ? "" : key;
+    for (int64_t i = 0; i < map->len; i++) {
+        if (strcmp(map->entries[i].key, safe_key) == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int64_t vibe_map_remove_str_i64(void *handle, const char *key) {
+    vibe_map_str_i64 *map = (vibe_map_str_i64 *)handle;
+    if (map == NULL || map->tag != VIBE_CONTAINER_MAP_STR_I64) {
+        vibe_panic("map.remove(Str) called on non-map handle");
+    }
+    const char *safe_key = key == NULL ? "" : key;
+    for (int64_t i = 0; i < map->len; i++) {
+        if (strcmp(map->entries[i].key, safe_key) == 0) {
+            free(map->entries[i].key);
+            for (int64_t j = i + 1; j < map->len; j++) {
+                map->entries[j - 1] = map->entries[j];
+            }
+            map->len -= 1;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int64_t vibe_map_len_str_i64(void *handle) {
+    vibe_map_str_i64 *map = (vibe_map_str_i64 *)handle;
+    if (map == NULL || map->tag != VIBE_CONTAINER_MAP_STR_I64) {
+        vibe_panic("map.len called on non-map handle");
+    }
+    return map->len;
+}
+
+int64_t vibe_container_len(void *handle) {
+    if (handle == NULL) {
+        vibe_panic("container len called on null handle");
+    }
+    int64_t tag = *((int64_t *)handle);
+    if (tag == VIBE_CONTAINER_LIST_I64) {
+        return vibe_list_len_i64(handle);
+    }
+    if (tag == VIBE_CONTAINER_MAP_I64_I64) {
+        return vibe_map_len_i64_i64(handle);
+    }
+    if (tag == VIBE_CONTAINER_MAP_STR_I64) {
+        return vibe_map_len_str_i64(handle);
+    }
+    vibe_panic("container len called on unsupported container");
+    return 0;
+}
+
+int64_t vibe_container_get_i64(void *handle, int64_t key_or_index) {
+    if (handle == NULL) {
+        vibe_panic("container get(i64) called on null handle");
+    }
+    int64_t tag = *((int64_t *)handle);
+    if (tag == VIBE_CONTAINER_LIST_I64) {
+        return vibe_list_get_i64(handle, key_or_index);
+    }
+    if (tag == VIBE_CONTAINER_MAP_I64_I64) {
+        return vibe_map_get_i64_i64(handle, key_or_index);
+    }
+    vibe_panic("container get(i64) unsupported for this container type");
+    return 0;
+}
+
+int64_t vibe_container_set_i64(void *handle, int64_t key_or_index, int64_t value) {
+    if (handle == NULL) {
+        vibe_panic("container set(i64, i64) called on null handle");
+    }
+    int64_t tag = *((int64_t *)handle);
+    if (tag == VIBE_CONTAINER_LIST_I64) {
+        return vibe_list_set_i64(handle, key_or_index, value);
+    }
+    if (tag == VIBE_CONTAINER_MAP_I64_I64) {
+        return vibe_map_set_i64_i64(handle, key_or_index, value);
+    }
+    vibe_panic("container set(i64, i64) unsupported for this container type");
+    return 0;
+}
+
+int64_t vibe_container_contains_i64(void *handle, int64_t key) {
+    if (handle == NULL) {
+        vibe_panic("container contains(i64) called on null handle");
+    }
+    int64_t tag = *((int64_t *)handle);
+    if (tag == VIBE_CONTAINER_MAP_I64_I64) {
+        return vibe_map_contains_i64_i64(handle, key);
+    }
+    vibe_panic("container contains(i64) is only valid for Map<Int, Int>");
+    return 0;
+}
+
+int64_t vibe_container_remove_i64(void *handle, int64_t key) {
+    if (handle == NULL) {
+        vibe_panic("container remove(i64) called on null handle");
+    }
+    int64_t tag = *((int64_t *)handle);
+    if (tag == VIBE_CONTAINER_MAP_I64_I64) {
+        return vibe_map_remove_i64_i64(handle, key);
+    }
+    vibe_panic("container remove(i64) is only valid for Map<Int, Int>");
+    return 0;
+}
+
+int64_t vibe_container_get_str_i64(void *handle, const char *key) {
+    if (handle == NULL) {
+        vibe_panic("container get(Str) called on null handle");
+    }
+    int64_t tag = *((int64_t *)handle);
+    if (tag == VIBE_CONTAINER_MAP_STR_I64) {
+        return vibe_map_get_str_i64(handle, key);
+    }
+    vibe_panic("container get(Str) is only valid for Map<Str, Int>");
+    return 0;
+}
+
+int64_t vibe_container_set_str_i64(void *handle, const char *key, int64_t value) {
+    if (handle == NULL) {
+        vibe_panic("container set(Str, Int) called on null handle");
+    }
+    int64_t tag = *((int64_t *)handle);
+    if (tag == VIBE_CONTAINER_MAP_STR_I64) {
+        return vibe_map_set_str_i64(handle, key, value);
+    }
+    vibe_panic("container set(Str, Int) is only valid for Map<Str, Int>");
+    return 0;
+}
+
+int64_t vibe_container_contains_str_i64(void *handle, const char *key) {
+    if (handle == NULL) {
+        vibe_panic("container contains(Str) called on null handle");
+    }
+    int64_t tag = *((int64_t *)handle);
+    if (tag == VIBE_CONTAINER_MAP_STR_I64) {
+        return vibe_map_contains_str_i64(handle, key);
+    }
+    vibe_panic("container contains(Str) is only valid for Map<Str, Int>");
+    return 0;
+}
+
+int64_t vibe_container_remove_str_i64(void *handle, const char *key) {
+    if (handle == NULL) {
+        vibe_panic("container remove(Str) called on null handle");
+    }
+    int64_t tag = *((int64_t *)handle);
+    if (tag == VIBE_CONTAINER_MAP_STR_I64) {
+        return vibe_map_remove_str_i64(handle, key);
+    }
+    vibe_panic("container remove(Str) is only valid for Map<Str, Int>");
+    return 0;
+}
+
+void *vibe_str_concat(const char *left, const char *right) {
+    const char *safe_left = left == NULL ? "" : left;
+    const char *safe_right = right == NULL ? "" : right;
+    size_t left_len = strlen(safe_left);
+    size_t right_len = strlen(safe_right);
+    size_t out_len = left_len + right_len;
+    char *out = (char *)calloc(out_len + 1, sizeof(char));
+    if (out == NULL) {
+        vibe_panic("failed to allocate concatenated string");
+    }
+    memcpy(out, safe_left, left_len);
+    memcpy(out + left_len, safe_right, right_len);
+    out[out_len] = '\0';
+    return (void *)out;
 }
 
 void *vibe_chan_new_i64(int64_t capacity) {

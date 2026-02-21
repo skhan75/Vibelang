@@ -1,0 +1,14 @@
+pub syntax_containers_and_maps() -> Int {
+  xs := [1, 2]
+  xs.append(3)
+
+  by_name := {"one": 1}
+  by_name.set("two", 2)
+
+  total := xs.get(0) + by_name.get("two")
+  if total == 3 {
+    return 0
+  } else {
+    return 1
+  }
+}

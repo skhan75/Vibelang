@@ -9,6 +9,7 @@ pub fn is_sendable_type(ty: &TypeKind) -> bool {
     match ty {
         TypeKind::Int | TypeKind::Float | TypeKind::Bool | TypeKind::Str | TypeKind::Void => true,
         TypeKind::List(inner) => is_sendable_type(inner),
+        TypeKind::Map(key, value) => is_sendable_type(key) && is_sendable_type(value),
         TypeKind::Result(ok, err) => is_sendable_type(ok) && is_sendable_type(err),
         TypeKind::Chan(_) => true,
         // Unknown types are treated as non-sendable so unresolved values do not silently cross
@@ -135,6 +136,7 @@ fn type_name(t: &TypeKind) -> String {
         TypeKind::Bool => "Bool".to_string(),
         TypeKind::Str => "Str".to_string(),
         TypeKind::List(inner) => format!("List<{}>", type_name(inner)),
+        TypeKind::Map(key, value) => format!("Map<{}, {}>", type_name(key), type_name(value)),
         TypeKind::Result(ok, err) => format!("Result<{}, {}>", type_name(ok), type_name(err)),
         TypeKind::Chan(inner) => format!("Chan<{}>", type_name(inner)),
         TypeKind::Void => "Void".to_string(),

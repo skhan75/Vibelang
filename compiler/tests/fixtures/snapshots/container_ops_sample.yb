@@ -1,0 +1,9 @@
+pub main() -> Int {
+  xs := [1, 2]
+  xs.append(3)
+
+  by_name := {"alpha": 1}
+  by_name.set("beta", 2)
+
+  return xs.get(0) + by_name.get("beta")
+}

@@ -102,13 +102,13 @@ HirProgram {
                                             kind: Ident(
                                                 "jobs",
                                             ),
-                                            ty: "Unknown",
+                                            ty: "Chan<Unknown>",
                                         },
                                         HirExpr {
                                             kind: Ident(
                                                 "out",
                                             ),
-                                            ty: "Unknown",
+                                            ty: "Chan<Unknown>",
                                         },
                                     ],
                                 },
@@ -127,11 +127,11 @@ HirProgram {
                                     kind: Ident(
                                         "out",
                                     ),
-                                    ty: "Unknown",
+                                    ty: "Chan<Unknown>",
                                 },
                                 field: "take",
                             },
-                            ty: "Unknown",
+                            ty: "Chan<Unknown>",
                         },
                         args: [
                             HirExpr {

@@ -223,6 +223,25 @@ fn deterministic_repeat_runs_for_check_hir_and_mir() {
 }
 
 #[test]
+fn snapshots_container_ops_mir_is_deterministic() {
+    let sample = fixture_dir("snapshots").join("container_ops_sample.yb");
+    let src = fs::read_to_string(&sample).expect("read container snapshot sample");
+    let first = run_and_capture(&src);
+    let second = run_and_capture(&src);
+    assert_eq!(
+        first.0, second.0,
+        "container diagnostics output must be deterministic"
+    );
+    assert_eq!(first.1, second.1, "container HIR output must be deterministic");
+    assert_eq!(first.2, second.2, "container MIR output must be deterministic");
+    assert!(
+        first.2.contains("Map([") && first.2.contains("List(["),
+        "container MIR sample should include explicit list/map forms:\n{}",
+        first.2
+    );
+}
+
+#[test]
 fn docs_syntax_samples_compile_without_errors() {
     let sample = workspace_root().join("docs/spec/syntax_samples.yb");
     let src = fs::read_to_string(&sample).expect("read syntax samples");

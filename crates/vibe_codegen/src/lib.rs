@@ -34,6 +34,20 @@ impl Default for CodegenOptions {
 #[derive(Clone, Copy)]
 struct RuntimeFunctions {
     print_fn: FuncId,
+    list_new_i64_fn: FuncId,
+    list_append_i64_fn: FuncId,
+    container_len_fn: FuncId,
+    container_get_i64_fn: FuncId,
+    container_set_i64_fn: FuncId,
+    container_contains_i64_fn: FuncId,
+    container_remove_i64_fn: FuncId,
+    map_new_i64_i64_fn: FuncId,
+    map_new_str_i64_fn: FuncId,
+    container_get_str_i64_fn: FuncId,
+    container_set_str_i64_fn: FuncId,
+    container_contains_str_i64_fn: FuncId,
+    container_remove_str_i64_fn: FuncId,
+    str_concat_fn: FuncId,
     chan_new_fn: FuncId,
     chan_send_fn: FuncId,
     chan_recv_fn: FuncId,
@@ -155,6 +169,174 @@ fn declare_runtime_functions(
         .declare_function("vibe_println", Linkage::Import, &sig)
         .map_err(|e| format!("failed to declare runtime print symbol: {e}"))?;
 
+    let mut list_new_sig = module.make_signature();
+    list_new_sig.params.push(AbiParam::new(ir::types::I64));
+    list_new_sig.returns.push(AbiParam::new(ptr_ty));
+    let list_new_i64_fn = module
+        .declare_function("vibe_list_new_i64", Linkage::Import, &list_new_sig)
+        .map_err(|e| format!("failed to declare runtime list_new symbol: {e}"))?;
+
+    let mut list_append_sig = module.make_signature();
+    list_append_sig.params.push(AbiParam::new(ptr_ty));
+    list_append_sig.params.push(AbiParam::new(ir::types::I64));
+    list_append_sig.returns.push(AbiParam::new(ir::types::I64));
+    let list_append_i64_fn = module
+        .declare_function("vibe_list_append_i64", Linkage::Import, &list_append_sig)
+        .map_err(|e| format!("failed to declare runtime list_append symbol: {e}"))?;
+
+    let mut map_new_i64_i64_sig = module.make_signature();
+    map_new_i64_i64_sig.returns.push(AbiParam::new(ptr_ty));
+    let map_new_i64_i64_fn = module
+        .declare_function(
+            "vibe_map_new_i64_i64",
+            Linkage::Import,
+            &map_new_i64_i64_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime map_new_i64_i64 symbol: {e}"))?;
+
+    let mut map_new_str_i64_sig = module.make_signature();
+    map_new_str_i64_sig.returns.push(AbiParam::new(ptr_ty));
+    let map_new_str_i64_fn = module
+        .declare_function(
+            "vibe_map_new_str_i64",
+            Linkage::Import,
+            &map_new_str_i64_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime map_new_str_i64 symbol: {e}"))?;
+
+    let mut str_concat_sig = module.make_signature();
+    str_concat_sig.params.push(AbiParam::new(ptr_ty));
+    str_concat_sig.params.push(AbiParam::new(ptr_ty));
+    str_concat_sig.returns.push(AbiParam::new(ptr_ty));
+    let str_concat_fn = module
+        .declare_function("vibe_str_concat", Linkage::Import, &str_concat_sig)
+        .map_err(|e| format!("failed to declare runtime str_concat symbol: {e}"))?;
+
+    let mut container_len_sig = module.make_signature();
+    container_len_sig.params.push(AbiParam::new(ptr_ty));
+    container_len_sig.returns.push(AbiParam::new(ir::types::I64));
+    let container_len_fn = module
+        .declare_function("vibe_container_len", Linkage::Import, &container_len_sig)
+        .map_err(|e| format!("failed to declare runtime container_len symbol: {e}"))?;
+
+    let mut container_get_i64_sig = module.make_signature();
+    container_get_i64_sig.params.push(AbiParam::new(ptr_ty));
+    container_get_i64_sig.params.push(AbiParam::new(ir::types::I64));
+    container_get_i64_sig.returns.push(AbiParam::new(ir::types::I64));
+    let container_get_i64_fn = module
+        .declare_function(
+            "vibe_container_get_i64",
+            Linkage::Import,
+            &container_get_i64_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime container_get_i64 symbol: {e}"))?;
+
+    let mut container_set_i64_sig = module.make_signature();
+    container_set_i64_sig.params.push(AbiParam::new(ptr_ty));
+    container_set_i64_sig.params.push(AbiParam::new(ir::types::I64));
+    container_set_i64_sig.params.push(AbiParam::new(ir::types::I64));
+    container_set_i64_sig
+        .returns
+        .push(AbiParam::new(ir::types::I64));
+    let container_set_i64_fn = module
+        .declare_function(
+            "vibe_container_set_i64",
+            Linkage::Import,
+            &container_set_i64_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime container_set_i64 symbol: {e}"))?;
+
+    let mut container_contains_i64_sig = module.make_signature();
+    container_contains_i64_sig.params.push(AbiParam::new(ptr_ty));
+    container_contains_i64_sig
+        .params
+        .push(AbiParam::new(ir::types::I64));
+    container_contains_i64_sig
+        .returns
+        .push(AbiParam::new(ir::types::I64));
+    let container_contains_i64_fn = module
+        .declare_function(
+            "vibe_container_contains_i64",
+            Linkage::Import,
+            &container_contains_i64_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime container_contains_i64 symbol: {e}"))?;
+
+    let mut container_remove_i64_sig = module.make_signature();
+    container_remove_i64_sig.params.push(AbiParam::new(ptr_ty));
+    container_remove_i64_sig
+        .params
+        .push(AbiParam::new(ir::types::I64));
+    container_remove_i64_sig
+        .returns
+        .push(AbiParam::new(ir::types::I64));
+    let container_remove_i64_fn = module
+        .declare_function(
+            "vibe_container_remove_i64",
+            Linkage::Import,
+            &container_remove_i64_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime container_remove_i64 symbol: {e}"))?;
+
+    let mut container_get_str_i64_sig = module.make_signature();
+    container_get_str_i64_sig.params.push(AbiParam::new(ptr_ty));
+    container_get_str_i64_sig.params.push(AbiParam::new(ptr_ty));
+    container_get_str_i64_sig
+        .returns
+        .push(AbiParam::new(ir::types::I64));
+    let container_get_str_i64_fn = module
+        .declare_function(
+            "vibe_container_get_str_i64",
+            Linkage::Import,
+            &container_get_str_i64_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime container_get_str_i64 symbol: {e}"))?;
+
+    let mut container_set_str_i64_sig = module.make_signature();
+    container_set_str_i64_sig.params.push(AbiParam::new(ptr_ty));
+    container_set_str_i64_sig.params.push(AbiParam::new(ptr_ty));
+    container_set_str_i64_sig
+        .params
+        .push(AbiParam::new(ir::types::I64));
+    container_set_str_i64_sig
+        .returns
+        .push(AbiParam::new(ir::types::I64));
+    let container_set_str_i64_fn = module
+        .declare_function(
+            "vibe_container_set_str_i64",
+            Linkage::Import,
+            &container_set_str_i64_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime container_set_str_i64 symbol: {e}"))?;
+
+    let mut container_contains_str_i64_sig = module.make_signature();
+    container_contains_str_i64_sig.params.push(AbiParam::new(ptr_ty));
+    container_contains_str_i64_sig.params.push(AbiParam::new(ptr_ty));
+    container_contains_str_i64_sig
+        .returns
+        .push(AbiParam::new(ir::types::I64));
+    let container_contains_str_i64_fn = module
+        .declare_function(
+            "vibe_container_contains_str_i64",
+            Linkage::Import,
+            &container_contains_str_i64_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime container_contains_str_i64 symbol: {e}"))?;
+
+    let mut container_remove_str_i64_sig = module.make_signature();
+    container_remove_str_i64_sig.params.push(AbiParam::new(ptr_ty));
+    container_remove_str_i64_sig.params.push(AbiParam::new(ptr_ty));
+    container_remove_str_i64_sig
+        .returns
+        .push(AbiParam::new(ir::types::I64));
+    let container_remove_str_i64_fn = module
+        .declare_function(
+            "vibe_container_remove_str_i64",
+            Linkage::Import,
+            &container_remove_str_i64_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime container_remove_str_i64 symbol: {e}"))?;
+
     let mut chan_new_sig = module.make_signature();
     chan_new_sig.params.push(AbiParam::new(ir::types::I64));
     chan_new_sig.returns.push(AbiParam::new(ptr_ty));
@@ -239,6 +421,20 @@ fn declare_runtime_functions(
 
     Ok(RuntimeFunctions {
         print_fn,
+        list_new_i64_fn,
+        list_append_i64_fn,
+        container_len_fn,
+        container_get_i64_fn,
+        container_set_i64_fn,
+        container_contains_i64_fn,
+        container_remove_i64_fn,
+        map_new_i64_i64_fn,
+        map_new_str_i64_fn,
+        container_get_str_i64_fn,
+        container_set_str_i64_fn,
+        container_contains_str_i64_fn,
+        container_remove_str_i64_fn,
+        str_concat_fn,
         chan_new_fn,
         chan_send_fn,
         chan_recv_fn,
@@ -1161,14 +1357,123 @@ fn emit_expr(
         MirExpr::Float(v) => builder.ins().f64const(*v),
         MirExpr::Bool(v) => builder.ins().iconst(ir::types::I8, i64::from(*v)),
         MirExpr::Str(s) => emit_string_data(module, builder, s, ptr_ty, str_data_counter, owner)?,
-        MirExpr::List(_) | MirExpr::Map(_) => {
-            return Err(
-                "E3401: list/map native lowering is not available in v0.1 backend; use scalar/channel-friendly forms or run frontend checks only"
-                    .to_string(),
-            )
+        MirExpr::List(items) => {
+            let local_new = module.declare_func_in_func(runtime_fns.list_new_i64_fn, builder.func);
+            let capacity = builder.ins().iconst(ir::types::I64, items.len() as i64);
+            let call = builder.ins().call(local_new, &[capacity]);
+            let list_handle = builder
+                .inst_results(call)
+                .first()
+                .copied()
+                .ok_or_else(|| "list runtime call did not return list handle".to_string())?;
+            for item in items {
+                let value = emit_expr(
+                    item,
+                    module,
+                    builder,
+                    locals,
+                    function_ids,
+                    function_returns,
+                    runtime_fns,
+                    ptr_ty,
+                    str_data_counter,
+                    owner,
+                )?;
+                if builder.func.dfg.value_type(value) != ir::types::I64 {
+                    return Err(
+                        "E3401: native list lowering currently supports List<Int> only".to_string(),
+                    );
+                }
+                let local_append =
+                    module.declare_func_in_func(runtime_fns.list_append_i64_fn, builder.func);
+                builder.ins().call(local_append, &[list_handle, value]);
+            }
+            list_handle
+        }
+        MirExpr::Map(entries) => {
+            if entries.is_empty() {
+                let local_new =
+                    module.declare_func_in_func(runtime_fns.map_new_i64_i64_fn, builder.func);
+                let call = builder.ins().call(local_new, &[]);
+                builder.inst_results(call).first().copied().ok_or_else(|| {
+                    "map runtime call did not return map handle".to_string()
+                })?
+            } else {
+                let (first_key_expr, _) = &entries[0];
+                let use_str_keys = is_known_string_expr(first_key_expr);
+                let local_new = if use_str_keys {
+                    module.declare_func_in_func(runtime_fns.map_new_str_i64_fn, builder.func)
+                } else {
+                    module.declare_func_in_func(runtime_fns.map_new_i64_i64_fn, builder.func)
+                };
+                let call = builder.ins().call(local_new, &[]);
+                let map_handle = builder
+                    .inst_results(call)
+                    .first()
+                    .copied()
+                    .ok_or_else(|| "map runtime call did not return map handle".to_string())?;
+                for (key_expr, value_expr) in entries {
+                    let key = emit_expr(
+                        key_expr,
+                        module,
+                        builder,
+                        locals,
+                        function_ids,
+                        function_returns,
+                        runtime_fns,
+                        ptr_ty,
+                        str_data_counter,
+                        owner,
+                    )?;
+                    let value = emit_expr(
+                        value_expr,
+                        module,
+                        builder,
+                        locals,
+                        function_ids,
+                        function_returns,
+                        runtime_fns,
+                        ptr_ty,
+                        str_data_counter,
+                        owner,
+                    )?;
+                    if builder.func.dfg.value_type(value) != ir::types::I64 {
+                        return Err(
+                            "E3401: native map lowering currently supports Int values only"
+                                .to_string(),
+                        );
+                    }
+                    if use_str_keys {
+                        if !is_known_string_expr(key_expr) {
+                            return Err(
+                                "E3401: map literal key kinds must be consistent (all Str or all Int)"
+                                    .to_string(),
+                            );
+                        }
+                        let local_set = module.declare_func_in_func(
+                            runtime_fns.container_set_str_i64_fn,
+                            builder.func,
+                        );
+                        builder.ins().call(local_set, &[map_handle, key, value]);
+                    } else {
+                        if is_known_string_expr(key_expr) {
+                            return Err(
+                                "E3401: map literal key kinds must be consistent (all Str or all Int)"
+                                    .to_string(),
+                            );
+                        }
+                        let local_set = module.declare_func_in_func(
+                            runtime_fns.container_set_i64_fn,
+                            builder.func,
+                        );
+                        builder.ins().call(local_set, &[map_handle, key, value]);
+                    }
+                }
+                map_handle
+            }
         }
         MirExpr::Member { object, field } => {
-            let _ = emit_expr(
+            let container = emit_expr(
                 object,
                 module,
                 builder,
@@ -1180,6 +1485,16 @@ fn emit_expr(
                 str_data_counter,
                 owner,
             )?;
+            if field == "len" {
+                let local_len =
+                    module.declare_func_in_func(runtime_fns.container_len_fn, builder.func);
+                let call = builder.ins().call(local_len, &[container]);
+                return Ok(builder
+                    .inst_results(call)
+                    .first()
+                    .copied()
+                    .unwrap_or_else(|| builder.ins().iconst(ir::types::I64, 0)));
+            }
             return Err(format!(
                 "E3402: member access `{field}` native lowering is not available in v0.1 backend"
             ));
@@ -1261,7 +1576,7 @@ fn emit_expr(
                 return Err(format!("E3403: unknown call target `{name}`"));
             }
             if let MirExpr::Member { object, field } = &**callee {
-                let channel = emit_expr(
+                let object_value = emit_expr(
                     object,
                     module,
                     builder,
@@ -1273,26 +1588,30 @@ fn emit_expr(
                     str_data_counter,
                     owner,
                 )?;
+                let mut lowered_args = Vec::with_capacity(args.len());
+                for arg in args {
+                    lowered_args.push(emit_expr(
+                        arg,
+                        module,
+                        builder,
+                        locals,
+                        function_ids,
+                        function_returns,
+                        runtime_fns,
+                        ptr_ty,
+                        str_data_counter,
+                        owner,
+                    )?);
+                }
                 match field.as_str() {
                     "send" => {
-                        if args.len() != 1 {
+                        if lowered_args.len() != 1 {
                             return Err("channel send expects one argument".to_string());
                         }
-                        let value = emit_expr(
-                            &args[0],
-                            module,
-                            builder,
-                            locals,
-                            function_ids,
-                            function_returns,
-                            runtime_fns,
-                            ptr_ty,
-                            str_data_counter,
-                            owner,
-                        )?;
+                        let value = lowered_args[0];
                         let local_send =
                             module.declare_func_in_func(runtime_fns.chan_send_fn, builder.func);
-                        let call = builder.ins().call(local_send, &[channel, value]);
+                        let call = builder.ins().call(local_send, &[object_value, value]);
                         return Ok(builder
                             .inst_results(call)
                             .first()
@@ -1300,12 +1619,12 @@ fn emit_expr(
                             .unwrap_or_else(|| builder.ins().iconst(ir::types::I64, 0)));
                     }
                     "recv" => {
-                        if !args.is_empty() {
+                        if !lowered_args.is_empty() {
                             return Err("channel recv expects no arguments".to_string());
                         }
                         let local_recv =
                             module.declare_func_in_func(runtime_fns.chan_recv_fn, builder.func);
-                        let call = builder.ins().call(local_recv, &[channel]);
+                        let call = builder.ins().call(local_recv, &[object_value]);
                         return Ok(builder
                             .inst_results(call)
                             .first()
@@ -1313,13 +1632,146 @@ fn emit_expr(
                             .unwrap_or_else(|| builder.ins().iconst(ir::types::I64, 0)));
                     }
                     "close" => {
-                        if !args.is_empty() {
+                        if !lowered_args.is_empty() {
                             return Err("channel close expects no arguments".to_string());
                         }
                         let local_close =
                             module.declare_func_in_func(runtime_fns.chan_close_fn, builder.func);
-                        builder.ins().call(local_close, &[channel]);
+                        builder.ins().call(local_close, &[object_value]);
                         return Ok(builder.ins().iconst(ir::types::I64, 0));
+                    }
+                    "append" => {
+                        if lowered_args.len() != 1 {
+                            return Err("list append expects one argument".to_string());
+                        }
+                        if builder.func.dfg.value_type(lowered_args[0]) != ir::types::I64 {
+                            return Err(
+                                "E3404: list append currently supports Int values only".to_string(),
+                            );
+                        }
+                        let local_append = module
+                            .declare_func_in_func(runtime_fns.list_append_i64_fn, builder.func);
+                        let call = builder.ins().call(local_append, &[object_value, lowered_args[0]]);
+                        return Ok(builder
+                            .inst_results(call)
+                            .first()
+                            .copied()
+                            .unwrap_or_else(|| builder.ins().iconst(ir::types::I64, 0)));
+                    }
+                    "len" => {
+                        if !lowered_args.is_empty() {
+                            return Err("`.len()` expects no arguments".to_string());
+                        }
+                        let local_len =
+                            module.declare_func_in_func(runtime_fns.container_len_fn, builder.func);
+                        let call = builder.ins().call(local_len, &[object_value]);
+                        return Ok(builder
+                            .inst_results(call)
+                            .first()
+                            .copied()
+                            .unwrap_or_else(|| builder.ins().iconst(ir::types::I64, 0)));
+                    }
+                    "get" => {
+                        if lowered_args.len() != 1 {
+                            return Err("`.get()` expects one key/index argument".to_string());
+                        }
+                        let key = lowered_args[0];
+                        let key_is_str = is_known_string_expr(&args[0]);
+                        let local_get = if key_is_str {
+                            module.declare_func_in_func(
+                                runtime_fns.container_get_str_i64_fn,
+                                builder.func,
+                            )
+                        } else {
+                            module.declare_func_in_func(
+                                runtime_fns.container_get_i64_fn,
+                                builder.func,
+                            )
+                        };
+                        let call = builder.ins().call(local_get, &[object_value, key]);
+                        return Ok(builder
+                            .inst_results(call)
+                            .first()
+                            .copied()
+                            .unwrap_or_else(|| builder.ins().iconst(ir::types::I64, 0)));
+                    }
+                    "set" => {
+                        if lowered_args.len() != 2 {
+                            return Err("`.set()` expects key/index and value arguments".to_string());
+                        }
+                        let key = lowered_args[0];
+                        let value = lowered_args[1];
+                        if builder.func.dfg.value_type(value) != ir::types::I64 {
+                            return Err(
+                                "E3404: `.set()` currently supports Int values only".to_string(),
+                            );
+                        }
+                        let key_is_str = is_known_string_expr(&args[0]);
+                        let local_set = if key_is_str {
+                            module.declare_func_in_func(
+                                runtime_fns.container_set_str_i64_fn,
+                                builder.func,
+                            )
+                        } else {
+                            module.declare_func_in_func(
+                                runtime_fns.container_set_i64_fn,
+                                builder.func,
+                            )
+                        };
+                        let call = builder.ins().call(local_set, &[object_value, key, value]);
+                        return Ok(builder
+                            .inst_results(call)
+                            .first()
+                            .copied()
+                            .unwrap_or_else(|| builder.ins().iconst(ir::types::I64, 0)));
+                    }
+                    "contains" => {
+                        if lowered_args.len() != 1 {
+                            return Err("`.contains()` expects one key argument".to_string());
+                        }
+                        let key = lowered_args[0];
+                        let key_is_str = is_known_string_expr(&args[0]);
+                        let local_contains = if key_is_str {
+                            module.declare_func_in_func(
+                                runtime_fns.container_contains_str_i64_fn,
+                                builder.func,
+                            )
+                        } else {
+                            module.declare_func_in_func(
+                                runtime_fns.container_contains_i64_fn,
+                                builder.func,
+                            )
+                        };
+                        let call = builder.ins().call(local_contains, &[object_value, key]);
+                        return Ok(builder
+                            .inst_results(call)
+                            .first()
+                            .copied()
+                            .unwrap_or_else(|| builder.ins().iconst(ir::types::I64, 0)));
+                    }
+                    "remove" => {
+                        if lowered_args.len() != 1 {
+                            return Err("`.remove()` expects one key argument".to_string());
+                        }
+                        let key = lowered_args[0];
+                        let key_is_str = is_known_string_expr(&args[0]);
+                        let local_remove = if key_is_str {
+                            module.declare_func_in_func(
+                                runtime_fns.container_remove_str_i64_fn,
+                                builder.func,
+                            )
+                        } else {
+                            module.declare_func_in_func(
+                                runtime_fns.container_remove_i64_fn,
+                                builder.func,
+                            )
+                        };
+                        let call = builder.ins().call(local_remove, &[object_value, key]);
+                        return Ok(builder
+                            .inst_results(call)
+                            .first()
+                            .copied()
+                            .unwrap_or_else(|| builder.ins().iconst(ir::types::I64, 0)));
                     }
                     _ => {
                         return Err(format!(
@@ -1358,7 +1810,20 @@ fn emit_expr(
                 owner,
             )?;
             match op.as_str() {
-                "Add" => builder.ins().iadd(l, r),
+                "Add" => {
+                    if is_known_string_expr(left) && is_known_string_expr(right) {
+                        let local_concat =
+                            module.declare_func_in_func(runtime_fns.str_concat_fn, builder.func);
+                        let call = builder.ins().call(local_concat, &[l, r]);
+                        builder
+                            .inst_results(call)
+                            .first()
+                            .copied()
+                            .ok_or_else(|| "string concat runtime call returned no value".to_string())?
+                    } else {
+                        builder.ins().iadd(l, r)
+                    }
+                }
                 "Sub" => builder.ins().isub(l, r),
                 "Mul" => builder.ins().imul(l, r),
                 "Div" => builder.ins().sdiv(l, r),
@@ -1453,13 +1918,45 @@ fn default_value(builder: &mut FunctionBuilder<'_>, ty: &MirType, ptr_ty: ir::Ty
     }
 }
 
+fn is_known_string_expr(expr: &MirExpr) -> bool {
+    match expr {
+        MirExpr::Str(_) => true,
+        MirExpr::Binary { left, op, right } if op == "Add" => {
+            is_known_string_expr(left) && is_known_string_expr(right)
+        }
+        _ => false,
+    }
+}
+
 fn value_type_for_expr(expr: &MirExpr, ptr_ty: ir::Type) -> ir::Type {
     match expr {
         MirExpr::Float(_) => ir::types::F64,
         MirExpr::Bool(_) => ir::types::I8,
         MirExpr::Str(_) => ptr_ty,
+        MirExpr::Binary { left, op, right } if op == "Add" => {
+            if is_known_string_expr(left) && is_known_string_expr(right) {
+                ptr_ty
+            } else {
+                ir::types::I64
+            }
+        }
+        MirExpr::List(_) | MirExpr::Map(_) => ptr_ty,
+        MirExpr::Member { field, .. } if field == "len" => ir::types::I64,
         MirExpr::Call { callee, .. } if matches!(&**callee, MirExpr::Var(name) if name == "chan") => {
             ptr_ty
+        }
+        MirExpr::Call { callee, .. }
+            if matches!(&**callee, MirExpr::Member { field, .. } if field == "get"
+                || field == "len"
+                || field == "append"
+                || field == "set"
+                || field == "contains"
+                || field == "remove"
+                || field == "recv"
+                || field == "send"
+                || field == "close") =>
+        {
+            ir::types::I64
         }
         _ => ir::types::I64,
     }

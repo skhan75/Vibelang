@@ -1,0 +1,4 @@
+pub container_key_type_error() -> Int {
+  scores := {"alpha": 1}
+  scores.get("alpha")
+}

@@ -45,11 +45,7 @@ jobs:
           set -euo pipefail
           for ext in vibe yb; do
             tmpdir="$(mktemp -d)"
-            cat > "$tmpdir/sample.$ext" <<'EOF'
-            pub multiply(a: Int, b: Int) -> Int {
-              a * b
-            }
-            EOF
+            printf 'pub multiply(a: Int, b: Int) -> Int {\n  a * b\n}\n' > "$tmpdir/sample.$ext"
 
             cargo run -q -p vibe_cli -- lint "$tmpdir" --intent --max-requests-per-day 0 > "/tmp/lint_budget.$ext.out"
             grep -q "partial results" "/tmp/lint_budget.$ext.out"
@@ -70,11 +66,7 @@ jobs:
           set -euo pipefail
           for ext in vibe yb; do
             tmpdir="$(mktemp -d)"
-            cat > "$tmpdir/sample.$ext" <<'EOF'
-            pub addOne(x: Int) -> Int {
-              x + 1
-            }
-            EOF
+            printf 'pub addOne(x: Int) -> Int {\n  x + 1\n}\n' > "$tmpdir/sample.$ext"
 
             cargo run -q -p vibe_cli -- lint "$tmpdir" --intent > "/tmp/lint_quality.$ext.out"
             grep -q "I5001" "/tmp/lint_quality.$ext.out"

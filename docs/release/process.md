@@ -38,6 +38,7 @@ Every release candidate should include links to:
 - v1 readiness dashboard (`reports/v1/readiness_dashboard.md`)
 - v1 release candidate checklist (`reports/v1/release_candidate_checklist.md`)
 - self-host readiness report (`reports/v1/selfhost_readiness.md`)
+- spec readiness report (`reports/v1/spec_readiness.md`)
 
 ## Required Operational Docs
 

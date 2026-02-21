@@ -1,0 +1,21 @@
+pub main() -> Int {
+  i := 0
+  checksum := 0
+  checkpoints := {0: 0}
+
+  while i < 1500 {
+    xs := [i]
+    xs.append(i + 1)
+    checksum = checksum + xs.get(0) + xs.get(1)
+    checkpoints.set(i, checksum)
+    i = i + 1
+  }
+
+  if checkpoints.contains(1499) {
+    println("container-mem-ok")
+    return 0
+  } else {
+    println("container-mem-fail")
+    return 1
+  }
+}

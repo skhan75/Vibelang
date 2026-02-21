@@ -43,5 +43,42 @@ This appendix resolves open ambiguities called out in Phase 1 and acts as the im
 
 ## Decision 7: Grammar Source of Truth
 
-- **Resolved**: [docs/spec/grammar_v0_1.ebnf](docs/spec/grammar_v0_1.ebnf) is the parser reference for Phase 1 implementation.
+- **Resolved**: [grammar_v0_1.ebnf](grammar_v0_1.ebnf) is the parser reference for Phase 1 implementation.
 - **Rule**: syntax changes in Phase 1 require explicit checklist + spec updates before parser modifications.
+
+## Compatibility Appendix: v0.1 Freeze vs v1 Target
+
+This appendix clarifies how historical v0.1 freeze decisions map to the v1
+production-target specification documents.
+
+### A. Grammar Source
+
+- v0.1 parser freeze reference remains `docs/spec/grammar_v0_1.ebnf`.
+- v1 normative target grammar is `docs/spec/grammar_v1_0.ebnf`.
+- No v1 syntax claims should be added only to v0.1 grammar.
+
+### B. Control-Flow Completeness
+
+- v0.1 docs previously mentioned `match`/`break`/`continue` with partial parser
+  coverage.
+- v1 target grammar makes these forms explicit and normative.
+
+### C. Optional Types
+
+- v0.1 wording used `Option<T>` style informally.
+- v1 syntax canonicalizes optional typing as `T?` with `none` literal.
+
+### D. Contract Placement
+
+- v0.1 and v1 are aligned: contract annotations remain top-of-function-body
+  before executable statements.
+- v1 additionally requires deterministic diagnostics for invalid placement.
+
+### E. Decision Governance
+
+For changes beyond this compatibility map:
+
+1. update `docs/spec/spec_decision_log.md`,
+2. update `docs/spec/grammar_v1_0.ebnf`,
+3. update `docs/spec/spec_coverage_matrix.md`,
+4. update release readiness evidence.

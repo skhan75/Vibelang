@@ -1,53 +1,93 @@
-# VibeLang Ownership and Sendability (Phase 3 Hybrid Model)
+# VibeLang Ownership and Sendability (v1.0 Target)
 
-## Goal
+Status: normative target; implementation maturity varies by feature area.
 
-Phase 3 adopts a hybrid safety model:
+## Goals
 
-- compile-time sendability and aliasing checks for common unsafe patterns
-- explicit synchronization boundaries for shared mutable state
-- no full borrow-checker/lifetime system in this phase
+- Enforce safe cross-boundary value movement.
+- Prevent obvious data races in safe language surface.
+- Keep model understandable without mandatory lifetime syntax.
 
-## Core Rules
+## Boundary Types
 
-## 1) Sendability for `go`
+Sendability checks apply at:
 
-Values captured or passed into `go` task calls must be sendable:
+- `go` task spawn boundaries
+- `thread` OS-thread boundaries
+- async task capture/handoff boundaries
+- channel send boundaries
 
-- sendable: `Int`, `Float`, `Bool`, `Str`, `List<T>` where `T` is sendable
-- not sendable in Phase 3 baseline: `Map<K,V>`, unknown dynamic values, and values containing non-sendable members
+## Sendability Rules
 
-If a non-sendable value is passed to `go`, compilation fails with ownership diagnostics.
+### Baseline Sendable Categories
 
-## 2) Shared Mutable State in Concurrent Context
+- Primitive scalars (`Bool`, integer, float)
+- `Str`
+- `List<T>` where `T` is sendable
+- `Result<T,E>` where `T` and `E` are sendable
+- `Chan<T>` handles
 
-If a function performs concurrency operations (`go`/`select`/channel ops), direct shared mutable writes should be explicit and auditable.
+### Baseline Non-Sendable Categories
 
-Phase 3 baseline check:
+- values with unknown/inferred-unknown dynamic layout
+- containers including non-sendable members
+- explicitly thread-affine handles/resources
 
-- member/field assignment in concurrent contexts is flagged unless synchronized through explicit runtime primitives
+`Map<K,V>` sendability depends on key/value sendability and deterministic runtime
+support status for map transfer.
 
-This catches high-risk race patterns early, even before a full ownership engine exists.
+## Capture and Move Semantics
 
-## 3) Channel Transfer Boundary
+- Capturing immutable values by copy/move across boundary is allowed when
+  sendable.
+- Capturing mutable aliases into concurrent contexts is rejected unless wrapped
+  in explicit synchronization abstraction.
+- Compiler diagnostics must identify capture source and boundary type.
 
-Channel send/recv are synchronization boundaries:
+## Shared Mutable State Rules
 
-- sending transfers value visibility to receiver
-- receiving observes the send-side write order for transferred values
+- Unsynchronized shared mutable writes in concurrent contexts are invalid in safe
+  mode.
+- Member/field assignment in concurrent contexts requires synchronization
+  primitive evidence or explicit unsafe boundary.
+- Runtime synchronization APIs establish legal mutation boundaries.
 
-## 4) Effect Coupling
+## Channel Transfer Semantics
 
-Ownership/sendability and effects are coupled:
+- Sending through channel transfers ownership visibility to receiver.
+- Receiver observes sender writes that happened-before send.
+- Post-send mutation legality depends on copy vs move semantics of sent value and
+  API contract.
 
-- concurrency behavior must be represented by `@effect concurrency`
-- mutable shared writes in concurrent contexts must declare `@effect mut_state`
-- transitive calls propagate effect requirements through call graph
+## Async and Thread Interaction
 
-## Non-Goals in Phase 3
+- Async tasks and thread tasks use same sendability checks when values cross
+  task/thread boundaries.
+- Await suspension/resume across threads preserves ownership invariants.
+- Non-sendable future captures across thread handoff are compile-time errors in
+  safe mode.
 
-- full Rust-style borrow checker
-- user-visible lifetime annotations
-- complete static race elimination for all dynamic patterns
+## Effect Coupling
 
-These are deferred to later phases.
+Ownership diagnostics and effects are coupled:
+
+- concurrency behavior should align with `@effect concurrency`
+- shared mutable writes in concurrent flows should align with `@effect mut_state`
+- transitive calls propagate effect expectations
+
+## Unsafe Escape Hatches
+
+- Explicit unsafe escape hatches may exist for advanced interop.
+- Unsafe blocks must be isolated and auditable.
+- Unsafe use does not relax deterministic diagnostics requirements.
+
+## Determinism Requirements
+
+- Same source and configuration must produce same ownership/sendability
+  diagnostics.
+- Diagnostic ordering and severity mapping must be stable.
+
+## Deferred Notes
+
+- Full Rust-like borrow checker and lifetime annotations remain deferred.
+- Complete static race elimination across all dynamic patterns remains deferred.

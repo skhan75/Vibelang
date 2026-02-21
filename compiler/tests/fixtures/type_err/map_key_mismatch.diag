@@ -1,0 +1,2 @@
+E3002: warning: observed effect `alloc` is not declared in `@effect` (including transitive calls) @ 1:5-4:1
+E2208: error: map literal key type mismatch: expected `Str`, got `Int` @ 2:21-2:21

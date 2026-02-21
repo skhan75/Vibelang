@@ -1,0 +1,2 @@
+E3002: warning: observed effect `alloc` is not declared in `@effect` (including transitive calls) @ 5:5-10:1
+E3201: error: non-sendable value passed to `go`: inferred `Map<Unknown, Unknown>` @ 8:18-8:24

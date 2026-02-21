@@ -1,98 +1,96 @@
-# VibeLang Semantics Spec (v0.1 Draft)
+# VibeLang Semantics Spec (v1.0 Target)
 
-## Overview
+## Status
 
-VibeLang semantics prioritize:
+- This document defines normative semantic behavior for v1 production target.
+- Where implementation is still in progress, behavior is marked as deferred in
+  `docs/spec/spec_coverage_matrix.md`.
 
-- Predictable behavior
-- Safe-by-default concurrency
-- Compiler-analyzable contracts
+## Semantic Priorities
 
-Phase 1 ambiguity resolutions are frozen in `docs/spec/phase1_resolved_decisions.md`.
+- Determinism first
+- Safety by default
+- Native performance with explicit contracts
+- AI-assisted workflows without AI-dependent correctness
 
 ## Execution Model
 
-- Ahead-of-time compiled native binaries.
-- Deterministic execution for deterministic inputs, excluding explicitly nondeterministic effects.
-- No implicit background runtime behavior outside declared runtime services (GC, scheduler, channel operations).
+- Programs compile ahead-of-time to native binaries.
+- Deterministic input + deterministic environment MUST produce deterministic
+  behavior unless `nondet` effect is explicitly involved.
+- Runtime services (scheduler, channels, GC) are explicit semantic participants.
 
-## Type System
+## Type and Value Model
 
-## Static with Local Inference
-
+- The language is statically typed with local inference.
 - Every expression has a compile-time type.
-- Local variables infer type from initializer.
-- Public APIs should annotate parameter and return types.
+- Public API boundaries SHOULD be explicitly annotated.
+- Optional values are explicit:
+  - syntax-level canonical form: `T?`
+  - empty optional literal: `none`
 
-## Core Categories
+See:
 
-- Scalar: `Int`, `Float`, `Bool`, `Str`
-- Aggregate: `List<T>`, `Map<K,V>`, user `type`
-- Concurrency primitives: `chan<T>`
-- Result model: `Result<T, E>`
+- `docs/spec/type_system.md`
+- `docs/spec/numeric_model.md`
+- `docs/spec/strings_and_text.md`
 
-## Nullability
+## Bindings and Mutability
 
-V0.1 avoids implicit null. Optional values use explicit `Option<T>` style type.
+- `x := expr` creates a new binding.
+- `mut x := expr` creates mutable binding.
+- `const x = expr` creates immutable compile-time constant binding.
+- Assignment (`=`) MUST be rejected on immutable bindings.
+- Field/index mutation legality follows mutability + ownership rules.
 
-## Assignment and Mutation
-
-- `:=` introduces a new binding.
-- `=` updates an existing mutable value.
-- Mutation to shared state is legal only under rules enforced by runtime/concurrency checker.
-- Hybrid ownership/sendability rules for Phase 3 are defined in `docs/spec/ownership_sendability.md`.
+See `docs/spec/mutability_model.md`.
 
 ## Function Semantics
 
-- Functions are first-class values.
-- Last expression returns when explicit `return` is absent.
-- Parameter passing is by value or reference based on type category and compiler lowering rules.
+- Function call argument evaluation is left-to-right.
+- Explicit `return` exits function immediately.
+- If no explicit `return` on final path, tail expression value is returned.
+- Async functions return async-compatible values and can be suspended at
+  `await` points.
 
-## Error Semantics
+## Error and Propagation Semantics
 
-- Fallible functions return `Result<T, E>`.
-- `expr?` expands to "if error, return early with same error channel."
-- `@require` failures return contract violations (debug/test builds) or configured failure mode (release policy).
+- Fallible operations use `Result<T,E>` model.
+- `expr?` propagates failure to caller preserving error channel type.
+- Contract failures follow profile policy (dev/test strict by default; release
+  policy configurable).
 
-## Contract Semantics
+See `docs/spec/error_model.md` and `docs/spec/contracts.md`.
 
-Contracts are part of semantic model, not comments.
+## Control-Flow Semantics
 
-- `@require` is evaluated at function entry.
-- `@ensure` is evaluated at function exit with `.` bound to return value.
-- `old(expr)` inside `@ensure` captures entry-time value snapshots.
-- `@examples` produce executable tests; they do not change runtime semantics.
-- `@intent` is metadata for human and tooling layers; compiler preserves it in semantic index.
+- `if`, `for`, `while`, `repeat`, `match`, and `select` are structured forms.
+- `break` and `continue` target nearest enclosing loop unless label is provided.
+- `match` semantics include explicit default handling and deterministic arm
+  selection.
 
-## Evaluation Order
+See `docs/spec/control_flow.md`.
 
-V0.1 defines left-to-right evaluation for:
+## Concurrency, Async, and Threads
 
-- Argument lists
-- Method chains
-- Binary expressions
+- `go` spawns runtime-scheduled task units.
+- `thread` schedules explicit OS-thread boundary execution.
+- `await` suspends async execution until awaited value resolves.
+- Channel send/recv form synchronization points.
+- Cross-boundary value movement must satisfy sendability rules.
 
-This avoids hidden reorderings in early versions and simplifies mental model.
+See:
 
-## Control Flow
+- `docs/spec/concurrency_and_scheduling.md`
+- `docs/spec/async_await_and_threads.md`
+- `docs/spec/ownership_sendability.md`
 
-- `if`, `for`, `while`, `match`, and `select` are structured control forms.
-- `break` and `continue` apply to nearest loop.
-- `return` exits current function immediately.
+## Effects and Determinism
 
-## Concurrency and Memory Visibility
+`@effect` declarations describe side-effect classes used for static checks and
+reasoning.
 
-- `go` schedules a task on runtime scheduler.
-- Channel `send`/`recv` operations define synchronization points.
-- Values sent through channels are transferred according to runtime copy/move policy.
-- Shared mutable state without synchronization is disallowed in safe mode.
-- Values passed to `go` must satisfy sendability rules in Phase 3 baseline.
-
-## Effect Semantics
-
-`@effect` declares function side effects. Effects are checked against operations observed during semantic analysis.
-
-Initial v0.1 effect set:
+Vocabulary:
 
 - `alloc`
 - `mut_state`
@@ -101,33 +99,45 @@ Initial v0.1 effect set:
 - `concurrency`
 - `nondet`
 
-Compiler policies:
+Rules:
 
-- Missing declared effect when operation exists: compile error or warning based on profile.
-- Declared effect not observed: warning (helps clean contracts over time).
+- Observed effects not declared: diagnostic.
+- Declared but unobserved effects: diagnostic (typically warning).
+- `nondet` effect participation weakens deterministic guarantees by design.
 
-## Determinism Policy
+## Memory and Visibility
 
-By default, functions are assumed deterministic unless:
+- Visibility and ordering MUST follow language memory model.
+- Channel sync and explicit runtime synchronization establish happens-before.
+- Unsynchronized shared mutable access is invalid in safe surface.
 
-- They declare `@effect nondet`
-- They transitively call nondeterministic APIs
+See `docs/spec/memory_model_and_gc.md`.
 
-This policy enables stable generated tests and reproducible CI behavior.
+## ABI and Module Semantics
 
-## Build Profiles and Semantics
+- External boundaries use explicit ABI contracts.
+- Module/import/visibility rules are deterministic and reject ambiguous
+  resolution.
 
-## Dev Profile
+See:
 
-- More contract checks enabled at runtime.
-- Faster compilation with moderate optimization.
+- `docs/spec/abi_and_ffi.md`
+- `docs/spec/module_and_visibility.md`
 
-## Release Profile
+## Build Profile Semantics
 
-- Aggressive optimization.
-- Contract checks configurable: keep critical checks, lower/remove non-critical checks by policy.
+### Dev/Test Profile
+
+- Prioritize diagnostics and contract enforcement.
+- Preserve deterministic debug metadata.
+
+### Release Profile
+
+- Prioritize optimized native codegen.
+- Keep critical correctness checks; non-critical checks follow release policy.
 
 ## Undefined Behavior Policy
 
-V0.1 aims to eliminate user-visible undefined behavior in safe language surface.
-Unsafe runtime/internal operations are confined to compiler/runtime implementation layers.
+User-visible safe language surface aims to avoid undefined behavior.
+Low-level unsafe operations are confined to runtime/compiler internals and MUST
+not leak undefined behavior through safe APIs.

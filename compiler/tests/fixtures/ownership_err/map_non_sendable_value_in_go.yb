@@ -1,0 +1,10 @@
+consume_bad_map(m) -> Int {
+  m.len()
+}
+
+pub main() -> Int {
+  @effect concurrency
+  bad := {"x": []}
+  go consume_bad_map(bad)
+  0
+}

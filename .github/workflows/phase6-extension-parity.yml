@@ -14,16 +14,16 @@ jobs:
       - name: extension parity across core commands
         run: |
           set -euo pipefail
-          cp compiler/tests/fixtures/build/hello_world.vibe /tmp/phase6_hello.vibe
-          cp compiler/tests/fixtures/build/hello_world.vibe /tmp/phase6_hello.yb
           for ext in vibe yb; do
-            file="/tmp/phase6_hello.$ext"
+            tmpdir="$(mktemp -d)"
+            file="$tmpdir/phase6_hello.$ext"
+            cp compiler/tests/fixtures/build/hello_world.vibe "$file"
             cargo run -q -p vibe_cli -- check "$file"
             cargo run -q -p vibe_cli -- build "$file"
             cargo run -q -p vibe_cli -- run "$file"
             cargo run -q -p vibe_cli -- test "$file"
             cargo run -q -p vibe_cli -- lint "$file" --intent
-            cargo run -q -p vibe_cli -- index /tmp
+            cargo run -q -p vibe_cli -- index "$tmpdir"
           done
       - name: lsp smoke
         run: |

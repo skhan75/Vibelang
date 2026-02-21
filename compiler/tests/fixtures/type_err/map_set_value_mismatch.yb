@@ -1,0 +1,5 @@
+pub main() -> Int {
+  m := {"a": 1}
+  m.set("a", "oops")
+  0
+}

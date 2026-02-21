@@ -1,26 +1,28 @@
-# VibeLang Syntax Spec (v0.1 Draft)
+# VibeLang Syntax Spec (v1.0 Target)
 
-## Goals
+## Status
 
-Syntax in v0.1 is designed for:
+- Normative target grammar: `docs/spec/grammar_v1_0.ebnf`
+- Archived parser freeze: `docs/spec/grammar_v0_1.ebnf`
+- Historical ambiguity notes: `docs/spec/phase1_resolved_decisions.md`
 
-- Low typing friction
-- High readability
-- Explicit correctness metadata next to implementation
+This document defines language-level syntax. If this document conflicts with the
+v1 grammar, the grammar wins.
 
-## Phase 1 Grammar Freeze
+## Design Goals
 
-- Parser source of truth: `docs/spec/grammar_v0_1.ebnf`
-- Resolved ambiguities appendix: `docs/spec/phase1_resolved_decisions.md`
-- The EBNF in this document is explanatory; implementation should follow the freeze artifact.
+- Keep syntax low-noise and readable.
+- Preserve deterministic parse behavior.
+- Keep contracts and intent close to executable code.
+- Support modern concurrency and async constructs explicitly.
 
-## Source File Layout
+## File Structure
 
 A file may contain:
 
-1. Optional module declaration
-2. Zero or more imports
-3. Type/function declarations
+1. optional module declaration
+2. zero or more imports
+3. zero or more declarations (`type` and function declarations)
 
 Example:
 
@@ -29,156 +31,189 @@ module app.math
 
 import std.math
 
-topK(xs, k) {
-  @intent "k largest numbers, sorted desc"
+pub topK(xs: List<i64>, k: i64) -> List<i64> {
+  @intent "k largest numbers sorted descending"
   @examples {
     topK([3,1,2], 2) => [3,2]
   }
-  xs.sort_desc().take(k)
-}
-```
-
-## Lexical Basics
-
-- Identifier: `letter (letter | digit | "_")*`
-- Keywords (reserved in v0.1):
-  - `module`, `import`, `pub`, `type`, `if`, `else`, `for`, `while`, `repeat`, `match`, `return`, `go`, `select`
-- Contract annotations begin with `@` and are not valid identifiers.
-
-## Blocks
-
-V0.1 supports brace blocks for declarations and control flow:
-
-```txt
-transfer(from, to, amount) {
-  if amount <= 0 {
-    return err("invalid amount")
-  }
-  ok()
-}
-```
-
-Notes:
-
-- Braces are chosen for unambiguous parsing in early compiler stages.
-- Newline and indentation are non-semantic in v0.1 (formatting concern only).
-
-## Functions
-
-### Function Forms
-
-- Local/internal function:
-  - `name(arg1, arg2) { ... }`
-- Public API function:
-  - `pub name(arg1: Type, arg2: Type) -> ReturnType { ... }`
-
-Types are optional in local code and encouraged for exported API boundaries.
-
-### Return Rules
-
-- `return expr` returns immediately.
-- If omitted, the last expression in a block becomes the return value.
-
-## Bindings and Assignment
-
-- Inferred local binding: `name := expr`
-- Re-assignment: `name = expr`
-
-Examples:
-
-```txt
-acc := 0
-acc = acc + 1
-```
-
-## Collections and Literals
-
-- List: `[1, 2, 3]`
-- Map: `{"a": 1, "b": 2}`
-- String: `"hello"`
-- Number literals: `42`, `3.14`
-- Boolean: `true`, `false`
-
-## Call and Method Chain Style
-
-Both call styles are supported:
-
-- Function style: `take(sorted, k)`
-- Chain style: `xs.sort_desc().take(k)`
-
-Chain style is preferred in docs for left-to-right readability.
-
-## Error Propagation
-
-- `expr?` propagates failure to caller.
-- Explicit branch handling remains available via `match`.
-
-Example:
-
-```txt
-data := json.parse(raw)?
-validated := UserInput.validate(data)?
-```
-
-## Concurrency Syntax
-
-- Spawn concurrent task: `go worker(jobs, out)`
-- Create channels: `jobs := chan(1024)`
-- Select over multiple events:
-
-```txt
-select {
-  case msg := inbox.recv() => handle(msg)
-  case after 5s => log.warn("idle")
-  case closed inbox => break
-}
-```
-
-## Contracts and Intent Annotations
-
-Contracts can be attached at function start:
-
-- `@intent "human-readable objective"`
-- `@examples { ... }`
-- `@require predicate`
-- `@ensure predicate`
-- `@effect effect_name`
-
-Example:
-
-```txt
-topK(xs, k) {
-  @intent "k largest numbers, sorted desc"
   @require k >= 0
-  @ensure len(.) == min(k, len(xs))
+  @ensure len(.) <= len(xs)
   @effect alloc
 
   xs.sort_desc().take(k)
 }
 ```
 
-`.` represents the function result value in postconditions.
+## Reserved Keywords
 
-## Minimal Grammar Sketch (EBNF-ish)
+Reserved keywords in v1 grammar:
+
+- `module`, `import`, `pub`, `type`
+- `async`, `await`, `thread`, `go`
+- `if`, `else`, `for`, `while`, `repeat`, `match`, `case`, `default`
+- `select`, `after`, `closed`
+- `return`, `break`, `continue`
+- `const`, `mut`
+- `true`, `false`, `none`
+
+Contract annotations begin with `@` and are not identifiers.
+
+## Declarations
+
+### Type Declaration
 
 ```txt
-file          := moduleDecl? importDecl* declaration*
-declaration   := functionDecl | typeDecl
-functionDecl  := visibility? ident "(" paramList? ")" returnType? block
-block         := "{" statement* expr? "}"
-statement     := binding | assignment | ifStmt | forStmt | whileStmt | selectStmt | returnStmt | contractStmt | exprStmt
-binding       := ident ":=" expr
-assignment    := lhs "=" expr
-contractStmt  := "@intent" string
-               | "@examples" "{" exampleCase* "}"
-               | "@require" expr
-               | "@ensure" expr
-               | "@effect" ident
-exampleCase   := expr "=>" expr
+pub type Account {
+  id: Str
+  balance: i64
+}
 ```
 
-## Formatting Guidance
+### Function Declaration
 
+```txt
+name(arg1: T1, arg2: T2) -> T3 { ... }
+pub async fetch(url: Str) -> Result<Str, Error> { ... }
+```
+
+Notes:
+
+- `async` is optional; non-async functions are synchronous.
+- Function parameters may be prefixed with `mut` to allow reassignment.
+- `return` is optional when using tail-expression return.
+
+## Bindings, Constants, and Assignment
+
+- Mutable or immutable inferred binding:
+  - `x := expr`
+  - `mut x := expr`
+- Constant binding:
+  - `const limit: i64 = 1024`
+- Assignment:
+  - `x = expr`
+  - `obj.field = expr`
+  - `list[i] = expr`
+
+Assignment validity is constrained by the mutability model in
+`docs/spec/mutability_model.md`.
+
+## Control Statements
+
+Supported statements:
+
+- `if` / `else`
+- `for name in iterable`
+- `while condition`
+- `repeat count`
+- `match expr { ... }`
+- `break` / `continue` (optional labels)
+- `return`
+
+Example:
+
+```txt
+for item in items {
+  if item == stopValue {
+    break
+  }
+  if item < 0 {
+    continue
+  }
+  process(item)
+}
+```
+
+## Concurrency and Async Surface
+
+### Task and Thread Forms
+
+- `go expr` schedules concurrent work on runtime task scheduler.
+- `thread expr` requests explicit OS-thread execution semantics.
+
+### Select Form
+
+```txt
+select {
+  case msg := inbox.recv() => handle(msg)
+  case after 5s => on_timeout()
+  case closed inbox => break
+  case default => on_idle()
+}
+```
+
+### Async and Await
+
+`await` is a unary expression form:
+
+```txt
+pub async fetchAll(urls: List<Str>) -> Result<List<Str>, Error> {
+  first := await fetch(urls[0])
+  [first]
+}
+```
+
+Detailed behavior is in `docs/spec/async_await_and_threads.md`.
+
+## Expression Surface
+
+Primary expression classes include:
+
+- identifiers, literals, grouped expressions
+- function/method calls
+- member access and index access
+- unary/binary operations
+- postfix `?` propagation
+- `await` unary form
+- contract-only forms: `.` and `old(expr)`
+
+Evaluation order is left-to-right for arguments, call chains, and binary ops.
+
+## Literals
+
+- Integer literals with optional suffixes:
+  - `42`, `42i32`, `42u64`
+- Float literals with optional suffixes:
+  - `3.14`, `3.14f32`
+- String literals:
+  - `"hello\nworld"`
+- Char literals:
+  - `'x'`
+- Boolean:
+  - `true`, `false`
+- List:
+  - `[1, 2, 3]`
+- Map:
+  - `{"a": 1, "b": 2}`
+- Duration literal:
+  - `5ms`, `1s`, `2m`, `1h`
+
+Exact numeric and text behavior is defined in:
+
+- `docs/spec/numeric_model.md`
+- `docs/spec/strings_and_text.md`
+
+## Contracts and Intent Placement
+
+Contracts MUST appear at function-body top before executable statements:
+
+- `@intent "..."`, `@examples { ... }`, `@require`, `@ensure`, `@effect`
+
+Illegal placement MUST produce deterministic diagnostics.
+
+## Option-Like Nullability Syntax
+
+V1 uses explicit optional typing via nullable suffix syntax:
+
+- `Str?`
+- `List<i64>?`
+
+`none` is the optional empty-value literal.
+
+`Option<T>` remains an explanatory alias in docs, but syntax-level canonical
+form is `T?` in v1 grammar.
+
+## Formatting and Readability Conventions
+
+- Keep contracts grouped and ordered before executable code.
+- Prefer one transformation per chain line for long pipelines.
 - Keep line length around 100 chars.
-- Place contracts before executable statements.
-- Prefer one transformation per line in chains when readability improves.

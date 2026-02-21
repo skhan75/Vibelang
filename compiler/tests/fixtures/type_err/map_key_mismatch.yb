@@ -1,0 +1,4 @@
+pub main() -> Int {
+  mixed := {"a": 1, 2: 3}
+  mixed.len()
+}

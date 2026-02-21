@@ -12,7 +12,7 @@
   <a href="#roadmap-snapshot"><img src="https://img.shields.io/badge/status-active%20development-22c55e" alt="status" /></a>
   <a href="#what-vibelang-is"><img src="https://img.shields.io/badge/native-AOT-2563eb" alt="native" /></a>
   <a href="#why-i-built-this"><img src="https://img.shields.io/badge/intent-driven%20development-a855f7" alt="intent" /></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="license" /></a>
+  <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="license" />
 </p>
 
 <p align="center">

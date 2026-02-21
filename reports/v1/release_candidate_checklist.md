@@ -14,9 +14,10 @@ Owner: `vibelang-core`
 
 - [x] Deterministic build smoke passed
 - [x] Frontend determinism smoke passed
+- [x] Spec integrity gate baseline passed locally (`spec_integrity_gate`: markdown lint + consistency + coverage validators)
 - [ ] Native contract enforcement smoke passed
 - [x] Compiler self-host readiness gate passed (`7.3.e`: M1 parity + one RC dry-run evidence cycle)
-- [ ] Native dynamic container smoke passed (`Str`/`List`/`Map` construction + member/container lowering without `E3401`/`E3402`) after self-host readiness gate
+- [x] Native dynamic container smoke passed (`Str`/`List`/`Map` construction + member/container lowering without `E3401`/`E3402`) after self-host readiness gate
 - [x] Intent verifier-gate smoke passed
 
 ## Runtime and Stability
@@ -42,11 +43,12 @@ Owner: `vibelang-core`
 
 - [x] `reports/v1/readiness_dashboard.md`
 - [x] `reports/v1/selfhost_readiness.md`
+- [x] `reports/v1/spec_readiness.md`
 - [ ] Workflow run URL: `TBD`
-- [x] Additional artifact links: `reports/v1/smoke_validation.md`, `reports/v1/selfhost_readiness.json`
+- [x] Additional artifact links: `reports/v1/smoke_validation.md`, `reports/v1/dynamic_containers_conformance.md`, `reports/v1/selfhost_readiness.json`, `reports/v1/spec_readiness.md`
 
 ## Promote / Reject Decision
 
 - Decision: `not-ready-for-ga`
 - Decision owner: `vibelang-core`
-- Notes: `P0 native contract enforcement and P0 native dynamic container support (`Str`/`List`/`Map`) remain open; memory/GC tool lanes are feature-gated and not executed in default local dry-run.`
+- Notes: `P0 native contract enforcement remains open; memory/GC tool lanes are feature-gated and not executed in default local dry-run.`

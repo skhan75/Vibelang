@@ -1,0 +1,10 @@
+consume_map(m) -> Int {
+  m.len()
+}
+
+pub main() -> Int {
+  @effect concurrency
+  pending := {}
+  go consume_map(pending)
+  0
+}

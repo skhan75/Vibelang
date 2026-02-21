@@ -54,7 +54,7 @@ Use rules:
 - [ ] **P0:** Implement true reproducible build mode in CLI (`--locked`) and CI usage (`cargo ... --locked`) to match documented policy (evidence gap: `tooling/build_system.md` documents `vibe build --offline --locked`, but `crates/vibe_cli/src/main.rs` `parse_build_like_args` rejects `--locked`)
 - [ ] **P0:** Enforce `@require/@ensure` in native dev/test execution path (not only example-runner path) and add failure-mode tests for `vibe run`/native binaries (evidence gap: `crates/vibe_cli/src/example_runner.rs` enforces contracts, while `crates/vibe_mir/src/lib.rs` has no contract lowering)
 - [ ] **P0:** Fix sendability safety mismatch for unknown types in concurrent calls and align implementation with spec (evidence gap: `docs/spec/ownership_sendability.md` says unknown values are not sendable, but `crates/vibe_types/src/ownership.rs` currently treats `TypeKind::Unknown` as sendable)
-- [ ] **P0:** Implement native dynamic data-structure support for `Str`/`List`/`Map` construction and mutation paths, and remove release-critical `E3401`/`E3402` fallbacks from official sample coverage (sequence: execute after `7.3.e Compiler Self-Host Readiness` gate) (evidence gap: `crates/vibe_codegen/src/lib.rs` still emits unsupported-form diagnostics for list/map/member lowering in v0.1 backend)
+- [x] **P0:** Implement native dynamic data-structure support for `Str`/`List`/`Map` construction and mutation paths, and remove release-critical `E3401`/`E3402` fallbacks from official sample coverage (sequence: execute after `7.3.e Compiler Self-Host Readiness` gate) (evidence: `reports/v1/dynamic_containers_conformance.md`, workflow `.github/workflows/v1-release-gates.yml` job `dynamic_containers_gate`)
 - [ ] **P1:** Normalize reproducibility metadata and artifact paths so outputs are machine/path-stable (evidence gap: `crates/vibe_cli/src/main.rs` `write_debug_map` writes `source_path.display()` directly)
 - [ ] **P1:** Pin toolchain to an exact Rust version (not moving `stable`) and add release evidence for toolchain hash + lockfile state
 - [ ] **P1:** Expose incremental cache hit/miss telemetry in CLI/CI and gate minimum hit-rate in regression checks (evidence gap: telemetry fields exist in `crates/vibe_indexer/src/incremental.rs` but are not surfaced by `vibe index --stats`)
@@ -223,7 +223,7 @@ Goal: add AI productivity features without compromising determinism, cost, or tr
 - [x] Implement native codegen support for `while` and `repeat` (remove phase-baseline fallback errors)
 - [x] Implement true task spawning semantics for `go` in generated binaries
 - [x] Implement full multi-case `select` lowering semantics (receive/after/closed/default with fairness policy)
-- [ ] Implement backend support for documented core forms used in official specs/examples (`List/Map` paths, member access, method-call lowering) (open gap: native backend still reports `E3401`/`E3402` for key dynamic container/member paths)
+- [x] Implement backend support for documented core forms used in official specs/examples (`List/Map` paths, member access, method-call lowering) (evidence: `crates/vibe_codegen/src/lib.rs`, `runtime/native/vibe_runtime.c`, `reports/v1/dynamic_containers_conformance.md`)
 - [x] Add stable diagnostics for unsupported constructs with actionable migration/feature-status guidance
 - [x] Add conformance fixtures proving runtime behavior matches `docs/spec/semantics.md` for control flow and concurrency primitives
 - [x] Activate `@require/@ensure` runtime checks by default in dev/test and verify policy behavior in integration tests
@@ -466,15 +466,26 @@ Execution order is fixed and should be followed top to bottom.
 
 #### 7.3.f Language Surface + Dynamic Runtime Data Structures (Second, After 7.3.e)
 
-- [ ] Define v1 language-surface completion scope (dynamic `Str`/`List`/`Map`, required keywords, literal forms, and container API behavior) with determinism/ordering guarantees
-- [ ] Add parser/type-check coverage for remaining keyword/literal/container forms with deterministic diagnostics and migration guidance
-- [ ] Add MIR/container IR operations for dynamic construction, append/concat, indexing, and iteration
-- [ ] Implement runtime ABI intrinsics and allocation strategy for container operations with deterministic behavior
-- [ ] Implement native codegen lowering for container/member forms currently covered by `E3401`/`E3402` fallbacks
-- [ ] Add concurrency/sendability safety checks for container values crossing `go` boundaries
-- [ ] Add algorithmic conformance fixtures requiring dynamic containers (e.g., generate parentheses backtracking) with deterministic output tests
-- [ ] Add container-heavy memory/GC observability checks and bounded leak-test lane evidence
-- [ ] Publish `reports/v1/dynamic_containers_conformance.md` and wire a blocking CI gate in `.github/workflows/v1-release-gates.yml`
+##### 7.3.f.0 Spec Completeness Sub-Gate (Required Before 7.3.f Runtime Closeout)
+
+- [x] Publish normative spec architecture and source-of-truth taxonomy for production docs (`docs/spec/README.md`, `docs/spec/spec_glossary.md`, `docs/spec/spec_decision_log.md`, `docs/spec/grammar_v1_0.ebnf`)
+- [x] Reconcile syntax/semantics contradictions (`match`/`break`/`continue`, optional typing, contract placement) and add compatibility appendix (evidence: `docs/spec/syntax.md`, `docs/spec/semantics.md`, `docs/spec/phase1_resolved_decisions.md`)
+- [x] Publish normative language reference docs for type system, numerics, mutability, strings/containers, control flow, concurrency/async/thread model, memory/error/ABI/module boundaries (evidence: docs under `docs/spec/*.md` created for each surface)
+- [x] Add spec traceability matrix mapping normative rules to tests/deferred items (evidence: `docs/spec/spec_coverage_matrix.md`)
+- [x] Add spec consistency and coverage validators and wire blocking `spec_integrity_gate` in v1 workflow (evidence: `tooling/spec/validate_spec_consistency.py`, `tooling/spec/validate_spec_coverage.py`, workflow `.github/workflows/v1-release-gates.yml` job `spec_integrity_gate`)
+- [x] Add spec readiness evidence artifact and dashboard linkage (evidence: `reports/v1/spec_readiness.md`, `reports/v1/readiness_dashboard.md`)
+
+##### 7.3.f.1 Runtime + Compiler Implementation Closeout (Still Blocking GA)
+
+- [x] Define v1 language-surface completion scope (dynamic `Str`/`List`/`Map`, required keywords, literal forms, and container API behavior) with determinism/ordering guarantees (evidence: `docs/spec/containers.md` section `7.3.f.1 Implementation Support Freeze (v1 GA Blocker Scope)`, `docs/spec/strings_and_text.md`, `docs/spec/type_system.md`, `docs/spec/numeric_model.md`)
+- [x] Add parser/type-check coverage for remaining keyword/literal/container forms with deterministic diagnostics and migration guidance (evidence: `compiler/tests/fixtures/type_ok/container_methods_basic.yb`, `compiler/tests/fixtures/type_err/map_key_mismatch.yb`, `compiler/tests/fixtures/parse_err/map_missing_colon.yb`, `crates/vibe_cli/tests/frontend_fixtures.rs`)
+- [x] Add MIR/container IR operations for dynamic construction, append/concat, indexing, and iteration (evidence: `crates/vibe_mir/src/lib.rs`, `compiler/tests/fixtures/snapshots/container_ops_sample.yb`, `crates/vibe_cli/tests/frontend_fixtures.rs` test `snapshots_container_ops_mir_is_deterministic`)
+- [x] Implement runtime ABI intrinsics and allocation strategy for container operations with deterministic behavior (evidence: `runtime/native/vibe_runtime.c`, `reports/v1/dynamic_containers_conformance.md`)
+- [x] Implement native codegen lowering for container/member forms currently covered by `E3401`/`E3402` fallbacks (evidence: `crates/vibe_codegen/src/lib.rs`, `crates/vibe_cli/tests/phase7_v1_tightening.rs`)
+- [x] Add concurrency/sendability safety checks for container values crossing `go` boundaries (evidence: `compiler/tests/fixtures/phase7/stress/ownership/ownership__list_map_sendable.yb`, `compiler/tests/fixtures/ownership_err/map_non_sendable_value_in_go.yb`)
+- [x] Add algorithmic conformance fixtures requiring dynamic containers (e.g., generate parentheses backtracking) with deterministic output tests (evidence: `compiler/tests/fixtures/phase7/stress/algorithmic/algorithmic__generate_parentheses_count.yb`, `crates/vibe_cli/tests/phase7_v1_tightening.rs`)
+- [x] Add container-heavy memory/GC observability checks and bounded leak-test lane evidence (evidence: `compiler/tests/fixtures/phase7/stress/memory/memory__container_pressure_loop.yb`, `crates/vibe_cli/tests/phase7_v1_tightening.rs`)
+- [x] Publish `reports/v1/dynamic_containers_conformance.md` and wire a blocking CI gate in `.github/workflows/v1-release-gates.yml` (evidence: `reports/v1/dynamic_containers_conformance.md`, workflow job `dynamic_containers_gate`)
 
 ### 7.4 Ordered Item 4 — VibeLang Book + Full Documentation Program
 
@@ -510,5 +521,5 @@ Execution order is fixed and should be followed top to bottom.
 
 - [x] Item 1 completed: comprehensive language validation matrix and sample program catalog are green with reproducible evidence (`workflow .github/workflows/phase7-language-validation.yml`, reports under `reports/phase7/`)
 - [x] Item 2 completed: README is public-ready, accurate, and CI-validated against command drift (`README.md`, workflow `.github/workflows/phase7-readme-quality.yml`)
-- [ ] Item 3 completed: v1 production release gates are explicitly defined, owned, and passing for at least one release-candidate cycle (evidence path: `workflow .github/workflows/v1-release-gates.yml`, `reports/v1/readiness_dashboard.md`, `reports/v1/release_candidate_checklist.md`, `reports/v1/smoke_validation.md`; remaining blockers tracked in `reports/v1/readiness_dashboard.md`)
+- [ ] Item 3 completed: v1 production release gates are explicitly defined, owned, and passing for at least one release-candidate cycle (evidence path: `workflow .github/workflows/v1-release-gates.yml`, `reports/v1/readiness_dashboard.md`, `reports/v1/release_candidate_checklist.md`, `reports/v1/smoke_validation.md`, `reports/v1/spec_readiness.md`; remaining blockers tracked in `reports/v1/readiness_dashboard.md`)
 - [ ] Item 4 completed: book/docs program is structured, CI-gated, and includes tested chapter examples across core language/tooling surfaces (`book/`, docs CI jobs, `reports/docs/documentation_quality.md`)

@@ -1,5 +1,5 @@
 (* VibeLang v0.1 grammar freeze for Phase 1 parser implementation. *)
-(* This file is the parser source of truth for frontend bootstrap. *)
+(* Archived freeze artifact; production target grammar is grammar_v1_0.ebnf. *)
 
 file                = ws, module_decl_opt, { import_decl }, { declaration }, EOF ;
 

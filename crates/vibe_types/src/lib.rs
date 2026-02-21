@@ -26,6 +26,7 @@ pub enum TypeKind {
     Bool,
     Str,
     List(Box<TypeKind>),
+    Map(Box<TypeKind>, Box<TypeKind>),
     Result(Box<TypeKind>, Box<TypeKind>),
     Chan(Box<TypeKind>),
     Void,
@@ -688,18 +689,74 @@ fn expr_type_hint(expr: &Expr, env: &BTreeMap<String, TypeKind>) -> TypeKind {
                 TypeKind::List(Box::new(TypeKind::Unknown))
             }
         }
-        Expr::Map { .. } => TypeKind::Unknown,
-        Expr::Member { object, field, .. } => match field.as_str() {
-            "len" | "balance" => TypeKind::Int,
-            _ => expr_type_hint(object, env),
-        },
-        Expr::Call { callee, .. } => {
+        Expr::Map { entries, .. } => {
+            if let Some((first_key, first_value)) = entries.first() {
+                TypeKind::Map(
+                    Box::new(expr_type_hint(first_key, env)),
+                    Box::new(expr_type_hint(first_value, env)),
+                )
+            } else {
+                TypeKind::Map(Box::new(TypeKind::Unknown), Box::new(TypeKind::Unknown))
+            }
+        }
+        Expr::Member { object, field, .. } => {
+            let object_ty = expr_type_hint(object, env);
+            match field.as_str() {
+                "len" | "balance" => TypeKind::Int,
+                _ => match object_ty {
+                    TypeKind::Map(key_ty, value_ty)
+                        if matches!(*key_ty, TypeKind::Str)
+                            && !is_container_member_api(field) =>
+                    {
+                        *value_ty
+                    }
+                    other => other,
+                },
+            }
+        }
+        Expr::Call { callee, args, .. } => {
             if let Expr::Ident { name, .. } = &**callee {
                 return match name.as_str() {
                     "len" | "min" | "cpu_count" => TypeKind::Int,
                     "sorted_desc" => TypeKind::Bool,
                     "print" | "println" => TypeKind::Void,
                     _ => TypeKind::Unknown,
+                };
+            }
+            if let Expr::Member { object, field, .. } = &**callee {
+                let object_ty = expr_type_hint(object, env);
+                return match field.as_str() {
+                    "len" => TypeKind::Int,
+                    "append" | "set" => TypeKind::Void,
+                    "contains" | "remove" => TypeKind::Bool,
+                    "get" => match object_ty {
+                        TypeKind::List(inner) => *inner,
+                        TypeKind::Map(_, value) => *value,
+                        _ => TypeKind::Unknown,
+                    },
+                    _ => {
+                        // Keep a conservative fallback for call-like members outside
+                        // the container/channels surface.
+                        if field == "recv" {
+                            if let TypeKind::Chan(inner) = object_ty {
+                                *inner
+                            } else {
+                                TypeKind::Unknown
+                            }
+                        } else if field == "send" || field == "close" {
+                            TypeKind::Void
+                        } else if field == "warn" {
+                            TypeKind::Void
+                        } else if field == "sort_desc" || field == "take" {
+                            TypeKind::Unknown
+                        } else if field == "listen" {
+                            TypeKind::Unknown
+                        } else if let Some(first_arg) = args.first() {
+                            expr_type_hint(first_arg, env)
+                        } else {
+                            TypeKind::Unknown
+                        }
+                    }
                 };
             }
             TypeKind::Unknown
@@ -716,6 +773,9 @@ fn expr_type_hint(expr: &Expr, env: &BTreeMap<String, TypeKind>) -> TypeKind {
             BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div => {
                 let lt = expr_type_hint(left, env);
                 let rt = expr_type_hint(right, env);
+                if matches!(lt, TypeKind::Str) && matches!(rt, TypeKind::Str) && matches!(op, BinaryOp::Add) {
+                    return TypeKind::Str;
+                }
                 if matches!(lt, TypeKind::Float) || matches!(rt, TypeKind::Float) {
                     TypeKind::Float
                 } else {
@@ -779,22 +839,92 @@ fn infer_expr(
                 TypeKind::List(Box::new(TypeKind::Unknown))
             }
         }
-        Expr::Map { .. } => {
+        Expr::Map { entries, .. } => {
             observed_effects.insert("alloc".to_string());
-            TypeKind::Unknown
+            if entries.is_empty() {
+                return TypeKind::Map(Box::new(TypeKind::Unknown), Box::new(TypeKind::Unknown));
+            }
+
+            let mut key_ty = TypeKind::Unknown;
+            let mut value_ty = TypeKind::Unknown;
+            for (idx, (key, value)) in entries.iter().enumerate() {
+                let inferred_key =
+                    infer_expr(key, env, sigs, context, diagnostics, observed_effects);
+                let inferred_value =
+                    infer_expr(value, env, sigs, context, diagnostics, observed_effects);
+                if idx == 0 {
+                    key_ty = inferred_key;
+                    value_ty = inferred_value;
+                    continue;
+                }
+                if !type_compatible(&key_ty, &inferred_key)
+                    && !matches!(key_ty, TypeKind::Unknown)
+                    && !matches!(inferred_key, TypeKind::Unknown)
+                {
+                    diagnostics.push(Diagnostic::new(
+                        "E2208",
+                        Severity::Error,
+                        format!(
+                            "map literal key type mismatch: expected `{}`, got `{}`",
+                            type_name(&key_ty),
+                            type_name(&inferred_key)
+                        ),
+                        key.span(),
+                    ));
+                    key_ty = TypeKind::Unknown;
+                } else if matches!(key_ty, TypeKind::Unknown) {
+                    key_ty = inferred_key;
+                }
+
+                if !type_compatible(&value_ty, &inferred_value)
+                    && !matches!(value_ty, TypeKind::Unknown)
+                    && !matches!(inferred_value, TypeKind::Unknown)
+                {
+                    diagnostics.push(Diagnostic::new(
+                        "E2209",
+                        Severity::Error,
+                        format!(
+                            "map literal value type mismatch: expected `{}`, got `{}`",
+                            type_name(&value_ty),
+                            type_name(&inferred_value)
+                        ),
+                        value.span(),
+                    ));
+                    value_ty = TypeKind::Unknown;
+                } else if matches!(value_ty, TypeKind::Unknown) {
+                    value_ty = inferred_value;
+                }
+            }
+            TypeKind::Map(Box::new(key_ty), Box::new(value_ty))
         }
         Expr::Member { object, field, .. } => {
             let base = infer_expr(object, env, sigs, context, diagnostics, observed_effects);
             match field.as_str() {
                 "len" => TypeKind::Int,
                 "balance" => TypeKind::Int,
-                _ => base,
+                _ => match base {
+                    TypeKind::Map(key_ty, value_ty)
+                        if matches!(*key_ty, TypeKind::Str)
+                            && !is_container_member_api(field) =>
+                    {
+                        *value_ty
+                    }
+                    other => other,
+                },
             }
         }
         Expr::Call { callee, args, .. } => {
             let callee_ty = infer_expr(callee, env, sigs, context, diagnostics, observed_effects);
+            let mut arg_types = Vec::with_capacity(args.len());
             for arg in args {
-                let _ = infer_expr(arg, env, sigs, context, diagnostics, observed_effects);
+                arg_types.push(infer_expr(
+                    arg,
+                    env,
+                    sigs,
+                    context,
+                    diagnostics,
+                    observed_effects,
+                ));
             }
             if let Expr::Ident { name, .. } = &**callee {
                 match name.as_str() {
@@ -846,6 +976,268 @@ fn infer_expr(
                         observed_effects.insert("io".to_string());
                         return TypeKind::Void;
                     }
+                    "append" => {
+                        observed_effects.insert("mut_state".to_string());
+                        observed_effects.insert("alloc".to_string());
+                        let Some(value_ty) = arg_types.first() else {
+                            diagnostics.push(Diagnostic::new(
+                                "E2210",
+                                Severity::Error,
+                                "list.append expects one argument",
+                                callee.span(),
+                            ));
+                            return TypeKind::Unknown;
+                        };
+                        match callee_ty {
+                            TypeKind::List(inner) => {
+                                if !type_compatible(&inner, value_ty)
+                                    && !matches!(*inner, TypeKind::Unknown)
+                                    && !matches!(value_ty, TypeKind::Unknown)
+                                {
+                                    diagnostics.push(Diagnostic::new(
+                                        "E2211",
+                                        Severity::Error,
+                                        format!(
+                                            "list.append value type mismatch: expected `{}`, got `{}`",
+                                            type_name(&inner),
+                                            type_name(value_ty)
+                                        ),
+                                        args[0].span(),
+                                    ));
+                                }
+                                return TypeKind::Void;
+                            }
+                            TypeKind::Unknown => return TypeKind::Unknown,
+                            other => {
+                                diagnostics.push(Diagnostic::new(
+                                    "E2212",
+                                    Severity::Error,
+                                    format!(
+                                        "`.append(...)` is only supported for List<T>, got `{}`",
+                                        type_name(&other)
+                                    ),
+                                    callee.span(),
+                                ));
+                                return TypeKind::Unknown;
+                            }
+                        }
+                    }
+                    "get" => match callee_ty {
+                        TypeKind::List(inner) => {
+                            if arg_types.len() != 1 {
+                                diagnostics.push(Diagnostic::new(
+                                    "E2213",
+                                    Severity::Error,
+                                    "list.get expects one index argument",
+                                    callee.span(),
+                                ));
+                                return TypeKind::Unknown;
+                            }
+                            if !matches!(arg_types[0], TypeKind::Int | TypeKind::Unknown) {
+                                diagnostics.push(Diagnostic::new(
+                                    "E2214",
+                                    Severity::Error,
+                                    "list.get index must be Int",
+                                    args[0].span(),
+                                ));
+                            }
+                            return *inner;
+                        }
+                        TypeKind::Map(key_ty, value_ty) => {
+                            if arg_types.len() != 1 {
+                                diagnostics.push(Diagnostic::new(
+                                    "E2215",
+                                    Severity::Error,
+                                    "map.get expects one key argument",
+                                    callee.span(),
+                                ));
+                                return TypeKind::Unknown;
+                            }
+                            if !type_compatible(&key_ty, &arg_types[0])
+                                && !matches!(*key_ty, TypeKind::Unknown)
+                                && !matches!(arg_types[0], TypeKind::Unknown)
+                            {
+                                diagnostics.push(Diagnostic::new(
+                                    "E2216",
+                                    Severity::Error,
+                                    format!(
+                                        "map.get key type mismatch: expected `{}`, got `{}`",
+                                        type_name(&key_ty),
+                                        type_name(&arg_types[0])
+                                    ),
+                                    args[0].span(),
+                                ));
+                            }
+                            return *value_ty;
+                        }
+                        TypeKind::Unknown => return TypeKind::Unknown,
+                        other => {
+                            diagnostics.push(Diagnostic::new(
+                                "E2217",
+                                Severity::Error,
+                                format!(
+                                    "`.get(...)` is only supported for List<T> and Map<K,V>, got `{}`",
+                                    type_name(&other)
+                                ),
+                                callee.span(),
+                            ));
+                            return TypeKind::Unknown;
+                        }
+                    },
+                    "set" => {
+                        observed_effects.insert("mut_state".to_string());
+                        match callee_ty {
+                            TypeKind::List(inner) => {
+                                if arg_types.len() != 2 {
+                                    diagnostics.push(Diagnostic::new(
+                                        "E2218",
+                                        Severity::Error,
+                                        "list.set expects index and value arguments",
+                                        callee.span(),
+                                    ));
+                                    return TypeKind::Unknown;
+                                }
+                                if !matches!(arg_types[0], TypeKind::Int | TypeKind::Unknown) {
+                                    diagnostics.push(Diagnostic::new(
+                                        "E2219",
+                                        Severity::Error,
+                                        "list.set index must be Int",
+                                        args[0].span(),
+                                    ));
+                                }
+                                if !type_compatible(&inner, &arg_types[1])
+                                    && !matches!(*inner, TypeKind::Unknown)
+                                    && !matches!(arg_types[1], TypeKind::Unknown)
+                                {
+                                    diagnostics.push(Diagnostic::new(
+                                        "E2220",
+                                        Severity::Error,
+                                        format!(
+                                            "list.set value type mismatch: expected `{}`, got `{}`",
+                                            type_name(&inner),
+                                            type_name(&arg_types[1])
+                                        ),
+                                        args[1].span(),
+                                    ));
+                                }
+                                return TypeKind::Void;
+                            }
+                            TypeKind::Map(key_ty, value_ty) => {
+                                if arg_types.len() != 2 {
+                                    diagnostics.push(Diagnostic::new(
+                                        "E2221",
+                                        Severity::Error,
+                                        "map.set expects key and value arguments",
+                                        callee.span(),
+                                    ));
+                                    return TypeKind::Unknown;
+                                }
+                                if !type_compatible(&key_ty, &arg_types[0])
+                                    && !matches!(*key_ty, TypeKind::Unknown)
+                                    && !matches!(arg_types[0], TypeKind::Unknown)
+                                {
+                                    diagnostics.push(Diagnostic::new(
+                                        "E2222",
+                                        Severity::Error,
+                                        format!(
+                                            "map.set key type mismatch: expected `{}`, got `{}`",
+                                            type_name(&key_ty),
+                                            type_name(&arg_types[0])
+                                        ),
+                                        args[0].span(),
+                                    ));
+                                }
+                                if !type_compatible(&value_ty, &arg_types[1])
+                                    && !matches!(*value_ty, TypeKind::Unknown)
+                                    && !matches!(arg_types[1], TypeKind::Unknown)
+                                {
+                                    diagnostics.push(Diagnostic::new(
+                                        "E2223",
+                                        Severity::Error,
+                                        format!(
+                                            "map.set value type mismatch: expected `{}`, got `{}`",
+                                            type_name(&value_ty),
+                                            type_name(&arg_types[1])
+                                        ),
+                                        args[1].span(),
+                                    ));
+                                }
+                                return TypeKind::Void;
+                            }
+                            TypeKind::Unknown => return TypeKind::Unknown,
+                            other => {
+                                diagnostics.push(Diagnostic::new(
+                                    "E2224",
+                                    Severity::Error,
+                                    format!(
+                                        "`.set(...)` is only supported for List<T> and Map<K,V>, got `{}`",
+                                        type_name(&other)
+                                    ),
+                                    callee.span(),
+                                ));
+                                return TypeKind::Unknown;
+                            }
+                        }
+                    }
+                    "contains" | "remove" => {
+                        if arg_types.len() != 1 {
+                            diagnostics.push(Diagnostic::new(
+                                "E2225",
+                                Severity::Error,
+                                format!("{field} expects one key argument"),
+                                callee.span(),
+                            ));
+                            return TypeKind::Unknown;
+                        }
+                        match callee_ty {
+                            TypeKind::Map(key_ty, _) => {
+                                if !type_compatible(&key_ty, &arg_types[0])
+                                    && !matches!(*key_ty, TypeKind::Unknown)
+                                    && !matches!(arg_types[0], TypeKind::Unknown)
+                                {
+                                    diagnostics.push(Diagnostic::new(
+                                        "E2226",
+                                        Severity::Error,
+                                        format!(
+                                            "map.{field} key type mismatch: expected `{}`, got `{}`",
+                                            type_name(&key_ty),
+                                            type_name(&arg_types[0])
+                                        ),
+                                        args[0].span(),
+                                    ));
+                                }
+                                if field == "remove" {
+                                    observed_effects.insert("mut_state".to_string());
+                                }
+                                return TypeKind::Bool;
+                            }
+                            TypeKind::Unknown => return TypeKind::Unknown,
+                            other => {
+                                diagnostics.push(Diagnostic::new(
+                                    "E2227",
+                                    Severity::Error,
+                                    format!(
+                                        "`.{field}(...)` is only supported for Map<K,V>, got `{}`",
+                                        type_name(&other)
+                                    ),
+                                    callee.span(),
+                                ));
+                                return TypeKind::Unknown;
+                            }
+                        }
+                    }
+                    "len" => {
+                        if !arg_types.is_empty() {
+                            diagnostics.push(Diagnostic::new(
+                                "E2228",
+                                Severity::Error,
+                                "`.len()` expects no arguments",
+                                callee.span(),
+                            ));
+                            return TypeKind::Unknown;
+                        }
+                        return TypeKind::Int;
+                    }
                     _ => {}
                 }
             }
@@ -867,6 +1259,24 @@ fn infer_expr(
                 | BinaryOp::Gt
                 | BinaryOp::Ge => TypeKind::Bool,
                 BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div => {
+                    if matches!(op, BinaryOp::Add)
+                        && matches!(lt, TypeKind::Str)
+                        && matches!(rt, TypeKind::Str)
+                    {
+                        return TypeKind::Str;
+                    }
+                    if (matches!(lt, TypeKind::Str) || matches!(rt, TypeKind::Str))
+                        && !matches!(lt, TypeKind::Unknown)
+                        && !matches!(rt, TypeKind::Unknown)
+                    {
+                        diagnostics.push(Diagnostic::new(
+                            "E2229",
+                            Severity::Error,
+                            "string operands are only supported with `+` and both sides must be Str",
+                            *span,
+                        ));
+                        return TypeKind::Unknown;
+                    }
                     if !type_compatible(&lt, &rt)
                         && !matches!(lt, TypeKind::Unknown)
                         && !matches!(rt, TypeKind::Unknown)
@@ -1012,19 +1422,17 @@ fn parse_type_ref(t: &TypeRef) -> TypeKind {
             raw: inner.to_string(),
         })));
     }
-    if raw.starts_with("Result<") && raw.ends_with('>') {
-        let inner = &raw[7..raw.len() - 1];
-        let parts: Vec<&str> = inner.split(',').collect();
-        if parts.len() == 2 {
-            return TypeKind::Result(
-                Box::new(parse_type_ref(&TypeRef {
-                    raw: parts[0].trim().to_string(),
-                })),
-                Box::new(parse_type_ref(&TypeRef {
-                    raw: parts[1].trim().to_string(),
-                })),
-            );
-        }
+    if let Some((ok, err)) = split_generic_pair(&raw, "Result") {
+        return TypeKind::Result(
+            Box::new(parse_type_ref(&TypeRef { raw: ok })),
+            Box::new(parse_type_ref(&TypeRef { raw: err })),
+        );
+    }
+    if let Some((key, value)) = split_generic_pair(&raw, "Map") {
+        return TypeKind::Map(
+            Box::new(parse_type_ref(&TypeRef { raw: key })),
+            Box::new(parse_type_ref(&TypeRef { raw: value })),
+        );
     }
     if raw.starts_with("Chan<") && raw.ends_with('>') {
         let inner = &raw[5..raw.len() - 1];
@@ -1035,12 +1443,50 @@ fn parse_type_ref(t: &TypeRef) -> TypeKind {
     TypeKind::Unknown
 }
 
+fn split_generic_pair(raw: &str, outer: &str) -> Option<(String, String)> {
+    let prefix = format!("{outer}<");
+    if !raw.starts_with(&prefix) || !raw.ends_with('>') {
+        return None;
+    }
+    let inner = &raw[prefix.len()..raw.len() - 1];
+    let mut depth = 0i32;
+    let mut split_at = None;
+    for (idx, ch) in inner.char_indices() {
+        match ch {
+            '<' => depth += 1,
+            '>' => depth -= 1,
+            ',' if depth == 0 => {
+                split_at = Some(idx);
+                break;
+            }
+            _ => {}
+        }
+    }
+    let idx = split_at?;
+    let left = inner[..idx].trim();
+    let right = inner[idx + 1..].trim();
+    if left.is_empty() || right.is_empty() {
+        return None;
+    }
+    Some((left.to_string(), right.to_string()))
+}
+
 fn type_compatible(a: &TypeKind, b: &TypeKind) -> bool {
-    matches!(a, TypeKind::Unknown)
-        || matches!(b, TypeKind::Unknown)
-        || a == b
-        || (matches!(a, TypeKind::Int) && matches!(b, TypeKind::Float))
-        || (matches!(a, TypeKind::Float) && matches!(b, TypeKind::Int))
+    if matches!(a, TypeKind::Unknown) || matches!(b, TypeKind::Unknown) || a == b {
+        return true;
+    }
+    match (a, b) {
+        (TypeKind::List(a_inner), TypeKind::List(b_inner)) => type_compatible(a_inner, b_inner),
+        (TypeKind::Map(a_key, a_value), TypeKind::Map(b_key, b_value)) => {
+            type_compatible(a_key, b_key) && type_compatible(a_value, b_value)
+        }
+        (TypeKind::Result(a_ok, a_err), TypeKind::Result(b_ok, b_err)) => {
+            type_compatible(a_ok, b_ok) && type_compatible(a_err, b_err)
+        }
+        (TypeKind::Chan(a_inner), TypeKind::Chan(b_inner)) => type_compatible(a_inner, b_inner),
+        (TypeKind::Int, TypeKind::Float) | (TypeKind::Float, TypeKind::Int) => true,
+        _ => false,
+    }
 }
 
 fn type_name(t: &TypeKind) -> String {
@@ -1050,6 +1496,7 @@ fn type_name(t: &TypeKind) -> String {
         TypeKind::Bool => "Bool".to_string(),
         TypeKind::Str => "Str".to_string(),
         TypeKind::List(inner) => format!("List<{}>", type_name(inner)),
+        TypeKind::Map(key, value) => format!("Map<{}, {}>", type_name(key), type_name(value)),
         TypeKind::Result(ok, err) => format!("Result<{}, {}>", type_name(ok), type_name(err)),
         TypeKind::Chan(inner) => format!("Chan<{}>", type_name(inner)),
         TypeKind::Void => "Void".to_string(),
@@ -1071,6 +1518,25 @@ fn unify_return_types(types: &[TypeKind]) -> TypeKind {
         }
     }
     current
+}
+
+fn is_container_member_api(field: &str) -> bool {
+    matches!(
+        field,
+        "append"
+            | "get"
+            | "set"
+            | "contains"
+            | "remove"
+            | "len"
+            | "sort_desc"
+            | "take"
+            | "recv"
+            | "send"
+            | "close"
+            | "listen"
+            | "warn"
+    )
 }
 
 fn is_known_effect(e: &str) -> bool {

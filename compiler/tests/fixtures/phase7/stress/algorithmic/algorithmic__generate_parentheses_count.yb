@@ -1,0 +1,36 @@
+catalan_count(n: Int) -> Int {
+  counts := [1]
+  i := 1
+  while i <= n {
+    counts.append(0)
+    i = i + 1
+  }
+
+  i = 1
+  while i <= n {
+    total := 0
+    j := 0
+    while j < i {
+      left := counts.get(j)
+      right := counts.get(i - 1 - j)
+      total = total + left * right
+      j = j + 1
+    }
+    counts.set(i, total)
+    i = i + 1
+  }
+  return counts.get(n)
+}
+
+pub main() -> Int {
+  cfg := {"target": 4}
+  target := cfg.get("target")
+  value := catalan_count(target)
+  if value == 14 {
+    println("paren-ok")
+    return 0
+  } else {
+    println("paren-fail")
+    return 1
+  }
+}

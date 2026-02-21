@@ -29,6 +29,7 @@ struct Parser {
 enum StopToken {
     Newline,
     Comma,
+    Colon,
     RParen,
     RBrace,
     RBracket,
@@ -214,18 +215,26 @@ impl Parser {
 
     fn parse_type_ref_until(&mut self, stops: &[TokenKind]) -> TypeRef {
         let mut raw = String::new();
+        let mut angle_depth = 0i32;
         while !self.is_eof() {
-            if stops.iter().any(|s| self.at(s)) {
+            if angle_depth == 0 && stops.iter().any(|s| self.at(s)) {
                 break;
             }
-            if self.at(&TokenKind::Newline) {
+            if angle_depth == 0 && self.at(&TokenKind::Newline) {
                 break;
             }
-            raw.push_str(&self.bump().lexeme);
+            let tok = self.bump();
+            match tok.kind {
+                TokenKind::Lt => angle_depth += 1,
+                TokenKind::Gt if angle_depth > 0 => angle_depth -= 1,
+                _ => {}
+            }
+            raw.push_str(&tok.lexeme);
             if !self.at(&TokenKind::Comma)
                 && !self.at(&TokenKind::RParen)
                 && !self.at(&TokenKind::RBrace)
                 && !self.at(&TokenKind::LBrace)
+                && !self.at(&TokenKind::Newline)
             {
                 raw.push(' ');
             }
@@ -850,6 +859,33 @@ impl Parser {
                 let span = Span::new(start.line_start, start.col_start, end.line_end, end.col_end);
                 Expr::List { items, span }
             }
+            TokenKind::LBrace => {
+                let start = self.bump().span;
+                let mut entries = Vec::new();
+                self.consume_newlines();
+                while !self.at(&TokenKind::RBrace) && !self.is_eof() {
+                    let key = self.parse_expr_until(&[StopToken::Colon, StopToken::RBrace]);
+                    if !self.match_kind(&TokenKind::Colon) {
+                        self.diagnostics.push(Diagnostic::new(
+                            "E1411",
+                            Severity::Error,
+                            "expected `:` after map key",
+                            self.peek().span,
+                        ));
+                        break;
+                    }
+                    let value = self.parse_expr_until(&[StopToken::Comma, StopToken::RBrace]);
+                    entries.push((key, value));
+                    if self.match_kind(&TokenKind::Comma) {
+                        self.consume_newlines();
+                    } else {
+                        break;
+                    }
+                }
+                let end = self.expect(TokenKind::RBrace, "E1412", "expected `}` after map literal");
+                let span = Span::new(start.line_start, start.col_start, end.line_end, end.col_end);
+                Expr::Map { entries, span }
+            }
             TokenKind::Dot => {
                 let t = self.bump();
                 Expr::DotResult { span: t.span }
@@ -940,6 +976,7 @@ impl Parser {
                 self.at(&TokenKind::Newline)
             }
             StopToken::Comma => self.at(&TokenKind::Comma),
+            StopToken::Colon => self.at(&TokenKind::Colon),
             StopToken::RParen => self.at(&TokenKind::RParen),
             StopToken::RBrace => self.at(&TokenKind::RBrace),
             StopToken::RBracket => self.at(&TokenKind::RBracket),

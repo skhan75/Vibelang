@@ -1,0 +1,4 @@
+broken_map() -> Int {
+  x := {"a" 1}
+  0
+}
