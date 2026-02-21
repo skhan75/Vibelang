@@ -1,11 +1,14 @@
-> Fast like systems languages. Smooth like scripting languages.  
-> Built for the AI era with **Intent Driven Development**.
+# VibeLang
 
 <!-- markdownlint-disable MD033 -->
 <p align="center">
   <img src="assets/branding/vibelang-mascot-hero.png" alt="VibeLang mascot logo" width="480" />
 </p>
 
+<p align="center">
+  <strong><em>Fast like systems languages. Smooth like scripting languages.</em></strong><br />
+  <sub><strong>Built for the AI era with Intent Driven Development.</strong></sub>
+</p>
 
 <table width="100%">
   <tr>
