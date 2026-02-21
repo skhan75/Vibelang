@@ -16,6 +16,8 @@ pub use task::{spawn_task, TaskHandle, TaskId};
 pub const RUNTIME_C_SOURCE: &str = include_str!("../../../runtime/native/vibe_runtime.c");
 pub const SUPPORTED_TARGETS: &[&str] = &[
     "x86_64-unknown-linux-gnu",
+    "x86_64-apple-darwin",
+    "x86_64-pc-windows-msvc",
     "aarch64-unknown-linux-gnu",
     "aarch64-apple-darwin",
 ];
@@ -70,11 +72,13 @@ pub fn compile_runtime_object(
         .arg(&source_for_compile)
         .arg("-o")
         .arg(&out_obj)
-        .arg("-pthread")
         .arg("-fno-ident")
         .arg("-ffunction-sections")
         .arg("-fdata-sections")
         .arg("-std=c11");
+    if !is_windows_target(&options.target) {
+        cmd.arg("-pthread");
+    }
 
     if options.profile == "release" {
         cmd.arg("-O2");
@@ -131,10 +135,15 @@ pub fn link_executable(
     cmd.arg(object_file)
         .arg(runtime_object)
         .arg("-o")
-        .arg(output_binary)
-        .arg("-pthread")
-        .arg("-Wl,--build-id=none")
-        .arg("-Wl,--gc-sections");
+        .arg(output_binary);
+    if !is_windows_target(&options.target) {
+        cmd.arg("-pthread");
+    }
+    if is_linux_gnu_target(&options.target) {
+        cmd.arg("-Wl,--build-id=none").arg("-Wl,--gc-sections");
+    } else if is_apple_target(&options.target) {
+        cmd.arg("-Wl,-dead_strip");
+    }
     if options.debuginfo != "none" {
         cmd.arg("-g");
     }
@@ -168,9 +177,22 @@ fn cc_target_flag(target: &str) -> Option<&'static str> {
     match target {
         "x86_64-unknown-linux-gnu" => Some("-m64"),
         "aarch64-unknown-linux-gnu" => Some("--target=aarch64-linux-gnu"),
+        "x86_64-apple-darwin" => Some("--target=x86_64-apple-darwin"),
         "aarch64-apple-darwin" => Some("--target=arm64-apple-darwin"),
         _ => None,
     }
+}
+
+fn is_linux_gnu_target(target: &str) -> bool {
+    target.ends_with("-unknown-linux-gnu")
+}
+
+fn is_apple_target(target: &str) -> bool {
+    target.ends_with("-apple-darwin")
+}
+
+fn is_windows_target(target: &str) -> bool {
+    target.ends_with("-pc-windows-msvc")
 }
 
 #[cfg(test)]
@@ -351,8 +373,10 @@ mod tests {
     }
 
     #[test]
-    fn ensure_supported_target_accepts_phase6_targets() {
+    fn ensure_supported_target_accepts_release_targets() {
         assert!(ensure_supported_target("x86_64-unknown-linux-gnu").is_ok());
+        assert!(ensure_supported_target("x86_64-apple-darwin").is_ok());
+        assert!(ensure_supported_target("x86_64-pc-windows-msvc").is_ok());
         assert!(ensure_supported_target("aarch64-unknown-linux-gnu").is_ok());
         assert!(ensure_supported_target("aarch64-apple-darwin").is_ok());
     }

@@ -608,7 +608,7 @@ fn parse_build_like_args(args: &[String], allow_exec_args: bool) -> Result<Build
     idx += 1;
 
     let mut profile = "dev".to_string();
-    let mut target = "x86_64-unknown-linux-gnu".to_string();
+    let mut target = default_build_target().to_string();
     let mut debuginfo = "line".to_string();
     let mut offline = false;
     let mut locked = false;
@@ -682,6 +682,17 @@ fn parse_build_like_args(args: &[String], allow_exec_args: bool) -> Result<Build
         emit_obj_only,
         exec_args,
     })
+}
+
+fn default_build_target() -> &'static str {
+    match (env::consts::ARCH, env::consts::OS) {
+        ("x86_64", "linux") => "x86_64-unknown-linux-gnu",
+        ("aarch64", "linux") => "aarch64-unknown-linux-gnu",
+        ("x86_64", "macos") => "x86_64-apple-darwin",
+        ("aarch64", "macos") => "aarch64-apple-darwin",
+        ("x86_64", "windows") => "x86_64-pc-windows-msvc",
+        _ => "x86_64-unknown-linux-gnu",
+    }
 }
 
 fn parse_index_args(args: &[String]) -> Result<IndexArgs, String> {
