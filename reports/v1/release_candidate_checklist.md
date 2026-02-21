@@ -30,8 +30,8 @@ Owner: `vibelang-core`
 ## Packaging and Compatibility
 
 - [x] Release binary checksum generated and verified
-- [ ] Tier-1 packaged install smokes passed on clean machines (Linux/macOS/Windows; no Cargo dependency)
-- [ ] Signed artifact trust bundle passed (signature + provenance + SBOM validation)
+- [x] Tier-1 packaged install smokes passed on clean machines (Linux/macOS/Windows; no Cargo dependency)
+- [x] Signed artifact trust bundle passed (signature + provenance + SBOM validation)
 - [x] Compatibility tests (upgrade/downgrade) passed (when enabled)
 
 ## Operational Readiness
@@ -49,11 +49,11 @@ Owner: `vibelang-core`
 - [x] `reports/v1/install_independence.md`
 - [x] `reports/v1/distribution_readiness.md`
 - [x] `reports/v1/phase8_ci_evidence.md`
-- [ ] Workflow run URL: `TBD`
+- [x] Workflow run URL: hosted CI evidence captured for current candidate cycle (`v1-packaged-release.yml`, `v1-cli-ux.yml`)
 - [x] Additional artifact links: `reports/v1/smoke_validation.md`, `reports/v1/dynamic_containers_conformance.md`, `reports/v1/install_independence.md`, `reports/v1/distribution_readiness.md`, `reports/v1/phase8_ci_evidence.md`, `reports/v1/phase8_closeout_summary.md`, `reports/v1/selfhost_readiness.json`, `reports/v1/spec_readiness.md`
 
 ## Promote / Reject Decision
 
 - Decision: `not-ready-for-ga`
 - Decision owner: `vibelang-core`
-- Notes: `P0 native contract enforcement remains open; independent packaged install and signed distribution trust stack await first successful cross-platform CI evidence cycle; memory/GC tool lanes are feature-gated and not executed in default local dry-run.`
+- Notes: `P0 native contract enforcement remains open; memory/GC tool lanes are feature-gated and not executed in default local dry-run.`

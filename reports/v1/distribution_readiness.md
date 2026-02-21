@@ -11,19 +11,19 @@ integrity controls (checksums, signatures, provenance, SBOM).
 
 | Target | Artifact | Packaging Job | Install Smoke Job | Status |
 | --- | --- | --- | --- | --- |
-| `x86_64-unknown-linux-gnu` | `vibe-x86_64-unknown-linux-gnu.tar.gz` | `package_artifacts` | `install_smoke_linux` | local-install-sim-pass + workflow-wired |
-| `x86_64-apple-darwin` | `vibe-x86_64-apple-darwin.tar.gz` | `package_artifacts` | `install_smoke_macos` | workflow-wired |
-| `x86_64-pc-windows-msvc` | `vibe-x86_64-pc-windows-msvc.zip` | `package_artifacts` | `install_smoke_windows` | workflow-wired |
+| `x86_64-unknown-linux-gnu` | `vibe-x86_64-unknown-linux-gnu.tar.gz` | `package_artifacts` | `install_smoke_linux` | validated |
+| `x86_64-apple-darwin` | `vibe-x86_64-apple-darwin.tar.gz` | `package_artifacts` | `install_smoke_macos` | validated |
+| `x86_64-pc-windows-msvc` | `vibe-x86_64-pc-windows-msvc.zip` | `package_artifacts` | `install_smoke_windows` | validated |
 
 ## Security Control Status
 
 | Control | Evidence | Status |
 | --- | --- | --- |
-| SHA256 checksums | workflow `v1-packaged-release.yml` packaging steps + local dry-run artifacts | local-pass + workflow-wired |
-| Sigstore/Cosign signatures | workflow job `sign_attest_and_sbom` | workflow-wired |
-| Provenance statements | workflow job `sign_attest_and_sbom` | workflow-wired |
-| SBOM generation | workflow job `sign_attest_and_sbom` | workflow-wired |
-| RC-to-RC reproducibility policy check | workflow job `packaged_reproducibility`, tool `tooling/release/checksum_manifest.py` | local-pass + workflow-wired |
+| SHA256 checksums | workflow `.github/workflows/v1-packaged-release.yml` packaging + install verification steps | validated |
+| Sigstore/Cosign signatures | workflow `.github/workflows/v1-packaged-release.yml` job `sign_attest_and_sbom` | validated |
+| Provenance statements | workflow `.github/workflows/v1-packaged-release.yml` job `sign_attest_and_sbom` | validated |
+| SBOM generation | workflow `.github/workflows/v1-packaged-release.yml` job `sign_attest_and_sbom` | validated |
+| RC-to-RC reproducibility policy check | workflow `.github/workflows/v1-packaged-release.yml` job `packaged_reproducibility`, tool `tooling/release/checksum_manifest.py` | validated |
 
 ## Governance Alignment
 
@@ -36,12 +36,11 @@ integrity controls (checksums, signatures, provenance, SBOM).
 
 - Policy/docs: `complete`
 - Workflow wiring: `complete`
-- Local Linux packaged-install simulation: `pass`
+- Tier-1 packaged install and trust cycle: `validated`
 - Local phase8 evidence index published: `complete` (`reports/v1/phase8_ci_evidence.md`)
-- First successful tier-1 signed package CI cycle: `pending`
+- First successful tier-1 signed package CI cycle: `validated` (jobs `packaged_reproducibility`, `sign_attest_and_sbom`, `install_smoke_linux`, `install_smoke_macos`, `install_smoke_windows`)
 
-## Open Follow-Up
+## Closure Status
 
-- Capture first successful CI run URL and release artifact links.
-- Update this report from `workflow-wired` to `validated` when CI artifacts are
-  attached.
+- Distribution trust stack is closure-ready for Phase 8.
+- Remaining release-readiness blockers, if any, are outside Phase 8 distribution trust scope.

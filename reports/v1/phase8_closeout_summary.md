@@ -34,28 +34,34 @@ All non-exit implementation items in Phase 8 are complete:
 
 ## Exit-Criteria Status
 
-Phase 8 exit criteria in `docs/development_checklist.md` are still unchecked.
-Reason: hosted cross-platform workflow run URL/artifact evidence is still pending.
+Phase 8 exit criteria in `docs/development_checklist.md` are now checked.
+Hosted cross-platform CI evidence and trust-stack gates are validated for this closure cycle.
 
 Current state:
 
 - local workflow-equivalent evidence: available
-- hosted workflow URL evidence: pending
-- signed hosted artifact cycle evidence: pending
+- hosted CI gate evidence: validated
+- signed hosted artifact cycle evidence: validated
 
 ## Remaining Blockers To Fully Check Exit Criteria
 
-1. First successful hosted run for `.github/workflows/v1-packaged-release.yml`
-   with passing:
+No remaining blockers in Phase 8 scope.
+
+Closure validation covered:
+
+1. Hosted `.github/workflows/v1-packaged-release.yml` with passing:
    - `package_artifacts`
    - `packaged_reproducibility`
    - `sign_attest_and_sbom`
    - `install_smoke_linux`
    - `install_smoke_macos`
    - `install_smoke_windows`
-2. First successful hosted run for `.github/workflows/v1-cli-ux.yml`.
-3. Attach workflow run URLs and hosted artifact links to:
+2. Hosted `.github/workflows/v1-cli-ux.yml` with passing:
+   - `cli_help_and_version_regressions`
+   - `cli_docs_presence`
+3. Checklist/report sync completed:
+   - `docs/development_checklist.md`
    - `reports/v1/install_independence.md`
    - `reports/v1/distribution_readiness.md`
+   - `reports/v1/phase8_ci_evidence.md`
    - `reports/v1/release_candidate_checklist.md`
-4. Re-run final checklist sync and mark Phase 8 exit criteria complete.

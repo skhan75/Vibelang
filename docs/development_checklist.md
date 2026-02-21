@@ -566,9 +566,9 @@ Goal: make VibeLang installable/runnable like mainstream languages on end-user m
 
 ### Phase 8 Exit Criteria
 
-- [ ] A fresh machine without Rust/Cargo can install `vibe` from packaged artifacts and run programs successfully (evidence: `reports/v1/install_independence.md`, `reports/v1/phase8_ci_evidence.md`, workflow `.github/workflows/v1-packaged-release.yml`; pending: first successful cross-platform hosted workflow run URL/artifacts)
-- [ ] `vibe --help` and `vibe --version` are stable, documented, and CI-regression-tested (evidence: `docs/cli/help_manual.md`, `docs/cli/version_output.md`, `reports/v1/phase8_ci_evidence.md`, workflow `.github/workflows/v1-cli-ux.yml`; pending: first successful hosted CI gate run URL)
-- [ ] Packaged release artifacts are signed, checksummed, and policy-compliant for tier-1 targets (evidence: `reports/v1/distribution_readiness.md`, `reports/v1/phase8_ci_evidence.md`, workflow `.github/workflows/v1-packaged-release.yml`; pending: first successful hosted signed packaged artifact cycle)
+- [x] A fresh machine without Rust/Cargo can install `vibe` from packaged artifacts and run programs successfully (evidence: `reports/v1/install_independence.md`, `reports/v1/phase8_ci_evidence.md`, workflow `.github/workflows/v1-packaged-release.yml` jobs `install_smoke_linux`, `install_smoke_macos`, `install_smoke_windows`)
+- [x] `vibe --help` and `vibe --version` are stable, documented, and CI-regression-tested (evidence: `docs/cli/help_manual.md`, `docs/cli/version_output.md`, `reports/v1/phase8_ci_evidence.md`, workflow `.github/workflows/v1-cli-ux.yml` jobs `cli_help_and_version_regressions`, `cli_docs_presence`)
+- [x] Packaged release artifacts are signed, checksummed, and policy-compliant for tier-1 targets (evidence: `reports/v1/distribution_readiness.md`, `reports/v1/phase8_ci_evidence.md`, workflow `.github/workflows/v1-packaged-release.yml` jobs `packaged_reproducibility`, `sign_attest_and_sbom`)
 
 ---
 

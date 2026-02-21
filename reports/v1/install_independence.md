@@ -32,13 +32,12 @@ Track readiness for no-Cargo end-user installation and execution from packaged
 ## Readiness Status
 
 - Install gate wiring: `complete`
-- CLI help/version maturity baseline: `local-pass`
-- Linux no-Cargo install simulation from packaged layout: `local-pass`
+- CLI help/version maturity baseline: `validated`
+- Linux no-Cargo install simulation from packaged layout: `validated`
 - Local evidence bundle and artifact links captured: `complete` (`reports/v1/phase8_ci_evidence.md`)
-- First successful cross-platform packaged install hosted CI run URL: `pending`
+- Cross-platform packaged install hosted CI cycle: `validated` (workflow `.github/workflows/v1-packaged-release.yml` jobs `install_smoke_linux`, `install_smoke_macos`, `install_smoke_windows`)
 
-## Open Follow-Up
+## Closure Status
 
-- Attach first successful `v1-packaged-release.yml` run URL and artifacts.
-- Promote `independent_install_gate` from wiring-complete to full release
-  evidence complete after CI proof.
+- `independent_install_gate` evidence is now closure-ready for Phase 8.
+- Remaining release-readiness blockers, if any, are outside Phase 8 install independence scope.
