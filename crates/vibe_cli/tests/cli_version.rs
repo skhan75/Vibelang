@@ -1,4 +1,4 @@
-use std::process::{ExitStatus, Command};
+use std::process::{Command, ExitStatus};
 
 #[test]
 fn version_text_includes_required_fields() {

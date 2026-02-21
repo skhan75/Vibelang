@@ -50,7 +50,10 @@ fn phase7_algorithmic_recursion_samples_run_expected_outputs() {
 #[test]
 fn phase7_memory_heap_pressure_smoke_is_bounded() {
     let fixtures = [
-        ("phase7/stress/memory/memory__heap_pressure_loop.yb", "heap-ok\n"),
+        (
+            "phase7/stress/memory/memory__heap_pressure_loop.yb",
+            "heap-ok\n",
+        ),
         (
             "phase7/stress/memory/memory__container_pressure_loop.yb",
             "container-mem-ok\n",
@@ -100,8 +103,10 @@ fn phase7_ownership_sendability_smokes_cover_positive_and_negative_paths() {
     );
     assert_eq!(out.stdout, "ownership-ok\n");
 
-    let container_sendable = fixture_path("phase7/stress/ownership/ownership__list_map_sendable.yb");
-    let container_src = fs::read_to_string(&container_sendable).expect("read ownership sendable fixture");
+    let container_sendable =
+        fixture_path("phase7/stress/ownership/ownership__list_map_sendable.yb");
+    let container_src =
+        fs::read_to_string(&container_sendable).expect("read ownership sendable fixture");
     let container_diags = check_output(&container_src);
     assert!(
         !container_diags.has_errors(),

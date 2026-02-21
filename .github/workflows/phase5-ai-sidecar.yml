@@ -25,6 +25,8 @@ jobs:
       - name: compile parity with sidecar knobs
         run: |
           set -euo pipefail
+          # Warm toolchain once so one-time rustup bootstrap output does not skew stderr parity checks.
+          cargo run -q -p vibe_cli -- --version >/dev/null 2>/dev/null
           for ext in vibe yb; do
             tmpdir="$(mktemp -d)"
             file="$tmpdir/hello_world.$ext"

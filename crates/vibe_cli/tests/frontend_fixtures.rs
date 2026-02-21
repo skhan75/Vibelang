@@ -232,8 +232,14 @@ fn snapshots_container_ops_mir_is_deterministic() {
         first.0, second.0,
         "container diagnostics output must be deterministic"
     );
-    assert_eq!(first.1, second.1, "container HIR output must be deterministic");
-    assert_eq!(first.2, second.2, "container MIR output must be deterministic");
+    assert_eq!(
+        first.1, second.1,
+        "container HIR output must be deterministic"
+    );
+    assert_eq!(
+        first.2, second.2,
+        "container MIR output must be deterministic"
+    );
     assert!(
         first.2.contains("Map([") && first.2.contains("List(["),
         "container MIR sample should include explicit list/map forms:\n{}",

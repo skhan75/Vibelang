@@ -705,8 +705,7 @@ fn expr_type_hint(expr: &Expr, env: &BTreeMap<String, TypeKind>) -> TypeKind {
                 "len" | "balance" => TypeKind::Int,
                 _ => match object_ty {
                     TypeKind::Map(key_ty, value_ty)
-                        if matches!(*key_ty, TypeKind::Str)
-                            && !is_container_member_api(field) =>
+                        if matches!(*key_ty, TypeKind::Str) && !is_container_member_api(field) =>
                     {
                         *value_ty
                     }
@@ -743,13 +742,9 @@ fn expr_type_hint(expr: &Expr, env: &BTreeMap<String, TypeKind>) -> TypeKind {
                             } else {
                                 TypeKind::Unknown
                             }
-                        } else if field == "send" || field == "close" {
+                        } else if field == "send" || field == "close" || field == "warn" {
                             TypeKind::Void
-                        } else if field == "warn" {
-                            TypeKind::Void
-                        } else if field == "sort_desc" || field == "take" {
-                            TypeKind::Unknown
-                        } else if field == "listen" {
+                        } else if field == "sort_desc" || field == "take" || field == "listen" {
                             TypeKind::Unknown
                         } else if let Some(first_arg) = args.first() {
                             expr_type_hint(first_arg, env)
@@ -773,7 +768,10 @@ fn expr_type_hint(expr: &Expr, env: &BTreeMap<String, TypeKind>) -> TypeKind {
             BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div => {
                 let lt = expr_type_hint(left, env);
                 let rt = expr_type_hint(right, env);
-                if matches!(lt, TypeKind::Str) && matches!(rt, TypeKind::Str) && matches!(op, BinaryOp::Add) {
+                if matches!(lt, TypeKind::Str)
+                    && matches!(rt, TypeKind::Str)
+                    && matches!(op, BinaryOp::Add)
+                {
                     return TypeKind::Str;
                 }
                 if matches!(lt, TypeKind::Float) || matches!(rt, TypeKind::Float) {
@@ -904,8 +902,7 @@ fn infer_expr(
                 "balance" => TypeKind::Int,
                 _ => match base {
                     TypeKind::Map(key_ty, value_ty)
-                        if matches!(*key_ty, TypeKind::Str)
-                            && !is_container_member_api(field) =>
+                        if matches!(*key_ty, TypeKind::Str) && !is_container_member_api(field) =>
                     {
                         *value_ty
                     }

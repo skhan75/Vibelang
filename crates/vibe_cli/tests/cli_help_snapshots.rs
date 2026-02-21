@@ -1,4 +1,4 @@
-use std::process::{ExitStatus, Command};
+use std::process::{Command, ExitStatus};
 
 #[test]
 fn root_help_has_manual_sections() {
@@ -56,7 +56,9 @@ fn lint_help_mentions_intent_mode_requirement() {
         out.stderr
     );
     assert!(out.stdout.contains("--intent"));
-    assert!(out.stdout.contains("Current lint mode requires `--intent`."));
+    assert!(out
+        .stdout
+        .contains("Current lint mode requires `--intent`."));
 }
 
 fn run_vibe(args: &[&str]) -> CmdOutput {

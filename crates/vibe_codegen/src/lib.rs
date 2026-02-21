@@ -214,15 +214,21 @@ fn declare_runtime_functions(
 
     let mut container_len_sig = module.make_signature();
     container_len_sig.params.push(AbiParam::new(ptr_ty));
-    container_len_sig.returns.push(AbiParam::new(ir::types::I64));
+    container_len_sig
+        .returns
+        .push(AbiParam::new(ir::types::I64));
     let container_len_fn = module
         .declare_function("vibe_container_len", Linkage::Import, &container_len_sig)
         .map_err(|e| format!("failed to declare runtime container_len symbol: {e}"))?;
 
     let mut container_get_i64_sig = module.make_signature();
     container_get_i64_sig.params.push(AbiParam::new(ptr_ty));
-    container_get_i64_sig.params.push(AbiParam::new(ir::types::I64));
-    container_get_i64_sig.returns.push(AbiParam::new(ir::types::I64));
+    container_get_i64_sig
+        .params
+        .push(AbiParam::new(ir::types::I64));
+    container_get_i64_sig
+        .returns
+        .push(AbiParam::new(ir::types::I64));
     let container_get_i64_fn = module
         .declare_function(
             "vibe_container_get_i64",
@@ -233,8 +239,12 @@ fn declare_runtime_functions(
 
     let mut container_set_i64_sig = module.make_signature();
     container_set_i64_sig.params.push(AbiParam::new(ptr_ty));
-    container_set_i64_sig.params.push(AbiParam::new(ir::types::I64));
-    container_set_i64_sig.params.push(AbiParam::new(ir::types::I64));
+    container_set_i64_sig
+        .params
+        .push(AbiParam::new(ir::types::I64));
+    container_set_i64_sig
+        .params
+        .push(AbiParam::new(ir::types::I64));
     container_set_i64_sig
         .returns
         .push(AbiParam::new(ir::types::I64));
@@ -247,7 +257,9 @@ fn declare_runtime_functions(
         .map_err(|e| format!("failed to declare runtime container_set_i64 symbol: {e}"))?;
 
     let mut container_contains_i64_sig = module.make_signature();
-    container_contains_i64_sig.params.push(AbiParam::new(ptr_ty));
+    container_contains_i64_sig
+        .params
+        .push(AbiParam::new(ptr_ty));
     container_contains_i64_sig
         .params
         .push(AbiParam::new(ir::types::I64));
@@ -310,8 +322,12 @@ fn declare_runtime_functions(
         .map_err(|e| format!("failed to declare runtime container_set_str_i64 symbol: {e}"))?;
 
     let mut container_contains_str_i64_sig = module.make_signature();
-    container_contains_str_i64_sig.params.push(AbiParam::new(ptr_ty));
-    container_contains_str_i64_sig.params.push(AbiParam::new(ptr_ty));
+    container_contains_str_i64_sig
+        .params
+        .push(AbiParam::new(ptr_ty));
+    container_contains_str_i64_sig
+        .params
+        .push(AbiParam::new(ptr_ty));
     container_contains_str_i64_sig
         .returns
         .push(AbiParam::new(ir::types::I64));
@@ -324,8 +340,12 @@ fn declare_runtime_functions(
         .map_err(|e| format!("failed to declare runtime container_contains_str_i64 symbol: {e}"))?;
 
     let mut container_remove_str_i64_sig = module.make_signature();
-    container_remove_str_i64_sig.params.push(AbiParam::new(ptr_ty));
-    container_remove_str_i64_sig.params.push(AbiParam::new(ptr_ty));
+    container_remove_str_i64_sig
+        .params
+        .push(AbiParam::new(ptr_ty));
+    container_remove_str_i64_sig
+        .params
+        .push(AbiParam::new(ptr_ty));
     container_remove_str_i64_sig
         .returns
         .push(AbiParam::new(ir::types::I64));
@@ -1395,9 +1415,11 @@ fn emit_expr(
                 let local_new =
                     module.declare_func_in_func(runtime_fns.map_new_i64_i64_fn, builder.func);
                 let call = builder.ins().call(local_new, &[]);
-                builder.inst_results(call).first().copied().ok_or_else(|| {
-                    "map runtime call did not return map handle".to_string()
-                })?
+                builder
+                    .inst_results(call)
+                    .first()
+                    .copied()
+                    .ok_or_else(|| "map runtime call did not return map handle".to_string())?
             } else {
                 let (first_key_expr, _) = &entries[0];
                 let use_str_keys = is_known_string_expr(first_key_expr);
@@ -1462,10 +1484,8 @@ fn emit_expr(
                                     .to_string(),
                             );
                         }
-                        let local_set = module.declare_func_in_func(
-                            runtime_fns.container_set_i64_fn,
-                            builder.func,
-                        );
+                        let local_set = module
+                            .declare_func_in_func(runtime_fns.container_set_i64_fn, builder.func);
                         builder.ins().call(local_set, &[map_handle, key, value]);
                     }
                 }
@@ -1646,12 +1666,14 @@ fn emit_expr(
                         }
                         if builder.func.dfg.value_type(lowered_args[0]) != ir::types::I64 {
                             return Err(
-                                "E3404: list append currently supports Int values only".to_string(),
+                                "E3404: list append currently supports Int values only".to_string()
                             );
                         }
                         let local_append = module
                             .declare_func_in_func(runtime_fns.list_append_i64_fn, builder.func);
-                        let call = builder.ins().call(local_append, &[object_value, lowered_args[0]]);
+                        let call = builder
+                            .ins()
+                            .call(local_append, &[object_value, lowered_args[0]]);
                         return Ok(builder
                             .inst_results(call)
                             .first()
@@ -1697,13 +1719,15 @@ fn emit_expr(
                     }
                     "set" => {
                         if lowered_args.len() != 2 {
-                            return Err("`.set()` expects key/index and value arguments".to_string());
+                            return Err(
+                                "`.set()` expects key/index and value arguments".to_string()
+                            );
                         }
                         let key = lowered_args[0];
                         let value = lowered_args[1];
                         if builder.func.dfg.value_type(value) != ir::types::I64 {
                             return Err(
-                                "E3404: `.set()` currently supports Int values only".to_string(),
+                                "E3404: `.set()` currently supports Int values only".to_string()
                             );
                         }
                         let key_is_str = is_known_string_expr(&args[0]);
@@ -1815,11 +1839,9 @@ fn emit_expr(
                         let local_concat =
                             module.declare_func_in_func(runtime_fns.str_concat_fn, builder.func);
                         let call = builder.ins().call(local_concat, &[l, r]);
-                        builder
-                            .inst_results(call)
-                            .first()
-                            .copied()
-                            .ok_or_else(|| "string concat runtime call returned no value".to_string())?
+                        builder.inst_results(call).first().copied().ok_or_else(|| {
+                            "string concat runtime call returned no value".to_string()
+                        })?
                     } else {
                         builder.ins().iadd(l, r)
                     }
@@ -1840,7 +1862,11 @@ fn emit_expr(
                     let cmp = builder.ins().icmp(cc, l, r);
                     builder.ins().uextend(ir::types::I64, cmp)
                 }
-                _ => return Err(format!("E3406: unsupported binary op `{op}` in native backend")),
+                _ => {
+                    return Err(format!(
+                        "E3406: unsupported binary op `{op}` in native backend"
+                    ))
+                }
             }
         }
         MirExpr::Unary { op, expr } => {
@@ -1864,7 +1890,11 @@ fn emit_expr(
                     let cmp = builder.ins().icmp(IntCC::Equal, v, zero);
                     builder.ins().uextend(ir::types::I64, cmp)
                 }
-                _ => return Err(format!("E3407: unsupported unary op `{op}` in native backend")),
+                _ => {
+                    return Err(format!(
+                        "E3407: unsupported unary op `{op}` in native backend"
+                    ))
+                }
             }
         }
         MirExpr::Question { expr } | MirExpr::Old { expr } => emit_expr(
