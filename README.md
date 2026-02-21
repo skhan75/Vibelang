@@ -105,34 +105,51 @@ VibeLang is a native-first language + toolchain with:
 
 ## Installation
 
-### Packaged install (recommended)
+### Option A: Packaged install (recommended, no Cargo required)
 
-Use the platform guides:
+Use the platform guides and follow the verify + PATH steps:
 
 - Linux: `docs/install/linux.md`
 - macOS: `docs/install/macos.md`
 - Windows: `docs/install/windows.md`
 
-Then validate with:
+After install, validate the CLI:
 
 ```bash
 vibe --version
+vibe --help
 ```
 
-### From source (contributor/developer path)
+Run your first program:
+
+```bash
+cat > hello.yb <<'EOF'
+pub main() -> Int {
+  @effect io
+  println("hello from vibelang")
+  0
+}
+EOF
+
+vibe run hello.yb
+```
+
+Expected output:
+
+```txt
+hello from vibelang
+```
+
+### Option B: Build from source (contributor/developer path)
 
 ```bash
 git clone https://github.com/skhan75/VibeLang.git
 cd VibeLang
 cargo build --release -p vibe_cli
-./target/release/vibe --help
-```
-
-### Local binary usage
-
-```bash
 export PATH="$PWD/target/release:$PATH"
+vibe --version
 vibe --help
+vibe run compiler/tests/fixtures/build/hello_world.vibe
 ```
 
 ### Packaged releases
@@ -141,6 +158,8 @@ Packaged binaries are produced by workflow `.github/workflows/v1-packaged-releas
 with checksums, signatures, provenance statements, and SBOM artifacts.
 
 ## 60-Second Quickstart
+
+### Quickstart (from source)
 
 ```bash
 git clone https://github.com/skhan75/VibeLang.git
@@ -161,6 +180,8 @@ Expected output:
 ```txt
 hello from vibelang
 ```
+
+For no-Cargo quickstart, use `Installation -> Option A` above.
 
 ## Code Samples
 
