@@ -1,0 +1,24 @@
+pub main() -> Int {
+  @effect io
+  @effect alloc
+  numbers := [1, 2, 3, 4]
+  list_sum := 0
+  for value in numbers {
+    list_sum = list_sum + value
+  }
+
+  dict := {"x": 2, "y": 5}
+  map_sum := 0
+  for key in dict {
+    println(key)
+    map_sum = map_sum + dict.get(key)
+  }
+
+  if list_sum == 10 {
+    println("list-for-ok")
+  }
+  if map_sum == 7 {
+    println("map-for-ok")
+  }
+  0
+}

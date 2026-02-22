@@ -11,8 +11,8 @@ use cranelift_module::{default_libcall_names, FuncId, Linkage, Module};
 use cranelift_object::{ObjectBuilder, ObjectModule};
 use target_lexicon::Triple;
 use vibe_mir::{
-    MirContractKind, MirExpr, MirFunction, MirProgram, MirSelectCase, MirSelectPattern, MirStmt,
-    MirType,
+    MirContractKind, MirExpr, MirForIterKind, MirFunction, MirProgram, MirSelectCase,
+    MirSelectPattern, MirStmt, MirType,
 };
 
 #[derive(Debug, Clone)]
@@ -49,6 +49,13 @@ struct RuntimeFunctions {
     container_set_str_i64_fn: FuncId,
     container_contains_str_i64_fn: FuncId,
     container_remove_str_i64_fn: FuncId,
+    container_key_at_i64_fn: FuncId,
+    container_key_at_str_fn: FuncId,
+    container_eq_fn: FuncId,
+    str_len_bytes_fn: FuncId,
+    str_get_byte_fn: FuncId,
+    str_slice_fn: FuncId,
+    str_eq_fn: FuncId,
     str_concat_fn: FuncId,
     chan_new_fn: FuncId,
     chan_send_fn: FuncId,
@@ -218,6 +225,38 @@ fn declare_runtime_functions(
         .declare_function("vibe_str_concat", Linkage::Import, &str_concat_sig)
         .map_err(|e| format!("failed to declare runtime str_concat symbol: {e}"))?;
 
+    let mut str_len_bytes_sig = module.make_signature();
+    str_len_bytes_sig.params.push(AbiParam::new(ptr_ty));
+    str_len_bytes_sig.returns.push(AbiParam::new(ir::types::I64));
+    let str_len_bytes_fn = module
+        .declare_function("vibe_str_len_bytes", Linkage::Import, &str_len_bytes_sig)
+        .map_err(|e| format!("failed to declare runtime str_len_bytes symbol: {e}"))?;
+
+    let mut str_get_byte_sig = module.make_signature();
+    str_get_byte_sig.params.push(AbiParam::new(ptr_ty));
+    str_get_byte_sig.params.push(AbiParam::new(ir::types::I64));
+    str_get_byte_sig.returns.push(AbiParam::new(ir::types::I64));
+    let str_get_byte_fn = module
+        .declare_function("vibe_str_get_byte", Linkage::Import, &str_get_byte_sig)
+        .map_err(|e| format!("failed to declare runtime str_get_byte symbol: {e}"))?;
+
+    let mut str_slice_sig = module.make_signature();
+    str_slice_sig.params.push(AbiParam::new(ptr_ty));
+    str_slice_sig.params.push(AbiParam::new(ir::types::I64));
+    str_slice_sig.params.push(AbiParam::new(ir::types::I64));
+    str_slice_sig.returns.push(AbiParam::new(ptr_ty));
+    let str_slice_fn = module
+        .declare_function("vibe_str_slice", Linkage::Import, &str_slice_sig)
+        .map_err(|e| format!("failed to declare runtime str_slice symbol: {e}"))?;
+
+    let mut str_eq_sig = module.make_signature();
+    str_eq_sig.params.push(AbiParam::new(ptr_ty));
+    str_eq_sig.params.push(AbiParam::new(ptr_ty));
+    str_eq_sig.returns.push(AbiParam::new(ir::types::I64));
+    let str_eq_fn = module
+        .declare_function("vibe_str_eq", Linkage::Import, &str_eq_sig)
+        .map_err(|e| format!("failed to declare runtime str_eq symbol: {e}"))?;
+
     let mut container_len_sig = module.make_signature();
     container_len_sig.params.push(AbiParam::new(ptr_ty));
     container_len_sig
@@ -363,6 +402,46 @@ fn declare_runtime_functions(
         )
         .map_err(|e| format!("failed to declare runtime container_remove_str_i64 symbol: {e}"))?;
 
+    let mut container_key_at_i64_sig = module.make_signature();
+    container_key_at_i64_sig.params.push(AbiParam::new(ptr_ty));
+    container_key_at_i64_sig
+        .params
+        .push(AbiParam::new(ir::types::I64));
+    container_key_at_i64_sig
+        .returns
+        .push(AbiParam::new(ir::types::I64));
+    let container_key_at_i64_fn = module
+        .declare_function(
+            "vibe_container_key_at_i64",
+            Linkage::Import,
+            &container_key_at_i64_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime container_key_at_i64 symbol: {e}"))?;
+
+    let mut container_key_at_str_sig = module.make_signature();
+    container_key_at_str_sig.params.push(AbiParam::new(ptr_ty));
+    container_key_at_str_sig
+        .params
+        .push(AbiParam::new(ir::types::I64));
+    container_key_at_str_sig
+        .returns
+        .push(AbiParam::new(ptr_ty));
+    let container_key_at_str_fn = module
+        .declare_function(
+            "vibe_container_key_at_str",
+            Linkage::Import,
+            &container_key_at_str_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime container_key_at_str symbol: {e}"))?;
+
+    let mut container_eq_sig = module.make_signature();
+    container_eq_sig.params.push(AbiParam::new(ptr_ty));
+    container_eq_sig.params.push(AbiParam::new(ptr_ty));
+    container_eq_sig.returns.push(AbiParam::new(ir::types::I64));
+    let container_eq_fn = module
+        .declare_function("vibe_container_eq", Linkage::Import, &container_eq_sig)
+        .map_err(|e| format!("failed to declare runtime container_eq symbol: {e}"))?;
+
     let mut chan_new_sig = module.make_signature();
     chan_new_sig.params.push(AbiParam::new(ir::types::I64));
     chan_new_sig.returns.push(AbiParam::new(ptr_ty));
@@ -461,6 +540,13 @@ fn declare_runtime_functions(
         container_set_str_i64_fn,
         container_contains_str_i64_fn,
         container_remove_str_i64_fn,
+        container_key_at_i64_fn,
+        container_key_at_str_fn,
+        container_eq_fn,
+        str_len_bytes_fn,
+        str_get_byte_fn,
+        str_slice_fn,
+        str_eq_fn,
         str_concat_fn,
         chan_new_fn,
         chan_send_fn,
@@ -619,6 +705,21 @@ fn emit_stmt(
             )?;
             Ok(false)
         }
+        MirStmt::Thread(expr) => {
+            emit_go_stmt(
+                expr,
+                module,
+                builder,
+                locals,
+                function_ids,
+                function_returns,
+                runtime_fns,
+                ptr_ty,
+                str_data_counter,
+                owner,
+            )?;
+            Ok(false)
+        }
         MirStmt::Return(expr) => {
             let value = emit_expr(
                 expr,
@@ -638,6 +739,30 @@ fn emit_stmt(
                 builder.ins().return_(&[value]);
             }
             Ok(true)
+        }
+        MirStmt::For {
+            var,
+            iter,
+            iter_kind,
+            body,
+        } => {
+            emit_for_stmt(
+                var,
+                iter,
+                iter_kind,
+                body,
+                module,
+                builder,
+                locals,
+                next_var,
+                function_ids,
+                function_returns,
+                runtime_fns,
+                ptr_ty,
+                str_data_counter,
+                owner,
+            )?;
+            Ok(false)
         }
         MirStmt::ContractCheck { kind, expr } => {
             emit_contract_check(
@@ -926,6 +1051,171 @@ fn emit_go_stmt(
             "E3304: unsupported `go` call shape: expected 0 or 1 argument, got {n}"
         )),
     }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn emit_for_stmt(
+    var: &str,
+    iter: &MirExpr,
+    iter_kind: &MirForIterKind,
+    body: &[MirStmt],
+    module: &mut ObjectModule,
+    builder: &mut FunctionBuilder<'_>,
+    locals: &mut BTreeMap<String, Variable>,
+    next_var: &mut usize,
+    function_ids: &BTreeMap<String, FuncId>,
+    function_returns: &BTreeMap<String, MirType>,
+    runtime_fns: RuntimeFunctions,
+    ptr_ty: ir::Type,
+    str_data_counter: &mut usize,
+    owner: &MirFunction,
+) -> Result<(), String> {
+    if matches!(iter_kind, MirForIterKind::Unknown) {
+        return Err(
+            "E3408: native `for in` lowering requires List<T> or Map<K,V> iterable input"
+                .to_string(),
+        );
+    }
+    let iter_handle = emit_expr(
+        iter,
+        module,
+        builder,
+        locals,
+        function_ids,
+        function_returns,
+        runtime_fns,
+        ptr_ty,
+        str_data_counter,
+        owner,
+    )?;
+    if builder.func.dfg.value_type(iter_handle) != ptr_ty {
+        return Err(
+            "E3408: `for in` expects a container expression (List<T> or Map<K,V>)".to_string(),
+        );
+    }
+
+    let iter_var = Variable::from_u32(*next_var as u32);
+    *next_var += 1;
+    builder.declare_var(iter_var, ptr_ty);
+    builder.def_var(iter_var, iter_handle);
+
+    let loop_var = Variable::from_u32(*next_var as u32);
+    *next_var += 1;
+    let loop_var_ty = if matches!(iter_kind, MirForIterKind::MapStr) {
+        ptr_ty
+    } else {
+        ir::types::I64
+    };
+    builder.declare_var(loop_var, loop_var_ty);
+    let zero = builder.ins().iconst(ir::types::I64, 0);
+    if loop_var_ty == ptr_ty {
+        let null_ptr = builder.ins().iconst(ptr_ty, 0);
+        builder.def_var(loop_var, null_ptr);
+    } else {
+        builder.def_var(loop_var, zero);
+    }
+    locals.insert(var.to_string(), loop_var);
+
+    let idx_var = Variable::from_u32(*next_var as u32);
+    *next_var += 1;
+    builder.declare_var(idx_var, ir::types::I64);
+    builder.def_var(idx_var, zero);
+
+    let header_block = builder.create_block();
+    let bind_block = builder.create_block();
+    let body_block = builder.create_block();
+    let exit_block = builder.create_block();
+    builder.ins().jump(header_block, &[]);
+
+    builder.switch_to_block(header_block);
+    let iter_handle_value = builder.use_var(iter_var);
+    let local_len = module.declare_func_in_func(runtime_fns.container_len_fn, builder.func);
+    let len_call = builder.ins().call(local_len, &[iter_handle_value]);
+    let len_value = builder
+        .inst_results(len_call)
+        .first()
+        .copied()
+        .unwrap_or_else(|| builder.ins().iconst(ir::types::I64, 0));
+    let idx_value = builder.use_var(idx_var);
+    let cond = builder
+        .ins()
+        .icmp(IntCC::SignedLessThan, idx_value, len_value);
+    builder.ins().brif(cond, bind_block, &[], exit_block, &[]);
+
+    builder.switch_to_block(bind_block);
+    match iter_kind {
+        MirForIterKind::List => {
+            let local_get =
+                module.declare_func_in_func(runtime_fns.container_get_i64_fn, builder.func);
+            let call = builder.ins().call(local_get, &[iter_handle_value, idx_value]);
+            let value = builder
+                .inst_results(call)
+                .first()
+                .copied()
+                .unwrap_or_else(|| builder.ins().iconst(ir::types::I64, 0));
+            builder.def_var(loop_var, value);
+        }
+        MirForIterKind::MapInt => {
+            let local_key =
+                module.declare_func_in_func(runtime_fns.container_key_at_i64_fn, builder.func);
+            let call = builder.ins().call(local_key, &[iter_handle_value, idx_value]);
+            let key = builder
+                .inst_results(call)
+                .first()
+                .copied()
+                .unwrap_or_else(|| builder.ins().iconst(ir::types::I64, 0));
+            builder.def_var(loop_var, key);
+        }
+        MirForIterKind::MapStr => {
+            let local_key =
+                module.declare_func_in_func(runtime_fns.container_key_at_str_fn, builder.func);
+            let call = builder.ins().call(local_key, &[iter_handle_value, idx_value]);
+            let key = builder
+                .inst_results(call)
+                .first()
+                .copied()
+                .unwrap_or_else(|| builder.ins().iconst(ptr_ty, 0));
+            builder.def_var(loop_var, key);
+        }
+        MirForIterKind::Unknown => unreachable!("unknown iterator kind should return early"),
+    }
+    builder.ins().jump(body_block, &[]);
+
+    builder.switch_to_block(body_block);
+    let mut body_terminated = false;
+    for stmt in body {
+        if body_terminated {
+            break;
+        }
+        body_terminated = emit_stmt(
+            stmt,
+            module,
+            builder,
+            locals,
+            next_var,
+            function_ids,
+            function_returns,
+            runtime_fns,
+            ptr_ty,
+            str_data_counter,
+            owner,
+        )?;
+    }
+    if !body_terminated {
+        let current_idx = builder.use_var(idx_var);
+        let one = builder.ins().iconst(ir::types::I64, 1);
+        let next_idx = builder.ins().iadd(current_idx, one);
+        builder.def_var(idx_var, next_idx);
+        builder.ins().jump(header_block, &[]);
+    }
+
+    builder.seal_block(bind_block);
+    builder.seal_block(body_block);
+    builder.seal_block(header_block);
+
+    builder.switch_to_block(exit_block);
+    builder.seal_block(exit_block);
+    Ok(())
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -1596,6 +1886,113 @@ fn emit_expr(
                 "E3402: member access `{field}` native lowering is not available in v0.1 backend"
             ));
         }
+        MirExpr::Index {
+            object,
+            index,
+            object_is_str,
+        } => {
+            let object_value = emit_expr(
+                object,
+                module,
+                builder,
+                locals,
+                function_ids,
+                function_returns,
+                runtime_fns,
+                ptr_ty,
+                str_data_counter,
+                owner,
+            )?;
+            let index_value = emit_expr(
+                index,
+                module,
+                builder,
+                locals,
+                function_ids,
+                function_returns,
+                runtime_fns,
+                ptr_ty,
+                str_data_counter,
+                owner,
+            )?;
+            if *object_is_str {
+                let local_get_byte =
+                    module.declare_func_in_func(runtime_fns.str_get_byte_fn, builder.func);
+                let call = builder
+                    .ins()
+                    .call(local_get_byte, &[object_value, index_value]);
+                call_result_or_zero(builder, call)
+            } else {
+                let local_get =
+                    module.declare_func_in_func(runtime_fns.container_get_i64_fn, builder.func);
+                let call = builder.ins().call(local_get, &[object_value, index_value]);
+                call_result_or_zero(builder, call)
+            }
+        }
+        MirExpr::Slice {
+            object,
+            start,
+            end,
+            object_is_str,
+        } => {
+            if !*object_is_str {
+                return Err(
+                    "E3410: native slicing currently supports Str operands only".to_string(),
+                );
+            }
+            let object_value = emit_expr(
+                object,
+                module,
+                builder,
+                locals,
+                function_ids,
+                function_returns,
+                runtime_fns,
+                ptr_ty,
+                str_data_counter,
+                owner,
+            )?;
+            let start_value = if let Some(start) = start {
+                emit_expr(
+                    start,
+                    module,
+                    builder,
+                    locals,
+                    function_ids,
+                    function_returns,
+                    runtime_fns,
+                    ptr_ty,
+                    str_data_counter,
+                    owner,
+                )?
+            } else {
+                builder.ins().iconst(ir::types::I64, 0)
+            };
+            let end_value = if let Some(end) = end {
+                emit_expr(
+                    end,
+                    module,
+                    builder,
+                    locals,
+                    function_ids,
+                    function_returns,
+                    runtime_fns,
+                    ptr_ty,
+                    str_data_counter,
+                    owner,
+                )?
+            } else {
+                let local_len =
+                    module.declare_func_in_func(runtime_fns.str_len_bytes_fn, builder.func);
+                let call = builder.ins().call(local_len, &[object_value]);
+                call_result_or_zero(builder, call)
+            };
+            let local_slice = module.declare_func_in_func(runtime_fns.str_slice_fn, builder.func);
+            let call = builder
+                .ins()
+                .call(local_slice, &[object_value, start_value, end_value]);
+            call_result_or_zero(builder, call)
+        }
         MirExpr::Call { callee, args } => {
             if let MirExpr::Var(name) = &**callee {
                 if name == "print" || name == "println" {
@@ -1775,7 +2172,8 @@ fn emit_expr(
                             return Err("`.get()` expects one key/index argument".to_string());
                         }
                         let key = lowered_args[0];
-                        let key_is_str = is_known_string_expr(&args[0]);
+                        let key_is_str = is_known_string_expr(&args[0])
+                            || builder.func.dfg.value_type(key) == ptr_ty;
                         let local_get = if key_is_str {
                             module.declare_func_in_func(
                                 runtime_fns.container_get_str_i64_fn,
@@ -1807,7 +2205,8 @@ fn emit_expr(
                                 "E3404: `.set()` currently supports Int values only".to_string()
                             );
                         }
-                        let key_is_str = is_known_string_expr(&args[0]);
+                        let key_is_str = is_known_string_expr(&args[0])
+                            || builder.func.dfg.value_type(key) == ptr_ty;
                         let local_set = if key_is_str {
                             module.declare_func_in_func(
                                 runtime_fns.container_set_str_i64_fn,
@@ -1831,7 +2230,8 @@ fn emit_expr(
                             return Err("`.contains()` expects one key argument".to_string());
                         }
                         let key = lowered_args[0];
-                        let key_is_str = is_known_string_expr(&args[0]);
+                        let key_is_str = is_known_string_expr(&args[0])
+                            || builder.func.dfg.value_type(key) == ptr_ty;
                         let local_contains = if key_is_str {
                             module.declare_func_in_func(
                                 runtime_fns.container_contains_str_i64_fn,
@@ -1855,7 +2255,8 @@ fn emit_expr(
                             return Err("`.remove()` expects one key argument".to_string());
                         }
                         let key = lowered_args[0];
-                        let key_is_str = is_known_string_expr(&args[0]);
+                        let key_is_str = is_known_string_expr(&args[0])
+                            || builder.func.dfg.value_type(key) == ptr_ty;
                         let local_remove = if key_is_str {
                             module.declare_func_in_func(
                                 runtime_fns.container_remove_str_i64_fn,
@@ -1926,10 +2327,44 @@ fn emit_expr(
                 "Sub" => builder.ins().isub(l, r),
                 "Mul" => builder.ins().imul(l, r),
                 "Div" => builder.ins().sdiv(l, r),
-                "Eq" | "Ne" | "Lt" | "Le" | "Gt" | "Ge" => {
+                "Eq" | "Ne" => {
+                    let is_ne = op == "Ne";
+                    if is_known_string_expr(left) && is_known_string_expr(right) {
+                        let local_eq =
+                            module.declare_func_in_func(runtime_fns.str_eq_fn, builder.func);
+                        let call = builder.ins().call(local_eq, &[l, r]);
+                        let eq_value = call_result_or_zero(builder, call);
+                        if is_ne {
+                            let zero = builder.ins().iconst(ir::types::I64, 0);
+                            let cmp = builder.ins().icmp(IntCC::Equal, eq_value, zero);
+                            builder.ins().uextend(ir::types::I64, cmp)
+                        } else {
+                            eq_value
+                        }
+                    } else if is_known_container_expr(left) && is_known_container_expr(right) {
+                        let local_eq =
+                            module.declare_func_in_func(runtime_fns.container_eq_fn, builder.func);
+                        let call = builder.ins().call(local_eq, &[l, r]);
+                        let eq_value = call_result_or_zero(builder, call);
+                        if is_ne {
+                            let zero = builder.ins().iconst(ir::types::I64, 0);
+                            let cmp = builder.ins().icmp(IntCC::Equal, eq_value, zero);
+                            builder.ins().uextend(ir::types::I64, cmp)
+                        } else {
+                            eq_value
+                        }
+                    } else {
+                        let cc = if is_ne {
+                            IntCC::NotEqual
+                        } else {
+                            IntCC::Equal
+                        };
+                        let cmp = builder.ins().icmp(cc, l, r);
+                        builder.ins().uextend(ir::types::I64, cmp)
+                    }
+                }
+                "Lt" | "Le" | "Gt" | "Ge" => {
                     let cc = match op.as_str() {
-                        "Eq" => IntCC::Equal,
-                        "Ne" => IntCC::NotEqual,
                         "Lt" => IntCC::SignedLessThan,
                         "Le" => IntCC::SignedLessThanOrEqual,
                         "Gt" => IntCC::SignedGreaterThan,
@@ -1974,6 +2409,18 @@ fn emit_expr(
                 }
             }
         }
+        MirExpr::Async { expr } | MirExpr::Await { expr } => emit_expr(
+            expr,
+            module,
+            builder,
+            locals,
+            function_ids,
+            function_returns,
+            runtime_fns,
+            ptr_ty,
+            str_data_counter,
+            owner,
+        )?,
         MirExpr::Question { expr } | MirExpr::Old { expr } => emit_expr(
             expr,
             module,
@@ -2015,6 +2462,14 @@ fn emit_string_data(
     Ok(builder.ins().symbol_value(ptr_ty, local))
 }
 
+fn call_result_or_zero(builder: &mut FunctionBuilder<'_>, call: ir::Inst) -> ir::Value {
+    builder
+        .inst_results(call)
+        .first()
+        .copied()
+        .unwrap_or_else(|| builder.ins().iconst(ir::types::I64, 0))
+}
+
 fn default_value(builder: &mut FunctionBuilder<'_>, ty: &MirType, ptr_ty: ir::Type) -> ir::Value {
     match ty {
         MirType::I64 | MirType::Unknown => builder.ins().iconst(ir::types::I64, 0),
@@ -2031,8 +2486,13 @@ fn is_known_string_expr(expr: &MirExpr) -> bool {
         MirExpr::Binary { left, op, right } if op == "Add" => {
             is_known_string_expr(left) && is_known_string_expr(right)
         }
+        MirExpr::Slice { object_is_str, .. } => *object_is_str,
         _ => false,
     }
+}
+
+fn is_known_container_expr(expr: &MirExpr) -> bool {
+    matches!(expr, MirExpr::List(_) | MirExpr::Map(_))
 }
 
 fn value_type_for_expr(expr: &MirExpr, ptr_ty: ir::Type) -> ir::Type {
@@ -2049,6 +2509,9 @@ fn value_type_for_expr(expr: &MirExpr, ptr_ty: ir::Type) -> ir::Type {
         }
         MirExpr::List(_) | MirExpr::Map(_) => ptr_ty,
         MirExpr::Member { field, .. } if field == "len" => ir::types::I64,
+        MirExpr::Index { .. } => ir::types::I64,
+        MirExpr::Slice { object_is_str, .. } if *object_is_str => ptr_ty,
+        MirExpr::Async { expr } | MirExpr::Await { expr } => value_type_for_expr(expr, ptr_ty),
         MirExpr::Call { callee, .. } if matches!(&**callee, MirExpr::Var(name) if name == "chan") => {
             ptr_ty
         }

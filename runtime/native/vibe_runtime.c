@@ -109,6 +109,17 @@ static char *vibe_strdup_or_panic(const char *src) {
     return copy;
 }
 
+static int64_t vibe_utf8_is_boundary(const char *text, int64_t index, int64_t len) {
+    if (index < 0 || index > len) {
+        return 0;
+    }
+    if (index == 0 || index == len) {
+        return 1;
+    }
+    unsigned char ch = (unsigned char)text[index];
+    return (ch & 0xC0u) != 0x80u;
+}
+
 static void vibe_list_ensure_capacity(vibe_list_i64 *list, int64_t min_cap) {
     if (list == NULL) {
         vibe_panic("list handle is null");
@@ -425,6 +436,13 @@ int64_t vibe_container_len(void *handle) {
     return 0;
 }
 
+int64_t vibe_container_kind(void *handle) {
+    if (handle == NULL) {
+        vibe_panic("container kind called on null handle");
+    }
+    return *((int64_t *)handle);
+}
+
 int64_t vibe_container_get_i64(void *handle, int64_t key_or_index) {
     if (handle == NULL) {
         vibe_panic("container get(i64) called on null handle");
@@ -525,6 +543,239 @@ int64_t vibe_container_remove_str_i64(void *handle, const char *key) {
     }
     vibe_panic("container remove(Str) is only valid for Map<Str, Int>");
     return 0;
+}
+
+int64_t vibe_map_key_at_i64(void *handle, int64_t index) {
+    vibe_map_i64_i64 *map = (vibe_map_i64_i64 *)handle;
+    if (map == NULL || map->tag != VIBE_CONTAINER_MAP_I64_I64) {
+        vibe_panic("map.key_at(i64) called on non-map handle");
+    }
+    if (index < 0 || index >= map->len) {
+        vibe_panic("map key index out of bounds");
+    }
+    return map->entries[index].key;
+}
+
+const char *vibe_map_key_at_str(void *handle, int64_t index) {
+    vibe_map_str_i64 *map = (vibe_map_str_i64 *)handle;
+    if (map == NULL || map->tag != VIBE_CONTAINER_MAP_STR_I64) {
+        vibe_panic("map.key_at(Str) called on non-map handle");
+    }
+    if (index < 0 || index >= map->len) {
+        vibe_panic("map key index out of bounds");
+    }
+    return map->entries[index].key;
+}
+
+int64_t vibe_container_key_at_i64(void *handle, int64_t index) {
+    if (handle == NULL) {
+        vibe_panic("container key_at(i64) called on null handle");
+    }
+    int64_t tag = *((int64_t *)handle);
+    if (tag == VIBE_CONTAINER_MAP_I64_I64) {
+        return vibe_map_key_at_i64(handle, index);
+    }
+    vibe_panic("container key_at(i64) is only valid for Map<Int, Int>");
+    return 0;
+}
+
+const char *vibe_container_key_at_str(void *handle, int64_t index) {
+    if (handle == NULL) {
+        vibe_panic("container key_at(Str) called on null handle");
+    }
+    int64_t tag = *((int64_t *)handle);
+    if (tag == VIBE_CONTAINER_MAP_STR_I64) {
+        return vibe_map_key_at_str(handle, index);
+    }
+    vibe_panic("container key_at(Str) is only valid for Map<Str, Int>");
+    return NULL;
+}
+
+int64_t vibe_list_eq_i64(void *left_handle, void *right_handle) {
+    vibe_list_i64 *left = (vibe_list_i64 *)left_handle;
+    vibe_list_i64 *right = (vibe_list_i64 *)right_handle;
+    if (left == NULL || right == NULL) {
+        return left == right ? 1 : 0;
+    }
+    if (left->tag != VIBE_CONTAINER_LIST_I64 || right->tag != VIBE_CONTAINER_LIST_I64) {
+        return 0;
+    }
+    if (left->len != right->len) {
+        return 0;
+    }
+    for (int64_t i = 0; i < left->len; i++) {
+        if (left->items[i] != right->items[i]) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+int64_t vibe_map_eq_i64_i64(void *left_handle, void *right_handle) {
+    vibe_map_i64_i64 *left = (vibe_map_i64_i64 *)left_handle;
+    vibe_map_i64_i64 *right = (vibe_map_i64_i64 *)right_handle;
+    if (left == NULL || right == NULL) {
+        return left == right ? 1 : 0;
+    }
+    if (left->tag != VIBE_CONTAINER_MAP_I64_I64 || right->tag != VIBE_CONTAINER_MAP_I64_I64) {
+        return 0;
+    }
+    if (left->len != right->len) {
+        return 0;
+    }
+    for (int64_t i = 0; i < left->len; i++) {
+        int64_t key = left->entries[i].key;
+        if (!vibe_map_contains_i64_i64(right, key)) {
+            return 0;
+        }
+        if (vibe_map_get_i64_i64(right, key) != left->entries[i].value) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+int64_t vibe_map_eq_str_i64(void *left_handle, void *right_handle) {
+    vibe_map_str_i64 *left = (vibe_map_str_i64 *)left_handle;
+    vibe_map_str_i64 *right = (vibe_map_str_i64 *)right_handle;
+    if (left == NULL || right == NULL) {
+        return left == right ? 1 : 0;
+    }
+    if (left->tag != VIBE_CONTAINER_MAP_STR_I64 || right->tag != VIBE_CONTAINER_MAP_STR_I64) {
+        return 0;
+    }
+    if (left->len != right->len) {
+        return 0;
+    }
+    for (int64_t i = 0; i < left->len; i++) {
+        const char *key = left->entries[i].key;
+        if (!vibe_map_contains_str_i64(right, key)) {
+            return 0;
+        }
+        if (vibe_map_get_str_i64(right, key) != left->entries[i].value) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+int64_t vibe_container_eq(void *left_handle, void *right_handle) {
+    if (left_handle == NULL || right_handle == NULL) {
+        return left_handle == right_handle ? 1 : 0;
+    }
+    int64_t left_tag = *((int64_t *)left_handle);
+    int64_t right_tag = *((int64_t *)right_handle);
+    if (left_tag != right_tag) {
+        return 0;
+    }
+    if (left_tag == VIBE_CONTAINER_LIST_I64) {
+        return vibe_list_eq_i64(left_handle, right_handle);
+    }
+    if (left_tag == VIBE_CONTAINER_MAP_I64_I64) {
+        return vibe_map_eq_i64_i64(left_handle, right_handle);
+    }
+    if (left_tag == VIBE_CONTAINER_MAP_STR_I64) {
+        return vibe_map_eq_str_i64(left_handle, right_handle);
+    }
+    return 0;
+}
+
+static uint64_t vibe_hash_bytes(const unsigned char *bytes, size_t len) {
+    uint64_t hash = 1469598103934665603ull;
+    for (size_t i = 0; i < len; i++) {
+        hash ^= (uint64_t)bytes[i];
+        hash *= 1099511628211ull;
+    }
+    return hash;
+}
+
+int64_t vibe_str_hash(const char *value) {
+    const char *safe_value = value == NULL ? "" : value;
+    size_t len = strlen(safe_value);
+    uint64_t hash = vibe_hash_bytes((const unsigned char *)safe_value, len);
+    return (int64_t)hash;
+}
+
+int64_t vibe_container_hash(void *handle) {
+    if (handle == NULL) {
+        return 0;
+    }
+    int64_t tag = *((int64_t *)handle);
+    uint64_t hash = 1469598103934665603ull;
+    hash ^= (uint64_t)tag;
+    hash *= 1099511628211ull;
+    if (tag == VIBE_CONTAINER_LIST_I64) {
+        vibe_list_i64 *list = (vibe_list_i64 *)handle;
+        for (int64_t i = 0; i < list->len; i++) {
+            hash ^= (uint64_t)list->items[i];
+            hash *= 1099511628211ull;
+        }
+    } else if (tag == VIBE_CONTAINER_MAP_I64_I64) {
+        vibe_map_i64_i64 *map = (vibe_map_i64_i64 *)handle;
+        for (int64_t i = 0; i < map->len; i++) {
+            hash ^= (uint64_t)map->entries[i].key;
+            hash *= 1099511628211ull;
+            hash ^= (uint64_t)map->entries[i].value;
+            hash *= 1099511628211ull;
+        }
+    } else if (tag == VIBE_CONTAINER_MAP_STR_I64) {
+        vibe_map_str_i64 *map = (vibe_map_str_i64 *)handle;
+        for (int64_t i = 0; i < map->len; i++) {
+            uint64_t key_hash = vibe_hash_bytes(
+                (const unsigned char *)map->entries[i].key,
+                strlen(map->entries[i].key));
+            hash ^= key_hash;
+            hash *= 1099511628211ull;
+            hash ^= (uint64_t)map->entries[i].value;
+            hash *= 1099511628211ull;
+        }
+    }
+    return (int64_t)hash;
+}
+
+int64_t vibe_str_eq(const char *left, const char *right) {
+    const char *l = left == NULL ? "" : left;
+    const char *r = right == NULL ? "" : right;
+    return strcmp(l, r) == 0 ? 1 : 0;
+}
+
+int64_t vibe_str_len_bytes(const char *value) {
+    const char *safe_value = value == NULL ? "" : value;
+    return (int64_t)strlen(safe_value);
+}
+
+int64_t vibe_str_get_byte(const char *value, int64_t index) {
+    const char *safe_value = value == NULL ? "" : value;
+    int64_t len = (int64_t)strlen(safe_value);
+    if (index < 0 || index >= len) {
+        vibe_panic("string index out of bounds");
+    }
+    if (!vibe_utf8_is_boundary(safe_value, index, len)) {
+        vibe_panic("string index is not a UTF-8 boundary");
+    }
+    return (int64_t)((unsigned char)safe_value[index]);
+}
+
+void *vibe_str_slice(const char *value, int64_t start, int64_t end) {
+    const char *safe_value = value == NULL ? "" : value;
+    int64_t len = (int64_t)strlen(safe_value);
+    if (start < 0 || end < 0 || start > end || end > len) {
+        vibe_panic("invalid string slice range");
+    }
+    if (!vibe_utf8_is_boundary(safe_value, start, len)
+        || !vibe_utf8_is_boundary(safe_value, end, len)) {
+        vibe_panic("string slice boundary is not UTF-8 aligned");
+    }
+    int64_t out_len = end - start;
+    char *out = (char *)calloc((size_t)out_len + 1u, sizeof(char));
+    if (out == NULL) {
+        vibe_panic("failed to allocate sliced string");
+    }
+    if (out_len > 0) {
+        memcpy(out, safe_value + start, (size_t)out_len);
+    }
+    out[out_len] = '\0';
+    return (void *)out;
 }
 
 void *vibe_str_concat(const char *left, const char *right) {

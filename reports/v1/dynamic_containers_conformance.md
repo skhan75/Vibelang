@@ -55,7 +55,6 @@ cargo test -p vibe_cli --test phase7_v1_tightening phase7_ownership_sendability_
 Deferred items explicitly outside `7.3.f.1` freeze remain tracked in
 `docs/spec/containers.md`:
 
-- Generic native lowering beyond the supported concrete combinations.
-- String indexing/slicing APIs.
-- Container iterators and native `for in` lowering over dynamic containers.
-- Broader container equality/hash APIs not required by v1 smoke matrix.
+- Additional post-freeze container/text expansion now tracked in
+  `reports/v1/phase11_containers_text_readiness.md` and workflow gate
+  `phase11_containers_text_gate`.

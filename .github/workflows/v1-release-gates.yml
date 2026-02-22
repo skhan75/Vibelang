@@ -342,6 +342,42 @@ jobs:
           name: v1-dynamic-containers-conformance
           path: reports/v1/dynamic_containers_conformance.md
 
+  phase11_containers_text_gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - name: run phase11 container + text native conformance
+        run: |
+          set -euo pipefail
+          cargo test -p vibe_cli --test phase2_native phase11_for_iteration_fixture_is_deterministic
+          cargo test -p vibe_cli --test phase2_native phase11_str_index_slice_unicode_fixture_runs
+          cargo test -p vibe_cli --test phase2_native phase11_str_index_rejects_non_utf8_boundary
+          cargo test -p vibe_cli --test phase2_native phase11_container_equality_fixture_runs
+      - name: publish phase11 containers/text summary artifact
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/v1-phase11-containers-text
+          cat > /tmp/v1-phase11-containers-text/summary.md <<'EOF'
+          # Phase 11.1 Containers and Text Gate
+
+          - status: pass
+          - suites:
+            - `phase2_native::phase11_for_iteration_fixture_is_deterministic`
+            - `phase2_native::phase11_str_index_slice_unicode_fixture_runs`
+            - `phase2_native::phase11_str_index_rejects_non_utf8_boundary`
+            - `phase2_native::phase11_container_equality_fixture_runs`
+          - note: validates deterministic `for in`, UTF-8-safe `Str` indexing/slicing, and container/string equality runtime behavior.
+          EOF
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v1-phase11-containers-text
+          path: |
+            /tmp/v1-phase11-containers-text/summary.md
+            reports/v1/phase11_containers_text_readiness.md
+
   memory_gc_default_gate:
     runs-on: ubuntu-latest
     steps:
@@ -684,6 +720,7 @@ jobs:
           test -f reports/v1/selfhost_m3_expansion.md
           test -f reports/v1/spec_readiness.md
           test -f reports/v1/dynamic_containers_conformance.md
+          test -f reports/v1/phase11_containers_text_readiness.md
           test -f reports/v1/install_independence.md
           test -f reports/v1/distribution_readiness.md
           test -f reports/v1/phase8_ci_evidence.md
@@ -701,6 +738,7 @@ jobs:
           echo "$PR_BODY" | grep -q "reports/v1/readiness_dashboard.md"
           echo "$PR_BODY" | grep -q "reports/v1/release_candidate_checklist.md"
           echo "$PR_BODY" | grep -q "reports/v1/dynamic_containers_conformance.md"
+          echo "$PR_BODY" | grep -q "reports/v1/phase11_containers_text_readiness.md"
           echo "$PR_BODY" | grep -q "reports/v1/install_independence.md"
           echo "$PR_BODY" | grep -q "reports/v1/distribution_readiness.md"
           echo "$PR_BODY" | grep -q "reports/v1/phase8_ci_evidence.md"
@@ -712,6 +750,7 @@ jobs:
           echo "$PR_BODY" | grep -q "docs/release/selfhost_transition_playbook.md"
           echo "$PR_BODY" | grep -q "v1-selfhost-m3-shadow"
           echo "$PR_BODY" | grep -q "v1-selfhost-m4-rc-cycle"
+          echo "$PR_BODY" | grep -q "v1-phase11-containers-text"
 
   summary:
     runs-on: ubuntu-latest
@@ -728,6 +767,7 @@ jobs:
       - independent_install_gate
       - linux_compatibility_gate
       - dynamic_containers_gate
+      - phase11_containers_text_gate
       - memory_gc_default_gate
       - spec_integrity_gate
       - compatibility_gate

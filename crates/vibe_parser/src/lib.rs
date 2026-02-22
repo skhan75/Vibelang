@@ -387,6 +387,11 @@ impl Parser {
             let expr = self.parse_expr_until(&[StopToken::Newline, StopToken::RBrace]);
             return Some(Stmt::Go { expr, span: start });
         }
+        if self.at_keyword(Keyword::Thread) {
+            self.bump();
+            let expr = self.parse_expr_until(&[StopToken::Newline, StopToken::RBrace]);
+            return Some(Stmt::Thread { expr, span: start });
+        }
 
         if let Some(stmt) = self.try_parse_binding(start) {
             return Some(stmt);
@@ -687,6 +692,38 @@ impl Parser {
                     span,
                 }
             }
+            TokenKind::Keyword(Keyword::Async) => {
+                let kw = self.bump();
+                let inner = self
+                    .parse_unary_expr(stop)
+                    .unwrap_or_else(|| self.error_expr("E1404A", "expected expression after `async`"));
+                let span = Span::new(
+                    kw.span.line_start,
+                    kw.span.col_start,
+                    inner.span().line_end,
+                    inner.span().col_end,
+                );
+                Expr::Async {
+                    expr: Box::new(inner),
+                    span,
+                }
+            }
+            TokenKind::Keyword(Keyword::Await) => {
+                let kw = self.bump();
+                let inner = self
+                    .parse_unary_expr(stop)
+                    .unwrap_or_else(|| self.error_expr("E1404B", "expected expression after `await`"));
+                let span = Span::new(
+                    kw.span.line_start,
+                    kw.span.col_start,
+                    inner.span().line_end,
+                    inner.span().col_end,
+                );
+                Expr::Await {
+                    expr: Box::new(inner),
+                    span,
+                }
+            }
             _ => self.parse_postfix_expr(stop)?,
         };
         Some(expr)
@@ -758,6 +795,67 @@ impl Parser {
                 expr = Expr::Call {
                     callee: Box::new(expr),
                     args,
+                    span,
+                };
+                continue;
+            }
+            if self.match_kind(&TokenKind::LBracket) {
+                self.consume_newlines();
+                if self.match_kind(&TokenKind::Colon) {
+                    self.consume_newlines();
+                    let end = if self.at(&TokenKind::RBracket) {
+                        None
+                    } else {
+                        Some(Box::new(self.parse_expr_until(&[StopToken::RBracket])))
+                    };
+                    let close = self.expect(TokenKind::RBracket, "E1406A", "expected `]`");
+                    let span = Span::new(
+                        expr.span().line_start,
+                        expr.span().col_start,
+                        close.line_end,
+                        close.col_end,
+                    );
+                    expr = Expr::Slice {
+                        object: Box::new(expr),
+                        start: None,
+                        end,
+                        span,
+                    };
+                    continue;
+                }
+                let first = self.parse_expr_until(&[StopToken::Colon, StopToken::RBracket]);
+                if self.match_kind(&TokenKind::Colon) {
+                    self.consume_newlines();
+                    let end = if self.at(&TokenKind::RBracket) {
+                        None
+                    } else {
+                        Some(Box::new(self.parse_expr_until(&[StopToken::RBracket])))
+                    };
+                    let close = self.expect(TokenKind::RBracket, "E1406B", "expected `]`");
+                    let span = Span::new(
+                        expr.span().line_start,
+                        expr.span().col_start,
+                        close.line_end,
+                        close.col_end,
+                    );
+                    expr = Expr::Slice {
+                        object: Box::new(expr),
+                        start: Some(Box::new(first)),
+                        end,
+                        span,
+                    };
+                    continue;
+                }
+                let close = self.expect(TokenKind::RBracket, "E1406C", "expected `]`");
+                let span = Span::new(
+                    expr.span().line_start,
+                    expr.span().col_start,
+                    close.line_end,
+                    close.col_end,
+                );
+                expr = Expr::Index {
+                    object: Box::new(expr),
+                    index: Box::new(first),
                     span,
                 };
                 continue;

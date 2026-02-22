@@ -537,6 +537,82 @@ fn repeat_loop_fixture_runs() {
 }
 
 #[test]
+fn phase11_for_iteration_fixture_is_deterministic() {
+    let source = temp_fixture_copy("build/phase11_for_iter_deterministic.vibe");
+    let first = run_vibe(&["run", source.to_str().expect("source path str")]);
+    assert!(
+        first.status.success(),
+        "first run failed:\nstdout:\n{}\nstderr:\n{}",
+        first.stdout,
+        first.stderr
+    );
+    let second = run_vibe(&["run", source.to_str().expect("source path str")]);
+    assert!(
+        second.status.success(),
+        "second run failed:\nstdout:\n{}\nstderr:\n{}",
+        second.stdout,
+        second.stderr
+    );
+    assert_eq!(
+        first.stdout, second.stdout,
+        "for-in output must be deterministic across runs"
+    );
+    assert_eq!(first.stdout, "x\ny\nlist-for-ok\nmap-for-ok\n");
+}
+
+#[test]
+fn phase11_str_index_slice_unicode_fixture_runs() {
+    let source = temp_fixture_copy("build/phase11_str_index_slice_unicode.vibe");
+    let run = run_vibe(&["run", source.to_str().expect("source path str")]);
+    assert!(
+        run.status.success(),
+        "run failed:\nstdout:\n{}\nstderr:\n{}",
+        run.stdout,
+        run.stderr
+    );
+    assert_eq!(run.stdout, "V\nπ\n😊\nZ\nbyte-ok\n");
+}
+
+#[test]
+fn phase11_str_index_rejects_non_utf8_boundary() {
+    let source = temp_source_file(
+        "phase11_str_index_non_boundary",
+        r#"
+pub main() -> Int {
+  text := "Vπ😊Z"
+  mid := text[2]
+  mid
+}
+"#,
+    );
+    let run = run_vibe(&["run", source.to_str().expect("source path str")]);
+    assert!(
+        !run.status.success(),
+        "run unexpectedly succeeded:\nstdout:\n{}\nstderr:\n{}",
+        run.stdout,
+        run.stderr
+    );
+    assert!(
+        run.stderr.contains("UTF-8 boundary"),
+        "expected UTF-8 boundary failure:\n{}",
+        run.stderr
+    );
+}
+
+#[test]
+fn phase11_container_equality_fixture_runs() {
+    let source = temp_fixture_copy("build/phase11_container_equality.vibe");
+    let run = run_vibe(&["run", source.to_str().expect("source path str")]);
+    assert!(
+        run.status.success(),
+        "run failed:\nstdout:\n{}\nstderr:\n{}",
+        run.stdout,
+        run.stderr
+    );
+    assert_eq!(run.stdout, "list-eq-ok\nmap-eq-ok\nstr-eq-ok\n");
+}
+
+#[test]
 fn unsupported_member_access_has_stable_codegen_diagnostic() {
     let source = temp_fixture_copy("build_err/member_access_unsupported.vibe");
     let out = run_vibe(&["build", source.to_str().expect("source path str")]);

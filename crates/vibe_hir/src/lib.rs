@@ -66,6 +66,9 @@ pub enum HirStmt {
     Go {
         expr: HirExpr,
     },
+    Thread {
+        expr: HirExpr,
+    },
     ContractCheck {
         kind: HirContractKind,
         expr: HirExpr,
@@ -105,6 +108,15 @@ pub enum HirExprKind {
         object: Box<HirExpr>,
         field: String,
     },
+    Index {
+        object: Box<HirExpr>,
+        index: Box<HirExpr>,
+    },
+    Slice {
+        object: Box<HirExpr>,
+        start: Option<Box<HirExpr>>,
+        end: Option<Box<HirExpr>>,
+    },
     Call {
         callee: Box<HirExpr>,
         args: Vec<HirExpr>,
@@ -116,6 +128,12 @@ pub enum HirExprKind {
     },
     Unary {
         op: UnaryOp,
+        expr: Box<HirExpr>,
+    },
+    Async {
+        expr: Box<HirExpr>,
+    },
+    Await {
         expr: Box<HirExpr>,
     },
     Question {
@@ -187,6 +205,7 @@ fn verify_stmt_list(stmts: &[HirStmt], scope: &mut BTreeMap<String, String>) -> 
             HirStmt::Return { expr }
             | HirStmt::Expr { expr }
             | HirStmt::Go { expr }
+            | HirStmt::Thread { expr }
             | HirStmt::ContractCheck { expr, .. } => {
                 verify_expr(expr)?;
             }
@@ -276,6 +295,19 @@ fn verify_expr(expr: &HirExpr) -> Result<(), String> {
                 return Err("empty member field name in HIR".to_string());
             }
         }
+        HirExprKind::Index { object, index } => {
+            verify_expr(object)?;
+            verify_expr(index)?;
+        }
+        HirExprKind::Slice { object, start, end } => {
+            verify_expr(object)?;
+            if let Some(start) = start {
+                verify_expr(start)?;
+            }
+            if let Some(end) = end {
+                verify_expr(end)?;
+            }
+        }
         HirExprKind::Call { callee, args } => {
             verify_expr(callee)?;
             for arg in args {
@@ -287,6 +319,9 @@ fn verify_expr(expr: &HirExpr) -> Result<(), String> {
             verify_expr(right)?;
         }
         HirExprKind::Unary { expr, .. } => {
+            verify_expr(expr)?;
+        }
+        HirExprKind::Async { expr } | HirExprKind::Await { expr } => {
             verify_expr(expr)?;
         }
         HirExprKind::Question { expr } => {

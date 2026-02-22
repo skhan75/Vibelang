@@ -428,6 +428,7 @@ fn check_stmt(
             );
             let item_ty = match iter_ty {
                 TypeKind::List(inner) => *inner,
+                TypeKind::Map(key, _value) => *key,
                 _ => TypeKind::Unknown,
             };
             env.insert(var.clone(), item_ty);
@@ -637,6 +638,21 @@ fn check_stmt(
                 expr: lower_expr(expr, env),
             });
         }
+        Stmt::Thread { expr, .. } => {
+            observed_effects.insert("concurrency".to_string());
+            let _ = infer_expr(
+                expr,
+                env,
+                sigs,
+                ContractContext::Other,
+                diagnostics,
+                observed_effects,
+            );
+            check_go_sendability(expr, env, expr_type_hint, diagnostics);
+            hir_out.push(HirStmt::Thread {
+                expr: lower_expr(expr, env),
+            });
+        }
     }
 }
 
@@ -697,6 +713,21 @@ fn lower_contract_expr(
             object: Box::new(lower_contract_expr(object, env, dot_result)),
             field: field.clone(),
         },
+        Expr::Index { object, index, .. } => HirExprKind::Index {
+            object: Box::new(lower_contract_expr(object, env, dot_result)),
+            index: Box::new(lower_contract_expr(index, env, dot_result)),
+        },
+        Expr::Slice {
+            object, start, end, ..
+        } => HirExprKind::Slice {
+            object: Box::new(lower_contract_expr(object, env, dot_result)),
+            start: start
+                .as_ref()
+                .map(|expr| Box::new(lower_contract_expr(expr, env, dot_result))),
+            end: end
+                .as_ref()
+                .map(|expr| Box::new(lower_contract_expr(expr, env, dot_result))),
+        },
         Expr::Call { callee, args, .. } => HirExprKind::Call {
             callee: Box::new(lower_contract_expr(callee, env, dot_result)),
             args: args
@@ -713,6 +744,12 @@ fn lower_contract_expr(
         },
         Expr::Unary { op, expr, .. } => HirExprKind::Unary {
             op: *op,
+            expr: Box::new(lower_contract_expr(expr, env, dot_result)),
+        },
+        Expr::Async { expr, .. } => HirExprKind::Async {
+            expr: Box::new(lower_contract_expr(expr, env, dot_result)),
+        },
+        Expr::Await { expr, .. } => HirExprKind::Await {
             expr: Box::new(lower_contract_expr(expr, env, dot_result)),
         },
         Expr::Question { expr, .. } => HirExprKind::Question {
@@ -747,6 +784,17 @@ fn lower_expr(expr: &Expr, env: &BTreeMap<String, TypeKind>) -> HirExpr {
             object: Box::new(lower_expr(object, env)),
             field: field.clone(),
         },
+        Expr::Index { object, index, .. } => HirExprKind::Index {
+            object: Box::new(lower_expr(object, env)),
+            index: Box::new(lower_expr(index, env)),
+        },
+        Expr::Slice {
+            object, start, end, ..
+        } => HirExprKind::Slice {
+            object: Box::new(lower_expr(object, env)),
+            start: start.as_ref().map(|expr| Box::new(lower_expr(expr, env))),
+            end: end.as_ref().map(|expr| Box::new(lower_expr(expr, env))),
+        },
         Expr::Call { callee, args, .. } => HirExprKind::Call {
             callee: Box::new(lower_expr(callee, env)),
             args: args.iter().map(|a| lower_expr(a, env)).collect(),
@@ -760,6 +808,12 @@ fn lower_expr(expr: &Expr, env: &BTreeMap<String, TypeKind>) -> HirExpr {
         },
         Expr::Unary { op, expr, .. } => HirExprKind::Unary {
             op: *op,
+            expr: Box::new(lower_expr(expr, env)),
+        },
+        Expr::Async { expr, .. } => HirExprKind::Async {
+            expr: Box::new(lower_expr(expr, env)),
+        },
+        Expr::Await { expr, .. } => HirExprKind::Await {
             expr: Box::new(lower_expr(expr, env)),
         },
         Expr::Question { expr, .. } => HirExprKind::Question {
@@ -811,6 +865,17 @@ fn expr_type_hint(expr: &Expr, env: &BTreeMap<String, TypeKind>) -> TypeKind {
                 },
             }
         }
+        Expr::Index { object, .. } => match expr_type_hint(object, env) {
+            TypeKind::List(inner) => *inner,
+            TypeKind::Map(_, value) => *value,
+            TypeKind::Str => TypeKind::Int,
+            _ => TypeKind::Unknown,
+        },
+        Expr::Slice { object, .. } => match expr_type_hint(object, env) {
+            TypeKind::List(inner) => TypeKind::List(inner),
+            TypeKind::Str => TypeKind::Str,
+            _ => TypeKind::Unknown,
+        },
         Expr::Call { callee, args, .. } => {
             if let Expr::Ident { name, .. } = &**callee {
                 return match name.as_str() {
@@ -883,6 +948,7 @@ fn expr_type_hint(expr: &Expr, env: &BTreeMap<String, TypeKind>) -> TypeKind {
             UnaryOp::Not => TypeKind::Bool,
             UnaryOp::Neg => expr_type_hint(expr, env),
         },
+        Expr::Async { expr, .. } | Expr::Await { expr, .. } => expr_type_hint(expr, env),
         Expr::Question { expr, .. } => match expr_type_hint(expr, env) {
             TypeKind::Result(ok, _) => *ok,
             _ => TypeKind::Unknown,
@@ -1006,6 +1072,113 @@ fn infer_expr(
                     }
                     other => other,
                 },
+            }
+        }
+        Expr::Index {
+            object,
+            index,
+            span,
+        } => {
+            let object_ty = infer_expr(object, env, sigs, context, diagnostics, observed_effects);
+            let index_ty = infer_expr(index, env, sigs, context, diagnostics, observed_effects);
+            match object_ty {
+                TypeKind::List(inner) => {
+                    if !matches!(index_ty, TypeKind::Int | TypeKind::Unknown) {
+                        diagnostics.push(Diagnostic::new(
+                            "E2230",
+                            Severity::Error,
+                            "list index must be Int",
+                            index.span(),
+                        ));
+                    }
+                    *inner
+                }
+                TypeKind::Map(key_ty, value_ty) => {
+                    if !type_compatible(&key_ty, &index_ty)
+                        && !matches!(*key_ty, TypeKind::Unknown)
+                        && !matches!(index_ty, TypeKind::Unknown)
+                    {
+                        diagnostics.push(Diagnostic::new(
+                            "E2231",
+                            Severity::Error,
+                            format!(
+                                "map index key type mismatch: expected `{}`, got `{}`",
+                                type_name(&key_ty),
+                                type_name(&index_ty)
+                            ),
+                            index.span(),
+                        ));
+                    }
+                    *value_ty
+                }
+                TypeKind::Str => {
+                    if !matches!(index_ty, TypeKind::Int | TypeKind::Unknown) {
+                        diagnostics.push(Diagnostic::new(
+                            "E2232",
+                            Severity::Error,
+                            "string index must be Int byte offset",
+                            index.span(),
+                        ));
+                    }
+                    TypeKind::Int
+                }
+                TypeKind::Unknown => TypeKind::Unknown,
+                other => {
+                    diagnostics.push(Diagnostic::new(
+                        "E2233",
+                        Severity::Error,
+                        format!(
+                            "indexing is only supported for List<T>, Map<K,V>, and Str; got `{}`",
+                            type_name(&other)
+                        ),
+                        *span,
+                    ));
+                    TypeKind::Unknown
+                }
+            }
+        }
+        Expr::Slice {
+            object,
+            start,
+            end,
+            span,
+        } => {
+            let object_ty = infer_expr(object, env, sigs, context, diagnostics, observed_effects);
+            if let Some(start) = start {
+                let start_ty = infer_expr(start, env, sigs, context, diagnostics, observed_effects);
+                if !matches!(start_ty, TypeKind::Int | TypeKind::Unknown) {
+                    diagnostics.push(Diagnostic::new(
+                        "E2234",
+                        Severity::Error,
+                        "slice start index must be Int",
+                        start.span(),
+                    ));
+                }
+            }
+            if let Some(end) = end {
+                let end_ty = infer_expr(end, env, sigs, context, diagnostics, observed_effects);
+                if !matches!(end_ty, TypeKind::Int | TypeKind::Unknown) {
+                    diagnostics.push(Diagnostic::new(
+                        "E2235",
+                        Severity::Error,
+                        "slice end index must be Int",
+                        end.span(),
+                    ));
+                }
+            }
+            match object_ty {
+                TypeKind::Str => TypeKind::Str,
+                TypeKind::List(inner) => TypeKind::List(inner),
+                TypeKind::Unknown => TypeKind::Unknown,
+                other => {
+                    diagnostics.push(Diagnostic::new(
+                        "E2236",
+                        Severity::Error,
+                        format!("slicing is only supported for List<T> and Str; got `{}`", type_name(&other)),
+                        *span,
+                    ));
+                    TypeKind::Unknown
+                }
             }
         }
         Expr::Call { callee, args, .. } => {
@@ -1402,6 +1575,14 @@ fn infer_expr(
                 UnaryOp::Not => TypeKind::Bool,
             }
         }
+        Expr::Async { expr, .. } => {
+            observed_effects.insert("concurrency".to_string());
+            infer_expr(expr, env, sigs, context, diagnostics, observed_effects)
+        }
+        Expr::Await { expr, .. } => {
+            observed_effects.insert("concurrency".to_string());
+            infer_expr(expr, env, sigs, context, diagnostics, observed_effects)
+        }
         Expr::Question { expr, span } => {
             let inner = infer_expr(expr, env, sigs, context, diagnostics, observed_effects);
             match inner {
@@ -1463,8 +1644,25 @@ fn validate_contract_expr(expr: &Expr, context: ContractContext, diagnostics: &m
         }
         Expr::Member { object, .. }
         | Expr::Question { expr: object, .. }
-        | Expr::Unary { expr: object, .. } => {
+        | Expr::Unary { expr: object, .. }
+        | Expr::Async { expr: object, .. }
+        | Expr::Await { expr: object, .. } => {
             validate_contract_expr(object, context, diagnostics);
+        }
+        Expr::Index { object, index, .. } => {
+            validate_contract_expr(object, context, diagnostics);
+            validate_contract_expr(index, context, diagnostics);
+        }
+        Expr::Slice {
+            object, start, end, ..
+        } => {
+            validate_contract_expr(object, context, diagnostics);
+            if let Some(start) = start {
+                validate_contract_expr(start, context, diagnostics);
+            }
+            if let Some(end) = end {
+                validate_contract_expr(end, context, diagnostics);
+            }
         }
         Expr::Call { callee, args, .. } => {
             validate_contract_expr(callee, context, diagnostics);

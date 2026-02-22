@@ -45,6 +45,12 @@ pub enum MirStmt {
     },
     Expr(MirExpr),
     Return(MirExpr),
+    For {
+        var: String,
+        iter: MirExpr,
+        iter_kind: MirForIterKind,
+        body: Vec<MirStmt>,
+    },
     If {
         cond: MirExpr,
         then_body: Vec<MirStmt>,
@@ -62,10 +68,19 @@ pub enum MirStmt {
         cases: Vec<MirSelectCase>,
     },
     Go(MirExpr),
+    Thread(MirExpr),
     ContractCheck {
         kind: MirContractKind,
         expr: MirExpr,
     },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MirForIterKind {
+    List,
+    MapInt,
+    MapStr,
+    Unknown,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -101,6 +116,17 @@ pub enum MirExpr {
         object: Box<MirExpr>,
         field: String,
     },
+    Index {
+        object: Box<MirExpr>,
+        index: Box<MirExpr>,
+        object_is_str: bool,
+    },
+    Slice {
+        object: Box<MirExpr>,
+        start: Option<Box<MirExpr>>,
+        end: Option<Box<MirExpr>>,
+        object_is_str: bool,
+    },
     Call {
         callee: Box<MirExpr>,
         args: Vec<MirExpr>,
@@ -112,6 +138,12 @@ pub enum MirExpr {
     },
     Unary {
         op: String,
+        expr: Box<MirExpr>,
+    },
+    Async {
+        expr: Box<MirExpr>,
+    },
+    Await {
         expr: Box<MirExpr>,
     },
     Question {
@@ -181,13 +213,12 @@ fn lower_stmt_list(stmts: &[HirStmt]) -> Result<Vec<MirStmt>, String> {
             },
             HirStmt::Return { expr } => out.push(MirStmt::Return(lower_expr(expr)?)),
             HirStmt::Expr { expr } => out.push(MirStmt::Expr(lower_expr(expr)?)),
-            HirStmt::For { var, iter, body } => {
-                out.push(MirStmt::Let {
-                    name: var.clone(),
-                    expr: lower_expr(iter)?,
-                });
-                out.extend(lower_stmt_list(body)?);
-            }
+            HirStmt::For { var, iter, body } => out.push(MirStmt::For {
+                var: var.clone(),
+                iter: lower_expr(iter)?,
+                iter_kind: classify_for_iter_kind(&iter.ty),
+                body: lower_stmt_list(body)?,
+            }),
             HirStmt::If {
                 cond,
                 then_body,
@@ -233,6 +264,7 @@ fn lower_stmt_list(stmts: &[HirStmt]) -> Result<Vec<MirStmt>, String> {
                     .collect::<Result<Vec<_>, String>>()?,
             }),
             HirStmt::Go { expr } => out.push(MirStmt::Go(lower_expr(expr)?)),
+            HirStmt::Thread { expr } => out.push(MirStmt::Thread(lower_expr(expr)?)),
             HirStmt::ContractCheck { kind, expr } => out.push(MirStmt::ContractCheck {
                 kind: match kind {
                     HirContractKind::Require => MirContractKind::Require,
@@ -268,6 +300,25 @@ fn lower_expr(expr: &HirExpr) -> Result<MirExpr, String> {
             object: Box::new(lower_expr(object)?),
             field: field.clone(),
         },
+        HirExprKind::Index { object, index } => MirExpr::Index {
+            object: Box::new(lower_expr(object)?),
+            index: Box::new(lower_expr(index)?),
+            object_is_str: object.ty == "Str",
+        },
+        HirExprKind::Slice { object, start, end } => MirExpr::Slice {
+            object: Box::new(lower_expr(object)?),
+            start: start
+                .as_ref()
+                .map(|expr| lower_expr(expr))
+                .transpose()?
+                .map(Box::new),
+            end: end
+                .as_ref()
+                .map(|expr| lower_expr(expr))
+                .transpose()?
+                .map(Box::new),
+            object_is_str: object.ty == "Str",
+        },
         HirExprKind::Call { callee, args } => MirExpr::Call {
             callee: Box::new(lower_expr(callee)?),
             args: args
@@ -282,6 +333,12 @@ fn lower_expr(expr: &HirExpr) -> Result<MirExpr, String> {
         },
         HirExprKind::Unary { op, expr } => MirExpr::Unary {
             op: format!("{op:?}"),
+            expr: Box::new(lower_expr(expr)?),
+        },
+        HirExprKind::Async { expr } => MirExpr::Async {
+            expr: Box::new(lower_expr(expr)?),
+        },
+        HirExprKind::Await { expr } => MirExpr::Await {
             expr: Box::new(lower_expr(expr)?),
         },
         HirExprKind::Question { expr } => MirExpr::Question {
@@ -330,8 +387,25 @@ fn verify_stmt_list(
             MirStmt::Expr(expr)
             | MirStmt::Return(expr)
             | MirStmt::Go(expr)
-            | MirStmt::ContractCheck { expr, .. } => {
+            | MirStmt::Thread(expr) => {
                 verify_expr(expr)?;
+            }
+            MirStmt::ContractCheck { expr, .. } => {
+                verify_expr(expr)?;
+            }
+            MirStmt::For {
+                var,
+                iter,
+                iter_kind: _,
+                body,
+            } => {
+                if var.trim().is_empty() {
+                    return Err("empty for-loop variable in MIR".to_string());
+                }
+                verify_expr(iter)?;
+                let mut child = locals.clone();
+                child.insert(var.clone(), MirType::Unknown);
+                verify_stmt_list(body, &mut child)?;
             }
             MirStmt::If {
                 cond,
@@ -407,6 +481,21 @@ fn verify_expr(expr: &MirExpr) -> Result<(), String> {
                 return Err("empty member field in MIR".to_string());
             }
         }
+        MirExpr::Index { object, index, .. } => {
+            verify_expr(object)?;
+            verify_expr(index)?;
+        }
+        MirExpr::Slice {
+            object, start, end, ..
+        } => {
+            verify_expr(object)?;
+            if let Some(start) = start {
+                verify_expr(start)?;
+            }
+            if let Some(end) = end {
+                verify_expr(end)?;
+            }
+        }
         MirExpr::Call { callee, args } => {
             verify_expr(callee)?;
             for arg in args {
@@ -418,6 +507,9 @@ fn verify_expr(expr: &MirExpr) -> Result<(), String> {
             verify_expr(right)?;
         }
         MirExpr::Unary { expr, .. } => {
+            verify_expr(expr)?;
+        }
+        MirExpr::Async { expr } | MirExpr::Await { expr } => {
             verify_expr(expr)?;
         }
         MirExpr::Question { expr } | MirExpr::Old { expr } => {
@@ -449,6 +541,20 @@ pub fn mir_debug_dump(program: &MirProgram) -> String {
         out.push_str("}\n");
     }
     out
+}
+
+fn classify_for_iter_kind(raw_ty: &str) -> MirForIterKind {
+    let normalized = raw_ty.replace(' ', "");
+    if normalized.starts_with("List<") {
+        return MirForIterKind::List;
+    }
+    if normalized.starts_with("Map<Int,") {
+        return MirForIterKind::MapInt;
+    }
+    if normalized.starts_with("Map<Str,") {
+        return MirForIterKind::MapStr;
+    }
+    MirForIterKind::Unknown
 }
 
 pub fn parse_type_name(raw: &str) -> MirType {

@@ -155,6 +155,12 @@ fn eval_expr_with_ctx(
                 "member access `.{field}` is not supported in phase 2 examples"
             ))
         }
+        Expr::Index { .. } => {
+            Err("indexing is not supported in phase 2 examples".to_string())
+        }
+        Expr::Slice { .. } => {
+            Err("slicing is not supported in phase 2 examples".to_string())
+        }
         Expr::Call { callee, args, .. } => {
             let mut eval_args = Vec::with_capacity(args.len());
             for arg in args {
@@ -222,6 +228,15 @@ fn eval_expr_with_ctx(
             )?;
             eval_unary(op, &v)
         }
+        Expr::Async { expr, .. } | Expr::Await { expr, .. } => eval_expr_with_ctx(
+            expr,
+            env,
+            functions,
+            depth + 1,
+            dot_result,
+            old_env,
+            enforce_contracts,
+        ),
         Expr::Question { expr, .. } => eval_expr_with_ctx(
             expr,
             env,
@@ -570,7 +585,7 @@ fn eval_stmt(
             }
             Ok(None)
         }
-        Stmt::Select { .. } | Stmt::Go { .. } => {
+        Stmt::Select { .. } | Stmt::Go { .. } | Stmt::Thread { .. } => {
             Err("select/go are not supported in phase 2 deterministic example runner".to_string())
         }
     }

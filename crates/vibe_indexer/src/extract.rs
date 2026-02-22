@@ -336,7 +336,10 @@ fn collect_stmt_refs(
                 dependencies,
             );
         }
-        Stmt::Return { expr, .. } | Stmt::ExprStmt { expr, .. } | Stmt::Go { expr, .. } => {
+        Stmt::Return { expr, .. }
+        | Stmt::ExprStmt { expr, .. }
+        | Stmt::Go { expr, .. }
+        | Stmt::Thread { expr, .. } => {
             collect_expr_refs(
                 expr,
                 file,
@@ -580,6 +583,8 @@ fn collect_expr_refs(
         }
         Expr::Member { object, .. }
         | Expr::Unary { expr: object, .. }
+        | Expr::Async { expr: object, .. }
+        | Expr::Await { expr: object, .. }
         | Expr::Question { expr: object, .. }
         | Expr::Old { expr: object, .. } => {
             collect_expr_refs(
@@ -590,6 +595,56 @@ fn collect_expr_refs(
                 references,
                 dependencies,
             );
+        }
+        Expr::Index { object, index, .. } => {
+            collect_expr_refs(
+                object,
+                file,
+                locals,
+                function_symbol_ids,
+                references,
+                dependencies,
+            );
+            collect_expr_refs(
+                index,
+                file,
+                locals,
+                function_symbol_ids,
+                references,
+                dependencies,
+            );
+        }
+        Expr::Slice {
+            object, start, end, ..
+        } => {
+            collect_expr_refs(
+                object,
+                file,
+                locals,
+                function_symbol_ids,
+                references,
+                dependencies,
+            );
+            if let Some(start) = start {
+                collect_expr_refs(
+                    start,
+                    file,
+                    locals,
+                    function_symbol_ids,
+                    references,
+                    dependencies,
+                );
+            }
+            if let Some(end) = end {
+                collect_expr_refs(
+                    end,
+                    file,
+                    locals,
+                    function_symbol_ids,
+                    references,
+                    dependencies,
+                );
+            }
         }
         Expr::Binary { left, right, .. } => {
             collect_expr_refs(

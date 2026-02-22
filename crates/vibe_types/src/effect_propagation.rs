@@ -79,7 +79,10 @@ fn collect_calls_from_contract(contract: &Contract, out: &mut BTreeSet<String>) 
 
 fn collect_calls_from_stmt(stmt: &Stmt, out: &mut BTreeSet<String>) {
     match stmt {
-        Stmt::Binding { expr, .. } | Stmt::ExprStmt { expr, .. } | Stmt::Go { expr, .. } => {
+        Stmt::Binding { expr, .. }
+        | Stmt::ExprStmt { expr, .. }
+        | Stmt::Go { expr, .. }
+        | Stmt::Thread { expr, .. } => {
             collect_calls_from_expr(expr, out);
         }
         Stmt::Assignment { target, expr, .. } => {
@@ -147,9 +150,26 @@ fn collect_calls_from_expr(expr: &Expr, out: &mut BTreeSet<String>) {
         }
         Expr::Member { object, .. }
         | Expr::Unary { expr: object, .. }
+        | Expr::Async { expr: object, .. }
+        | Expr::Await { expr: object, .. }
         | Expr::Question { expr: object, .. }
         | Expr::Old { expr: object, .. } => {
             collect_calls_from_expr(object, out);
+        }
+        Expr::Index { object, index, .. } => {
+            collect_calls_from_expr(object, out);
+            collect_calls_from_expr(index, out);
+        }
+        Expr::Slice {
+            object, start, end, ..
+        } => {
+            collect_calls_from_expr(object, out);
+            if let Some(start) = start {
+                collect_calls_from_expr(start, out);
+            }
+            if let Some(end) = end {
+                collect_calls_from_expr(end, out);
+            }
         }
         Expr::Binary { left, right, .. } => {
             collect_calls_from_expr(left, out);

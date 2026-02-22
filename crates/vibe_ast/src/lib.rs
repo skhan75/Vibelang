@@ -101,6 +101,10 @@ pub enum Stmt {
         expr: Expr,
         span: Span,
     },
+    Thread {
+        expr: Expr,
+        span: Span,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -153,6 +157,17 @@ pub enum Expr {
         field: String,
         span: Span,
     },
+    Index {
+        object: Box<Expr>,
+        index: Box<Expr>,
+        span: Span,
+    },
+    Slice {
+        object: Box<Expr>,
+        start: Option<Box<Expr>>,
+        end: Option<Box<Expr>>,
+        span: Span,
+    },
     Call {
         callee: Box<Expr>,
         args: Vec<Expr>,
@@ -166,6 +181,14 @@ pub enum Expr {
     },
     Unary {
         op: UnaryOp,
+        expr: Box<Expr>,
+        span: Span,
+    },
+    Async {
+        expr: Box<Expr>,
+        span: Span,
+    },
+    Await {
         expr: Box<Expr>,
         span: Span,
     },
@@ -193,9 +216,13 @@ impl Expr {
             | Expr::List { span, .. }
             | Expr::Map { span, .. }
             | Expr::Member { span, .. }
+            | Expr::Index { span, .. }
+            | Expr::Slice { span, .. }
             | Expr::Call { span, .. }
             | Expr::Binary { span, .. }
             | Expr::Unary { span, .. }
+            | Expr::Async { span, .. }
+            | Expr::Await { span, .. }
             | Expr::Question { span, .. }
             | Expr::DotResult { span }
             | Expr::Old { span, .. } => *span,

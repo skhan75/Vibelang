@@ -678,10 +678,10 @@ Goal: expand beyond the current freeze scope so users can author broader real-wo
 
 ### 11.1 Containers and Text Completeness
 
-- [ ] Implement generic `List<T>` / `Map<K,V>` lowering beyond current concrete freeze combinations
-- [ ] Add container iterators and native `for in` lowering with deterministic semantics
-- [ ] Add `Str` indexing/slicing APIs and Unicode-safe behavior tests
-- [ ] Add container equality/hash coverage and deterministic map behavior tests for broader key/value types
+- [x] Implement generic `List<T>` / `Map<K,V>` lowering beyond current concrete freeze combinations
+- [x] Add container iterators and native `for in` lowering with deterministic semantics
+- [x] Add `Str` indexing/slicing APIs and Unicode-safe behavior tests
+- [x] Add container equality/hash coverage and deterministic map behavior tests for broader key/value types
 
 ### 11.2 Async/Await and Thread Model Implementation
 

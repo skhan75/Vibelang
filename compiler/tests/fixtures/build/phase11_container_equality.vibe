@@ -1,0 +1,16 @@
+pub main() -> Int {
+  @effect io
+  @effect alloc
+  same_list := [1, 2, 3] == [1, 2, 3]
+  same_map := {"a": 1, "b": 2} == {"b": 2, "a": 1}
+  if same_list {
+    println("list-eq-ok")
+  }
+  if same_map {
+    println("map-eq-ok")
+  }
+  if "vibe" == "vibe" {
+    println("str-eq-ok")
+  }
+  0
+}

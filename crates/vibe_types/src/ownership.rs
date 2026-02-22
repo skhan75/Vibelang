@@ -27,7 +27,21 @@ pub fn expr_contains_member_access(expr: &Expr) -> bool {
         Expr::Binary { left, right, .. } => {
             expr_contains_member_access(left) || expr_contains_member_access(right)
         }
-        Expr::Unary { expr, .. } | Expr::Question { expr, .. } | Expr::Old { expr, .. } => {
+        Expr::Index { object, index, .. } => {
+            expr_contains_member_access(object) || expr_contains_member_access(index)
+        }
+        Expr::Slice {
+            object, start, end, ..
+        } => {
+            expr_contains_member_access(object)
+                || start.as_ref().is_some_and(|e| expr_contains_member_access(e))
+                || end.as_ref().is_some_and(|e| expr_contains_member_access(e))
+        }
+        Expr::Unary { expr, .. }
+        | Expr::Async { expr, .. }
+        | Expr::Await { expr, .. }
+        | Expr::Question { expr, .. }
+        | Expr::Old { expr, .. } => {
             expr_contains_member_access(expr)
         }
         Expr::List { items, .. } => items.iter().any(expr_contains_member_access),
@@ -121,6 +135,7 @@ fn contains_member_assignment(stmts: &[Stmt]) -> bool {
             }
             Stmt::Select { .. }
             | Stmt::Go { .. }
+            | Stmt::Thread { .. }
             | Stmt::Binding { .. }
             | Stmt::Return { .. }
             | Stmt::ExprStmt { .. } => {}
