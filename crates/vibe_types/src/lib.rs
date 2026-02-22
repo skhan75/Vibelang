@@ -7,7 +7,7 @@ mod ownership;
 use vibe_ast::{
     BinaryOp, Contract, Declaration, Expr, FileAst, SelectPattern, Stmt, TypeRef, UnaryOp,
 };
-use vibe_diagnostics::{Diagnostic, Diagnostics, Severity};
+use vibe_diagnostics::{Diagnostic, Diagnostics, Severity, Span};
 use vibe_hir::{
     verify_hir, HirContractKind, HirExpr, HirExprKind, HirFunction, HirParam, HirProgram,
     HirSelectCase, HirSelectPattern, HirStmt,
@@ -886,6 +886,11 @@ fn expr_type_hint(expr: &Expr, env: &BTreeMap<String, TypeKind>) -> TypeKind {
                 };
             }
             if let Expr::Member { object, field, .. } = &**callee {
+                if let Expr::Ident { name, .. } = &**object {
+                    if let Some(ty) = stdlib_namespace_return_hint(name, field) {
+                        return ty;
+                    }
+                }
                 let object_ty = expr_type_hint(object, env);
                 return match field.as_str() {
                     "len" => TypeKind::Int,
@@ -1220,6 +1225,21 @@ fn infer_expr(
                 }
             }
             if let Expr::Member { field, .. } = &**callee {
+                if let Expr::Member { object, field, .. } = &**callee {
+                    if let Expr::Ident { name: namespace, .. } = &**object {
+                        if let Some(ret) = infer_stdlib_namespace_call(
+                            namespace,
+                            field,
+                            args,
+                            &arg_types,
+                            diagnostics,
+                            observed_effects,
+                            callee.span(),
+                        ) {
+                            return ret;
+                        }
+                    }
+                }
                 match field.as_str() {
                     "sort_desc" | "take" => {
                         observed_effects.insert("alloc".to_string());
@@ -1848,6 +1868,103 @@ fn is_known_effect(e: &str) -> bool {
     )
 }
 
+fn stdlib_namespace_return_hint(namespace: &str, field: &str) -> Option<TypeKind> {
+    match (namespace, field) {
+        ("time", "now_ms") | ("time", "duration_ms") => Some(TypeKind::Int),
+        ("time", "sleep_ms") => Some(TypeKind::Void),
+        ("path", "join") | ("path", "parent") | ("path", "basename") => Some(TypeKind::Str),
+        ("path", "is_absolute") => Some(TypeKind::Bool),
+        ("fs", "exists") | ("fs", "write_text") | ("fs", "create_dir") => Some(TypeKind::Bool),
+        ("fs", "read_text") => Some(TypeKind::Str),
+        ("json", "is_valid") => Some(TypeKind::Bool),
+        ("json", "parse_i64") => Some(TypeKind::Int),
+        ("json", "stringify_i64") | ("json", "minify") => Some(TypeKind::Str),
+        ("http", "status_text") | ("http", "build_request_line") => Some(TypeKind::Str),
+        ("http", "default_port") => Some(TypeKind::Int),
+        _ => None,
+    }
+}
+
+fn infer_stdlib_namespace_call(
+    namespace: &str,
+    field: &str,
+    args: &[Expr],
+    arg_types: &[TypeKind],
+    diagnostics: &mut Diagnostics,
+    observed_effects: &mut BTreeSet<String>,
+    call_span: Span,
+) -> Option<TypeKind> {
+    let ret = stdlib_namespace_return_hint(namespace, field)?;
+    let expected = match (namespace, field) {
+        ("time", "now_ms") => Some((&[][..], "nondet")),
+        ("time", "duration_ms") => Some((&["Int"][..], "")),
+        ("time", "sleep_ms") => Some((&["Int"][..], "io")),
+        ("path", "join") => Some((&["Str", "Str"][..], "")),
+        ("path", "parent") | ("path", "basename") | ("path", "is_absolute") => {
+            Some((&["Str"][..], ""))
+        }
+        ("fs", "exists") | ("fs", "read_text") | ("fs", "create_dir") => Some((&["Str"][..], "io")),
+        ("fs", "write_text") => Some((&["Str", "Str"][..], "io")),
+        ("json", "is_valid") | ("json", "parse_i64") | ("json", "minify") => {
+            Some((&["Str"][..], ""))
+        }
+        ("json", "stringify_i64") => Some((&["Int"][..], "")),
+        ("http", "status_text") => Some((&["Int"][..], "")),
+        ("http", "default_port") => Some((&["Str"][..], "")),
+        ("http", "build_request_line") => Some((&["Str", "Str"][..], "")),
+        _ => None,
+    };
+    if let Some((expected_args, effect)) = expected {
+        if args.len() != expected_args.len() {
+            diagnostics.push(Diagnostic::new(
+                "E2237",
+                Severity::Error,
+                format!(
+                    "`{namespace}.{field}` expects {} argument(s), got {}",
+                    expected_args.len(),
+                    args.len()
+                ),
+                call_span,
+            ));
+            return Some(TypeKind::Unknown);
+        }
+        for (idx, expected_ty) in expected_args.iter().enumerate() {
+            let Some(actual) = arg_types.get(idx) else {
+                continue;
+            };
+            let expect_match = match *expected_ty {
+                "Int" => matches!(actual, TypeKind::Int | TypeKind::Unknown),
+                "Str" => matches!(actual, TypeKind::Str | TypeKind::Unknown),
+                _ => true,
+            };
+            if !expect_match {
+                diagnostics.push(Diagnostic::new(
+                    "E2238",
+                    Severity::Error,
+                    format!(
+                        "`{namespace}.{field}` argument {} expects `{expected_ty}`, got `{}`",
+                        idx + 1,
+                        type_name(actual)
+                    ),
+                    args[idx].span(),
+                ));
+                return Some(TypeKind::Unknown);
+            }
+        }
+        if !effect.is_empty() {
+            observed_effects.insert(effect.to_string());
+        }
+        return Some(ret);
+    }
+    diagnostics.push(Diagnostic::new(
+        "E2239",
+        Severity::Error,
+        format!("unknown stdlib API `{namespace}.{field}`"),
+        call_span,
+    ));
+    Some(TypeKind::Unknown)
+}
+
 fn is_builtin_ident(name: &str) -> bool {
     matches!(
         name,
@@ -1861,6 +1978,11 @@ fn is_builtin_ident(name: &str) -> bool {
             | "err"
             | "print"
             | "println"
+            | "time"
+            | "path"
+            | "fs"
+            | "json"
+            | "http"
             | "true"
             | "false"
     )

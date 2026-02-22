@@ -22,6 +22,9 @@ Owner: `vibelang-core`
 - [x] Phase 11.1 containers/text conformance passed (`phase11_containers_text_gate`, artifact `v1-phase11-containers-text`)
 - [x] Phase 11.2 async/thread conformance passed (`phase11_async_thread_gate`, artifact `v1-phase11-async-thread`)
 - [x] Phase 11.3 module/program composition conformance passed (`phase11_module_composition_gate`, artifact `v1-phase11-module-composition`)
+- [x] Phase 12.1 stdlib conformance passed locally (`phase12_stdlib`, `reports/v1/phase12_stdlib_readiness.md`)
+- [x] Phase 12.2 package lifecycle conformance passed locally (`phase12_package_ecosystem`, `vibe_pkg` unit suite, `reports/v1/phase12_package_ecosystem_readiness.md`)
+- [x] Phase 12.3 QA ecosystem conformance passed locally (`phase12_test_ergonomics`, coverage/golden tooling checks, `reports/v1/phase12_qa_ecosystem_readiness.md`)
 - [x] Intent verifier-gate smoke passed
 
 ## Runtime and Stability
@@ -53,13 +56,16 @@ Owner: `vibelang-core`
 - [x] `reports/v1/phase11_containers_text_readiness.md`
 - [x] `reports/v1/phase11_async_thread_readiness.md`
 - [x] `reports/v1/phase11_module_composition_readiness.md`
+- [x] `reports/v1/phase12_stdlib_readiness.md`
+- [x] `reports/v1/phase12_package_ecosystem_readiness.md`
+- [x] `reports/v1/phase12_qa_ecosystem_readiness.md`
 - [x] `reports/v1/install_independence.md`
 - [x] `reports/v1/distribution_readiness.md`
 - [x] `reports/v1/phase8_ci_evidence.md`
 - [x] `docs/selfhost/m4_transition_criteria.md`
 - [x] `docs/release/selfhost_transition_playbook.md`
 - [x] Workflow run URL: hosted CI evidence captured for current candidate cycle (`v1-packaged-release.yml`, `v1-cli-ux.yml`)
-- [x] Additional artifact links: `reports/v1/smoke_validation.md`, `reports/v1/dynamic_containers_conformance.md`, `reports/v1/phase11_containers_text_readiness.md`, `reports/v1/phase11_async_thread_readiness.md`, `reports/v1/phase11_module_composition_readiness.md`, `reports/v1/install_independence.md`, `reports/v1/distribution_readiness.md`, `reports/v1/phase8_ci_evidence.md`, `reports/v1/phase8_closeout_summary.md`, `reports/v1/selfhost_readiness.json`, `reports/v1/spec_readiness.md`, artifacts `v1-selfhost-m4-rc-cycle`, `v1-phase11-containers-text`, `v1-phase11-async-thread`, `v1-phase11-module-composition`
+- [x] Additional artifact links: `reports/v1/smoke_validation.md`, `reports/v1/dynamic_containers_conformance.md`, `reports/v1/phase11_containers_text_readiness.md`, `reports/v1/phase11_async_thread_readiness.md`, `reports/v1/phase11_module_composition_readiness.md`, `reports/v1/phase12_stdlib_readiness.md`, `reports/v1/phase12_package_ecosystem_readiness.md`, `reports/v1/phase12_qa_ecosystem_readiness.md`, `reports/phase12/coverage_summary.json`, `reports/phase12/health_status.md`, `reports/v1/install_independence.md`, `reports/v1/distribution_readiness.md`, `reports/v1/phase8_ci_evidence.md`, `reports/v1/phase8_closeout_summary.md`, `reports/v1/selfhost_readiness.json`, `reports/v1/spec_readiness.md`, artifacts `v1-selfhost-m4-rc-cycle`, `v1-phase11-containers-text`, `v1-phase11-async-thread`, `v1-phase11-module-composition`
 
 ## Promote / Reject Decision
 

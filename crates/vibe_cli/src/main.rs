@@ -22,8 +22,9 @@ use vibe_mir::MirProgram;
 use vibe_mir::{lower_hir_to_mir, mir_debug_dump};
 use vibe_parser::parse_source;
 use vibe_pkg::{
-    default_mirror_root, install_project, resolve_project, write_lockfile, LOCK_FILENAME,
-    MANIFEST_FILENAME,
+    audit_project, default_mirror_root, default_registry_root, install_project, publish_project,
+    resolve_project, semver_delta, upgrade_plan, write_lockfile, LOCK_FILENAME,
+    MANIFEST_FILENAME, SemverDelta,
 };
 use vibe_runtime::{compile_runtime_object, link_executable, RuntimeBuildOptions};
 use vibe_sidecar::models::FindingSeverity;
@@ -125,8 +126,8 @@ fn run() -> Result<ExitCode, String> {
             Ok(ExitCode::from(status.code().unwrap_or(1) as u8))
         }
         "test" => {
-            let test_args = parse_build_like_args(&args, false)?;
-            if test_args.emit_obj_only {
+            let test_args = parse_test_args(&args)?;
+            if test_args.build.emit_obj_only {
                 return Err("`--emit-obj-only` is not valid for `vibe test`".to_string());
             }
             run_test(&test_args)
@@ -193,14 +194,14 @@ COMMANDS
   build <path> [flags]      Build native artifact(s)
   run <path> [flags] [-- <args...>]
                             Build and execute compiled program
-  test <path|dir> [flags]   Run fixture-aware test flow
+  test <path|dir> [flags]   Run fixture-aware test flow (filter/shard/report)
   index [path] [flags]      Build/update semantic index
   lsp [--index-root <dir>]  Start line-stdio LSP server
   fmt [path] [flags]        Format source files
   doc [path] [flags]        Generate markdown API docs
   new <name> [flags]        Scaffold app/service/cli/library project
-  pkg <resolve|lock|install> [flags]
-                            Dependency resolution + lock + install
+  pkg <resolve|lock|install|publish|audit|upgrade-plan|semver-check> [flags]
+                            Dependency lifecycle + registry + audit + semver tools
   lint [path] --intent [flags]
                             Run intent-aware lint checks
 
@@ -300,10 +301,11 @@ NOTES
             r#"vibe test
 
 USAGE
-  vibe test <path|dir> [--profile dev|release] [--target <triple>] [--debuginfo none|line|full] [--offline] [--locked]
+  vibe test <path|dir> [--profile dev|release] [--target <triple>] [--debuginfo none|line|full] [--offline] [--locked] [--filter <substr>] [--shard <index>/<total>] [--report text|json|--json]
 
 DESCRIPTION
   Runs file/directory tests, including contract/example checks where applicable.
+  Supports large-suite filtering/sharding and structured JSON reports.
 
 NOTES
   `--emit-obj-only` is not valid for `vibe test`.
@@ -369,12 +371,25 @@ FLAGS
             r#"vibe pkg
 
 USAGE
-  vibe pkg <resolve|lock|install> [--path <dir>] [--mirror <dir>]
+  vibe pkg <resolve|lock|install|publish|audit|upgrade-plan|semver-check> [flags]
 
 SUBCOMMANDS
   resolve                   Resolve dependency graph
   lock                      Resolve and write lockfile
   install                   Resolve and install dependencies
+  publish                   Publish local package into registry layout/index
+  audit                     Run vulnerability/license policy checks
+  upgrade-plan              Show dependency upgrade guidance from mirror
+  semver-check              Classify version delta (patch/minor/major)
+
+COMMON FLAGS
+  --path <dir>              Project root (default `.`)
+  --mirror <dir>            Mirror root for resolve/install/audit/upgrade-plan
+  --registry <dir>          Registry root for publish
+  --policy <file>           Audit policy TOML (license denylist)
+  --advisory-db <file>      Advisory DB TOML (vulnerability entries)
+  --current <ver>           Current version for semver-check
+  --next <ver>              Next version for semver-check
 "#,
         ),
         "lint" => Some(
@@ -539,6 +554,26 @@ struct BuildArtifacts {
     binary_path: PathBuf,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum TestReportFormat {
+    Text,
+    Json,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct TestShard {
+    index: usize,
+    total: usize,
+}
+
+#[derive(Debug, Clone)]
+struct TestArgs {
+    build: BuildArgs,
+    filter: Option<String>,
+    shard: Option<TestShard>,
+    report: TestReportFormat,
+}
+
 #[derive(Debug, Clone)]
 struct IndexArgs {
     target_path: PathBuf,
@@ -592,6 +627,10 @@ enum PkgCommand {
     Resolve,
     Lock,
     Install,
+    Publish,
+    Audit,
+    UpgradePlan,
+    SemverCheck,
 }
 
 #[derive(Debug, Clone)]
@@ -599,6 +638,11 @@ struct PkgArgs {
     command: PkgCommand,
     project_root: PathBuf,
     mirror_root: Option<PathBuf>,
+    registry_root: Option<PathBuf>,
+    policy_path: Option<PathBuf>,
+    advisory_db_path: Option<PathBuf>,
+    current_version: Option<String>,
+    next_version: Option<String>,
 }
 
 fn parse_build_like_args(args: &[String], allow_exec_args: bool) -> Result<BuildArgs, String> {
@@ -683,6 +727,150 @@ fn parse_build_like_args(args: &[String], allow_exec_args: bool) -> Result<Build
         locked,
         emit_obj_only,
         exec_args,
+    })
+}
+
+fn parse_test_args(args: &[String]) -> Result<TestArgs, String> {
+    if args.is_empty() {
+        return Err("missing source path".to_string());
+    }
+    let mut idx = 0usize;
+    let source_path = PathBuf::from(&args[idx]);
+    idx += 1;
+
+    let mut profile = "dev".to_string();
+    let mut target = default_build_target().to_string();
+    let mut debuginfo = "line".to_string();
+    let mut offline = false;
+    let mut locked = false;
+    let mut emit_obj_only = false;
+    let mut filter = None;
+    let mut shard = None;
+    let mut report = TestReportFormat::Text;
+
+    while idx < args.len() {
+        match args[idx].as_str() {
+            "--profile" => {
+                idx += 1;
+                let val = args
+                    .get(idx)
+                    .ok_or_else(|| "missing value for `--profile`".to_string())?;
+                if val != "dev" && val != "release" {
+                    return Err(format!(
+                        "unsupported profile `{val}` (expected dev|release)"
+                    ));
+                }
+                profile = val.clone();
+            }
+            "--target" => {
+                idx += 1;
+                let val = args
+                    .get(idx)
+                    .ok_or_else(|| "missing value for `--target`".to_string())?;
+                target = val.clone();
+            }
+            "--debuginfo" => {
+                idx += 1;
+                let val = args
+                    .get(idx)
+                    .ok_or_else(|| "missing value for `--debuginfo`".to_string())?;
+                if !matches!(val.as_str(), "none" | "line" | "full") {
+                    return Err(format!(
+                        "unsupported debuginfo `{val}` (expected none|line|full)"
+                    ));
+                }
+                debuginfo = val.clone();
+            }
+            "--offline" => {
+                offline = true;
+            }
+            "--locked" => {
+                locked = true;
+            }
+            "--emit-obj-only" => {
+                emit_obj_only = true;
+            }
+            "--filter" => {
+                idx += 1;
+                let val = args
+                    .get(idx)
+                    .ok_or_else(|| "missing value for `--filter`".to_string())?;
+                if val.trim().is_empty() {
+                    return Err("`--filter` value cannot be empty".to_string());
+                }
+                filter = Some(val.clone());
+            }
+            "--shard" => {
+                idx += 1;
+                let val = args
+                    .get(idx)
+                    .ok_or_else(|| "missing value for `--shard`".to_string())?;
+                shard = Some(parse_shard_spec(val)?);
+            }
+            "--report" => {
+                idx += 1;
+                let val = args
+                    .get(idx)
+                    .ok_or_else(|| "missing value for `--report`".to_string())?;
+                report = match val.as_str() {
+                    "text" => TestReportFormat::Text,
+                    "json" => TestReportFormat::Json,
+                    _ => {
+                        return Err(format!(
+                            "unsupported report format `{val}` (expected text|json)"
+                        ))
+                    }
+                };
+            }
+            "--json" => {
+                report = TestReportFormat::Json;
+            }
+            other => return Err(format!("unknown argument `{other}`")),
+        }
+        idx += 1;
+    }
+
+    Ok(TestArgs {
+        build: BuildArgs {
+            source_path,
+            profile,
+            target,
+            debuginfo,
+            offline,
+            locked,
+            emit_obj_only,
+            exec_args: Vec::new(),
+        },
+        filter,
+        shard,
+        report,
+    })
+}
+
+fn parse_shard_spec(raw: &str) -> Result<TestShard, String> {
+    let parts = raw.split('/').collect::<Vec<_>>();
+    if parts.len() != 2 {
+        return Err(format!(
+            "invalid shard spec `{raw}` (expected <index>/<total>, e.g. 1/3)"
+        ));
+    }
+    let index = parts[0]
+        .parse::<usize>()
+        .map_err(|e| format!("invalid shard index `{}`: {e}", parts[0]))?;
+    let total = parts[1]
+        .parse::<usize>()
+        .map_err(|e| format!("invalid shard total `{}`: {e}", parts[1]))?;
+    if total == 0 {
+        return Err("shard total must be greater than 0".to_string());
+    }
+    if index == 0 || index > total {
+        return Err(format!(
+            "shard index must be in range 1..={total}, got {index}"
+        ));
+    }
+    Ok(TestShard {
+        index: index - 1,
+        total,
     })
 }
 
@@ -950,18 +1138,30 @@ fn parse_new_args(args: &[String]) -> Result<NewArgs, String> {
 
 fn parse_pkg_args(args: &[String]) -> Result<PkgArgs, String> {
     let Some(first) = args.first() else {
-        return Err("missing pkg subcommand (expected resolve|lock|install)".to_string());
+        return Err(
+            "missing pkg subcommand (expected resolve|lock|install|publish|audit|upgrade-plan|semver-check)"
+                .to_string(),
+        );
     };
     let command = match first.as_str() {
         "resolve" => PkgCommand::Resolve,
         "lock" => PkgCommand::Lock,
         "install" => PkgCommand::Install,
+        "publish" => PkgCommand::Publish,
+        "audit" => PkgCommand::Audit,
+        "upgrade-plan" => PkgCommand::UpgradePlan,
+        "semver-check" => PkgCommand::SemverCheck,
         other => return Err(format!("unknown pkg subcommand `{other}`")),
     };
 
     let mut idx = 1usize;
     let mut project_root = PathBuf::from(".");
     let mut mirror_root = None;
+    let mut registry_root = None;
+    let mut policy_path = None;
+    let mut advisory_db_path = None;
+    let mut current_version = None;
+    let mut next_version = None;
     while idx < args.len() {
         match args[idx].as_str() {
             "--path" => {
@@ -978,6 +1178,41 @@ fn parse_pkg_args(args: &[String]) -> Result<PkgArgs, String> {
                     .ok_or_else(|| "missing value for `--mirror`".to_string())?;
                 mirror_root = Some(PathBuf::from(val));
             }
+            "--registry" => {
+                idx += 1;
+                let val = args
+                    .get(idx)
+                    .ok_or_else(|| "missing value for `--registry`".to_string())?;
+                registry_root = Some(PathBuf::from(val));
+            }
+            "--policy" => {
+                idx += 1;
+                let val = args
+                    .get(idx)
+                    .ok_or_else(|| "missing value for `--policy`".to_string())?;
+                policy_path = Some(PathBuf::from(val));
+            }
+            "--advisory-db" => {
+                idx += 1;
+                let val = args
+                    .get(idx)
+                    .ok_or_else(|| "missing value for `--advisory-db`".to_string())?;
+                advisory_db_path = Some(PathBuf::from(val));
+            }
+            "--current" => {
+                idx += 1;
+                let val = args
+                    .get(idx)
+                    .ok_or_else(|| "missing value for `--current`".to_string())?;
+                current_version = Some(val.clone());
+            }
+            "--next" => {
+                idx += 1;
+                let val = args
+                    .get(idx)
+                    .ok_or_else(|| "missing value for `--next`".to_string())?;
+                next_version = Some(val.clone());
+            }
             other => return Err(format!("unknown argument `{other}`")),
         }
         idx += 1;
@@ -987,6 +1222,11 @@ fn parse_pkg_args(args: &[String]) -> Result<PkgArgs, String> {
         command,
         project_root,
         mirror_root,
+        registry_root,
+        policy_path,
+        advisory_db_path,
+        current_version,
+        next_version,
     })
 }
 
@@ -1691,12 +1931,12 @@ fn sanitize_module_ident(raw: &str) -> String {
 }
 
 fn run_pkg(args: &PkgArgs) -> Result<ExitCode, String> {
-    let mirror_root = args
-        .mirror_root
-        .clone()
-        .unwrap_or_else(|| default_mirror_root(&args.project_root));
     match args.command {
         PkgCommand::Resolve => {
+            let mirror_root = args
+                .mirror_root
+                .clone()
+                .unwrap_or_else(|| default_mirror_root(&args.project_root));
             let resolution = resolve_project(&args.project_root, &mirror_root)?;
             println!(
                 "resolved root package `{}` v{} with {} transitive package(s) from mirror `{}`",
@@ -1710,6 +1950,10 @@ fn run_pkg(args: &PkgArgs) -> Result<ExitCode, String> {
             }
         }
         PkgCommand::Lock => {
+            let mirror_root = args
+                .mirror_root
+                .clone()
+                .unwrap_or_else(|| default_mirror_root(&args.project_root));
             let resolution = resolve_project(&args.project_root, &mirror_root)?;
             let lock = write_lockfile(&args.project_root, &resolution)?;
             println!(
@@ -1719,6 +1963,10 @@ fn run_pkg(args: &PkgArgs) -> Result<ExitCode, String> {
             );
         }
         PkgCommand::Install => {
+            let mirror_root = args
+                .mirror_root
+                .clone()
+                .unwrap_or_else(|| default_mirror_root(&args.project_root));
             let report = install_project(&args.project_root, &mirror_root)?;
             println!(
                 "install complete: packages={} lock={} store={}",
@@ -1726,6 +1974,86 @@ fn run_pkg(args: &PkgArgs) -> Result<ExitCode, String> {
                 report.lock_path.display(),
                 report.store_root.display()
             );
+        }
+        PkgCommand::Publish => {
+            let registry_root = args
+                .registry_root
+                .clone()
+                .unwrap_or_else(|| default_registry_root(&args.project_root));
+            let report = publish_project(&args.project_root, &registry_root)?;
+            println!(
+                "published {} v{} to {} (index={})",
+                report.package,
+                report.version,
+                report.published_dir.display(),
+                report.index_path.display()
+            );
+        }
+        PkgCommand::Audit => {
+            let mirror_root = args
+                .mirror_root
+                .clone()
+                .unwrap_or_else(|| default_mirror_root(&args.project_root));
+            let report = audit_project(
+                &args.project_root,
+                &mirror_root,
+                args.policy_path.as_deref(),
+                args.advisory_db_path.as_deref(),
+            )?;
+            println!(
+                "audit summary: scanned={} findings={}",
+                report.scanned,
+                report.findings.len()
+            );
+            for finding in &report.findings {
+                println!(
+                    "  - {}: {} {}: {}",
+                    finding.kind, finding.package, finding.version, finding.detail
+                );
+            }
+            if !report.findings.is_empty() {
+                return Ok(ExitCode::from(1));
+            }
+        }
+        PkgCommand::UpgradePlan => {
+            let mirror_root = args
+                .mirror_root
+                .clone()
+                .unwrap_or_else(|| default_mirror_root(&args.project_root));
+            let plan = upgrade_plan(&args.project_root, &mirror_root)?;
+            println!("upgrade plan: entries={}", plan.entries.len());
+            for entry in plan.entries {
+                println!(
+                    "  - {} current={} latest_compatible={} latest_available={} manifest_change={}",
+                    entry.package,
+                    entry.current,
+                    entry.latest_compatible,
+                    entry.latest_available,
+                    if entry.requires_manifest_change {
+                        "yes"
+                    } else {
+                        "no"
+                    }
+                );
+            }
+        }
+        PkgCommand::SemverCheck => {
+            let current = args
+                .current_version
+                .as_deref()
+                .ok_or_else(|| "`vibe pkg semver-check` requires `--current <version>`".to_string())?;
+            let next = args
+                .next_version
+                .as_deref()
+                .ok_or_else(|| "`vibe pkg semver-check` requires `--next <version>`".to_string())?;
+            let delta = semver_delta(current, next)?;
+            let class = match delta {
+                SemverDelta::Patch => "patch",
+                SemverDelta::Minor => "minor",
+                SemverDelta::Major => "major",
+                SemverDelta::Unchanged => "unchanged",
+            };
+            println!("semver delta: {current} -> {next} ({class})");
         }
     }
     Ok(ExitCode::SUCCESS)
@@ -1972,26 +2300,49 @@ fn normalize_source_for_debug_map(source_path: &Path) -> String {
     format!("external://{file_name}")
 }
 
-fn run_test(args: &BuildArgs) -> Result<ExitCode, String> {
-    if args.locked {
-        enforce_locked_mode(&args.source_path)?;
+fn run_test(args: &TestArgs) -> Result<ExitCode, String> {
+    if args.build.locked {
+        enforce_locked_mode(&args.build.source_path)?;
     }
     let start = std::time::Instant::now();
-    let files = collect_vibe_files(&args.source_path)?;
+    let mut files = collect_vibe_files(&args.build.source_path)?;
     if files.is_empty() {
         return Err(format!(
             "no source files ({}) found under `{}`",
             supported_source_ext_display(),
-            args.source_path.display()
+            args.build.source_path.display()
         ));
     }
-    let total_files = files.len();
+    let discovered_files = files.len();
+    if let Some(filter) = &args.filter {
+        files.retain(|file| file.to_string_lossy().contains(filter));
+    }
+    if let Some(shard) = args.shard {
+        files = files
+            .into_iter()
+            .enumerate()
+            .filter_map(|(idx, file)| {
+                if idx % shard.total == shard.index {
+                    Some(file)
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
+    }
+    if files.is_empty() {
+        return Err(format!(
+            "no source files selected after applying filter/shard on `{}`",
+            args.build.source_path.display()
+        ));
+    }
+    let selected_files = files.len();
 
     let mut compile_failures = 0usize;
     let mut examples = ExampleRunSummary::default();
     let mut main_run_total = 0usize;
     let mut main_run_failures = 0usize;
-    let enforce_contract_checks = contract_checks_enabled(&args.profile);
+    let enforce_contract_checks = contract_checks_enabled(&args.build.profile);
 
     for file in files {
         let unit = resolve_compilation_unit(&file)?;
@@ -2019,11 +2370,11 @@ fn run_test(args: &BuildArgs) -> Result<ExitCode, String> {
             main_run_total += 1;
             let single_file_args = BuildArgs {
                 source_path: file.clone(),
-                profile: args.profile.clone(),
-                target: args.target.clone(),
-                debuginfo: args.debuginfo.clone(),
-                offline: args.offline,
-                locked: args.locked,
+                profile: args.build.profile.clone(),
+                target: args.build.target.clone(),
+                debuginfo: args.build.debuginfo.clone(),
+                offline: args.build.offline,
+                locked: args.build.locked,
                 emit_obj_only: false,
                 exec_args: Vec::new(),
             };
@@ -2051,24 +2402,109 @@ fn run_test(args: &BuildArgs) -> Result<ExitCode, String> {
             eprintln!("  - {failure}");
         }
     }
-    println!(
-        "test summary: files={}, compile_failures={}, examples={} passed={} failed={}, mains={} main_failures={} contract_checks={} duration_ms={}",
-        total_files,
-        compile_failures,
-        examples.total,
-        examples.passed,
-        examples.failed,
-        main_run_total,
-        main_run_failures,
-        if enforce_contract_checks { "on" } else { "off" },
-        start.elapsed().as_millis()
-    );
+    let duration_ms = start.elapsed().as_millis();
+    match args.report {
+        TestReportFormat::Text => {
+            println!(
+                "test summary: files_discovered={} files_selected={} compile_failures={} examples={} passed={} failed={} mains={} main_failures={} contract_checks={} filter={} shard={} duration_ms={}",
+                discovered_files,
+                selected_files,
+                compile_failures,
+                examples.total,
+                examples.passed,
+                examples.failed,
+                main_run_total,
+                main_run_failures,
+                if enforce_contract_checks { "on" } else { "off" },
+                args.filter.as_deref().unwrap_or("-"),
+                args.shard
+                    .map(|shard| format!("{}/{}", shard.index + 1, shard.total))
+                    .unwrap_or_else(|| "-".to_string()),
+                duration_ms
+            );
+        }
+        TestReportFormat::Json => {
+            println!(
+                "{}",
+                render_test_summary_json(
+                    discovered_files,
+                    selected_files,
+                    compile_failures,
+                    &examples,
+                    main_run_total,
+                    main_run_failures,
+                    enforce_contract_checks,
+                    args.filter.as_deref(),
+                    args.shard,
+                    duration_ms,
+                )
+            );
+        }
+    }
 
     if compile_failures > 0 || examples.failed > 0 || main_run_failures > 0 {
         Ok(ExitCode::from(1))
     } else {
         Ok(ExitCode::SUCCESS)
     }
+}
+
+fn render_test_summary_json(
+    discovered_files: usize,
+    selected_files: usize,
+    compile_failures: usize,
+    examples: &ExampleRunSummary,
+    main_run_total: usize,
+    main_run_failures: usize,
+    contract_checks: bool,
+    filter: Option<&str>,
+    shard: Option<TestShard>,
+    duration_ms: u128,
+) -> String {
+    let mut out = String::new();
+    out.push_str("{\n");
+    out.push_str(&format!("  \"files_discovered\": {},\n", discovered_files));
+    out.push_str(&format!("  \"files_selected\": {},\n", selected_files));
+    out.push_str(&format!("  \"compile_failures\": {},\n", compile_failures));
+    out.push_str(&format!("  \"examples_total\": {},\n", examples.total));
+    out.push_str(&format!("  \"examples_passed\": {},\n", examples.passed));
+    out.push_str(&format!("  \"examples_failed\": {},\n", examples.failed));
+    out.push_str(&format!("  \"mains_total\": {},\n", main_run_total));
+    out.push_str(&format!("  \"mains_failed\": {},\n", main_run_failures));
+    out.push_str(&format!(
+        "  \"contract_checks\": \"{}\",\n",
+        if contract_checks { "on" } else { "off" }
+    ));
+    match filter {
+        Some(value) => out.push_str(&format!("  \"filter\": \"{}\",\n", json_escape(value))),
+        None => out.push_str("  \"filter\": null,\n"),
+    }
+    match shard {
+        Some(shard) => out.push_str(&format!(
+            "  \"shard\": \"{}/{}\",\n",
+            shard.index + 1,
+            shard.total
+        )),
+        None => out.push_str("  \"shard\": null,\n"),
+    }
+    out.push_str("  \"example_failures\": [");
+    if !examples.failures.is_empty() {
+        out.push('\n');
+        for (idx, failure) in examples.failures.iter().enumerate() {
+            let comma = if idx + 1 == examples.failures.len() {
+                ""
+            } else {
+                ","
+            };
+            out.push_str(&format!("    \"{}\"{comma}\n", json_escape(failure)));
+        }
+        out.push_str("  ],\n");
+    } else {
+        out.push_str("],\n");
+    }
+    out.push_str(&format!("  \"duration_ms\": {}\n", duration_ms));
+    out.push('}');
+    out
 }
 
 fn contract_checks_enabled(profile: &str) -> bool {

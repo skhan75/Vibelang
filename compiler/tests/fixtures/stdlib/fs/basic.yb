@@ -1,0 +1,11 @@
+pub main() -> Int {
+  @effect io
+  if fs.write_text("phase12_fs_fixture.txt", "ok") {
+    println("write-ok")
+  }
+  if fs.exists("phase12_fs_fixture.txt") {
+    println("exists-ok")
+  }
+  println(fs.read_text("phase12_fs_fixture.txt"))
+  0
+}

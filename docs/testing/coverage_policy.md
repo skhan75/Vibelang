@@ -13,6 +13,9 @@ Define minimum coverage expectations for v1 release gating.
 - Intent linting and verifier gate (`phase7_intent_validation.rs`)
 - v1 tightening smokes (algorithmic recursion, memory pressure, ownership safety)
   (`phase7_v1_tightening.rs`)
+- Phase 12 stdlib surface suite (`phase12_stdlib.rs`)
+- Phase 12 package lifecycle suite (`phase12_package_ecosystem.rs`)
+- Phase 12 test ergonomics suite (`phase12_test_ergonomics.rs`)
 
 ## Minimum Gate Expectations
 
@@ -26,6 +29,8 @@ Define minimum coverage expectations for v1 release gating.
 
 - `python3 tooling/metrics/validate_phase7_coverage_matrix.py`
 - `python3 tooling/metrics/validate_v1_quality_budgets.py`
+- `python3 tooling/coverage/collect_phase12_coverage.py`
+- `python3 tooling/coverage/validate_phase12_coverage.py`
 
 ## Policy Updates
 

@@ -1,0 +1,9 @@
+pub main() -> Int {
+  @effect io
+  println(json.stringify_i64(json.parse_i64("123")))
+  println(json.minify("{ \"x\" : 1 }"))
+  if json.is_valid("{\"x\":1}") {
+    println("valid")
+  }
+  0
+}

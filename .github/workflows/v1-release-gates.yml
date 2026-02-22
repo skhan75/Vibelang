@@ -460,6 +460,142 @@ jobs:
             docs/module/composition_guide.md
             docs/module/migration_and_compatibility.md
 
+  phase12_stdlib_gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - name: run phase12 stdlib conformance suites
+        run: |
+          set -euo pipefail
+          cargo test -p vibe_cli --test phase12_stdlib
+      - name: verify phase12 stdlib docs exist
+        run: |
+          set -euo pipefail
+          test -f stdlib/README.md
+          test -f stdlib/stability_policy.md
+          test -f stdlib/time/README.md
+          test -f stdlib/path/README.md
+          test -f stdlib/fs/README.md
+          test -f stdlib/json/README.md
+          test -f stdlib/http/README.md
+          test -f docs/stdlib/reference_index.md
+          test -f docs/stdlib/versioning_guarantees.md
+      - name: publish phase12 stdlib summary artifact
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/v1-phase12-stdlib
+          cat > /tmp/v1-phase12-stdlib/summary.md <<'EOF'
+          # Phase 12.1 Stdlib Gate
+
+          - status: pass
+          - suites:
+            - `phase12_stdlib`
+          - docs:
+            - `stdlib/{README.md,stability_policy.md,time/README.md,path/README.md,fs/README.md,json/README.md,http/README.md}`
+            - `docs/stdlib/{reference_index.md,versioning_guarantees.md}`
+          EOF
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v1-phase12-stdlib
+          path: |
+            /tmp/v1-phase12-stdlib/summary.md
+            reports/v1/phase12_stdlib_readiness.md
+            docs/stdlib/reference_index.md
+            docs/stdlib/versioning_guarantees.md
+
+  phase12_package_ecosystem_gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - name: run phase12 package lifecycle suites
+        run: |
+          set -euo pipefail
+          cargo test -p vibe_pkg
+          cargo test -p vibe_cli --test phase12_package_ecosystem
+      - name: verify package lifecycle docs exist
+        run: |
+          set -euo pipefail
+          test -f docs/package/vibe_toml_spec.md
+          test -f docs/package/vibe_lock_spec.md
+          test -f docs/package/registry_index_spec.md
+          test -f docs/package/publishing_guide.md
+          test -f docs/package/security_policy.md
+          test -f docs/package/upgrade_guide.md
+      - name: publish phase12 package summary artifact
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/v1-phase12-package
+          cat > /tmp/v1-phase12-package/summary.md <<'EOF'
+          # Phase 12.2 Package Ecosystem Gate
+
+          - status: pass
+          - suites:
+            - `vibe_pkg` unit tests
+            - `phase12_package_ecosystem`
+          - docs:
+            - `docs/package/{vibe_toml_spec.md,vibe_lock_spec.md,registry_index_spec.md,publishing_guide.md,security_policy.md,upgrade_guide.md}`
+          EOF
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v1-phase12-package-ecosystem
+          path: |
+            /tmp/v1-phase12-package/summary.md
+            reports/v1/phase12_package_ecosystem_readiness.md
+
+  phase12_qa_ecosystem_gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - name: run phase12 QA ergonomics suites
+        run: |
+          set -euo pipefail
+          cargo test -p vibe_cli --test phase12_test_ergonomics
+      - name: run coverage and golden tooling checks
+        run: |
+          set -euo pipefail
+          python3 tooling/coverage/collect_phase12_coverage.py
+          python3 tooling/coverage/validate_phase12_coverage.py
+          python3 tooling/golden/update_goldens.py --suite phase12
+          python3 tooling/metrics/validate_v1_quality_budgets.py
+      - name: verify QA docs exist
+        run: |
+          set -euo pipefail
+          test -f docs/testing/coverage_policy.md
+          test -f docs/testing/golden_policy.md
+      - name: publish phase12 QA summary artifact
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/v1-phase12-qa
+          cat > /tmp/v1-phase12-qa/summary.md <<'EOF'
+          # Phase 12.3 QA Ecosystem Gate
+
+          - status: pass
+          - suites:
+            - `phase12_test_ergonomics`
+            - `tooling/coverage/{collect_phase12_coverage.py,validate_phase12_coverage.py}`
+            - `tooling/golden/update_goldens.py --suite phase12`
+            - `tooling/metrics/validate_v1_quality_budgets.py`
+          - docs:
+            - `docs/testing/{coverage_policy.md,golden_policy.md}`
+          EOF
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v1-phase12-qa-ecosystem
+          path: |
+            /tmp/v1-phase12-qa/summary.md
+            reports/v1/phase12_qa_ecosystem_readiness.md
+            reports/phase12/coverage_summary.json
+            reports/phase12/health_status.md
+
   memory_gc_default_gate:
     runs-on: ubuntu-latest
     steps:
@@ -772,6 +908,13 @@ jobs:
           test -f docs/spec/README.md
           test -f docs/spec/grammar_v1_0.ebnf
           test -f docs/spec/spec_coverage_matrix.md
+          test -f docs/stdlib/reference_index.md
+          test -f docs/stdlib/versioning_guarantees.md
+          test -f docs/package/registry_index_spec.md
+          test -f docs/package/publishing_guide.md
+          test -f docs/package/security_policy.md
+          test -f docs/package/upgrade_guide.md
+          test -f docs/testing/golden_policy.md
           test -f docs/release/distribution_matrix.md
           test -f docs/release/distribution_security.md
           test -f docs/release/offline_install_policy.md
@@ -807,6 +950,11 @@ jobs:
           test -f reports/v1/phase11_containers_text_readiness.md
           test -f reports/v1/phase11_async_thread_readiness.md
           test -f reports/v1/phase11_module_composition_readiness.md
+          test -f reports/v1/phase12_stdlib_readiness.md
+          test -f reports/v1/phase12_package_ecosystem_readiness.md
+          test -f reports/v1/phase12_qa_ecosystem_readiness.md
+          test -f reports/phase12/coverage_summary.json
+          test -f reports/phase12/health_status.md
           test -f reports/v1/install_independence.md
           test -f reports/v1/distribution_readiness.md
           test -f reports/v1/phase8_ci_evidence.md
@@ -827,6 +975,11 @@ jobs:
           echo "$PR_BODY" | grep -q "reports/v1/phase11_containers_text_readiness.md"
           echo "$PR_BODY" | grep -q "reports/v1/phase11_async_thread_readiness.md"
           echo "$PR_BODY" | grep -q "reports/v1/phase11_module_composition_readiness.md"
+          echo "$PR_BODY" | grep -q "reports/v1/phase12_stdlib_readiness.md"
+          echo "$PR_BODY" | grep -q "reports/v1/phase12_package_ecosystem_readiness.md"
+          echo "$PR_BODY" | grep -q "reports/v1/phase12_qa_ecosystem_readiness.md"
+          echo "$PR_BODY" | grep -q "reports/phase12/coverage_summary.json"
+          echo "$PR_BODY" | grep -q "reports/phase12/health_status.md"
           echo "$PR_BODY" | grep -q "reports/v1/install_independence.md"
           echo "$PR_BODY" | grep -q "reports/v1/distribution_readiness.md"
           echo "$PR_BODY" | grep -q "reports/v1/phase8_ci_evidence.md"
@@ -841,6 +994,9 @@ jobs:
           echo "$PR_BODY" | grep -q "v1-phase11-containers-text"
           echo "$PR_BODY" | grep -q "v1-phase11-async-thread"
           echo "$PR_BODY" | grep -q "v1-phase11-module-composition"
+          echo "$PR_BODY" | grep -q "v1-phase12-stdlib"
+          echo "$PR_BODY" | grep -q "v1-phase12-package-ecosystem"
+          echo "$PR_BODY" | grep -q "v1-phase12-qa-ecosystem"
 
   summary:
     runs-on: ubuntu-latest
@@ -860,6 +1016,9 @@ jobs:
       - phase11_containers_text_gate
       - phase11_async_thread_gate
       - phase11_module_composition_gate
+      - phase12_stdlib_gate
+      - phase12_package_ecosystem_gate
+      - phase12_qa_ecosystem_gate
       - memory_gc_default_gate
       - spec_integrity_gate
       - compatibility_gate

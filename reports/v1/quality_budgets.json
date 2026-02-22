@@ -21,6 +21,9 @@
     "require_phase7_validation": true,
     "require_phase7_concurrency": true,
     "require_phase7_intent_validation": true,
-    "require_phase7_v1_tightening": true
+    "require_phase7_v1_tightening": true,
+    "require_phase12_stdlib": true,
+    "require_phase12_package_ecosystem": true,
+    "require_phase12_test_ergonomics": true
   }
 }

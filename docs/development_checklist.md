@@ -711,30 +711,30 @@ Goal: provide enough batteries-included surface and package lifecycle tooling fo
 
 ### 12.1 Core Standard Library Surface
 
-- [ ] Expand standard library modules for filesystem/path, time/duration, serialization (`json`), and HTTP/client-server essentials
-- [ ] Define stability tiers for stdlib APIs (stable/preview/experimental)
-- [ ] Add deterministic behavior and error-model tests per stdlib module
-- [ ] Publish stdlib reference documentation and versioning guarantees
+- [x] Expand standard library modules for filesystem/path, time/duration, serialization (`json`), and HTTP/client-server essentials
+- [x] Define stability tiers for stdlib APIs (stable/preview/experimental)
+- [x] Add deterministic behavior and error-model tests per stdlib module
+- [x] Publish stdlib reference documentation and versioning guarantees
 
 ### 12.2 Package Lifecycle and Registry Readiness
 
-- [ ] Mature `vibe pkg` for lock/resolve/install parity on real dependency graphs
-- [ ] Add package publishing flow, registry index format, and provenance/security policy
-- [ ] Add dependency vulnerability/license policy checks in CI
-- [ ] Add semver compatibility checks and upgrade assistant docs
+- [x] Mature `vibe pkg` for lock/resolve/install parity on real dependency graphs
+- [x] Add package publishing flow, registry index format, and provenance/security policy
+- [x] Add dependency vulnerability/license policy checks in CI
+- [x] Add semver compatibility checks and upgrade assistant docs
 
 ### 12.3 Testing and QA Ecosystem
 
-- [ ] Expand `vibe test` ergonomics for large test suites (filtering, sharding, richer reporting)
-- [ ] Add coverage reporting for language/runtime/stdlib/package-manager surfaces
-- [ ] Add golden snapshot update tooling and policy for stable diagnostics
-- [ ] Publish ecosystem readiness report for package + stdlib health
+- [x] Expand `vibe test` ergonomics for large test suites (filtering, sharding, richer reporting)
+- [x] Add coverage reporting for language/runtime/stdlib/package-manager surfaces
+- [x] Add golden snapshot update tooling and policy for stable diagnostics
+- [x] Publish ecosystem readiness report for package + stdlib health
 
 ### Phase 12 Exit Criteria
 
-- [ ] Teams can build typical backend/service/automation applications using documented stdlib APIs without core gaps
-- [ ] Package resolution/install/publish lifecycle is repeatable, secure, and release-gated
-- [ ] QA workflow supports project-scale testing and coverage visibility
+- [x] Teams can build typical backend/service/automation applications using documented stdlib APIs without core gaps
+- [x] Package resolution/install/publish lifecycle is repeatable, secure, and release-gated
+- [x] QA workflow supports project-scale testing and coverage visibility
 
 ---
 

@@ -1,33 +1,49 @@
-# Stdlib Stability Policy (Phase 2B)
+# Stdlib Stability Policy (Phase 12)
 
-This policy defines compatibility expectations for the Phase 2 standard library surface.
+This policy defines compatibility expectations for the expanded stdlib surface.
 
-## Levels
+## Tiers
 
 - **stable**
-  - backward-compatible within major version
-  - behavior is deterministic and covered by tests
+  - source/API compatibility expected across `v1.x`
+  - behavior covered by deterministic tests and reference docs
+  - breaking changes require major-version bump or explicit compatibility shim
+- **preview**
+  - intended for production trial use, but signature/semantics can still evolve in minor versions
+  - any change requires release-note callout and migration guidance
 - **experimental**
-  - may change in minor releases
-  - requires explicit release-note callout
+  - rapid iteration surface, may change without migration tooling
+  - cannot be required by release-gate examples
 - **internal**
-  - implementation detail, no compatibility guarantees
+  - implementation detail (`vibe_*` runtime symbols), no public compatibility guarantees
 
-## Current Classification (Phase 2B)
+## Current Classification
 
-- `io.print` / `io.println`: **stable**
-- deterministic utility APIs used by `vibe test`: **experimental**
-- runtime/internal shim symbols (`vibe_*` C symbols): **internal**
+- `io.print`, `io.println`: **stable**
+- `path.join`, `path.parent`, `path.basename`, `path.is_absolute`: **stable**
+- deterministic helpers in `core` (`len`, `min`, `max`, `sorted_desc`, `sort_desc`, `take`):
+  **stable** for `vibe test` contract/example execution
+- `time.now_ms`, `time.sleep_ms`, `time.duration_ms`: **preview**
+- `fs.exists`, `fs.read_text`, `fs.write_text`, `fs.create_dir`: **preview**
+- `json.is_valid`, `json.parse_i64`, `json.stringify_i64`, `json.minify`: **preview**
+- `http.status_text`, `http.default_port`, `http.build_request_line`: **preview**
+- runtime bridge symbols (`vibe_*` C ABI): **internal**
 
 ## Change Rules
 
-- stable API signatures cannot break without major-version bump
-- stable semantics changes require migration guidance
-- experimental APIs may change, but must update:
-  - docs
-  - tests
-  - release notes
+- Stable APIs:
+  - no breaking signature changes in `v1.x`
+  - semantic changes require migration notes + compatibility statement
+- Preview APIs:
+  - may change in minor versions
+  - must update docs + deterministic tests + release notes in the same change
+- Experimental APIs:
+  - no compatibility promises
+  - cannot silently graduate; promotion requires explicit tier update in this file
 
-## Determinism Requirement
+## Determinism and error-model requirements
 
-All stable stdlib APIs must preserve deterministic behavior for identical inputs and toolchain versions.
+- Stable and preview APIs must document:
+  - deterministic behavior expectations
+  - error model (`panic`, sentinel return, or explicit boolean/result contract)
+- Non-deterministic APIs (currently `time.now_ms`) must be explicitly marked.

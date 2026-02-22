@@ -1,0 +1,45 @@
+{
+  "phase": "12",
+  "generated_at_unix_s": 1771754483,
+  "surface_passed": 4,
+  "surface_total": 4,
+  "surface_coverage_percent": 100.0,
+  "suites": [
+    {
+      "suite": "stdlib_surface",
+      "command": "cargo test -p vibe_cli --test phase12_stdlib",
+      "passed": true,
+      "exit_code": 0,
+      "duration_ms": 811,
+      "stdout": "\nrunning 4 tests\ntest phase12_stdlib_type_errors_are_reported_for_invalid_calls ... ok\ntest phase12_stdlib_error_model_is_stable ... ok\ntest phase12_stdlib_module_surface_runs_end_to_end ... ok\ntest phase12_stdlib_outputs_are_deterministic_across_runs ... ok\n\ntest result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.32s\n\n",
+      "stderr": "   Compiling vibe_cli v0.1.0 (/home/azskdev/workspace/vibelang/crates/vibe_cli)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.43s\n     Running tests/phase12_stdlib.rs (target/debug/deps/phase12_stdlib-ecb70d4637ab3884)\n"
+    },
+    {
+      "suite": "package_lifecycle",
+      "command": "cargo test -p vibe_cli --test phase12_package_ecosystem",
+      "passed": true,
+      "exit_code": 0,
+      "duration_ms": 133,
+      "stdout": "\nrunning 4 tests\ntest phase12_pkg_semver_check_classifies_major ... ok\ntest phase12_pkg_audit_reports_policy_violations ... ok\ntest phase12_pkg_publish_writes_registry_index ... ok\ntest phase12_pkg_upgrade_plan_reports_manifest_change_flag ... ok\n\ntest result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s\n\n",
+      "stderr": "    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s\n     Running tests/phase12_package_ecosystem.rs (target/debug/deps/phase12_package_ecosystem-6b40c89567df83bb)\n"
+    },
+    {
+      "suite": "qa_ergonomics",
+      "command": "cargo test -p vibe_cli --test phase12_test_ergonomics",
+      "passed": true,
+      "exit_code": 0,
+      "duration_ms": 635,
+      "stdout": "\nrunning 3 tests\ntest phase12_vibe_test_rejects_invalid_shard_specs ... ok\ntest phase12_vibe_test_supports_filter_and_json_report ... ok\ntest phase12_vibe_test_supports_sharding ... ok\n\ntest result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.50s\n\n",
+      "stderr": "    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.06s\n     Running tests/phase12_test_ergonomics.rs (target/debug/deps/phase12_test_ergonomics-80d1dbaf784b6127)\n"
+    },
+    {
+      "suite": "pkg_solver_core",
+      "command": "cargo test -p vibe_pkg",
+      "passed": true,
+      "exit_code": 0,
+      "duration_ms": 296,
+      "stdout": "\nrunning 8 tests\ntest tests::semver_delta_classifies_common_transitions ... ok\ntest tests::upgrade_plan_marks_major_jump_as_manifest_change ... ok\ntest tests::audit_reports_license_and_advisory_findings ... ok\ntest tests::lockfile_is_deterministic_across_repeated_writes ... ok\ntest tests::resolver_backtracks_to_satisfy_shared_dependency ... ok\ntest tests::resolver_reports_conflict_when_no_solution_exists ... ok\ntest tests::publish_flow_writes_registry_index_and_package_payload ... ok\ntest tests::install_flow_uses_offline_mirror_and_writes_store ... ok\n\ntest result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s\n\n\nrunning 0 tests\n\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n",
+      "stderr": "    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.09s\n     Running unittests src/lib.rs (target/debug/deps/vibe_pkg-fed9a3dcf387c5bd)\n   Doc-tests vibe_pkg\n"
+    }
+  ]
+}

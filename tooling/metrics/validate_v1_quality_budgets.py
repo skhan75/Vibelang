@@ -155,6 +155,9 @@ def main() -> None:
         "require_phase7_concurrency": "phase7_concurrency.rs",
         "require_phase7_intent_validation": "phase7_intent_validation.rs",
         "require_phase7_v1_tightening": "phase7_v1_tightening.rs",
+        "require_phase12_stdlib": "phase12_stdlib.rs",
+        "require_phase12_package_ecosystem": "phase12_package_ecosystem.rs",
+        "require_phase12_test_ergonomics": "phase12_test_ergonomics.rs",
     }
     tests_dir = repo_root / "crates" / "vibe_cli" / "tests"
     for key, test_file in required_tests.items():

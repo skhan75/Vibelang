@@ -40,3 +40,6 @@ dependencies = {}
 - `vibe pkg lock` writes `vibe.lock`.
 - `vibe pkg install` writes `vibe.lock` and installs mirror content to
   `.yb/pkg/store/`.
+- `vibe pkg publish` writes registry payload/index (`docs/package/registry_index_spec.md`).
+- `vibe pkg audit` enforces vulnerability/license policy checks (`docs/package/security_policy.md`).
+- `vibe pkg upgrade-plan` and `vibe pkg semver-check` provide semver-aware upgrade guidance (`docs/package/upgrade_guide.md`).

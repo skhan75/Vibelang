@@ -1,43 +1,38 @@
-# VibeLang stdlib (Phase 2)
+# VibeLang stdlib (Phase 12)
 
-Phase 2 intentionally keeps the standard library surface minimal so the native backend can stabilize around a small, deterministic core.
+Phase 12 expands the stdlib from a minimal I/O core into a practical day-to-day surface while
+keeping deterministic behavior and local-first validation.
 
-## Included in Phase 2
+## Module index
 
-- `io.print(value: Str) -> Void`
-- `io.println(value: Str) -> Void`
+- `io` (stable): `print`, `println`
+- `core` (stable/preview): deterministic utility APIs for contract/example validation
+- `time` (preview): clock + duration helpers
+- `path` (stable): path composition/introspection helpers
+- `fs` (preview): filesystem read/write/exists/directory helpers
+- `json` (preview): parse/validate/minify/stringify primitives
+- `http` (preview): protocol helper primitives (status text, default ports, request lines)
 
-In this phase, these are compiler-recognized builtins:
+Detailed module references:
 
-- type checking treats `print` and `println` as known symbols that return `Void`
-- codegen lowers both to the runtime symbol `vibe_println`
-- runtime provides `vibe_println` via `runtime/native/vibe_runtime.c`
+- `stdlib/io/README.md`
+- `stdlib/core/deterministic_apis.md`
+- `stdlib/time/README.md`
+- `stdlib/path/README.md`
+- `stdlib/fs/README.md`
+- `stdlib/json/README.md`
+- `stdlib/http/README.md`
 
-## Deterministic utilities for checks/examples
+## Compiler/runtime contract
 
-Phase 2B adds deterministic utility APIs used by contract/example execution (`vibe test`):
+- Typechecker recognizes stdlib namespace calls (`time.*`, `path.*`, `fs.*`, `json.*`, `http.*`)
+  and enforces argument/return contracts.
+- Codegen lowers stdlib calls to runtime `vibe_*` symbols in `runtime/native/vibe_runtime.c`.
+- Runtime implementations are deterministic for equal inputs except explicitly nondeterministic
+  APIs (`time.now_ms`).
 
-- `len`
-- `min`
-- `max`
-- `sorted_desc`
-- `sort_desc`
-- `take`
+## Versioning and compatibility
 
-Reference: `stdlib/core/deterministic_apis.md`
-
-## Stability policy
-
-Reference: `stdlib/stability_policy.md`
-
-## Boundaries and non-goals
-
-- no formatting APIs (`printf`, interpolation helpers, width/precision controls)
-- no file I/O abstraction yet
-- no buffered writer API yet
-- no user-extensible IO traits/protocols yet
-- no allocator/runtime GC hooks exposed through stdlib in Phase 2
-
-## Rationale
-
-The goal is to make hello-world and basic native execution work first, while keeping the runtime contract tiny and auditable.
+- Stability tiers and compatibility rules: `stdlib/stability_policy.md`
+- Reference index and versioning guarantees: `docs/stdlib/reference_index.md`,
+  `docs/stdlib/versioning_guarantees.md`

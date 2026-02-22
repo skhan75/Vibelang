@@ -1,0 +1,7 @@
+pub main() -> Int {
+  @effect io
+  println(path.join("/srv", "api"))
+  println(path.parent("/srv/api/main.yb"))
+  println(path.basename("/srv/api/main.yb"))
+  0
+}

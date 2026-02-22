@@ -13,6 +13,7 @@ resolution.
 [package]
 name = "my_pkg"
 version = "0.1.0"
+license = "MIT" # optional
 
 [dependencies]
 math = "^1.0.0"
@@ -23,6 +24,7 @@ math = "^1.0.0"
 - `[package]` is required.
 - `package.name` is required and should be unique inside a workspace/mirror.
 - `package.version` uses SemVer (`major.minor.patch`).
+- `package.license` is optional and used by `vibe pkg audit` policy checks.
 - `[dependencies]` is optional.
 - Dependency values must be valid SemVer requirements.
 
@@ -45,3 +47,9 @@ Resolver currently expects a local mirror with this shape:
 ```
 
 Remote registries remain optional and out of v0.1 compile path.
+
+## Related phase-12 docs
+
+- Registry/publish format: `docs/package/registry_index_spec.md`
+- Publishing workflow: `docs/package/publishing_guide.md`
+- Security/audit policy: `docs/package/security_policy.md`

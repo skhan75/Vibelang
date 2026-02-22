@@ -1,0 +1,5 @@
+pub main() -> Int {
+  @effect io
+  println(json.stringify_i64(time.duration_ms(5)))
+  0
+}
