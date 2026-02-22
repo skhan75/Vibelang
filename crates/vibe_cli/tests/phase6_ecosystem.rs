@@ -70,6 +70,104 @@ fn vibe_new_supports_legacy_extension_opt_in() {
 }
 
 #[test]
+fn vibe_new_service_template_scaffolds_multi_module_project() {
+    let root = unique_temp_dir("vibe_phase11_new_service");
+    fs::create_dir_all(&root).expect("create temp root");
+    let out = run_vibe(&[
+        "new",
+        "demo_service",
+        "--path",
+        root.to_str().expect("path str"),
+        "--service",
+    ]);
+    assert!(
+        out.status.success(),
+        "vibe new service failed:\nstdout:\n{}\nstderr:\n{}",
+        out.stdout,
+        out.stderr
+    );
+
+    let project = root.join("demo_service");
+    let entry = project.join("demo_service").join("main.yb");
+    assert!(entry.exists(), "expected service main entry");
+    assert!(
+        project.join("demo_service").join("router.yb").exists(),
+        "expected service router module"
+    );
+    let run = run_vibe(&["run", entry.to_str().expect("entry path str")]);
+    assert!(
+        run.status.success(),
+        "service template should run:\nstdout:\n{}\nstderr:\n{}",
+        run.stdout,
+        run.stderr
+    );
+    assert_eq!(run.stdout, "service starting\n");
+}
+
+#[test]
+fn vibe_new_cli_template_scaffolds_multi_module_project() {
+    let root = unique_temp_dir("vibe_phase11_new_cli");
+    fs::create_dir_all(&root).expect("create temp root");
+    let out = run_vibe(&[
+        "new",
+        "demo_cli",
+        "--path",
+        root.to_str().expect("path str"),
+        "--cli",
+    ]);
+    assert!(
+        out.status.success(),
+        "vibe new cli failed:\nstdout:\n{}\nstderr:\n{}",
+        out.stdout,
+        out.stderr
+    );
+
+    let project = root.join("demo_cli");
+    let entry = project.join("demo_cli").join("main.yb");
+    assert!(entry.exists(), "expected cli main entry");
+    assert!(
+        project.join("demo_cli").join("commands.yb").exists(),
+        "expected cli commands module"
+    );
+    let run = run_vibe(&["run", entry.to_str().expect("entry path str")]);
+    assert!(
+        run.status.success(),
+        "cli template should run:\nstdout:\n{}\nstderr:\n{}",
+        run.stdout,
+        run.stderr
+    );
+    assert_eq!(run.stdout, "cli ready\n");
+}
+
+#[test]
+fn vibe_new_library_template_scaffolds_lib_entry() {
+    let root = unique_temp_dir("vibe_phase11_new_library");
+    fs::create_dir_all(&root).expect("create temp root");
+    let out = run_vibe(&[
+        "new",
+        "demo_lib",
+        "--path",
+        root.to_str().expect("path str"),
+        "--lib",
+    ]);
+    assert!(
+        out.status.success(),
+        "vibe new lib failed:\nstdout:\n{}\nstderr:\n{}",
+        out.stdout,
+        out.stderr
+    );
+    let lib = root.join("demo_lib").join("lib.yb");
+    assert!(lib.exists(), "expected lib.yb scaffold");
+    let check = run_vibe(&["check", lib.to_str().expect("lib path str")]);
+    assert!(
+        check.status.success(),
+        "library scaffold should typecheck:\nstdout:\n{}\nstderr:\n{}",
+        check.stdout,
+        check.stderr
+    );
+}
+
+#[test]
 fn vibe_fmt_check_and_write_roundtrip() {
     let root = unique_temp_dir("vibe_phase6_fmt");
     fs::create_dir_all(&root).expect("create temp root");

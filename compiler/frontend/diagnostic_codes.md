@@ -78,6 +78,13 @@ This catalog reserves deterministic code ranges for frontend diagnostics.
 - `E2206` invalid `.` usage in contract
 - `E2207` invalid `old(...)` usage in contract
 - `E2301` HIR verification failure
+- `E2310` duplicate module declaration in project sources
+- `E2311` module/import target not found
+- `E2312` import cycle detected
+- `E2313` cross-package import rejected by boundary policy
+- `E2314` private imported function access
+- `E2315` imports used without explicit module declaration
+- `E2316` module declaration does not match package layout path
 
 ### Contract/Effect (`E3xxx`)
 

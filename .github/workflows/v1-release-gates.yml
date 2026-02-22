@@ -416,6 +416,50 @@ jobs:
             /tmp/v1-phase11-async-thread/summary.md
             reports/v1/phase11_async_thread_readiness.md
 
+  phase11_module_composition_gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - name: run phase11 module composition conformance suites
+        run: |
+          set -euo pipefail
+          cargo test -p vibe_cli --test phase2_native phase11_module_
+          cargo test -p vibe_cli --test phase6_ecosystem vibe_new_service_template_scaffolds_multi_module_project
+          cargo test -p vibe_cli --test phase6_ecosystem vibe_new_cli_template_scaffolds_multi_module_project
+          cargo test -p vibe_cli --test phase6_ecosystem vibe_new_library_template_scaffolds_lib_entry
+      - name: verify module composition docs exist
+        run: |
+          set -euo pipefail
+          test -f docs/module/composition_guide.md
+          test -f docs/module/migration_and_compatibility.md
+      - name: publish phase11 module composition summary artifact
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/v1-phase11-module-composition
+          cat > /tmp/v1-phase11-module-composition/summary.md <<'EOF'
+          # Phase 11.3 Module Composition Gate
+
+          - status: pass
+          - suites:
+            - `phase2_native::phase11_module_*`
+            - `phase6_ecosystem::{vibe_new_service_template_scaffolds_multi_module_project, vibe_new_cli_template_scaffolds_multi_module_project, vibe_new_library_template_scaffolds_lib_entry}`
+          - docs:
+            - `docs/module/composition_guide.md`
+            - `docs/module/migration_and_compatibility.md`
+          - note: validates module/import/package-boundary diagnostics, cycle detection, visibility checks, and production template scaffolds.
+          EOF
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v1-phase11-module-composition
+          path: |
+            /tmp/v1-phase11-module-composition/summary.md
+            reports/v1/phase11_module_composition_readiness.md
+            docs/module/composition_guide.md
+            docs/module/migration_and_compatibility.md
+
   memory_gc_default_gate:
     runs-on: ubuntu-latest
     steps:
@@ -733,6 +777,8 @@ jobs:
           test -f docs/release/offline_install_policy.md
           test -f docs/release/linux_runtime_compatibility_policy.md
           test -f docs/release/selfhost_transition_playbook.md
+          test -f docs/module/composition_guide.md
+          test -f docs/module/migration_and_compatibility.md
           test -f docs/policy/install_channels_v1.md
           test -f docs/cli/help_manual.md
           test -f docs/cli/version_output.md
@@ -760,6 +806,7 @@ jobs:
           test -f reports/v1/dynamic_containers_conformance.md
           test -f reports/v1/phase11_containers_text_readiness.md
           test -f reports/v1/phase11_async_thread_readiness.md
+          test -f reports/v1/phase11_module_composition_readiness.md
           test -f reports/v1/install_independence.md
           test -f reports/v1/distribution_readiness.md
           test -f reports/v1/phase8_ci_evidence.md
@@ -779,6 +826,7 @@ jobs:
           echo "$PR_BODY" | grep -q "reports/v1/dynamic_containers_conformance.md"
           echo "$PR_BODY" | grep -q "reports/v1/phase11_containers_text_readiness.md"
           echo "$PR_BODY" | grep -q "reports/v1/phase11_async_thread_readiness.md"
+          echo "$PR_BODY" | grep -q "reports/v1/phase11_module_composition_readiness.md"
           echo "$PR_BODY" | grep -q "reports/v1/install_independence.md"
           echo "$PR_BODY" | grep -q "reports/v1/distribution_readiness.md"
           echo "$PR_BODY" | grep -q "reports/v1/phase8_ci_evidence.md"
@@ -792,6 +840,7 @@ jobs:
           echo "$PR_BODY" | grep -q "v1-selfhost-m4-rc-cycle"
           echo "$PR_BODY" | grep -q "v1-phase11-containers-text"
           echo "$PR_BODY" | grep -q "v1-phase11-async-thread"
+          echo "$PR_BODY" | grep -q "v1-phase11-module-composition"
 
   summary:
     runs-on: ubuntu-latest
@@ -810,6 +859,7 @@ jobs:
       - dynamic_containers_gate
       - phase11_containers_text_gate
       - phase11_async_thread_gate
+      - phase11_module_composition_gate
       - memory_gc_default_gate
       - spec_integrity_gate
       - compatibility_gate

@@ -1,5 +1,6 @@
 mod deterministic_utils;
 mod example_runner;
+mod module_resolver;
 
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
@@ -31,6 +32,7 @@ use vibe_sidecar::{BudgetPolicy, IntentLintRequest, SidecarService};
 use vibe_types::check_and_lower;
 
 use crate::example_runner::{run_examples_with_policy, ExampleRunSummary};
+use crate::module_resolver::resolve_compilation_unit;
 
 fn main() -> ExitCode {
     match run() {
@@ -196,7 +198,7 @@ COMMANDS
   lsp [--index-root <dir>]  Start line-stdio LSP server
   fmt [path] [flags]        Format source files
   doc [path] [flags]        Generate markdown API docs
-  new <name> [flags]        Scaffold new app/library project
+  new <name> [flags]        Scaffold app/service/cli/library project
   pkg <resolve|lock|install> [flags]
                             Dependency resolution + lock + install
   lint [path] --intent [flags]
@@ -353,11 +355,13 @@ DESCRIPTION
             r#"vibe new
 
 USAGE
-  vibe new <name> [--path <dir>] [--app|--lib] [--ext yb|vibe]
+  vibe new <name> [--path <dir>] [--app|--service|--cli|--lib] [--ext yb|vibe]
 
 FLAGS
   --app                     Scaffold application template (default)
-  --lib                     Scaffold library template
+  --service                 Scaffold multi-module service template
+  --cli                     Scaffold multi-module CLI template
+  --lib, --library          Scaffold library template
   --ext <ext>               Source extension for generated template
 "#,
         ),
@@ -436,17 +440,16 @@ fn json_escape(input: &str) -> String {
 }
 
 fn run_check(path: &str) -> Result<ExitCode, String> {
-    let src = fs::read_to_string(path).map_err(|e| format!("failed to read `{path}`: {e}"))?;
-    let parsed = parse_source(&src);
-    let checked = check_and_lower(&parsed.ast);
-    let mut merged_diags = parsed.diagnostics.clone().into_sorted();
+    let unit = resolve_compilation_unit(Path::new(path))?;
+    let checked = check_and_lower(&unit.ast);
+    let mut merged_diags = unit.diagnostics.clone().into_sorted();
     merged_diags.extend(checked.diagnostics.clone().into_sorted());
     let mut all = Diagnostics::default();
     all.extend(merged_diags.clone());
     if let Err(err) = best_effort_refresh_index(
         Path::new(path),
-        &src,
-        &parsed.ast,
+        &unit.source,
+        &unit.ast,
         &checked.hir,
         &merged_diags,
     ) {
@@ -466,14 +469,13 @@ fn run_check(path: &str) -> Result<ExitCode, String> {
 }
 
 fn run_ast(path: &str) -> Result<ExitCode, String> {
-    let src = fs::read_to_string(path).map_err(|e| format!("failed to read `{path}`: {e}"))?;
-    let parsed = parse_source(&src);
-    println!("{:#?}", parsed.ast);
-    let out = parsed.diagnostics.to_golden();
+    let unit = resolve_compilation_unit(Path::new(path))?;
+    println!("{:#?}", unit.ast);
+    let out = unit.diagnostics.to_golden();
     if !out.trim().is_empty() {
         eprintln!("{out}");
     }
-    Ok(if parsed.diagnostics.has_errors() {
+    Ok(if unit.diagnostics.has_errors() {
         ExitCode::from(1)
     } else {
         ExitCode::SUCCESS
@@ -481,12 +483,11 @@ fn run_ast(path: &str) -> Result<ExitCode, String> {
 }
 
 fn run_hir(path: &str) -> Result<ExitCode, String> {
-    let src = fs::read_to_string(path).map_err(|e| format!("failed to read `{path}`: {e}"))?;
-    let parsed = parse_source(&src);
-    let checked = check_and_lower(&parsed.ast);
+    let unit = resolve_compilation_unit(Path::new(path))?;
+    let checked = check_and_lower(&unit.ast);
     println!("{:#?}", checked.hir);
     let mut all = Diagnostics::default();
-    all.extend(parsed.diagnostics.into_sorted());
+    all.extend(unit.diagnostics.into_sorted());
     all.extend(checked.diagnostics.into_sorted());
     let out = all.to_golden();
     if !out.trim().is_empty() {
@@ -500,11 +501,10 @@ fn run_hir(path: &str) -> Result<ExitCode, String> {
 }
 
 fn run_mir(path: &str) -> Result<ExitCode, String> {
-    let src = fs::read_to_string(path).map_err(|e| format!("failed to read `{path}`: {e}"))?;
-    let parsed = parse_source(&src);
-    let checked = check_and_lower(&parsed.ast);
+    let unit = resolve_compilation_unit(Path::new(path))?;
+    let checked = check_and_lower(&unit.ast);
     let mut all = Diagnostics::default();
-    all.extend(parsed.diagnostics.clone().into_sorted());
+    all.extend(unit.diagnostics.clone().into_sorted());
     all.extend(checked.diagnostics.clone().into_sorted());
     if all.has_errors() {
         let out = all.to_golden();
@@ -574,6 +574,8 @@ struct DocArgs {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum NewTemplate {
     App,
+    Service,
+    Cli,
     Lib,
 }
 
@@ -916,8 +918,10 @@ fn parse_new_args(args: &[String]) -> Result<NewArgs, String> {
                     .ok_or_else(|| "missing value for `--path`".to_string())?;
                 base_dir = PathBuf::from(val);
             }
-            "--lib" => template = NewTemplate::Lib,
+            "--lib" | "--library" => template = NewTemplate::Lib,
             "--app" => template = NewTemplate::App,
+            "--service" => template = NewTemplate::Service,
+            "--cli" => template = NewTemplate::Cli,
             "--ext" => {
                 idx += 1;
                 let val = args
@@ -1492,31 +1496,133 @@ fn run_new(args: &NewArgs) -> Result<ExitCode, String> {
             project_dir.display()
         )
     })?;
-    let source_name = if args.template == NewTemplate::Lib {
-        format!("lib.{}", args.extension)
-    } else {
-        format!("main.{}", args.extension)
-    };
-    let source_path = project_dir.join(source_name);
-    let source = if args.template == NewTemplate::Lib {
-        r#"pub add(a: Int, b: Int) -> Int {
-  a + b
-}
-"#
-    } else {
-        r#"pub main() -> Int {
+    let module_ns = sanitize_module_ident(&args.name);
+    let mut sources = Vec::<(PathBuf, String)>::new();
+    let (primary_source, readme_header, readme_hint) = match args.template {
+        NewTemplate::App => {
+            let main = project_dir.join(format!("main.{}", args.extension));
+            sources.push((
+                main.clone(),
+                r#"pub main() -> Int {
   @effect io
   println("hello from vibelang")
   0
 }
 "#
+                .to_string(),
+            ));
+            (
+                main,
+                "Application template.",
+                format!("Run app: `vibe run main.{}`", args.extension),
+            )
+        }
+        NewTemplate::Lib => {
+            let lib = project_dir.join(format!("lib.{}", args.extension));
+            sources.push((
+                lib.clone(),
+                r#"pub add(a: Int, b: Int) -> Int {
+  a + b
+}
+"#
+                .to_string(),
+            ));
+            (
+                lib,
+                "Library template.",
+                format!("Build checks: `vibe check lib.{}`", args.extension),
+            )
+        }
+        NewTemplate::Service => {
+            let module_dir = project_dir.join(&module_ns);
+            let main = module_dir.join(format!("main.{}", args.extension));
+            let router = module_dir.join(format!("router.{}", args.extension));
+            sources.push((
+                main.clone(),
+                format!(
+                    r#"module {module}.main
+import {module}.router
+
+pub main() -> Int {{
+  @effect io
+  println("service starting")
+  route()
+}}
+"#,
+                    module = module_ns
+                ),
+            ));
+            sources.push((
+                router,
+                format!(
+                    r#"module {module}.router
+
+pub route() -> Int {{
+  0
+}}
+"#,
+                    module = module_ns
+                ),
+            ));
+            let hint_path = format!("{module_ns}/main.{}", args.extension);
+            (
+                main,
+                "Service template (multi-module).",
+                format!("Run service: `vibe run {hint_path}`"),
+            )
+        }
+        NewTemplate::Cli => {
+            let module_dir = project_dir.join(&module_ns);
+            let main = module_dir.join(format!("main.{}", args.extension));
+            let commands = module_dir.join(format!("commands.{}", args.extension));
+            sources.push((
+                main.clone(),
+                format!(
+                    r#"module {module}.main
+import {module}.commands
+
+pub main() -> Int {{
+  @effect io
+  println("cli ready")
+  run_command()
+}}
+"#,
+                    module = module_ns
+                ),
+            ));
+            sources.push((
+                commands,
+                format!(
+                    r#"module {module}.commands
+
+pub run_command() -> Int {{
+  0
+}}
+"#,
+                    module = module_ns
+                ),
+            ));
+            let hint_path = format!("{module_ns}/main.{}", args.extension);
+            (
+                main,
+                "CLI template (multi-module).",
+                format!("Run CLI: `vibe run {hint_path}`"),
+            )
+        }
     };
-    fs::write(&source_path, source).map_err(|e| {
-        format!(
-            "failed to write source template `{}`: {e}",
-            source_path.display()
-        )
-    })?;
+    for (path, source) in &sources {
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).map_err(|e| {
+                format!(
+                    "failed to create source directory `{}`: {e}",
+                    parent.display()
+                )
+            })?;
+        }
+        fs::write(path, source).map_err(|e| {
+            format!("failed to write source template `{}`: {e}", path.display())
+        })?;
+    }
 
     let manifest = format!(
         "[package]\nname = \"{}\"\nversion = \"0.1.0\"\n\n[dependencies]\n",
@@ -1530,25 +1636,15 @@ fn run_new(args: &NewArgs) -> Result<ExitCode, String> {
     })?;
     fs::write(project_dir.join(".gitignore"), ".yb/\n")
         .map_err(|e| format!("failed to write .gitignore: {e}"))?;
-    let readme = if args.template == NewTemplate::Lib {
-        format!(
-            "# {}\n\nLibrary template.\n\n- Build checks: `vibe check {}`\n",
-            args.name,
-            source_path
-                .file_name()
-                .and_then(|s| s.to_str())
-                .unwrap_or("lib.yb")
-        )
-    } else {
-        format!(
-            "# {}\n\nApplication template.\n\n- Run app: `vibe run {}`\n",
-            args.name,
-            source_path
-                .file_name()
-                .and_then(|s| s.to_str())
-                .unwrap_or("main.yb")
-        )
-    };
+    let source_hint = primary_source
+        .strip_prefix(&project_dir)
+        .unwrap_or(primary_source.as_path())
+        .to_string_lossy()
+        .replace('\\', "/");
+    let readme = format!(
+        "# {}\n\n{}\n\n- Primary source: `{}`\n- {}\n",
+        args.name, readme_header, source_hint, readme_hint
+    );
     fs::write(project_dir.join("README.md"), readme)
         .map_err(|e| format!("failed to write README.md: {e}"))?;
 
@@ -1564,6 +1660,34 @@ fn run_new(args: &NewArgs) -> Result<ExitCode, String> {
         args.extension
     );
     Ok(ExitCode::SUCCESS)
+}
+
+fn sanitize_module_ident(raw: &str) -> String {
+    let mut out = raw
+        .chars()
+        .map(|ch| {
+            if ch.is_ascii_alphanumeric() {
+                ch.to_ascii_lowercase()
+            } else {
+                '_'
+            }
+        })
+        .collect::<String>();
+    while out.contains("__") {
+        out = out.replace("__", "_");
+    }
+    out = out.trim_matches('_').to_string();
+    if out.is_empty() {
+        return "app".to_string();
+    }
+    if out
+        .chars()
+        .next()
+        .is_some_and(|ch| ch.is_ascii_digit())
+    {
+        return format!("pkg_{out}");
+    }
+    out
 }
 
 fn run_pkg(args: &PkgArgs) -> Result<ExitCode, String> {
@@ -1608,19 +1732,13 @@ fn run_pkg(args: &PkgArgs) -> Result<ExitCode, String> {
 }
 
 fn build_source(args: &BuildArgs) -> Result<BuildArtifacts, String> {
-    let src = fs::read_to_string(&args.source_path).map_err(|e| {
-        format!(
-            "failed to read `{}`: {e}",
-            args.source_path.as_path().display()
-        )
-    })?;
     if args.locked {
         enforce_locked_mode(&args.source_path)?;
     }
-    let parsed = parse_source(&src);
-    let checked = check_and_lower(&parsed.ast);
+    let unit = resolve_compilation_unit(&args.source_path)?;
+    let checked = check_and_lower(&unit.ast);
     let mut all = Diagnostics::default();
-    all.extend(parsed.diagnostics.clone().into_sorted());
+    all.extend(unit.diagnostics.clone().into_sorted());
     all.extend(checked.diagnostics.into_sorted());
     let diags = all.to_golden();
     if !diags.trim().is_empty() {
@@ -1629,7 +1747,7 @@ fn build_source(args: &BuildArgs) -> Result<BuildArtifacts, String> {
     if all.has_errors() {
         return Err("build failed due to errors".to_string());
     }
-    enforce_contract_preflight(&parsed.ast, &args.source_path, &args.profile)?;
+    enforce_contract_preflight(&unit.ast, &args.source_path, &args.profile)?;
 
     let mir =
         lower_hir_to_mir(&checked.hir).map_err(|e| format!("HIR->MIR lowering failed: {e}"))?;
@@ -1710,16 +1828,14 @@ fn build_source(args: &BuildArgs) -> Result<BuildArtifacts, String> {
 
 fn build_index_for_file(file: &Path) -> Result<vibe_indexer::FileIndex, String> {
     let canonical = file.canonicalize().unwrap_or_else(|_| file.to_path_buf());
-    let src = fs::read_to_string(&canonical)
-        .map_err(|e| format!("failed to read `{}`: {e}", canonical.display()))?;
-    let parsed = parse_source(&src);
-    let checked = check_and_lower(&parsed.ast);
-    let mut diagnostics = parsed.diagnostics.into_sorted();
+    let unit = resolve_compilation_unit(&canonical)?;
+    let checked = check_and_lower(&unit.ast);
+    let mut diagnostics = unit.diagnostics.into_sorted();
     diagnostics.extend(checked.diagnostics.into_sorted());
     Ok(build_file_index(
         &canonical,
-        &src,
-        &parsed.ast,
+        &unit.source,
+        &unit.ast,
         &checked.hir,
         &diagnostics,
     ))
@@ -1878,12 +1994,10 @@ fn run_test(args: &BuildArgs) -> Result<ExitCode, String> {
     let enforce_contract_checks = contract_checks_enabled(&args.profile);
 
     for file in files {
-        let src = fs::read_to_string(&file)
-            .map_err(|e| format!("failed to read `{}`: {e}", file.display()))?;
-        let parsed = parse_source(&src);
-        let checked = check_and_lower(&parsed.ast);
+        let unit = resolve_compilation_unit(&file)?;
+        let checked = check_and_lower(&unit.ast);
         let mut all = Diagnostics::default();
-        all.extend(parsed.diagnostics.clone().into_sorted());
+        all.extend(unit.diagnostics.clone().into_sorted());
         all.extend(checked.diagnostics.clone().into_sorted());
 
         let diag_out = all.to_golden();
@@ -1895,13 +2009,13 @@ fn run_test(args: &BuildArgs) -> Result<ExitCode, String> {
             continue;
         }
 
-        let current_examples = run_examples_with_policy(&parsed.ast, enforce_contract_checks);
+        let current_examples = run_examples_with_policy(&unit.ast, enforce_contract_checks);
         examples.total += current_examples.total;
         examples.passed += current_examples.passed;
         examples.failed += current_examples.failed;
         examples.failures.extend(current_examples.failures);
 
-        if has_main_function(&parsed.ast) {
+        if has_main_function(&unit.ast) {
             main_run_total += 1;
             let single_file_args = BuildArgs {
                 source_path: file.clone(),

@@ -714,6 +714,234 @@ pub main() -> Int {
 }
 
 #[test]
+fn phase11_module_import_resolution_runs_multi_file_project() {
+    let project = temp_module_project(
+        "phase11_module_import_ok",
+        &[
+            (
+                "demo/main.yb",
+                r#"
+module demo.main
+import demo.math
+
+pub main() -> Int {
+  @effect io
+  sum := add(1, 2)
+  if sum == 3 {
+    println("module-ok")
+  }
+  0
+}
+"#,
+            ),
+            (
+                "demo/math.yb",
+                r#"
+module demo.math
+
+pub add(a: Int, b: Int) -> Int {
+  a + b
+}
+"#,
+            ),
+        ],
+    );
+    let entry = project.join("demo").join("main.yb");
+    let out = run_vibe(&["run", entry.to_str().expect("entry path str")]);
+    assert!(
+        out.status.success(),
+        "multi-module run failed:\nstdout:\n{}\nstderr:\n{}",
+        out.stdout,
+        out.stderr
+    );
+    assert_eq!(out.stdout, "module-ok\n");
+}
+
+#[test]
+fn phase11_module_visibility_diagnostic_blocks_private_import() {
+    let project = temp_module_project(
+        "phase11_module_private_visibility",
+        &[
+            (
+                "demo/main.yb",
+                r#"
+module demo.main
+import demo.secret
+
+pub main() -> Int {
+  hidden(1)
+}
+"#,
+            ),
+            (
+                "demo/secret.yb",
+                r#"
+module demo.secret
+
+hidden(x: Int) -> Int {
+  x
+}
+"#,
+            ),
+        ],
+    );
+    let entry = project.join("demo").join("main.yb");
+    let out = run_vibe(&["check", entry.to_str().expect("entry path str")]);
+    assert!(
+        !out.status.success(),
+        "check unexpectedly succeeded:\nstdout:\n{}\nstderr:\n{}",
+        out.stdout,
+        out.stderr
+    );
+    assert!(
+        out.stdout.contains("is private; mark it `pub` to import"),
+        "expected private visibility diagnostic:\n{}",
+        out.stdout
+    );
+}
+
+#[test]
+fn phase11_module_cycle_diagnostic_is_reported() {
+    let project = temp_module_project(
+        "phase11_module_cycle",
+        &[
+            (
+                "demo/main.yb",
+                r#"
+module demo.main
+import demo.a
+
+pub main() -> Int {
+  a()
+}
+"#,
+            ),
+            (
+                "demo/a.yb",
+                r#"
+module demo.a
+import demo.b
+
+pub a() -> Int {
+  b()
+}
+"#,
+            ),
+            (
+                "demo/b.yb",
+                r#"
+module demo.b
+import demo.a
+
+pub b() -> Int {
+  1
+}
+"#,
+            ),
+        ],
+    );
+    let entry = project.join("demo").join("main.yb");
+    let out = run_vibe(&["check", entry.to_str().expect("entry path str")]);
+    assert!(
+        !out.status.success(),
+        "check unexpectedly succeeded:\nstdout:\n{}\nstderr:\n{}",
+        out.stdout,
+        out.stderr
+    );
+    assert!(
+        out.stdout.contains("import cycle detected"),
+        "expected cycle diagnostic:\n{}",
+        out.stdout
+    );
+}
+
+#[test]
+fn phase11_module_cross_package_import_is_rejected() {
+    let project = temp_module_project(
+        "phase11_module_cross_package",
+        &[
+            (
+                "alpha/main.yb",
+                r#"
+module alpha.main
+import beta.util
+
+pub main() -> Int {
+  util()
+}
+"#,
+            ),
+            (
+                "beta/util.yb",
+                r#"
+module beta.util
+
+pub util() -> Int {
+  0
+}
+"#,
+            ),
+        ],
+    );
+    let entry = project.join("alpha").join("main.yb");
+    let out = run_vibe(&["check", entry.to_str().expect("entry path str")]);
+    assert!(
+        !out.status.success(),
+        "check unexpectedly succeeded:\nstdout:\n{}\nstderr:\n{}",
+        out.stdout,
+        out.stderr
+    );
+    assert!(
+        out.stdout.contains("cross-package import `beta.util` is not allowed"),
+        "expected cross-package boundary diagnostic:\n{}",
+        out.stdout
+    );
+}
+
+#[test]
+fn phase11_module_layout_diagnostic_is_reported() {
+    let project = temp_module_project(
+        "phase11_module_layout",
+        &[
+            (
+                "demo/main.yb",
+                r#"
+module demo.main
+import demo.util
+
+pub main() -> Int {
+  util()
+}
+"#,
+            ),
+            (
+                "demo/wrong.yb",
+                r#"
+module demo.util
+
+pub util() -> Int {
+  0
+}
+"#,
+            ),
+        ],
+    );
+    let entry = project.join("demo").join("main.yb");
+    let out = run_vibe(&["check", entry.to_str().expect("entry path str")]);
+    assert!(
+        !out.status.success(),
+        "check unexpectedly succeeded:\nstdout:\n{}\nstderr:\n{}",
+        out.stdout,
+        out.stderr
+    );
+    assert!(
+        out.stdout.contains("does not match file layout `demo.wrong`"),
+        "expected package layout diagnostic:\n{}",
+        out.stdout
+    );
+}
+
+#[test]
 fn unsupported_member_access_has_stable_codegen_diagnostic() {
     let source = temp_fixture_copy("build_err/member_access_unsupported.vibe");
     let out = run_vibe(&["build", source.to_str().expect("source path str")]);
@@ -807,6 +1035,24 @@ fn temp_source_file(prefix: &str, source: &str) -> PathBuf {
     let file = temp_dir.join("main.yb");
     fs::write(&file, source.trim_start()).expect("write temp source");
     file
+}
+
+fn temp_module_project(prefix: &str, files: &[(&str, &str)]) -> PathBuf {
+    let project_root = unique_temp_dir(prefix);
+    fs::create_dir_all(&project_root).expect("create module project root");
+    fs::write(
+        project_root.join("vibe.toml"),
+        "[package]\nname = \"module-test\"\nversion = \"0.1.0\"\n\n[dependencies]\n",
+    )
+    .expect("write module project manifest");
+    for (relative, source) in files {
+        let path = project_root.join(relative);
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).expect("create module source parent");
+        }
+        fs::write(&path, source.trim_start()).expect("write module source");
+    }
+    project_root
 }
 
 fn temp_fixture_copy_with_extension(relative: &str, ext: &str) -> PathBuf {

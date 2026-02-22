@@ -4,7 +4,7 @@ Date: 2026-02-21
 
 ## Overall Status
 
-- Release candidate cycle: `rc1-phase11-local-surface`
+- Release candidate cycle: `rc1-phase11-module-composition`
 - Blocking `P0` gates open: `0`
 - `P1` gates open: `0`
 
@@ -22,6 +22,7 @@ Date: 2026-02-21
 | Native dynamic containers (`Str`/`List`/`Map`) | LOCAL-PASS | `reports/v1/dynamic_containers_conformance.md`, workflow `v1-release-gates.yml` job `dynamic_containers_gate`, `docs/development_checklist.md` section `7.3.f.1` | Compiler/Runtime | `7.3.f.1` closeout surface implemented for v1 freeze scope with deterministic parser/type/runtime evidence |
 | Phase 11.1 containers/text expansion | LOCAL-PASS | `reports/v1/phase11_containers_text_readiness.md`, workflow `v1-release-gates.yml` job `phase11_containers_text_gate`, artifact `v1-phase11-containers-text` | Compiler/Runtime | Native deterministic `for in`, UTF-8-safe string index/slice checks, and container/string equality conformance are now release-gated |
 | Phase 11.2 async/thread expansion | LOCAL-PASS | `reports/v1/phase11_async_thread_readiness.md`, workflow `v1-release-gates.yml` job `phase11_async_thread_gate`, artifact `v1-phase11-async-thread` | Compiler/Runtime | Async/await/thread syntax+IR flow, thread sendability guardrails, timeout/closed-channel behavior, and failure propagation checks are now release-gated |
+| Phase 11.3 module/program composition | LOCAL-PASS | `reports/v1/phase11_module_composition_readiness.md`, workflow `v1-release-gates.yml` job `phase11_module_composition_gate`, artifact `v1-phase11-module-composition`, docs `docs/module/composition_guide.md`, `docs/module/migration_and_compatibility.md` | Compiler/CLI/Docs | Deterministic module/import/package-boundary diagnostics, cycle/visibility checks, and service/CLI/library template scaffolds are now release-gated |
 | Ownership/sendability safety | LOCAL-PASS | `crates/vibe_cli/tests/phase7_v1_tightening.rs` + ownership fixtures | Compiler | Unknown sendability in `go` now fails closed (`E3201`) |
 | Coverage thresholds | LOCAL-PASS | `docs/testing/coverage_policy.md`, `tooling/metrics/collect_phase6_metrics.py`, `tooling/metrics/validate_v1_quality_budgets.py`, workflow `v1-release-gates.yml` jobs `metrics_threshold_smoke`, `quality_and_coverage_gate` | QA/CI | Clean/no-op/incremental compile and memory-lane thresholds are validated with explicit numeric budgets |
 | Rebuild reproducibility + toolchain pinning | LOCAL-PASS | workflow `v1-release-gates.yml` job `bit_identical_rebuild_gate`, workflow `v1-packaged-release.yml`, `rust-toolchain.toml` | Compiler/Release/CI | Release workflows are pinned to `1.85.1`; clean rebuild hash parity and toolchain evidence artifacts are emitted |
@@ -55,6 +56,7 @@ Date: 2026-02-21
 - `reports/v1/dynamic_containers_conformance.md`
 - `reports/v1/phase11_containers_text_readiness.md`
 - `reports/v1/phase11_async_thread_readiness.md`
+- `reports/v1/phase11_module_composition_readiness.md`
 - `reports/v1/install_independence.md`
 - `reports/v1/distribution_readiness.md`
 - `reports/v1/phase8_ci_evidence.md`

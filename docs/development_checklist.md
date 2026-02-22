@@ -692,16 +692,16 @@ Goal: expand beyond the current freeze scope so users can author broader real-wo
 
 ### 11.3 Module and Program-Scale Composition
 
-- [ ] Strengthen module/import/package-boundary behavior for multi-module applications
-- [ ] Add visibility, cyclic-import, and package-layout diagnostics for large codebases
-- [ ] Add project templates for service/CLI/library layouts with integration tests
-- [ ] Publish migration and compatibility guidance for stable module evolution
+- [x] Strengthen module/import/package-boundary behavior for multi-module applications
+- [x] Add visibility, cyclic-import, and package-layout diagnostics for large codebases
+- [x] Add project templates for service/CLI/library layouts with integration tests
+- [x] Publish migration and compatibility guidance for stable module evolution
 
 ### Phase 11 Exit Criteria
 
 - [x] Real application patterns requiring generic collections, iteration, and text slicing are supported with deterministic tests
 - [x] Async/thread semantics move from spec-only to release-gated implementation (evidence: tests + CI gates + docs)
-- [ ] Multi-module application composition is stable and documented for production teams
+- [x] Multi-module application composition is stable and documented for production teams
 
 ---
 
