@@ -7,7 +7,7 @@ Owner: `vibelang-core`
 ## Gate Summary
 
 - [ ] `v1-release-gates.yml` passed for current candidate
-- [ ] No open `P0` blockers
+- [x] No open `P0` blockers
 - [x] `P1` exceptions documented and approved
 
 ## Determinism and Correctness
@@ -15,7 +15,7 @@ Owner: `vibelang-core`
 - [x] Deterministic build smoke passed
 - [x] Frontend determinism smoke passed
 - [x] Spec integrity gate baseline passed locally (`spec_integrity_gate`: markdown lint + consistency + coverage validators)
-- [ ] Native contract enforcement smoke passed
+- [x] Native contract enforcement smoke passed (`contract_runtime_enforcement_gate`, artifact `v1-contract-runtime-enforcement`)
 - [x] Compiler self-host readiness gate passed (`7.3.e`: M1 parity + one RC dry-run evidence cycle)
 - [x] M4 promoted self-host RC cycle passed for diagnostics ordering candidate with rollback drill (`selfhost_m4_rc_cycle_gate`, artifact `v1-selfhost-m4-rc-cycle`)
 - [x] Native dynamic container smoke passed (`Str`/`List`/`Map` construction + member/container lowering without `E3401`/`E3402`) after self-host readiness gate
@@ -25,8 +25,8 @@ Owner: `vibelang-core`
 
 - [x] Concurrency deterministic/bounded smoke passed
 - [x] Runtime bounded soak tests passed
-- [ ] Memory/leak smoke checks passed (if enabled in this cycle)
-- [ ] GC-specific smoke checks passed (only when GC runtime path is active)
+- [x] Memory/leak smoke checks passed (`memory_gc_default_gate`, valgrind lane)
+- [x] GC-specific smoke checks passed (`memory_gc_default_gate`, GC-observable lane)
 
 ## Packaging and Compatibility
 
@@ -59,4 +59,4 @@ Owner: `vibelang-core`
 
 - Decision: `not-ready-for-ga`
 - Decision owner: `vibelang-core`
-- Notes: `P0 native contract enforcement remains open; memory/GC tool lanes are feature-gated and not executed in default local dry-run.`
+- Notes: `Phase 10 hardening items are locally validated; final GA promotion still requires hosted candidate run with all gates green and linked workflow evidence.`

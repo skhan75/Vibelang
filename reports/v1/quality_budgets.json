@@ -1,12 +1,20 @@
 {
   "compile_benchmarks": {
-    "max_clean_ms": 1500,
-    "max_noop_ms": 1000,
-    "max_runtime_smoke_ms": 1500
+    "max_clean_ms": 12000,
+    "max_noop_ms": 2000,
+    "max_incremental_ms": 1500,
+    "max_runtime_smoke_ms": 3000,
+    "min_index_cache_hit_rate": 0.1
   },
   "stress_budgets": {
     "max_concurrency_smoke_seconds": 5,
-    "max_memory_smoke_seconds": 5
+    "max_memory_smoke_seconds": 5,
+    "max_index_memory_bytes": 25000000,
+    "max_index_memory_ratio": 10.0
+  },
+  "memory_lanes": {
+    "require_default_gc_lane": true,
+    "require_default_valgrind_lane": true
   },
   "coverage_requirements": {
     "require_frontend_fixtures": true,

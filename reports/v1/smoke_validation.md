@@ -19,10 +19,21 @@ All commands were executed from workspace root.
 - `cargo test -p vibe_cli --test phase7_validation`
 - `cargo test -p vibe_cli --test phase7_concurrency`
 - `cargo test -p vibe_cli --test phase7_v1_tightening`
+- `cargo test -p vibe_cli --test contract_runtime_enforcement`
+- `cargo test -p vibe_cli --test phase2_native run_enforces_native_require_contracts`
+- `cargo test -p vibe_cli --test phase2_native produced_binary_enforces_native_ensure_contracts`
+- `cargo test -p vibe_cli --test phase2_native run_locked_requires_lockfile_when_manifest_exists`
+- `cargo test -p vibe_cli --test phase2_native run_locked_succeeds_with_lockfile_when_manifest_exists`
+- `cargo test -p vibe_cli --test phase2_native test_locked_requires_lockfile_when_manifest_exists`
+- `cargo test -p vibe_cli --test phase2_native test_locked_succeeds_with_lockfile_when_manifest_exists`
 - `cargo test -p vibe_cli --test phase7_v1_tightening phase7_algorithmic_recursion_samples_run_expected_outputs`
 - `cargo test -p vibe_cli --test phase7_v1_tightening phase7_memory_heap_pressure_smoke_is_bounded`
+- `cargo test -p vibe_cli --test phase7_v1_tightening phase7_gc_observable_smoke_is_default_lane`
+- `cargo test -p vibe_cli --test phase7_v1_tightening phase7_memory_valgrind_leak_check_default_lane`
 - `cargo test -p vibe_cli --test phase7_v1_tightening phase7_ownership_sendability_smokes_cover_positive_and_negative_paths`
+- `python3 tooling/metrics/collect_phase6_metrics.py`
 - `python3 tooling/metrics/validate_phase7_coverage_matrix.py`
+- `python3 tooling/metrics/validate_phase6_metrics.py`
 - `python3 tooling/metrics/validate_v1_quality_budgets.py`
 
 ## Result Summary
@@ -33,19 +44,20 @@ All commands were executed from workspace root.
 - Ownership/sendability safety smokes: PASS
 - Heap-pressure bounded smoke: PASS
 - Dynamic container conformance smokes (`Str`/`List`/`Map`): PASS
+- Native contract runtime enforcement suites: PASS
 - CLI help/version regression smokes: PASS
 - Local no-Cargo packaged install simulation (Linux layout): PASS
-- Coverage/budget validators: PASS
+- Coverage/budget validators (clean/no-op/incremental + memory lanes): PASS
 
-## Feature-Gated Lanes (Not Enabled by Default)
+## Memory + GC Default Lanes
 
-- `VIBE_ENABLE_MEMORY_TOOLS=1` valgrind leak lane: SKIPPED in default local dry-run
-- `VIBE_ENABLE_GC_SMOKE=1` GC-observable lane: SKIPPED in default local dry-run
+- Valgrind leak lane (`phase7_memory_valgrind_leak_check_default_lane`): PASS
+- GC-observable lane (`phase7_gc_observable_smoke_is_default_lane`): PASS
 
 ## Notes
 
-- Native execution-path contract enforcement remains an open P0 for GA and is tracked in
-  `reports/v1/readiness_dashboard.md`.
+- Native execution-path contract enforcement is now wired as a blocking lane and tracked as
+  closed in `reports/v1/readiness_dashboard.md`.
 - Dynamic container closeout evidence is published in
   `reports/v1/dynamic_containers_conformance.md`.
 - Independent install and distribution trust wiring evidence is published in

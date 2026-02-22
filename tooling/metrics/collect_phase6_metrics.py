@@ -27,6 +27,23 @@ def run(cmd, cwd):
     }
 
 
+def parse_index_stats(raw_stdout: str) -> dict:
+    line = ""
+    for candidate in raw_stdout.splitlines():
+        if candidate.startswith("index stats:"):
+            line = candidate
+            break
+    if not line:
+        return {}
+    out = {}
+    for token in line.replace("index stats:", "").strip().split():
+        if "=" not in token:
+            continue
+        key, value = token.split("=", 1)
+        out[key.strip()] = value.strip()
+    return out
+
+
 def main():
     repo_root = Path(__file__).resolve().parents[2]
     reports_dir = repo_root / "reports" / "phase6" / "metrics"
@@ -45,6 +62,21 @@ def main():
         ["cargo", "run", "-q", "-p", "vibe_cli", "--", "check", str(hello_fixture)],
         repo_root,
     )
+    compile_incremental = run(
+        [
+            "cargo",
+            "run",
+            "-q",
+            "-p",
+            "vibe_cli",
+            "--",
+            "index",
+            str(repo_root / "compiler" / "tests" / "fixtures" / "build"),
+            "--stats",
+        ],
+        repo_root,
+    )
+    index_stats = parse_index_stats(compile_incremental["stdout"])
     runtime_smoke = run(
         ["cargo", "run", "-q", "-p", "vibe_cli", "--", "run", str(hello_fixture)],
         repo_root,
@@ -75,6 +107,32 @@ def main():
             "-p",
             "vibe_runtime",
             "ensure_supported_target_accepts_phase6_targets",
+        ],
+        repo_root,
+    )
+    memory_gc_lane = run(
+        [
+            "cargo",
+            "test",
+            "-q",
+            "-p",
+            "vibe_cli",
+            "--test",
+            "phase7_v1_tightening",
+            "phase7_gc_observable_smoke_is_default_lane",
+        ],
+        repo_root,
+    )
+    memory_valgrind_lane = run(
+        [
+            "cargo",
+            "test",
+            "-q",
+            "-p",
+            "vibe_cli",
+            "--test",
+            "phase7_v1_tightening",
+            "phase7_memory_valgrind_leak_check_default_lane",
         ],
         repo_root,
     )
@@ -139,8 +197,18 @@ def main():
         "generated_at_epoch_s": int(time.time()),
         "compile_clean_ms": compile_clean["elapsed_ms"],
         "compile_noop_ms": compile_noop["elapsed_ms"],
+        "compile_incremental_ms": int(index_stats.get("incremental_ms", 0) or 0),
+        "index_cache_hits": int(index_stats.get("cache_hits", 0) or 0),
+        "index_cache_misses": int(index_stats.get("cache_misses", 0) or 0),
+        "index_cache_hit_rate": float(index_stats.get("cache_hit_rate", 0.0) or 0.0),
+        "index_memory_bytes": int(index_stats.get("memory_bytes", 0) or 0),
+        "index_memory_ratio": float(index_stats.get("memory_ratio", 0.0) or 0.0),
         "runtime_smoke_pass": runtime_smoke["exit"] == 0,
         "runtime_smoke_ms": runtime_smoke["elapsed_ms"],
+        "memory_gc_lane_pass": memory_gc_lane["exit"] == 0,
+        "memory_valgrind_lane_pass": memory_valgrind_lane["exit"] == 0,
+        "memory_valgrind_lane_skipped": "skipping valgrind leak smoke"
+        in (memory_valgrind_lane["stdout"] + memory_valgrind_lane["stderr"]),
         "contract_example_pass": contract_run["exit"] == 0,
         "contract_summary": contract_run["stdout"].strip(),
         "intent_lint_pass": intent_lint["exit"] == 0,
@@ -169,7 +237,11 @@ def main():
         "# Phase 6 Metrics Snapshot\n\n"
         f"- compile_clean_ms: {metrics['compile_clean_ms']}\n"
         f"- compile_noop_ms: {metrics['compile_noop_ms']}\n"
+        f"- compile_incremental_ms: {metrics['compile_incremental_ms']}\n"
+        f"- index_cache_hit_rate: {metrics['index_cache_hit_rate']:.4f}\n"
         f"- runtime_smoke_pass: {metrics['runtime_smoke_pass']}\n"
+        f"- memory_gc_lane_pass: {metrics['memory_gc_lane_pass']}\n"
+        f"- memory_valgrind_lane_pass: {metrics['memory_valgrind_lane_pass']}\n"
         f"- dual_extension_parity_pass_rate: {metrics['dual_extension_parity_pass_rate']:.2f}\n"
         f"- source_extension_yb_ratio: {metrics['source_extension_yb_ratio']:.2f}\n"
     )

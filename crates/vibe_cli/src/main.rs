@@ -1039,6 +1039,7 @@ fn run_index(args: &IndexArgs) -> Result<ExitCode, String> {
         telemetry.invalidation_fanout += report.invalidation_fanout;
         telemetry.cache_hits += report.cache_hits;
         telemetry.cache_misses += report.cache_misses;
+        telemetry.incremental_update_latency_ms = report.incremental_update_latency_ms;
         single_file_incremental_ms = report.incremental_update_latency_ms;
     }
 
@@ -1050,6 +1051,7 @@ fn run_index(args: &IndexArgs) -> Result<ExitCode, String> {
         files.len(),
         index_root.display()
     );
+    println!("{}", telemetry.summary_line());
     if args.stats {
         print_index_stats(
             &stats,
@@ -1847,10 +1849,17 @@ fn normalize_source_for_debug_map(source_path: &Path) -> String {
             return format!("./{}", rel.to_string_lossy().replace('\\', "/"));
         }
     }
-    canonical.to_string_lossy().replace('\\', "/")
+    let file_name = canonical
+        .file_name()
+        .and_then(|s| s.to_str())
+        .unwrap_or("source");
+    format!("external://{file_name}")
 }
 
 fn run_test(args: &BuildArgs) -> Result<ExitCode, String> {
+    if args.locked {
+        enforce_locked_mode(&args.source_path)?;
+    }
     let start = std::time::Instant::now();
     let files = collect_vibe_files(&args.source_path)?;
     if files.is_empty() {

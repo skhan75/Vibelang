@@ -7,12 +7,17 @@ on:
     branches: ["main", "release/**"]
   workflow_dispatch:
 
+env:
+  RUST_TOOLCHAIN_VERSION: "1.85.1"
+
 jobs:
   determinism_and_core_smokes:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
       - name: deterministic build + frontend determinism
         run: |
           set -euo pipefail
@@ -25,6 +30,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
       - name: runtime and concurrency bounded stress
         run: |
           set -euo pipefail
@@ -32,11 +39,46 @@ jobs:
           cargo test -p vibe_runtime scheduler_bounded_soak_stability
           cargo test -p vibe_runtime channel_contention_close_stress
 
+  contract_runtime_enforcement_gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - name: run native contract runtime enforcement suites
+        run: |
+          set -euo pipefail
+          cargo test -p vibe_cli --test phase2_native run_enforces_native_require_contracts
+          cargo test -p vibe_cli --test phase2_native produced_binary_enforces_native_ensure_contracts
+          cargo test -p vibe_cli --test contract_runtime_enforcement
+      - name: publish contract runtime gate summary
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/v1-contract-runtime
+          cat > /tmp/v1-contract-runtime/summary.md <<'EOF'
+          # Contract Runtime Enforcement Gate
+
+          - status: pass
+          - suites:
+            - `phase2_native::run_enforces_native_require_contracts`
+            - `phase2_native::produced_binary_enforces_native_ensure_contracts`
+            - `contract_runtime_enforcement`
+          - note: native `@require/@ensure` checks execute in `vibe run` and built binaries.
+          - runtime safety exceptions: no open P0 runtime safety exceptions for this gate cycle.
+          EOF
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v1-contract-runtime-enforcement
+          path: /tmp/v1-contract-runtime/summary.md
+
   intent_validation_smokes:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
       - name: intent verifier-gate smoke
         run: |
           set -euo pipefail
@@ -47,10 +89,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
       - name: build release binary and emit checksum
         run: |
           set -euo pipefail
-          cargo build --release -p vibe_cli
+          cargo build --release --locked -p vibe_cli
           sha256sum target/release/vibe > /tmp/vibe.sha256
           test -s /tmp/vibe.sha256
       - uses: actions/upload-artifact@v4
@@ -58,22 +102,73 @@ jobs:
           name: v1-release-checksums
           path: /tmp/vibe.sha256
 
+  bit_identical_rebuild_gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - name: build twice from clean state and compare binary hashes
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/v1-rebuild
+          cargo build --release --locked -p vibe_cli
+          sha256sum target/release/vibe > /tmp/v1-rebuild/build1.sha256
+          cp target/release/vibe /tmp/v1-rebuild/vibe-build1
+          cargo clean
+          cargo build --release --locked -p vibe_cli
+          sha256sum target/release/vibe > /tmp/v1-rebuild/build2.sha256
+          cp target/release/vibe /tmp/v1-rebuild/vibe-build2
+          diff -u /tmp/v1-rebuild/build1.sha256 /tmp/v1-rebuild/build2.sha256
+      - name: capture toolchain evidence
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/v1-rebuild
+          rustc -Vv > /tmp/v1-rebuild/rustc-version.txt
+          rustup show active-toolchain > /tmp/v1-rebuild/active-toolchain.txt
+          rustc_bin="$(rustup which rustc)"
+          sha256sum "${rustc_bin}" > /tmp/v1-rebuild/rustc-bin.sha256
+          cp rust-toolchain.toml /tmp/v1-rebuild/rust-toolchain.toml
+          cat > /tmp/v1-rebuild/summary.md <<'EOF'
+          # Bit-Identical Rebuild Gate
+
+          - status: pass
+          - check: two clean `cargo build --release --locked -p vibe_cli` executions produced identical `vibe` binary hashes
+          - evidence files: `build1.sha256`, `build2.sha256`, `rustc-version.txt`, `active-toolchain.txt`, `rustc-bin.sha256`, `rust-toolchain.toml`
+          EOF
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v1-bit-identical-rebuild-evidence
+          path: /tmp/v1-rebuild/*
+
   metrics_threshold_smoke:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
       - name: collect and validate metrics thresholds
         run: |
           set -euo pipefail
           python3 tooling/metrics/collect_phase6_metrics.py
           python3 tooling/metrics/validate_phase6_metrics.py
+          python3 tooling/metrics/validate_v1_quality_budgets.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v1-metrics-threshold-snapshot
+          path: |
+            reports/phase6/metrics/phase6_metrics.json
+            reports/phase6/metrics/phase6_metrics.md
 
   quality_and_coverage_gate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
       - name: validate coverage policy and v1 quality budgets
         run: |
           set -euo pipefail
@@ -89,6 +184,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
       - name: run CLI help/version regression tests
         run: |
           set -euo pipefail
@@ -105,10 +202,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
       - name: build packaged candidate binary
         run: |
           set -euo pipefail
-          cargo build --release -p vibe_cli
+          cargo build --release --locked -p vibe_cli
       - name: simulate no-cargo install path and run hello
         run: |
           set -euo pipefail
@@ -158,10 +257,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
       - name: build release binary for linux compatibility lane
         run: |
           set -euo pipefail
-          cargo build --release -p vibe_cli
+          cargo build --release --locked -p vibe_cli
       - name: enforce glibc baseline on compatibility floor
         if: ${{ matrix.os == 'ubuntu-22.04' }}
         run: |
@@ -220,6 +321,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
       - name: run dynamic container frontend coverage
         run: |
           set -euo pipefail
@@ -238,6 +341,41 @@ jobs:
         with:
           name: v1-dynamic-containers-conformance
           path: reports/v1/dynamic_containers_conformance.md
+
+  memory_gc_default_gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - name: install valgrind for leak lane
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y valgrind
+      - name: run default GC + valgrind memory lanes
+        run: |
+          set -euo pipefail
+          cargo test -p vibe_cli --test phase7_v1_tightening phase7_gc_observable_smoke_is_default_lane
+          cargo test -p vibe_cli --test phase7_v1_tightening phase7_memory_valgrind_leak_check_default_lane
+      - name: publish memory gate summary artifact
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/v1-memory-gc
+          cat > /tmp/v1-memory-gc/summary.md <<'EOF'
+          # Memory + GC Default Gate
+
+          - status: pass
+          - lanes:
+            - `phase7_gc_observable_smoke_is_default_lane`
+            - `phase7_memory_valgrind_leak_check_default_lane`
+          - note: memory/leak and GC-observable checks are now part of the default release-gate cycle.
+          EOF
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v1-memory-gc-default-gate
+          path: /tmp/v1-memory-gc/summary.md
 
   spec_integrity_gate:
     runs-on: ubuntu-latest
@@ -297,18 +435,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
       - name: run adjacent-version and lock-mode compatibility path
         run: |
           set -euo pipefail
           cargo test -p vibe_cli --test phase2_native vibe_test_directory_accepts_mixed_extensions_when_stems_differ
           cargo test -p vibe_cli --test phase2_native vibe_test_rejects_same_stem_across_extensions
           cargo test -p vibe_cli --test phase2_native build_locked_requires_lockfile_when_manifest_exists
+          cargo test -p vibe_cli --test phase2_native build_locked_succeeds_with_lockfile_when_manifest_exists
+          cargo test -p vibe_cli --test phase2_native run_locked_requires_lockfile_when_manifest_exists
+          cargo test -p vibe_cli --test phase2_native run_locked_succeeds_with_lockfile_when_manifest_exists
+          cargo test -p vibe_cli --test phase2_native test_locked_requires_lockfile_when_manifest_exists
+          cargo test -p vibe_cli --test phase2_native test_locked_succeeds_with_lockfile_when_manifest_exists
 
   selfhost_readiness_gate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
       - name: run selfhost formatter parity and determinism tests
         run: |
           set -euo pipefail
@@ -336,6 +483,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
       - name: run M2 docs and diagnostics parity suites
         run: |
           set -euo pipefail
@@ -365,6 +514,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
       - name: run expanded M3 shadow parity + determinism checks
         env:
           VIBE_SELFHOST_M3_ARTIFACT_DIR: /tmp/v1-selfhost-m3
@@ -398,6 +549,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
       - name: run promoted selfhost diagnostics ordering candidate checks
         env:
           VIBE_DIAGNOSTICS_SORT_MODE: selfhost-default
@@ -440,6 +593,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
       - name: verify required selfhost evidence documents exist
         run: |
           set -euo pipefail
@@ -563,14 +718,17 @@ jobs:
     needs:
       - determinism_and_core_smokes
       - runtime_and_concurrency_smokes
+      - contract_runtime_enforcement_gate
       - intent_validation_smokes
       - packaging_integrity_smoke
+      - bit_identical_rebuild_gate
       - metrics_threshold_smoke
       - quality_and_coverage_gate
       - cli_ux_gate
       - independent_install_gate
       - linux_compatibility_gate
       - dynamic_containers_gate
+      - memory_gc_default_gate
       - spec_integrity_gate
       - compatibility_gate
       - selfhost_readiness_gate

@@ -66,6 +66,16 @@ pub enum HirStmt {
     Go {
         expr: HirExpr,
     },
+    ContractCheck {
+        kind: HirContractKind,
+        expr: HirExpr,
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HirContractKind {
+    Require,
+    Ensure,
 }
 
 #[derive(Debug, Clone)]
@@ -174,7 +184,10 @@ fn verify_stmt_list(stmts: &[HirStmt], scope: &mut BTreeMap<String, String>) -> 
                 verify_expr(target)?;
                 verify_expr(expr)?;
             }
-            HirStmt::Return { expr } | HirStmt::Expr { expr } | HirStmt::Go { expr } => {
+            HirStmt::Return { expr }
+            | HirStmt::Expr { expr }
+            | HirStmt::Go { expr }
+            | HirStmt::ContractCheck { expr, .. } => {
                 verify_expr(expr)?;
             }
             HirStmt::For { var, iter, body } => {

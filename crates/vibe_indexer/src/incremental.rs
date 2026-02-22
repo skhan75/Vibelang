@@ -13,6 +13,33 @@ pub struct IncrementalTelemetry {
     pub cache_misses: usize,
 }
 
+impl IncrementalTelemetry {
+    pub fn total_cache_events(&self) -> usize {
+        self.cache_hits + self.cache_misses
+    }
+
+    pub fn cache_hit_rate(&self) -> f64 {
+        let total = self.total_cache_events();
+        if total == 0 {
+            0.0
+        } else {
+            self.cache_hits as f64 / total as f64
+        }
+    }
+
+    pub fn summary_line(&self) -> String {
+        format!(
+            "incremental cache telemetry: hits={} misses={} hit_rate={:.4} reindexed={} fanout={} incremental_ms={}",
+            self.cache_hits,
+            self.cache_misses,
+            self.cache_hit_rate(),
+            self.files_reindexed,
+            self.invalidation_fanout,
+            self.incremental_update_latency_ms
+        )
+    }
+}
+
 #[derive(Debug)]
 pub struct IncrementalIndexer {
     store: IndexStore,

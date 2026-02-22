@@ -9,8 +9,8 @@ use vibe_ast::{
 };
 use vibe_diagnostics::{Diagnostic, Diagnostics, Severity};
 use vibe_hir::{
-    verify_hir, HirExpr, HirExprKind, HirFunction, HirParam, HirProgram, HirSelectCase,
-    HirSelectPattern, HirStmt,
+    verify_hir, HirContractKind, HirExpr, HirExprKind, HirFunction, HirParam, HirProgram,
+    HirSelectCase, HirSelectPattern, HirStmt,
 };
 
 use crate::effect_diagnostics::emit_effect_diagnostics;
@@ -70,6 +70,8 @@ pub fn check_and_lower(ast: &FileAst) -> CheckOutput {
         let mut env: BTreeMap<String, TypeKind> = BTreeMap::new();
         let mut observed_effects: BTreeSet<String> = BTreeSet::new();
         let mut declared_effects: BTreeSet<String> = BTreeSet::new();
+        let mut require_contract_exprs: Vec<Expr> = Vec::new();
+        let mut ensure_contract_exprs: Vec<Expr> = Vec::new();
 
         if func.is_public {
             for p in &func.params {
@@ -148,6 +150,7 @@ pub fn check_and_lower(ast: &FileAst) -> CheckOutput {
                             *span,
                         ));
                     }
+                    require_contract_exprs.push(expr.clone());
                 }
                 Contract::Ensure { expr, span } => {
                     validate_contract_expr(expr, ContractContext::Ensure, &mut diagnostics);
@@ -169,6 +172,7 @@ pub fn check_and_lower(ast: &FileAst) -> CheckOutput {
                             *span,
                         ));
                     }
+                    ensure_contract_exprs.push(expr.clone());
                 }
                 Contract::Examples { cases, .. } => {
                     for case in cases {
@@ -196,6 +200,12 @@ pub fn check_and_lower(ast: &FileAst) -> CheckOutput {
 
         let mut inferred_returns: Vec<TypeKind> = Vec::new();
         let mut hir_body: Vec<HirStmt> = Vec::new();
+        for expr in &require_contract_exprs {
+            hir_body.push(HirStmt::ContractCheck {
+                kind: HirContractKind::Require,
+                expr: lower_contract_expr(expr, &env, None),
+            });
+        }
         for stmt in &func.body {
             check_stmt(
                 stmt,
@@ -205,6 +215,7 @@ pub fn check_and_lower(ast: &FileAst) -> CheckOutput {
                 &mut observed_effects,
                 &mut inferred_returns,
                 &mut hir_body,
+                &ensure_contract_exprs,
             );
         }
         let mut hir_tail_expr = None;
@@ -218,7 +229,14 @@ pub fn check_and_lower(ast: &FileAst) -> CheckOutput {
                 &mut observed_effects,
             );
             inferred_returns.push(t);
-            hir_tail_expr = Some(lower_expr(expr, &env));
+            let lowered_tail = lower_expr(expr, &env);
+            for contract_expr in &ensure_contract_exprs {
+                hir_body.push(HirStmt::ContractCheck {
+                    kind: HirContractKind::Ensure,
+                    expr: lower_contract_expr(contract_expr, &env, Some(&lowered_tail)),
+                });
+            }
+            hir_tail_expr = Some(lowered_tail);
         }
 
         let inferred_return = unify_return_types(&inferred_returns);
@@ -302,6 +320,7 @@ fn check_stmt(
     observed_effects: &mut BTreeSet<String>,
     inferred_returns: &mut Vec<TypeKind>,
     hir_out: &mut Vec<HirStmt>,
+    ensure_contract_exprs: &[Expr],
 ) {
     match stmt {
         Stmt::Binding { name, expr, .. } => {
@@ -372,8 +391,15 @@ fn check_stmt(
                 observed_effects,
             );
             inferred_returns.push(ret_ty);
+            let lowered_return_expr = lower_expr(expr, env);
+            for ensure_expr in ensure_contract_exprs {
+                hir_out.push(HirStmt::ContractCheck {
+                    kind: HirContractKind::Ensure,
+                    expr: lower_contract_expr(ensure_expr, env, Some(&lowered_return_expr)),
+                });
+            }
             hir_out.push(HirStmt::Return {
-                expr: lower_expr(expr, env),
+                expr: lowered_return_expr,
             });
         }
         Stmt::ExprStmt { expr, .. } => {
@@ -415,6 +441,7 @@ fn check_stmt(
                     observed_effects,
                     inferred_returns,
                     &mut child_hir,
+                    ensure_contract_exprs,
                 );
             }
             hir_out.push(HirStmt::For {
@@ -455,6 +482,7 @@ fn check_stmt(
                     observed_effects,
                     inferred_returns,
                     &mut then_hir,
+                    ensure_contract_exprs,
                 );
             }
             let mut else_hir = Vec::new();
@@ -467,6 +495,7 @@ fn check_stmt(
                     observed_effects,
                     inferred_returns,
                     &mut else_hir,
+                    ensure_contract_exprs,
                 );
             }
             hir_out.push(HirStmt::If {
@@ -502,6 +531,7 @@ fn check_stmt(
                     observed_effects,
                     inferred_returns,
                     &mut child_hir,
+                    ensure_contract_exprs,
                 );
             }
             hir_out.push(HirStmt::While {
@@ -536,6 +566,7 @@ fn check_stmt(
                     observed_effects,
                     inferred_returns,
                     &mut child_hir,
+                    ensure_contract_exprs,
                 );
             }
             hir_out.push(HirStmt::Repeat {
@@ -626,6 +657,73 @@ fn lower_select_pattern(
         },
         SelectPattern::Default => HirSelectPattern::Default,
     }
+}
+
+fn lower_contract_expr(
+    expr: &Expr,
+    env: &BTreeMap<String, TypeKind>,
+    dot_result: Option<&HirExpr>,
+) -> HirExpr {
+    if let Expr::DotResult { .. } = expr {
+        if let Some(result) = dot_result {
+            return result.clone();
+        }
+    }
+    let ty = type_name(&expr_type_hint(expr, env));
+    let kind = match expr {
+        Expr::Ident { name, .. } => HirExprKind::Ident(name.clone()),
+        Expr::Int { value, .. } => HirExprKind::Int(*value),
+        Expr::Float { value, .. } => HirExprKind::Float(*value),
+        Expr::Bool { value, .. } => HirExprKind::Bool(*value),
+        Expr::String { value, .. } => HirExprKind::String(value.clone()),
+        Expr::List { items, .. } => HirExprKind::List(
+            items
+                .iter()
+                .map(|e| lower_contract_expr(e, env, dot_result))
+                .collect(),
+        ),
+        Expr::Map { entries, .. } => HirExprKind::Map(
+            entries
+                .iter()
+                .map(|(k, v)| {
+                    (
+                        lower_contract_expr(k, env, dot_result),
+                        lower_contract_expr(v, env, dot_result),
+                    )
+                })
+                .collect(),
+        ),
+        Expr::Member { object, field, .. } => HirExprKind::Member {
+            object: Box::new(lower_contract_expr(object, env, dot_result)),
+            field: field.clone(),
+        },
+        Expr::Call { callee, args, .. } => HirExprKind::Call {
+            callee: Box::new(lower_contract_expr(callee, env, dot_result)),
+            args: args
+                .iter()
+                .map(|a| lower_contract_expr(a, env, dot_result))
+                .collect(),
+        },
+        Expr::Binary {
+            left, op, right, ..
+        } => HirExprKind::Binary {
+            left: Box::new(lower_contract_expr(left, env, dot_result)),
+            op: *op,
+            right: Box::new(lower_contract_expr(right, env, dot_result)),
+        },
+        Expr::Unary { op, expr, .. } => HirExprKind::Unary {
+            op: *op,
+            expr: Box::new(lower_contract_expr(expr, env, dot_result)),
+        },
+        Expr::Question { expr, .. } => HirExprKind::Question {
+            expr: Box::new(lower_contract_expr(expr, env, dot_result)),
+        },
+        Expr::DotResult { .. } => HirExprKind::DotResult,
+        Expr::Old { expr, .. } => HirExprKind::Old {
+            expr: Box::new(lower_contract_expr(expr, env, dot_result)),
+        },
+    };
+    HirExpr::new(kind, ty)
 }
 
 fn lower_expr(expr: &Expr, env: &BTreeMap<String, TypeKind>) -> HirExpr {

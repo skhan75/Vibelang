@@ -616,3 +616,180 @@ Goal: safely move from host-implemented compiler/tooling components to VibeLang-
 - [x] M2 and expanded M3 components show deterministic parity in consecutive CI runs above agreed threshold (evidence: `reports/v1/selfhost_readiness.md`, `reports/v1/selfhost_m2_readiness.md`, `reports/v1/selfhost_m3_expansion.md`)
 - [x] At least one component is promoted to self-host default path with proven rollback and successful RC cycle evidence (evidence: `docs/release/selfhost_transition_playbook.md`, `reports/v1/release_candidate_checklist.md`, workflow `.github/workflows/v1-release-gates.yml` job `selfhost_m4_rc_cycle_gate`)
 - [x] Self-host transition is production-safe: fallback controls, ownership, and incident-response procedures are documented and exercised (evidence: `docs/selfhost/component_ownership.md`, `docs/selfhost/m4_transition_criteria.md`, `docs/release/selfhost_transition_playbook.md`, test `crates/vibe_diagnostics/tests/selfhost_transition_toggle.rs`)
+
+---
+
+## Production Readiness Delta Snapshot (Audit: 2026-02-21)
+
+What is already available for real usage:
+
+- [x] No-Cargo packaged install path is validated for tier-1 end-user targets (Linux/macOS/Windows) (evidence: Phase 8 closure + `reports/v1/install_independence.md`)
+- [x] Signed distribution trust stack is validated (checksums, signatures, provenance, SBOM) (evidence: `reports/v1/distribution_readiness.md`)
+- [x] CLI maturity baseline exists (`vibe --help`, `vibe --version`) with regression gates (evidence: `docs/cli/help_manual.md`, `docs/cli/version_output.md`, workflow `.github/workflows/v1-cli-ux.yml`)
+- [x] Self-host transition foundation (M1-M4) is wired with blocking gates and rollback control (evidence: Phase 9 closure + `reports/v1/selfhost_readiness.md`)
+
+What still blocks "full-fledged language for mainstream software development":
+
+- [x] Native runtime contract enforcement gap is closed via native `@require/@ensure` lowering + blocking gate `contract_runtime_enforcement_gate` (evidence: `reports/v1/readiness_dashboard.md`, `reports/v1/smoke_validation.md`, `crates/vibe_cli/tests/contract_runtime_enforcement.rs`)
+- [x] Memory/leak and GC-observable lanes are in the default release cycle via `memory_gc_default_gate` (evidence: `.github/workflows/v1-release-gates.yml`, `reports/v1/release_candidate_checklist.md`, `reports/v1/smoke_validation.md`)
+- [ ] Dynamic container implementation is still in freeze scope, not full generic container surface (evidence gap: deferred items in `docs/spec/containers.md`)
+- [ ] Async/await and explicit thread model are specified but not fully implemented end-to-end (evidence gap: `reports/v1/spec_readiness.md` deferred items)
+- [x] Toolchain reproducibility and performance guardrails are hardened (`--locked`, pinned toolchain, clean/no-op/incremental thresholds, bit-identical rebuild gate) (evidence: `.github/workflows/v1-release-gates.yml`, `.github/workflows/v1-packaged-release.yml`, `reports/v1/quality_budgets.json`)
+- [ ] Book/docs quality program remains incomplete for mainstream onboarding (evidence gap: section `7.4` + Phase 7 exit item 4)
+
+---
+
+## Phase 10: GA Runtime and Determinism Hardening
+
+Goal: close remaining P0/P1 engineering blockers so release candidates can be promoted without caveats.
+
+### 10.1 Runtime Safety and Contract Enforcement
+
+- [x] Implement contract checks (`@require/@ensure`) in native execution path for `vibe run` and produced binaries (not only example-runner path)
+- [x] Add negative/positive runtime contract enforcement suites in CI with blocking status
+- [x] Close `V1-P0-CRUNTIME` in `reports/v1/readiness_dashboard.md` with linked workflow evidence
+- [x] Add release-gate summary artifact proving no open P0 runtime safety exceptions for candidate
+
+### 10.2 Reproducibility and Determinism Baseline
+
+- [x] Implement true `--locked` mode in CLI build/run/test pathways and enforce in release workflows
+- [x] Pin release toolchain version (non-moving) and publish toolchain hash evidence per RC
+- [x] Normalize debug/repro metadata (machine/path-stable artifact outputs)
+- [x] Add bit-identical rebuild checks across clean runner re-execution for same commit + toolchain
+
+### 10.3 Performance and Reliability Guardrails
+
+- [x] Replace coarse compile-time checks with clean/no-op/incremental benchmark suite
+- [x] Expose incremental cache hit/miss telemetry to CLI and CI reports
+- [x] Gate compile/runtime regressions with explicit numeric thresholds (latency/memory)
+- [x] Run memory/leak + GC-observable lanes in default release candidate cycle (not optional)
+
+### Phase 10 Exit Criteria
+
+- [x] Runtime contract enforcement is blocking and no longer partial (evidence: `v1-release-gates.yml` job `contract_runtime_enforcement_gate`, `reports/v1/readiness_dashboard.md`)
+- [x] Reproducible build mode is enforced and evidence-published for RC cycle (evidence: `v1-release-gates.yml` job `bit_identical_rebuild_gate`, `v1-packaged-release.yml` toolchain evidence artifacts)
+- [x] Performance and memory guardrails are blocking with thresholds and trend artifacts (evidence: `reports/phase6/metrics/phase6_metrics.json`, `reports/v1/quality_budgets.json`, `v1-release-gates.yml` jobs `metrics_threshold_smoke` + `memory_gc_default_gate`)
+
+---
+
+## Phase 11: Full Language Surface for General-Purpose Programs
+
+Goal: expand beyond the current freeze scope so users can author broader real-world applications without language-surface gaps.
+
+### 11.1 Containers and Text Completeness
+
+- [ ] Implement generic `List<T>` / `Map<K,V>` lowering beyond current concrete freeze combinations
+- [ ] Add container iterators and native `for in` lowering with deterministic semantics
+- [ ] Add `Str` indexing/slicing APIs and Unicode-safe behavior tests
+- [ ] Add container equality/hash coverage and deterministic map behavior tests for broader key/value types
+
+### 11.2 Async/Await and Thread Model Implementation
+
+- [ ] Land parser/HIR/MIR/runtime implementation for `async` / `await`
+- [ ] Implement explicit `thread` boundary model and sendability checks across async/thread boundaries
+- [ ] Add cancellation/timeout behavior tests and deterministic failure propagation checks
+- [ ] Gate async/thread conformance in `v1-release-gates.yml`
+
+### 11.3 Module and Program-Scale Composition
+
+- [ ] Strengthen module/import/package-boundary behavior for multi-module applications
+- [ ] Add visibility, cyclic-import, and package-layout diagnostics for large codebases
+- [ ] Add project templates for service/CLI/library layouts with integration tests
+- [ ] Publish migration and compatibility guidance for stable module evolution
+
+### Phase 11 Exit Criteria
+
+- [ ] Real application patterns requiring generic collections, iteration, and text slicing are supported with deterministic tests
+- [ ] Async/thread semantics move from spec-only to release-gated implementation (evidence: tests + CI gates + docs)
+- [ ] Multi-module application composition is stable and documented for production teams
+
+---
+
+## Phase 12: Stdlib and Ecosystem Expansion
+
+Goal: provide enough batteries-included surface and package lifecycle tooling for day-to-day software delivery.
+
+### 12.1 Core Standard Library Surface
+
+- [ ] Expand standard library modules for filesystem/path, time/duration, serialization (`json`), and HTTP/client-server essentials
+- [ ] Define stability tiers for stdlib APIs (stable/preview/experimental)
+- [ ] Add deterministic behavior and error-model tests per stdlib module
+- [ ] Publish stdlib reference documentation and versioning guarantees
+
+### 12.2 Package Lifecycle and Registry Readiness
+
+- [ ] Mature `vibe pkg` for lock/resolve/install parity on real dependency graphs
+- [ ] Add package publishing flow, registry index format, and provenance/security policy
+- [ ] Add dependency vulnerability/license policy checks in CI
+- [ ] Add semver compatibility checks and upgrade assistant docs
+
+### 12.3 Testing and QA Ecosystem
+
+- [ ] Expand `vibe test` ergonomics for large test suites (filtering, sharding, richer reporting)
+- [ ] Add coverage reporting for language/runtime/stdlib/package-manager surfaces
+- [ ] Add golden snapshot update tooling and policy for stable diagnostics
+- [ ] Publish ecosystem readiness report for package + stdlib health
+
+### Phase 12 Exit Criteria
+
+- [ ] Teams can build typical backend/service/automation applications using documented stdlib APIs without core gaps
+- [ ] Package resolution/install/publish lifecycle is repeatable, secure, and release-gated
+- [ ] QA workflow supports project-scale testing and coverage visibility
+
+---
+
+## Phase 13: Developer Experience and Production Operations
+
+Goal: make VibeLang practical as an everyday engineering platform across local dev, CI/CD, incident response, and long-term maintenance.
+
+### 13.1 IDE and Workflow Maturity
+
+- [ ] Upgrade LSP from diagnostics-focused to productivity-focused (completion, symbol nav, rename, code actions, formatting integration)
+- [ ] Add large-workspace performance benchmarks for indexer/LSP paths
+- [ ] Add editor/CI consistency checks to prevent local-vs-CI behavior drift
+- [ ] Publish IDE setup guides and recommended workflows for major editors
+
+### 13.2 Debugging, Profiling, and Observability
+
+- [ ] Define debugging/profiling workflow for Vibe programs (symbols, stack traces, perf diagnostics)
+- [ ] Add runtime observability primitives (structured logs/metrics/traces contracts)
+- [ ] Add production incident triage playbook specific to Vibe runtime failures
+- [ ] Add deterministic crash repro artifact format for bug reports
+
+### 13.3 Release Operations and Lifecycle Governance
+
+- [ ] Define LTS/support windows and compatibility guarantees for v1.x
+- [ ] Add security response/CVE handling workflow and disclosure policy
+- [ ] Add release-notes automation with known-limitations + breaking-change sections
+- [ ] Close Phase 7.4 docs/book program with executable snippet validation and publish docs quality report
+
+### Phase 13 Exit Criteria
+
+- [ ] Developer workflow (edit/build/test/debug/profile) is stable for medium/large projects with measurable SLAs
+- [ ] Operational governance (security, support windows, incident response) is documented and exercised
+- [ ] Documentation/book program is complete enough for independent onboarding of new teams
+
+---
+
+## Phase 14: Production Adoption and GA Confidence
+
+Goal: prove VibeLang can be used like mainstream languages for sustained software development in real projects.
+
+### 14.1 Pilot Application Program
+
+- [ ] Ship at least two non-trivial reference applications maintained in VibeLang (service + CLI/tooling class)
+- [ ] Track defect rate, performance regressions, and developer productivity metrics across pilot cycles
+- [ ] Capture migration pain points and convert into language/tooling/docs backlog with owners
+- [ ] Publish case-study style evidence reports per pilot
+
+### 14.2 GA Promotion Gate
+
+- [ ] Run consecutive hosted RC cycles with zero open P0 and approved P1 exceptions only
+- [ ] Confirm all Phase 10-13 exit criteria are checked with linked evidence artifacts
+- [ ] Freeze v1 GA release branch with signed trust bundle + reproducibility + selfhost transition evidence
+- [ ] Publish GA readiness announcement report with explicit support/limitations matrix
+
+### Phase 14 Exit Criteria
+
+- [ ] VibeLang is validated for sustained software development in real project scenarios (evidence: pilot reports + RC evidence)
+- [ ] GA decision can be made without unresolved production-critical caveats

@@ -95,8 +95,7 @@ fn m3_shadow_performance_budgets_are_within_thresholds() {
     let latency_overhead_pct = ((shadow_ms - baseline_ms) / normalized_baseline_ms) * 100.0;
     let memory_overhead_bytes = shadow_peak_bytes.saturating_sub(baseline_peak_bytes);
 
-    write_performance_metrics(
-        &artifact_root,
+    let metrics = PerfMetrics {
         loops,
         baseline_ms,
         shadow_ms,
@@ -104,7 +103,8 @@ fn m3_shadow_performance_budgets_are_within_thresholds() {
         baseline_peak_bytes,
         shadow_peak_bytes,
         memory_overhead_bytes,
-    );
+    };
+    write_performance_metrics(&artifact_root, &metrics);
 
     assert!(
         latency_overhead_pct <= max_latency_overhead_pct,
@@ -267,8 +267,7 @@ fn line_diff(expected: &str, actual: &str) -> String {
     }
 }
 
-fn write_performance_metrics(
-    root: &Path,
+struct PerfMetrics {
     loops: usize,
     baseline_ms: f64,
     shadow_ms: f64,
@@ -276,7 +275,9 @@ fn write_performance_metrics(
     baseline_peak_bytes: usize,
     shadow_peak_bytes: usize,
     memory_overhead_bytes: usize,
-) {
+}
+
+fn write_performance_metrics(root: &Path, metrics: &PerfMetrics) {
     let json = format!(
         concat!(
             "{{\n",
@@ -289,13 +290,13 @@ fn write_performance_metrics(
             "  \"memory_overhead_bytes\": {}\n",
             "}}\n"
         ),
-        loops,
-        baseline_ms,
-        shadow_ms,
-        latency_overhead_pct,
-        baseline_peak_bytes,
-        shadow_peak_bytes,
-        memory_overhead_bytes
+        metrics.loops,
+        metrics.baseline_ms,
+        metrics.shadow_ms,
+        metrics.latency_overhead_pct,
+        metrics.baseline_peak_bytes,
+        metrics.shadow_peak_bytes,
+        metrics.memory_overhead_bytes
     );
     let markdown = format!(
         concat!(
@@ -308,13 +309,13 @@ fn write_performance_metrics(
             "- shadow_peak_bytes: {}\n",
             "- memory_overhead_bytes: {}\n"
         ),
-        loops,
-        baseline_ms,
-        shadow_ms,
-        latency_overhead_pct,
-        baseline_peak_bytes,
-        shadow_peak_bytes,
-        memory_overhead_bytes
+        metrics.loops,
+        metrics.baseline_ms,
+        metrics.shadow_ms,
+        metrics.latency_overhead_pct,
+        metrics.baseline_peak_bytes,
+        metrics.shadow_peak_bytes,
+        metrics.memory_overhead_bytes
     );
 
     fs::write(root.join("performance_metrics.json"), json).expect("write perf metrics json");

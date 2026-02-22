@@ -365,6 +365,152 @@ fn build_locked_succeeds_with_lockfile_when_manifest_exists() {
 }
 
 #[test]
+fn run_locked_requires_lockfile_when_manifest_exists() {
+    let (_project_root, source) = temp_project_source("vibe_run_locked_missing_lock");
+    let out = run_vibe(&["run", source.to_str().expect("source path str"), "--locked"]);
+    assert!(
+        !out.status.success(),
+        "run unexpectedly succeeded without lockfile:\nstdout:\n{}\nstderr:\n{}",
+        out.stdout,
+        out.stderr
+    );
+    assert!(
+        out.stderr.contains("`--locked` requires lockfile"),
+        "expected missing lockfile diagnostic:\n{}",
+        out.stderr
+    );
+}
+
+#[test]
+fn run_locked_succeeds_with_lockfile_when_manifest_exists() {
+    let (project_root, source) = temp_project_source("vibe_run_locked_with_lock");
+    fs::write(project_root.join("vibe.lock"), "version = 1\n").expect("write lockfile");
+    let out = run_vibe(&["run", source.to_str().expect("source path str"), "--locked"]);
+    assert!(
+        out.status.success(),
+        "run failed with lockfile present:\nstdout:\n{}\nstderr:\n{}",
+        out.stdout,
+        out.stderr
+    );
+    assert_eq!(out.stdout, "locked\n");
+}
+
+#[test]
+fn test_locked_requires_lockfile_when_manifest_exists() {
+    let (_project_root, source) = temp_project_source("vibe_test_locked_missing_lock");
+    let out = run_vibe(&[
+        "test",
+        source.to_str().expect("source path str"),
+        "--locked",
+    ]);
+    assert!(
+        !out.status.success(),
+        "test unexpectedly succeeded without lockfile:\nstdout:\n{}\nstderr:\n{}",
+        out.stdout,
+        out.stderr
+    );
+    assert!(
+        out.stderr.contains("`--locked` requires lockfile"),
+        "expected missing lockfile diagnostic:\n{}",
+        out.stderr
+    );
+}
+
+#[test]
+fn test_locked_succeeds_with_lockfile_when_manifest_exists() {
+    let (project_root, source) = temp_project_source("vibe_test_locked_with_lock");
+    fs::write(project_root.join("vibe.lock"), "version = 1\n").expect("write lockfile");
+    let out = run_vibe(&[
+        "test",
+        source.to_str().expect("source path str"),
+        "--locked",
+    ]);
+    assert!(
+        out.status.success(),
+        "test failed with lockfile present:\nstdout:\n{}\nstderr:\n{}",
+        out.stdout,
+        out.stderr
+    );
+    assert!(
+        out.stdout.contains("main_failures=0"),
+        "expected passing main execution summary:\n{}",
+        out.stdout
+    );
+}
+
+#[test]
+fn run_enforces_native_require_contracts() {
+    let source = temp_source_file(
+        "native_require_fail",
+        r#"
+check_positive(x: Int) -> Int {
+  @require x > 0
+  @ensure . > 0
+  x
+}
+
+pub main() -> Int {
+  check_positive(0)
+}
+"#,
+    );
+    let out = run_vibe(&["run", source.to_str().expect("source path str")]);
+    assert!(
+        !out.status.success(),
+        "run unexpectedly succeeded despite @require violation:\nstdout:\n{}\nstderr:\n{}",
+        out.stdout,
+        out.stderr
+    );
+    assert!(
+        out.stderr
+            .contains("contract @require failed in native execution"),
+        "expected native require failure marker:\n{}",
+        out.stderr
+    );
+}
+
+#[test]
+fn produced_binary_enforces_native_ensure_contracts() {
+    let source = temp_source_file(
+        "native_ensure_fail",
+        r#"
+break_ensure(x: Int) -> Int {
+  @ensure . > x
+  x
+}
+
+pub main() -> Int {
+  break_ensure(5)
+}
+"#,
+    );
+    let build = run_vibe(&["build", source.to_str().expect("source path str")]);
+    assert!(
+        build.status.success(),
+        "build failed:\nstdout:\n{}\nstderr:\n{}",
+        build.stdout,
+        build.stderr
+    );
+    let binary = artifact_binary_path(&source, "dev", "x86_64-unknown-linux-gnu");
+    let run = Command::new(&binary)
+        .current_dir(workspace_root())
+        .output()
+        .expect("run built binary");
+    assert!(
+        !run.status.success(),
+        "built binary unexpectedly succeeded despite @ensure violation:\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&run.stdout),
+        String::from_utf8_lossy(&run.stderr)
+    );
+    let stderr = String::from_utf8_lossy(&run.stderr);
+    assert!(
+        stderr.contains("contract @ensure failed in native execution"),
+        "expected native ensure failure marker:\n{}",
+        stderr
+    );
+}
+
+#[test]
 fn while_loop_fixture_runs() {
     let source = temp_fixture_copy("build/while_loop.vibe");
     let run = run_vibe(&["run", source.to_str().expect("source path str")]);
@@ -476,6 +622,14 @@ fn temp_project_source(prefix: &str) -> (PathBuf, PathBuf) {
     )
     .expect("write source");
     (project_root, source)
+}
+
+fn temp_source_file(prefix: &str, source: &str) -> PathBuf {
+    let temp_dir = unique_temp_dir(prefix);
+    fs::create_dir_all(&temp_dir).expect("create temp source dir");
+    let file = temp_dir.join("main.yb");
+    fs::write(&file, source.trim_start()).expect("write temp source");
+    file
 }
 
 fn temp_fixture_copy_with_extension(relative: &str, ext: &str) -> PathBuf {

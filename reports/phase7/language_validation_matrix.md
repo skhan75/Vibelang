@@ -19,7 +19,7 @@ Date: 2026-02-17
 | Intent Lint Quality Trend | - | - | PASS | PASS | `reports/phase7/intent_lint_quality_trend.json` |
 | Algorithmic Recursion Programs | - | - | PASS | PASS | `phase7_v1_tightening.rs` recursion smokes |
 | Memory and Ownership Safety Smokes | - | - | PASS | PASS | `phase7_v1_tightening.rs` heap/ownership smokes |
-| GC-Observable Feature-Gated Smoke | - | - | PASS | PASS | `phase7_v1_tightening.rs` (`VIBE_ENABLE_GC_SMOKE=1`) |
+| GC-Observable + Valgrind Memory Default Lanes | - | - | PASS | PASS | `phase7_v1_tightening.rs` tests `phase7_gc_observable_smoke_is_default_lane` + `phase7_memory_valgrind_leak_check_default_lane` |
 
 ## Validation Commands
 

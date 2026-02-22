@@ -10,6 +10,9 @@ on:
 permissions:
   contents: read
 
+env:
+  RUST_TOOLCHAIN_VERSION: "1.85.1"
+
 jobs:
   package_artifacts:
     name: package-${{ matrix.target }}
@@ -34,6 +37,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
           targets: ${{ matrix.target }}
       - name: ensure target stdlib is installed
         shell: bash
@@ -45,6 +49,15 @@ jobs:
         run: |
           set -euo pipefail
           cargo build --release --locked -p vibe_cli --target "${{ matrix.target }}"
+      - name: capture toolchain evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          {
+            rustc -Vv
+            rustup show active-toolchain
+          } > "dist/toolchain-${{ matrix.target }}.txt"
       - name: verify linux glibc compatibility baseline
         if: ${{ matrix.target == 'x86_64-unknown-linux-gnu' }}
         shell: bash

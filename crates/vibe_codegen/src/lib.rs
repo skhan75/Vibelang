@@ -11,7 +11,8 @@ use cranelift_module::{default_libcall_names, FuncId, Linkage, Module};
 use cranelift_object::{ObjectBuilder, ObjectModule};
 use target_lexicon::Triple;
 use vibe_mir::{
-    MirExpr, MirFunction, MirProgram, MirSelectCase, MirSelectPattern, MirStmt, MirType,
+    MirContractKind, MirExpr, MirFunction, MirProgram, MirSelectCase, MirSelectPattern, MirStmt,
+    MirType,
 };
 
 #[derive(Debug, Clone)]
@@ -34,6 +35,7 @@ impl Default for CodegenOptions {
 #[derive(Clone, Copy)]
 struct RuntimeFunctions {
     print_fn: FuncId,
+    panic_fn: FuncId,
     list_new_i64_fn: FuncId,
     list_append_i64_fn: FuncId,
     container_len_fn: FuncId,
@@ -168,6 +170,10 @@ fn declare_runtime_functions(
     let print_fn = module
         .declare_function("vibe_println", Linkage::Import, &sig)
         .map_err(|e| format!("failed to declare runtime print symbol: {e}"))?;
+
+    let panic_fn = module
+        .declare_function("vibe_panic", Linkage::Import, &sig)
+        .map_err(|e| format!("failed to declare runtime panic symbol: {e}"))?;
 
     let mut list_new_sig = module.make_signature();
     list_new_sig.params.push(AbiParam::new(ir::types::I64));
@@ -441,6 +447,7 @@ fn declare_runtime_functions(
 
     Ok(RuntimeFunctions {
         print_fn,
+        panic_fn,
         list_new_i64_fn,
         list_append_i64_fn,
         container_len_fn,
@@ -632,6 +639,22 @@ fn emit_stmt(
             }
             Ok(true)
         }
+        MirStmt::ContractCheck { kind, expr } => {
+            emit_contract_check(
+                kind,
+                expr,
+                module,
+                builder,
+                locals,
+                function_ids,
+                function_returns,
+                runtime_fns,
+                ptr_ty,
+                str_data_counter,
+                owner,
+            )?;
+            Ok(false)
+        }
         MirStmt::If {
             cond,
             then_body,
@@ -782,6 +805,60 @@ fn emit_stmt(
             Ok(false)
         }
     }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn emit_contract_check(
+    kind: &MirContractKind,
+    expr: &MirExpr,
+    module: &mut ObjectModule,
+    builder: &mut FunctionBuilder<'_>,
+    locals: &BTreeMap<String, Variable>,
+    function_ids: &BTreeMap<String, FuncId>,
+    function_returns: &BTreeMap<String, MirType>,
+    runtime_fns: RuntimeFunctions,
+    ptr_ty: ir::Type,
+    str_data_counter: &mut usize,
+    owner: &MirFunction,
+) -> Result<(), String> {
+    let cond_v = emit_expr(
+        expr,
+        module,
+        builder,
+        locals,
+        function_ids,
+        function_returns,
+        runtime_fns,
+        ptr_ty,
+        str_data_counter,
+        owner,
+    )?;
+    let cond_ty = builder.func.dfg.value_type(cond_v);
+    let zero = builder.ins().iconst(cond_ty, 0);
+    let cond_b = builder.ins().icmp(IntCC::NotEqual, cond_v, zero);
+    let pass_block = builder.create_block();
+    let fail_block = builder.create_block();
+    builder.ins().brif(cond_b, pass_block, &[], fail_block, &[]);
+
+    builder.switch_to_block(fail_block);
+    let message = match kind {
+        MirContractKind::Require => "contract @require failed in native execution",
+        MirContractKind::Ensure => "contract @ensure failed in native execution",
+    };
+    let message_ptr = emit_string_data(module, builder, message, ptr_ty, str_data_counter, owner)?;
+    let panic_local = module.declare_func_in_func(runtime_fns.panic_fn, builder.func);
+    builder.ins().call(panic_local, &[message_ptr]);
+    if owner.return_type == MirType::Void {
+        builder.ins().return_(&[]);
+    } else {
+        let fallback = default_value(builder, &owner.return_type, ptr_ty);
+        builder.ins().return_(&[fallback]);
+    }
+    builder.seal_block(fail_block);
+
+    builder.switch_to_block(pass_block);
+    builder.seal_block(pass_block);
+    Ok(())
 }
 
 #[allow(clippy::too_many_arguments)]

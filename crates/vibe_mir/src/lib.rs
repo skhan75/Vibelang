@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use vibe_hir::{HirExpr, HirExprKind, HirProgram, HirSelectPattern, HirStmt};
+use vibe_hir::{HirContractKind, HirExpr, HirExprKind, HirProgram, HirSelectPattern, HirStmt};
 
 #[derive(Debug, Clone, Default)]
 pub struct MirProgram {
@@ -62,6 +62,16 @@ pub enum MirStmt {
         cases: Vec<MirSelectCase>,
     },
     Go(MirExpr),
+    ContractCheck {
+        kind: MirContractKind,
+        expr: MirExpr,
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MirContractKind {
+    Require,
+    Ensure,
 }
 
 #[derive(Debug, Clone)]
@@ -223,6 +233,13 @@ fn lower_stmt_list(stmts: &[HirStmt]) -> Result<Vec<MirStmt>, String> {
                     .collect::<Result<Vec<_>, String>>()?,
             }),
             HirStmt::Go { expr } => out.push(MirStmt::Go(lower_expr(expr)?)),
+            HirStmt::ContractCheck { kind, expr } => out.push(MirStmt::ContractCheck {
+                kind: match kind {
+                    HirContractKind::Require => MirContractKind::Require,
+                    HirContractKind::Ensure => MirContractKind::Ensure,
+                },
+                expr: lower_expr(expr)?,
+            }),
         }
     }
     Ok(out)
@@ -310,7 +327,10 @@ fn verify_stmt_list(
                 }
                 verify_expr(expr)?;
             }
-            MirStmt::Expr(expr) | MirStmt::Return(expr) | MirStmt::Go(expr) => {
+            MirStmt::Expr(expr)
+            | MirStmt::Return(expr)
+            | MirStmt::Go(expr)
+            | MirStmt::ContractCheck { expr, .. } => {
                 verify_expr(expr)?;
             }
             MirStmt::If {

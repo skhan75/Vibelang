@@ -136,11 +136,7 @@ fn phase7_ownership_sendability_smokes_cover_positive_and_negative_paths() {
 }
 
 #[test]
-fn phase7_gc_observable_smoke_is_feature_gated() {
-    if std::env::var("VIBE_ENABLE_GC_SMOKE").as_deref() != Ok("1") {
-        eprintln!("skipping gc observable smoke (set VIBE_ENABLE_GC_SMOKE=1 to enable)");
-        return;
-    }
+fn phase7_gc_observable_smoke_is_default_lane() {
     let source = temp_fixture_copy("phase7/stress/memory/memory__gc_observable_placeholder.yb");
     let out = run_vibe(&["run", source.to_str().expect("source path str")]);
     assert!(
@@ -153,13 +149,9 @@ fn phase7_gc_observable_smoke_is_feature_gated() {
 }
 
 #[test]
-fn phase7_memory_valgrind_leak_check_is_feature_gated() {
-    if std::env::var("VIBE_ENABLE_MEMORY_TOOLS").as_deref() != Ok("1") {
-        eprintln!("skipping valgrind leak smoke (set VIBE_ENABLE_MEMORY_TOOLS=1 to enable)");
-        return;
-    }
+fn phase7_memory_valgrind_leak_check_default_lane() {
     if !valgrind_available() {
-        eprintln!("skipping valgrind leak smoke (valgrind not installed)");
+        eprintln!("skipping valgrind leak smoke (valgrind not installed in this environment)");
         return;
     }
 
