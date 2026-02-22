@@ -378,6 +378,44 @@ jobs:
             /tmp/v1-phase11-containers-text/summary.md
             reports/v1/phase11_containers_text_readiness.md
 
+  phase11_async_thread_gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - name: run phase11 async/thread conformance suites
+        run: |
+          set -euo pipefail
+          cargo test -p vibe_cli --test frontend_fixtures phase11_async_thread_surface_propagates_through_hir_and_mir
+          cargo test -p vibe_cli --test phase2_native phase11_async_await_and_thread_fixture_runs
+          cargo test -p vibe_cli --test phase2_native phase11_async_requires_call_expression
+          cargo test -p vibe_cli --test phase2_native phase11_thread_sendability_blocks_member_capture
+          cargo test -p vibe_cli --test phase2_native phase11_async_failure_propagates_through_await
+          cargo test -p vibe_cli --test phase2_native select_after_timeout_fixture_runs
+          cargo test -p vibe_cli --test phase2_native select_closed_fixture_runs
+      - name: publish phase11 async/thread summary artifact
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/v1-phase11-async-thread
+          cat > /tmp/v1-phase11-async-thread/summary.md <<'EOF'
+          # Phase 11.2 Async/Thread Gate
+
+          - status: pass
+          - suites:
+            - `frontend_fixtures::phase11_async_thread_surface_propagates_through_hir_and_mir`
+            - `phase2_native::{phase11_async_await_and_thread_fixture_runs, phase11_async_requires_call_expression, phase11_thread_sendability_blocks_member_capture, phase11_async_failure_propagates_through_await}`
+            - `phase2_native::{select_after_timeout_fixture_runs, select_closed_fixture_runs}`
+          - note: validates async/await/thread syntax propagation, thread sendability boundaries, timeout/closed-channel behavior, and failure propagation through await.
+          EOF
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v1-phase11-async-thread
+          path: |
+            /tmp/v1-phase11-async-thread/summary.md
+            reports/v1/phase11_async_thread_readiness.md
+
   memory_gc_default_gate:
     runs-on: ubuntu-latest
     steps:
@@ -721,6 +759,7 @@ jobs:
           test -f reports/v1/spec_readiness.md
           test -f reports/v1/dynamic_containers_conformance.md
           test -f reports/v1/phase11_containers_text_readiness.md
+          test -f reports/v1/phase11_async_thread_readiness.md
           test -f reports/v1/install_independence.md
           test -f reports/v1/distribution_readiness.md
           test -f reports/v1/phase8_ci_evidence.md
@@ -739,6 +778,7 @@ jobs:
           echo "$PR_BODY" | grep -q "reports/v1/release_candidate_checklist.md"
           echo "$PR_BODY" | grep -q "reports/v1/dynamic_containers_conformance.md"
           echo "$PR_BODY" | grep -q "reports/v1/phase11_containers_text_readiness.md"
+          echo "$PR_BODY" | grep -q "reports/v1/phase11_async_thread_readiness.md"
           echo "$PR_BODY" | grep -q "reports/v1/install_independence.md"
           echo "$PR_BODY" | grep -q "reports/v1/distribution_readiness.md"
           echo "$PR_BODY" | grep -q "reports/v1/phase8_ci_evidence.md"
@@ -751,6 +791,7 @@ jobs:
           echo "$PR_BODY" | grep -q "v1-selfhost-m3-shadow"
           echo "$PR_BODY" | grep -q "v1-selfhost-m4-rc-cycle"
           echo "$PR_BODY" | grep -q "v1-phase11-containers-text"
+          echo "$PR_BODY" | grep -q "v1-phase11-async-thread"
 
   summary:
     runs-on: ubuntu-latest
@@ -768,6 +809,7 @@ jobs:
       - linux_compatibility_gate
       - dynamic_containers_gate
       - phase11_containers_text_gate
+      - phase11_async_thread_gate
       - memory_gc_default_gate
       - spec_integrity_gate
       - compatibility_gate

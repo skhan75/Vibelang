@@ -613,6 +613,107 @@ fn phase11_container_equality_fixture_runs() {
 }
 
 #[test]
+fn phase11_async_await_and_thread_fixture_runs() {
+    let source = temp_fixture_copy("build/phase11_async_thread_basic.vibe");
+    let run = run_vibe(&["run", source.to_str().expect("source path str")]);
+    assert!(
+        run.status.success(),
+        "run failed:\nstdout:\n{}\nstderr:\n{}",
+        run.stdout,
+        run.stderr
+    );
+    assert_eq!(run.stdout, "async-await-basic-ok\n");
+}
+
+#[test]
+fn phase11_async_requires_call_expression() {
+    let source = temp_source_file(
+        "phase11_async_requires_call",
+        r#"
+pub main() -> Int {
+  @effect concurrency
+  token := async 42
+  await token
+}
+"#,
+    );
+    let out = run_vibe(&["build", source.to_str().expect("source path str")]);
+    assert!(
+        !out.status.success(),
+        "build unexpectedly succeeded:\nstdout:\n{}\nstderr:\n{}",
+        out.stdout,
+        out.stderr
+    );
+    assert!(
+        out.stderr.contains("`async` expects a call expression"),
+        "expected async call-shape diagnostic:\n{}",
+        out.stderr
+    );
+}
+
+#[test]
+fn phase11_thread_sendability_blocks_member_capture() {
+    let source = temp_source_file(
+        "phase11_thread_sendability",
+        r#"
+consume(x: Int) -> Int {
+  x
+}
+
+pub main() -> Int {
+  @effect concurrency
+  values := {"k": 1}
+  thread consume(values.get("k"))
+  0
+}
+"#,
+    );
+    let out = run_vibe(&["build", source.to_str().expect("source path str")]);
+    assert!(
+        !out.status.success(),
+        "build unexpectedly succeeded:\nstdout:\n{}\nstderr:\n{}",
+        out.stdout,
+        out.stderr
+    );
+    assert!(
+        out.stderr.contains("capturing member access in `go` may alias shared mutable state"),
+        "expected sendability/member-capture diagnostic:\n{}",
+        out.stderr
+    );
+}
+
+#[test]
+fn phase11_async_failure_propagates_through_await() {
+    let source = temp_source_file(
+        "phase11_async_failure_propagation",
+        r#"
+must_be_positive(x: Int) -> Int {
+  @require x > 0
+  x
+}
+
+pub main() -> Int {
+  @effect concurrency
+  task := async must_be_positive(0)
+  await task
+}
+"#,
+    );
+    let out = run_vibe(&["run", source.to_str().expect("source path str")]);
+    assert!(
+        !out.status.success(),
+        "run unexpectedly succeeded:\nstdout:\n{}\nstderr:\n{}",
+        out.stdout,
+        out.stderr
+    );
+    assert!(
+        out.stderr.contains("contract @require failed in native execution"),
+        "expected native contract failure propagation:\n{}",
+        out.stderr
+    );
+}
+
+#[test]
 fn unsupported_member_access_has_stable_codegen_diagnostic() {
     let source = temp_fixture_copy("build_err/member_access_unsupported.vibe");
     let out = run_vibe(&["build", source.to_str().expect("source path str")]);

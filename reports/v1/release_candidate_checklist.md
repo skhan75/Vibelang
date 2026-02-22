@@ -20,6 +20,7 @@ Owner: `vibelang-core`
 - [x] M4 promoted self-host RC cycle passed for diagnostics ordering candidate with rollback drill (`selfhost_m4_rc_cycle_gate`, artifact `v1-selfhost-m4-rc-cycle`)
 - [x] Native dynamic container smoke passed (`Str`/`List`/`Map` construction + member/container lowering without `E3401`/`E3402`) after self-host readiness gate
 - [x] Phase 11.1 containers/text conformance passed (`phase11_containers_text_gate`, artifact `v1-phase11-containers-text`)
+- [x] Phase 11.2 async/thread conformance passed (`phase11_async_thread_gate`, artifact `v1-phase11-async-thread`)
 - [x] Intent verifier-gate smoke passed
 
 ## Runtime and Stability
@@ -49,13 +50,14 @@ Owner: `vibelang-core`
 - [x] `reports/v1/selfhost_readiness.md`
 - [x] `reports/v1/spec_readiness.md`
 - [x] `reports/v1/phase11_containers_text_readiness.md`
+- [x] `reports/v1/phase11_async_thread_readiness.md`
 - [x] `reports/v1/install_independence.md`
 - [x] `reports/v1/distribution_readiness.md`
 - [x] `reports/v1/phase8_ci_evidence.md`
 - [x] `docs/selfhost/m4_transition_criteria.md`
 - [x] `docs/release/selfhost_transition_playbook.md`
 - [x] Workflow run URL: hosted CI evidence captured for current candidate cycle (`v1-packaged-release.yml`, `v1-cli-ux.yml`)
-- [x] Additional artifact links: `reports/v1/smoke_validation.md`, `reports/v1/dynamic_containers_conformance.md`, `reports/v1/phase11_containers_text_readiness.md`, `reports/v1/install_independence.md`, `reports/v1/distribution_readiness.md`, `reports/v1/phase8_ci_evidence.md`, `reports/v1/phase8_closeout_summary.md`, `reports/v1/selfhost_readiness.json`, `reports/v1/spec_readiness.md`, artifacts `v1-selfhost-m4-rc-cycle`, `v1-phase11-containers-text`
+- [x] Additional artifact links: `reports/v1/smoke_validation.md`, `reports/v1/dynamic_containers_conformance.md`, `reports/v1/phase11_containers_text_readiness.md`, `reports/v1/phase11_async_thread_readiness.md`, `reports/v1/install_independence.md`, `reports/v1/distribution_readiness.md`, `reports/v1/phase8_ci_evidence.md`, `reports/v1/phase8_closeout_summary.md`, `reports/v1/selfhost_readiness.json`, `reports/v1/spec_readiness.md`, artifacts `v1-selfhost-m4-rc-cycle`, `v1-phase11-containers-text`, `v1-phase11-async-thread`
 
 ## Promote / Reject Decision
 

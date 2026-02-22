@@ -55,3 +55,20 @@ worker(jobs, out) {
   @effect concurrency
   jobs.recv()
 }
+
+addOne(x: Int) -> Int {
+  x + 1
+}
+
+consumeNumber(x: Int) -> Int {
+  x
+}
+
+pub asyncThreadSample(x: Int) -> Int {
+  @intent "demonstrate async/await/thread surface"
+  @effect concurrency
+
+  token := async addOne(x)
+  thread consumeNumber(token)
+  await token
+}

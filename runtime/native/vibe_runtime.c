@@ -973,6 +973,22 @@ int64_t vibe_spawn1_i64(void *fn_ptr, int64_t arg0) {
     return 0;
 }
 
+int64_t vibe_async_i64(int64_t value) {
+    return value;
+}
+
+void *vibe_async_ptr(void *value) {
+    return value;
+}
+
+int64_t vibe_await_i64(int64_t value) {
+    return value;
+}
+
+void *vibe_await_ptr(void *value) {
+    return value;
+}
+
 int64_t vibe_select_next_cursor(int64_t case_count) {
     if (case_count <= 0) {
         return 0;

@@ -248,6 +248,28 @@ fn snapshots_container_ops_mir_is_deterministic() {
 }
 
 #[test]
+fn phase11_async_thread_surface_propagates_through_hir_and_mir() {
+    let sample = fixture_dir("snapshots").join("async_thread_surface.yb");
+    let src = fs::read_to_string(&sample).expect("read async/thread snapshot sample");
+    let (diag, hir, mir) = run_and_capture(&src);
+    assert!(
+        !diag.contains(": error:"),
+        "async/thread sample should parse and type-check:\n{}",
+        diag
+    );
+    assert!(
+        hir.contains("Async") && hir.contains("Await") && hir.contains("Thread"),
+        "HIR should contain async/await/thread nodes:\n{}",
+        hir
+    );
+    assert!(
+        mir.contains("Async") && mir.contains("Await") && mir.contains("Thread("),
+        "MIR should contain async/await/thread nodes:\n{}",
+        mir
+    );
+}
+
+#[test]
 fn docs_syntax_samples_compile_without_errors() {
     let sample = workspace_root().join("docs/spec/syntax_samples.yb");
     let src = fs::read_to_string(&sample).expect("read syntax samples");

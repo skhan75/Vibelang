@@ -1,0 +1,19 @@
+add(a: Int, b: Int) -> Int {
+  a + b
+}
+
+consume(x: Int) -> Int {
+  x
+}
+
+pub main() -> Int {
+  @effect io
+  @effect concurrency
+  task := async add(2, 3)
+  value := await task
+  thread consume(value)
+  if value == 5 {
+    println("async-await-basic-ok")
+  }
+  0
+}

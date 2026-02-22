@@ -685,10 +685,10 @@ Goal: expand beyond the current freeze scope so users can author broader real-wo
 
 ### 11.2 Async/Await and Thread Model Implementation
 
-- [ ] Land parser/HIR/MIR/runtime implementation for `async` / `await`
-- [ ] Implement explicit `thread` boundary model and sendability checks across async/thread boundaries
-- [ ] Add cancellation/timeout behavior tests and deterministic failure propagation checks
-- [ ] Gate async/thread conformance in `v1-release-gates.yml`
+- [x] Land parser/HIR/MIR/runtime implementation for `async` / `await`
+- [x] Implement explicit `thread` boundary model and sendability checks across async/thread boundaries
+- [x] Add cancellation/timeout behavior tests and deterministic failure propagation checks
+- [x] Gate async/thread conformance in `v1-release-gates.yml`
 
 ### 11.3 Module and Program-Scale Composition
 
@@ -699,8 +699,8 @@ Goal: expand beyond the current freeze scope so users can author broader real-wo
 
 ### Phase 11 Exit Criteria
 
-- [ ] Real application patterns requiring generic collections, iteration, and text slicing are supported with deterministic tests
-- [ ] Async/thread semantics move from spec-only to release-gated implementation (evidence: tests + CI gates + docs)
+- [x] Real application patterns requiring generic collections, iteration, and text slicing are supported with deterministic tests
+- [x] Async/thread semantics move from spec-only to release-gated implementation (evidence: tests + CI gates + docs)
 - [ ] Multi-module application composition is stable and documented for production teams
 
 ---

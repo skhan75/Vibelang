@@ -65,6 +65,10 @@ struct RuntimeFunctions {
     chan_is_closed_fn: FuncId,
     spawn0_fn: FuncId,
     spawn1_i64_fn: FuncId,
+    async_i64_fn: FuncId,
+    async_ptr_fn: FuncId,
+    await_i64_fn: FuncId,
+    await_ptr_fn: FuncId,
     select_cursor_fn: FuncId,
     sleep_ms_fn: FuncId,
 }
@@ -505,6 +509,34 @@ fn declare_runtime_functions(
         .declare_function("vibe_spawn1_i64", Linkage::Import, &spawn1_i64_sig)
         .map_err(|e| format!("failed to declare runtime spawn1_i64 symbol: {e}"))?;
 
+    let mut async_i64_sig = module.make_signature();
+    async_i64_sig.params.push(AbiParam::new(ir::types::I64));
+    async_i64_sig.returns.push(AbiParam::new(ir::types::I64));
+    let async_i64_fn = module
+        .declare_function("vibe_async_i64", Linkage::Import, &async_i64_sig)
+        .map_err(|e| format!("failed to declare runtime async_i64 symbol: {e}"))?;
+
+    let mut async_ptr_sig = module.make_signature();
+    async_ptr_sig.params.push(AbiParam::new(ptr_ty));
+    async_ptr_sig.returns.push(AbiParam::new(ptr_ty));
+    let async_ptr_fn = module
+        .declare_function("vibe_async_ptr", Linkage::Import, &async_ptr_sig)
+        .map_err(|e| format!("failed to declare runtime async_ptr symbol: {e}"))?;
+
+    let mut await_i64_sig = module.make_signature();
+    await_i64_sig.params.push(AbiParam::new(ir::types::I64));
+    await_i64_sig.returns.push(AbiParam::new(ir::types::I64));
+    let await_i64_fn = module
+        .declare_function("vibe_await_i64", Linkage::Import, &await_i64_sig)
+        .map_err(|e| format!("failed to declare runtime await_i64 symbol: {e}"))?;
+
+    let mut await_ptr_sig = module.make_signature();
+    await_ptr_sig.params.push(AbiParam::new(ptr_ty));
+    await_ptr_sig.returns.push(AbiParam::new(ptr_ty));
+    let await_ptr_fn = module
+        .declare_function("vibe_await_ptr", Linkage::Import, &await_ptr_sig)
+        .map_err(|e| format!("failed to declare runtime await_ptr symbol: {e}"))?;
+
     let mut select_cursor_sig = module.make_signature();
     select_cursor_sig.params.push(AbiParam::new(ir::types::I64));
     select_cursor_sig
@@ -556,6 +588,10 @@ fn declare_runtime_functions(
         chan_is_closed_fn,
         spawn0_fn,
         spawn1_i64_fn,
+        async_i64_fn,
+        async_ptr_fn,
+        await_i64_fn,
+        await_ptr_fn,
         select_cursor_fn,
         sleep_ms_fn,
     })
@@ -2409,18 +2445,58 @@ fn emit_expr(
                 }
             }
         }
-        MirExpr::Async { expr } | MirExpr::Await { expr } => emit_expr(
-            expr,
-            module,
-            builder,
-            locals,
-            function_ids,
-            function_returns,
-            runtime_fns,
-            ptr_ty,
-            str_data_counter,
-            owner,
-        )?,
+        MirExpr::Async { expr } => {
+            let inner = emit_expr(
+                expr,
+                module,
+                builder,
+                locals,
+                function_ids,
+                function_returns,
+                runtime_fns,
+                ptr_ty,
+                str_data_counter,
+                owner,
+            )?;
+            let inner_ty = builder.func.dfg.value_type(inner);
+            if inner_ty == ptr_ty {
+                let local = module.declare_func_in_func(runtime_fns.async_ptr_fn, builder.func);
+                let call = builder.ins().call(local, &[inner]);
+                call_result_or_zero(builder, call)
+            } else if inner_ty == ir::types::I64 {
+                let local = module.declare_func_in_func(runtime_fns.async_i64_fn, builder.func);
+                let call = builder.ins().call(local, &[inner]);
+                call_result_or_zero(builder, call)
+            } else {
+                inner
+            }
+        }
+        MirExpr::Await { expr } => {
+            let inner = emit_expr(
+                expr,
+                module,
+                builder,
+                locals,
+                function_ids,
+                function_returns,
+                runtime_fns,
+                ptr_ty,
+                str_data_counter,
+                owner,
+            )?;
+            let inner_ty = builder.func.dfg.value_type(inner);
+            if inner_ty == ptr_ty {
+                let local = module.declare_func_in_func(runtime_fns.await_ptr_fn, builder.func);
+                let call = builder.ins().call(local, &[inner]);
+                call_result_or_zero(builder, call)
+            } else if inner_ty == ir::types::I64 {
+                let local = module.declare_func_in_func(runtime_fns.await_i64_fn, builder.func);
+                let call = builder.ins().call(local, &[inner]);
+                call_result_or_zero(builder, call)
+            } else {
+                inner
+            }
+        }
         MirExpr::Question { expr } | MirExpr::Old { expr } => emit_expr(
             expr,
             module,

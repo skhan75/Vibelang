@@ -1,0 +1,15 @@
+add(a: Int, b: Int) -> Int {
+  a + b
+}
+
+worker(x: Int) -> Int {
+  x
+}
+
+pub main() -> Int {
+  @effect concurrency
+  task := async add(1, 2)
+  value := await task
+  thread worker(value)
+  value
+}

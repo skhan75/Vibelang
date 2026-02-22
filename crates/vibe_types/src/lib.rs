@@ -1575,8 +1575,17 @@ fn infer_expr(
                 UnaryOp::Not => TypeKind::Bool,
             }
         }
-        Expr::Async { expr, .. } => {
+        Expr::Async { expr, span } => {
             observed_effects.insert("concurrency".to_string());
+            if !matches!(&**expr, Expr::Call { .. }) {
+                diagnostics.push(Diagnostic::new(
+                    "E3204",
+                    Severity::Error,
+                    "`async` expects a call expression",
+                    *span,
+                ));
+            }
+            check_go_sendability(expr, env, expr_type_hint, diagnostics);
             infer_expr(expr, env, sigs, context, diagnostics, observed_effects)
         }
         Expr::Await { expr, .. } => {
