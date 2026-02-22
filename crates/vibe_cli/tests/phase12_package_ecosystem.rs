@@ -138,9 +138,8 @@ fn phase12_pkg_semver_check_classifies_major() {
 fn write_mirror_pkg(mirror_root: &Path, name: &str, version: &str, license: &str) {
     let dir = mirror_root.join(name).join(version);
     fs::create_dir_all(&dir).expect("create mirror package dir");
-    let manifest = format!(
-        "[package]\nname = \"{name}\"\nversion = \"{version}\"\nlicense = \"{license}\"\n"
-    );
+    let manifest =
+        format!("[package]\nname = \"{name}\"\nversion = \"{version}\"\nlicense = \"{license}\"\n");
     fs::write(dir.join("vibe.toml"), manifest).expect("write mirror manifest");
 }
 

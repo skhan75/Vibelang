@@ -93,12 +93,14 @@ fn index_snapshot_is_deterministic_for_same_inputs() {
 }
 
 #[test]
-fn lsp_stdio_supports_shutdown_command() {
+fn lsp_jsonrpc_transport_supports_lifecycle_requests() {
     let project_dir = temp_fixture_project("snapshots/pipeline_sample.vibe");
     let index_root = project_dir.join(".yb/index");
     let mut child = Command::new(vibe_bin())
         .args([
             "lsp",
+            "--transport",
+            "jsonrpc",
             "--index-root",
             index_root.to_str().expect("index root str"),
         ])
@@ -111,7 +113,16 @@ fn lsp_stdio_supports_shutdown_command() {
 
     {
         let stdin = child.stdin.as_mut().expect("lsp stdin");
-        writeln!(stdin, "{{\"method\":\"shutdown\"}}").expect("write shutdown command");
+        let initialize = r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}"#;
+        let shutdown = r#"{"jsonrpc":"2.0","id":2,"method":"shutdown","params":{}}"#;
+        let exit = r#"{"jsonrpc":"2.0","method":"exit","params":{}}"#;
+        let framed = format!(
+            "{}{}{}",
+            framed_jsonrpc(initialize),
+            framed_jsonrpc(shutdown),
+            framed_jsonrpc(exit)
+        );
+        write!(stdin, "{framed}").expect("write jsonrpc messages");
     }
     let output = child.wait_with_output().expect("collect lsp output");
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -123,8 +134,47 @@ fn lsp_stdio_supports_shutdown_command() {
         stderr
     );
     assert!(
+        stdout.contains("\"id\":1") && stdout.contains("\"id\":2"),
+        "initialize/shutdown responses missing from stdout:\n{}",
+        stdout
+    );
+}
+
+#[test]
+fn lsp_legacy_transport_supports_shutdown_command() {
+    let project_dir = temp_fixture_project("snapshots/pipeline_sample.vibe");
+    let index_root = project_dir.join(".yb/index");
+    let mut child = Command::new(vibe_bin())
+        .args([
+            "lsp",
+            "--transport",
+            "legacy",
+            "--index-root",
+            index_root.to_str().expect("index root str"),
+        ])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .current_dir(workspace_root())
+        .spawn()
+        .expect("spawn legacy vibe lsp");
+
+    {
+        let stdin = child.stdin.as_mut().expect("legacy lsp stdin");
+        writeln!(stdin, "{{\"method\":\"shutdown\"}}").expect("write legacy shutdown command");
+    }
+    let output = child.wait_with_output().expect("collect legacy lsp output");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        output.status.success(),
+        "legacy vibe lsp failed:\nstdout:\n{}\nstderr:\n{}",
+        stdout,
+        stderr
+    );
+    assert!(
         stdout.contains("shutdown"),
-        "shutdown response missing from stdout:\n{}",
+        "legacy shutdown response missing from stdout:\n{}",
         stdout
     );
 }
@@ -220,6 +270,10 @@ fn fixture_path(relative: &str) -> PathBuf {
     workspace_root()
         .join("compiler/tests/fixtures")
         .join(relative)
+}
+
+fn framed_jsonrpc(payload: &str) -> String {
+    format!("Content-Length: {}\r\n\r\n{}", payload.len(), payload)
 }
 
 struct CmdOutput {

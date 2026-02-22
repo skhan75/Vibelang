@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -98,6 +99,100 @@ def main() -> None:
         fail(
             f"runtime_smoke_ms={runtime_smoke_ms} exceeds budget max_runtime_smoke_ms={max_runtime_smoke_ms}"
         )
+
+    editor_ux_benchmarks = budgets.get("editor_ux_benchmarks")
+    if editor_ux_benchmarks is not None and not isinstance(editor_ux_benchmarks, dict):
+        fail("editor_ux_benchmarks section must be an object when present")
+    if isinstance(editor_ux_benchmarks, dict):
+        max_lsp_initialize_ms = require_positive_int(
+            editor_ux_benchmarks, "max_lsp_initialize_ms", "editor_ux_benchmarks"
+        )
+        max_lsp_did_open_ms = require_positive_int(
+            editor_ux_benchmarks, "max_lsp_did_open_ms", "editor_ux_benchmarks"
+        )
+        max_lsp_completion_ms = require_positive_int(
+            editor_ux_benchmarks, "max_lsp_completion_ms", "editor_ux_benchmarks"
+        )
+        max_lsp_formatting_ms = require_positive_int(
+            editor_ux_benchmarks, "max_lsp_formatting_ms", "editor_ux_benchmarks"
+        )
+        max_lsp_shutdown_ms = require_positive_int(
+            editor_ux_benchmarks, "max_lsp_shutdown_ms", "editor_ux_benchmarks"
+        )
+        max_index_cold_ms_editor = require_positive_int(
+            editor_ux_benchmarks, "max_index_cold_ms", "editor_ux_benchmarks"
+        )
+        max_index_incremental_ms_editor = require_positive_int(
+            editor_ux_benchmarks, "max_index_incremental_ms", "editor_ux_benchmarks"
+        )
+        max_index_memory_bytes_editor = require_positive_int(
+            editor_ux_benchmarks, "max_index_memory_bytes", "editor_ux_benchmarks"
+        )
+
+        phase13_metrics_path = repo_root / "reports" / "phase13" / "editor_ux_metrics.json"
+        require_phase13_metrics = os.environ.get("VIBE_REQUIRE_EDITOR_UX_METRICS", "0") == "1"
+        if not phase13_metrics_path.exists():
+            if require_phase13_metrics:
+                fail(f"required editor UX metrics file missing: {phase13_metrics_path}")
+        else:
+            phase13_metrics = read_json(phase13_metrics_path)
+            lsp_initialize_ms = phase13_metrics.get("lsp_initialize_ms")
+            lsp_did_open_ms = phase13_metrics.get("lsp_did_open_ms")
+            lsp_completion_ms = phase13_metrics.get("lsp_completion_ms")
+            lsp_formatting_ms = phase13_metrics.get("lsp_formatting_ms")
+            lsp_shutdown_ms = phase13_metrics.get("lsp_shutdown_ms")
+            index_cold_ms_editor = phase13_metrics.get("index_cold_ms")
+            index_incremental_ms_editor = phase13_metrics.get("index_incremental_ms")
+            index_memory_bytes_editor = phase13_metrics.get("index_memory_bytes")
+
+            required_metrics = {
+                "lsp_initialize_ms": lsp_initialize_ms,
+                "lsp_did_open_ms": lsp_did_open_ms,
+                "lsp_completion_ms": lsp_completion_ms,
+                "lsp_formatting_ms": lsp_formatting_ms,
+                "lsp_shutdown_ms": lsp_shutdown_ms,
+                "index_cold_ms": index_cold_ms_editor,
+                "index_incremental_ms": index_incremental_ms_editor,
+                "index_memory_bytes": index_memory_bytes_editor,
+            }
+            for key, value in required_metrics.items():
+                if not isinstance(value, int) or value < 0:
+                    fail(f"phase13 editor metrics {key} must be a non-negative integer")
+
+            if lsp_initialize_ms > max_lsp_initialize_ms:
+                fail(
+                    f"lsp_initialize_ms={lsp_initialize_ms} exceeds budget max_lsp_initialize_ms={max_lsp_initialize_ms}"
+                )
+            if lsp_did_open_ms > max_lsp_did_open_ms:
+                fail(
+                    f"lsp_did_open_ms={lsp_did_open_ms} exceeds budget max_lsp_did_open_ms={max_lsp_did_open_ms}"
+                )
+            if lsp_completion_ms > max_lsp_completion_ms:
+                fail(
+                    f"lsp_completion_ms={lsp_completion_ms} exceeds budget max_lsp_completion_ms={max_lsp_completion_ms}"
+                )
+            if lsp_formatting_ms > max_lsp_formatting_ms:
+                fail(
+                    f"lsp_formatting_ms={lsp_formatting_ms} exceeds budget max_lsp_formatting_ms={max_lsp_formatting_ms}"
+                )
+            if lsp_shutdown_ms > max_lsp_shutdown_ms:
+                fail(
+                    f"lsp_shutdown_ms={lsp_shutdown_ms} exceeds budget max_lsp_shutdown_ms={max_lsp_shutdown_ms}"
+                )
+            if index_cold_ms_editor > max_index_cold_ms_editor:
+                fail(
+                    f"index_cold_ms={index_cold_ms_editor} exceeds budget max_index_cold_ms={max_index_cold_ms_editor}"
+                )
+            if index_incremental_ms_editor > max_index_incremental_ms_editor:
+                fail(
+                    "index_incremental_ms="
+                    f"{index_incremental_ms_editor} exceeds budget max_index_incremental_ms={max_index_incremental_ms_editor}"
+                )
+            if index_memory_bytes_editor > max_index_memory_bytes_editor:
+                fail(
+                    "index_memory_bytes="
+                    f"{index_memory_bytes_editor} exceeds budget max_index_memory_bytes={max_index_memory_bytes_editor}"
+                )
 
     stress_budgets = budgets.get("stress_budgets")
     if not isinstance(stress_budgets, dict):

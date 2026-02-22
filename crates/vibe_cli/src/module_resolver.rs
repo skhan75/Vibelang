@@ -316,7 +316,10 @@ fn collect_calls_from_stmt(stmt: &Stmt, out: &mut BTreeSet<String>) {
         Stmt::Return { expr, .. } => {
             collect_calls_from_expr(expr, out);
         }
-        Stmt::For { iter, body, .. } | Stmt::While { cond: iter, body, .. } => {
+        Stmt::For { iter, body, .. }
+        | Stmt::While {
+            cond: iter, body, ..
+        } => {
             collect_calls_from_expr(iter, out);
             for s in body {
                 collect_calls_from_stmt(s, out);

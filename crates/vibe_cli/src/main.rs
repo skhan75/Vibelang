@@ -17,14 +17,14 @@ use vibe_indexer::{
     default_metadata_root, is_supported_source_file, prepare_index_root, IncrementalIndexer,
     IncrementalTelemetry, IndexStats, IndexStore, SUPPORTED_SOURCE_EXTS,
 };
-use vibe_lsp::run_line_stdio;
+use vibe_lsp::{run_lsp_stdio, TransportMode};
 use vibe_mir::MirProgram;
 use vibe_mir::{lower_hir_to_mir, mir_debug_dump};
 use vibe_parser::parse_source;
 use vibe_pkg::{
     audit_project, default_mirror_root, default_registry_root, install_project, publish_project,
-    resolve_project, semver_delta, upgrade_plan, write_lockfile, LOCK_FILENAME,
-    MANIFEST_FILENAME, SemverDelta,
+    resolve_project, semver_delta, upgrade_plan, write_lockfile, SemverDelta, LOCK_FILENAME,
+    MANIFEST_FILENAME,
 };
 use vibe_runtime::{compile_runtime_object, link_executable, RuntimeBuildOptions};
 use vibe_sidecar::models::FindingSeverity;
@@ -196,7 +196,8 @@ COMMANDS
                             Build and execute compiled program
   test <path|dir> [flags]   Run fixture-aware test flow (filter/shard/report)
   index [path] [flags]      Build/update semantic index
-  lsp [--index-root <dir>]  Start line-stdio LSP server
+  lsp [--index-root <dir>] [--transport legacy|jsonrpc]
+                            Start LSP server over selected stdio transport
   fmt [path] [flags]        Format source files
   doc [path] [flags]        Generate markdown API docs
   new <name> [flags]        Scaffold app/service/cli/library project
@@ -327,10 +328,13 @@ FLAGS
             r#"vibe lsp
 
 USAGE
-  vibe lsp [--index-root <dir>]
+  vibe lsp [--index-root <dir>] [--transport legacy|jsonrpc]
 
 DESCRIPTION
-  Starts line-stdio language-server protocol endpoint.
+  Starts language-server protocol endpoint.
+
+FLAGS
+  --transport <mode>        Transport mode (legacy|jsonrpc), default: jsonrpc
 "#,
         ),
         "fmt" => Some(
@@ -1605,6 +1609,7 @@ fn run_lsp(args: &[String]) -> Result<ExitCode, String> {
     let cwd =
         env::current_dir().map_err(|e| format!("failed to resolve current directory: {e}"))?;
     let mut index_root = prepare_index_root(&cwd)?;
+    let mut transport = TransportMode::JsonRpc;
     let mut idx = 0usize;
     while idx < args.len() {
         match args[idx].as_str() {
@@ -1615,11 +1620,26 @@ fn run_lsp(args: &[String]) -> Result<ExitCode, String> {
                     .ok_or_else(|| "missing value for `--index-root`".to_string())?;
                 index_root = PathBuf::from(val);
             }
+            "--transport" => {
+                idx += 1;
+                let val = args
+                    .get(idx)
+                    .ok_or_else(|| "missing value for `--transport`".to_string())?;
+                transport = match val.as_str() {
+                    "legacy" => TransportMode::Legacy,
+                    "jsonrpc" => TransportMode::JsonRpc,
+                    _ => {
+                        return Err(format!(
+                            "invalid `--transport` value `{val}` (expected legacy|jsonrpc)"
+                        ))
+                    }
+                };
+            }
             other => return Err(format!("unknown argument `{other}`")),
         }
         idx += 1;
     }
-    run_line_stdio(index_root)?;
+    run_lsp_stdio(index_root, transport)?;
     Ok(ExitCode::SUCCESS)
 }
 
@@ -1859,9 +1879,8 @@ pub run_command() -> Int {{
                 )
             })?;
         }
-        fs::write(path, source).map_err(|e| {
-            format!("failed to write source template `{}`: {e}", path.display())
-        })?;
+        fs::write(path, source)
+            .map_err(|e| format!("failed to write source template `{}`: {e}", path.display()))?;
     }
 
     let manifest = format!(
@@ -1920,11 +1939,7 @@ fn sanitize_module_ident(raw: &str) -> String {
     if out.is_empty() {
         return "app".to_string();
     }
-    if out
-        .chars()
-        .next()
-        .is_some_and(|ch| ch.is_ascii_digit())
-    {
+    if out.chars().next().is_some_and(|ch| ch.is_ascii_digit()) {
         return format!("pkg_{out}");
     }
     out
@@ -2038,10 +2053,9 @@ fn run_pkg(args: &PkgArgs) -> Result<ExitCode, String> {
             }
         }
         PkgCommand::SemverCheck => {
-            let current = args
-                .current_version
-                .as_deref()
-                .ok_or_else(|| "`vibe pkg semver-check` requires `--current <version>`".to_string())?;
+            let current = args.current_version.as_deref().ok_or_else(|| {
+                "`vibe pkg semver-check` requires `--current <version>`".to_string()
+            })?;
             let next = args
                 .next_version
                 .as_deref()

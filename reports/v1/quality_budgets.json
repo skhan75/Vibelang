@@ -6,6 +6,16 @@
     "max_runtime_smoke_ms": 3000,
     "min_index_cache_hit_rate": 0.1
   },
+  "editor_ux_benchmarks": {
+    "max_lsp_initialize_ms": 1500,
+    "max_lsp_did_open_ms": 2500,
+    "max_lsp_completion_ms": 1200,
+    "max_lsp_formatting_ms": 1200,
+    "max_lsp_shutdown_ms": 800,
+    "max_index_cold_ms": 25000,
+    "max_index_incremental_ms": 9000,
+    "max_index_memory_bytes": 80000000
+  },
   "stress_budgets": {
     "max_concurrency_smoke_seconds": 5,
     "max_memory_smoke_seconds": 5,

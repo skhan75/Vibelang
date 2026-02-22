@@ -807,6 +807,7 @@ dependencies = [
  "serde_json",
  "tempfile",
  "vibe_diagnostics",
+ "vibe_fmt",
  "vibe_indexer",
  "vibe_parser",
  "vibe_types",

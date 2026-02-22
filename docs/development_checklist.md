@@ -744,10 +744,10 @@ Goal: make VibeLang practical as an everyday engineering platform across local d
 
 ### 13.1 IDE and Workflow Maturity
 
-- [ ] Upgrade LSP from diagnostics-focused to productivity-focused (completion, symbol nav, rename, code actions, formatting integration)
-- [ ] Add large-workspace performance benchmarks for indexer/LSP paths
-- [ ] Add editor/CI consistency checks to prevent local-vs-CI behavior drift
-- [ ] Publish IDE setup guides and recommended workflows for major editors
+- [x] Upgrade LSP from diagnostics-focused to productivity-focused (completion, symbol nav, rename, code actions, formatting integration) (evidence: `crates/vibe_lsp/src/protocol.rs`, `crates/vibe_lsp/src/handlers.rs`, `crates/vibe_lsp/src/session.rs`, `reports/phase13/lsp_productivity_features.md`)
+- [x] Add large-workspace performance benchmarks for indexer/LSP paths (evidence: `tooling/phase13/benchmark_editor_ux.py`, `reports/phase13/editor_ux_metrics.json`, `reports/phase13/large_workspace_performance.md`)
+- [x] Add editor/CI consistency checks to prevent local-vs-CI behavior drift (evidence: `tooling/phase13/check_diagnostics_parity.py`, `reports/phase13/editor_ci_consistency.json`, `reports/phase13/editor_ci_consistency.md`)
+- [x] Publish IDE setup guides and recommended workflows for major editors (evidence: `docs/ide/vscode_cursor_setup.md`, `docs/ide/editor_ci_consistency.md`, `docs/ide/syntax_color_guide.md`, `.github/workflows/phase13-editor-ux.yml`)
 
 ### 13.2 Debugging, Profiling, and Observability
 

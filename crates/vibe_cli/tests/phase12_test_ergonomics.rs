@@ -58,12 +58,7 @@ fn phase12_vibe_test_supports_sharding() {
 #[test]
 fn phase12_vibe_test_rejects_invalid_shard_specs() {
     let suite = temp_suite_dir("vibe_phase12_test_bad_shard");
-    let out = run_vibe(&[
-        "test",
-        suite.to_str().expect("suite str"),
-        "--shard",
-        "0/2",
-    ]);
+    let out = run_vibe(&["test", suite.to_str().expect("suite str"), "--shard", "0/2"]);
     assert!(
         !out.status.success(),
         "invalid shard spec unexpectedly succeeded:\nstdout:\n{}\nstderr:\n{}",

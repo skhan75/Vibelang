@@ -8,6 +8,7 @@ license.workspace = true
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 vibe_diagnostics.workspace = true
+vibe_fmt.workspace = true
 vibe_indexer.workspace = true
 vibe_parser.workspace = true
 vibe_types.workspace = true

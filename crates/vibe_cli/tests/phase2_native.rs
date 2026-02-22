@@ -676,7 +676,8 @@ pub main() -> Int {
         out.stderr
     );
     assert!(
-        out.stderr.contains("capturing member access in `go` may alias shared mutable state"),
+        out.stderr
+            .contains("capturing member access in `go` may alias shared mutable state"),
         "expected sendability/member-capture diagnostic:\n{}",
         out.stderr
     );
@@ -707,7 +708,8 @@ pub main() -> Int {
         out.stderr
     );
     assert!(
-        out.stderr.contains("contract @require failed in native execution"),
+        out.stderr
+            .contains("contract @require failed in native execution"),
         "expected native contract failure propagation:\n{}",
         out.stderr
     );
@@ -892,7 +894,8 @@ pub util() -> Int {
         out.stderr
     );
     assert!(
-        out.stdout.contains("cross-package import `beta.util` is not allowed"),
+        out.stdout
+            .contains("cross-package import `beta.util` is not allowed"),
         "expected cross-package boundary diagnostic:\n{}",
         out.stdout
     );
@@ -935,7 +938,8 @@ pub util() -> Int {
         out.stderr
     );
     assert!(
-        out.stdout.contains("does not match file layout `demo.wrong`"),
+        out.stdout
+            .contains("does not match file layout `demo.wrong`"),
         "expected package layout diagnostic:\n{}",
         out.stdout
     );

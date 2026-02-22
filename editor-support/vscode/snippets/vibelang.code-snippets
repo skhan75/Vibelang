@@ -1,0 +1,50 @@
+{
+  "Pub Main": {
+    "prefix": "main",
+    "body": [
+      "pub main() -> Int {",
+      "  @effect io",
+      "  println(\"$1\")",
+      "  0",
+      "}"
+    ],
+    "description": "Public main entrypoint with io effect."
+  },
+  "Function With Intent": {
+    "prefix": "fnintent",
+    "body": [
+      "pub ${1:name}(${2:arg}: ${3:Int}) -> ${4:Int} {",
+      "  @intent \"${5:describe behavior}\"",
+      "  ${6:arg}",
+      "}"
+    ],
+    "description": "Function template with @intent contract."
+  },
+  "Require Ensure": {
+    "prefix": "require",
+    "body": [
+      "@require ${1:condition}",
+      "@ensure ${2:post_condition}"
+    ],
+    "description": "Insert @require and @ensure contract lines."
+  },
+  "Select After": {
+    "prefix": "select",
+    "body": [
+      "select {",
+      "  case after ${1:100ms} => ${2:0}",
+      "  case default => ${3:0}",
+      "}"
+    ],
+    "description": "Select statement with after/default branches."
+  },
+  "List And Map": {
+    "prefix": "containers",
+    "body": [
+      "items := [${1:1}, ${2:2}, ${3:3}]",
+      "lookup := {\"${4:key}\": ${5:value}}"
+    ],
+    "description": "Common list and map literal starter."
+  }
+}
+

@@ -1,0 +1,188 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "VibeLang",
+  "scopeName": "source.vibelang",
+  "fileTypes": [
+    "yb",
+    "vibe"
+  ],
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#contracts"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#storageModifiers"
+    },
+    {
+      "include": "#types"
+    },
+    {
+      "include": "#booleansAndNone"
+    },
+    {
+      "include": "#numbers"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#chars"
+    },
+    {
+      "include": "#moduleAndImportPaths"
+    },
+    {
+      "include": "#functionDecl"
+    },
+    {
+      "include": "#functionCalls"
+    },
+    {
+      "include": "#operators"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.vibelang",
+          "match": "//.*$"
+        }
+      ]
+    },
+    "contracts": {
+      "patterns": [
+        {
+          "name": "storage.type.annotation.contract.vibelang",
+          "match": "@(?:intent|examples|require|ensure|effect)\\b"
+        },
+        {
+          "name": "support.constant.effect.vibelang",
+          "match": "(?<=@effect\\s)(alloc|mut_state|io|net|concurrency|nondet)\\b"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.vibelang",
+          "match": "\\b(module|import|type|return|if|else|for|in|while|repeat|match|case|default|select|after|closed|go|thread|break|continue|const|await)\\b"
+        },
+        {
+          "name": "keyword.operator.assignment.vibelang",
+          "match": "(:=|=>|->)"
+        }
+      ]
+    },
+    "storageModifiers": {
+      "patterns": [
+        {
+          "name": "storage.modifier.vibelang",
+          "match": "\\b(pub|async|mut)\\b"
+        }
+      ]
+    },
+    "types": {
+      "patterns": [
+        {
+          "name": "storage.type.vibelang",
+          "match": "\\b(Int|Float|Bool|Str|Char|List|Map|Chan|Result|Option)\\b"
+        },
+        {
+          "name": "entity.name.type.vibelang",
+          "match": "\\b[A-Z][A-Za-z0-9_]*\\b"
+        }
+      ]
+    },
+    "booleansAndNone": {
+      "patterns": [
+        {
+          "name": "constant.language.boolean.vibelang",
+          "match": "\\b(true|false)\\b"
+        },
+        {
+          "name": "constant.language.null.vibelang",
+          "match": "\\bnone\\b"
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.float.vibelang",
+          "match": "\\b\\d+\\.\\d+(?:f32|f64)?\\b"
+        },
+        {
+          "name": "constant.numeric.integer.vibelang",
+          "match": "\\b\\d+(?:i8|i16|i32|i64|isize|u8|u16|u32|u64|usize)?\\b"
+        },
+        {
+          "name": "constant.numeric.duration.vibelang",
+          "match": "\\b\\d+(?:ns|us|ms|s|m|h)\\b"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.vibelang",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.vibelang",
+              "match": "\\\\."
+            }
+          ]
+        }
+      ]
+    },
+    "chars": {
+      "patterns": [
+        {
+          "name": "string.quoted.single.vibelang",
+          "match": "'(?:\\\\.|[^'\\\\])'"
+        }
+      ]
+    },
+    "moduleAndImportPaths": {
+      "patterns": [
+        {
+          "name": "entity.name.namespace.vibelang",
+          "match": "(?<=\\b(?:module|import)\\s)[A-Za-z_][A-Za-z0-9_]*(?:\\.[A-Za-z_][A-Za-z0-9_]*)*"
+        }
+      ]
+    },
+    "functionDecl": {
+      "patterns": [
+        {
+          "name": "entity.name.function.vibelang",
+          "match": "\\b([a-zA-Z_][A-Za-z0-9_]*)\\s*(?=\\()"
+        }
+      ]
+    },
+    "functionCalls": {
+      "patterns": [
+        {
+          "name": "support.function.vibelang",
+          "match": "\\b([a-zA-Z_][A-Za-z0-9_]*)\\s*(?=\\()"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.vibelang",
+          "match": "(\\|\\||&&|==|!=|<=|>=|<|>|\\+|-|\\*|/|%|=|\\?|\\.|:)"
+        }
+      ]
+    }
+  }
+}
+

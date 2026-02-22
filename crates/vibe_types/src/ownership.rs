@@ -34,16 +34,16 @@ pub fn expr_contains_member_access(expr: &Expr) -> bool {
             object, start, end, ..
         } => {
             expr_contains_member_access(object)
-                || start.as_ref().is_some_and(|e| expr_contains_member_access(e))
+                || start
+                    .as_ref()
+                    .is_some_and(|e| expr_contains_member_access(e))
                 || end.as_ref().is_some_and(|e| expr_contains_member_access(e))
         }
         Expr::Unary { expr, .. }
         | Expr::Async { expr, .. }
         | Expr::Await { expr, .. }
         | Expr::Question { expr, .. }
-        | Expr::Old { expr, .. } => {
-            expr_contains_member_access(expr)
-        }
+        | Expr::Old { expr, .. } => expr_contains_member_access(expr),
         Expr::List { items, .. } => items.iter().any(expr_contains_member_access),
         Expr::Map { entries, .. } => entries
             .iter()

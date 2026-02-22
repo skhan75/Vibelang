@@ -1,0 +1,97 @@
+{
+  "name": "vibelang-editor-support",
+  "private": true,
+  "displayName": "VibeLang",
+  "description": "VS Code/Cursor language support for VibeLang (.yb/.vibe).",
+  "version": "0.13.1",
+  "publisher": "vibelang",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Formatters"
+  ],
+  "activationEvents": [
+    "onLanguage:vibelang",
+    "workspaceContains:**/*.yb",
+    "workspaceContains:**/*.vibe"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "vibelang",
+        "aliases": [
+          "VibeLang",
+          "vibelang"
+        ],
+        "extensions": [
+          ".yb",
+          ".vibe"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "vibelang",
+        "scopeName": "source.vibelang",
+        "path": "./syntaxes/vibelang.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "vibelang",
+        "path": "./snippets/vibelang.code-snippets"
+      }
+    ],
+    "configurationDefaults": {
+      "[vibelang]": {
+        "editor.defaultFormatter": "vibelang.vibelang-editor-support",
+        "editor.formatOnSave": true
+      }
+    },
+    "configuration": {
+      "title": "VibeLang",
+      "properties": {
+        "vibelang.server.path": {
+          "type": "string",
+          "default": "vibe",
+          "description": "Path to the vibe CLI executable used to launch the language server."
+        },
+        "vibelang.lsp.transport": {
+          "type": "string",
+          "enum": [
+            "jsonrpc",
+            "legacy"
+          ],
+          "default": "jsonrpc",
+          "description": "Transport mode passed to `vibe lsp --transport`."
+        },
+        "vibelang.formatOnSave": {
+          "type": "boolean",
+          "default": true,
+          "description": "If true, request document formatting through the language server on save."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "clean": "rm -rf dist",
+    "compile": "tsc -p ./tsconfig.json",
+    "build": "npm run clean && npm run compile",
+    "validate:grammar": "python3 ../../tooling/phase13/validate_textmate_grammar.py",
+    "smoke": "node ./scripts/smoke.js"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.2",
+    "@types/vscode": "^1.90.0",
+    "typescript": "^5.6.3"
+  }
+}
+

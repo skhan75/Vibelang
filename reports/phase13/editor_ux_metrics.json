@@ -1,0 +1,11 @@
+{
+  "generated_at_epoch_s": 1771759287,
+  "index_cold_ms": 41,
+  "index_incremental_ms": 0,
+  "index_memory_bytes": 154673,
+  "lsp_initialize_ms": 103,
+  "lsp_did_open_ms": 0,
+  "lsp_completion_ms": 0,
+  "lsp_formatting_ms": 0,
+  "lsp_shutdown_ms": 0
+}

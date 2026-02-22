@@ -357,8 +357,12 @@ pub fn audit_project(
     let advisory_db = load_advisory_db(advisory_db_path)?;
     let mut findings = Vec::new();
     for pkg in &resolution.packages {
-        let version = Version::parse(&pkg.version)
-            .map_err(|e| format!("invalid resolved version `{}` for `{}`: {e}", pkg.version, pkg.name))?;
+        let version = Version::parse(&pkg.version).map_err(|e| {
+            format!(
+                "invalid resolved version `{}` for `{}`: {e}",
+                pkg.version, pkg.name
+            )
+        })?;
         let manifest = load_package_manifest(mirror_root, &pkg.name, &version)?;
         let license = manifest
             .package
@@ -444,7 +448,8 @@ pub fn upgrade_plan(project_root: &Path, mirror_root: &Path) -> Result<UpgradeRe
 pub fn semver_delta(current: &str, next: &str) -> Result<SemverDelta, String> {
     let current = Version::parse(current)
         .map_err(|e| format!("invalid `--current` version `{current}`: {e}"))?;
-    let next = Version::parse(next).map_err(|e| format!("invalid `--next` version `{next}`: {e}"))?;
+    let next =
+        Version::parse(next).map_err(|e| format!("invalid `--next` version `{next}`: {e}"))?;
     if next == current {
         return Ok(SemverDelta::Unchanged);
     }
@@ -622,9 +627,12 @@ fn collect_package_source_files_recursive(
     current: &Path,
     out: &mut Vec<PathBuf>,
 ) -> Result<(), String> {
-    for entry in fs::read_dir(current)
-        .map_err(|e| format!("failed to read source directory `{}`: {e}", current.display()))?
-    {
+    for entry in fs::read_dir(current).map_err(|e| {
+        format!(
+            "failed to read source directory `{}`: {e}",
+            current.display()
+        )
+    })? {
         let entry = entry.map_err(|e| format!("failed to read source directory entry: {e}"))?;
         let path = entry.path();
         let file_name = entry.file_name();
@@ -636,7 +644,10 @@ fn collect_package_source_files_recursive(
             collect_package_source_files_recursive(root, &path, out)?;
             continue;
         }
-        let ext = path.extension().and_then(|e| e.to_str()).unwrap_or_default();
+        let ext = path
+            .extension()
+            .and_then(|e| e.to_str())
+            .unwrap_or_default();
         if ext == "yb" || ext == "vibe" {
             let rel = path
                 .strip_prefix(root)
@@ -649,9 +660,12 @@ fn collect_package_source_files_recursive(
 }
 
 fn copy_publish_sources(project_root: &Path, destination: &Path) -> Result<(), String> {
-    for entry in fs::read_dir(project_root)
-        .map_err(|e| format!("failed to read project root `{}`: {e}", project_root.display()))?
-    {
+    for entry in fs::read_dir(project_root).map_err(|e| {
+        format!(
+            "failed to read project root `{}`: {e}",
+            project_root.display()
+        )
+    })? {
         let entry = entry.map_err(|e| format!("failed to read project entry: {e}"))?;
         let src = entry.path();
         let target = destination.join(entry.file_name());
@@ -710,7 +724,7 @@ mod tests {
 
     use super::{
         audit_project, install_project, publish_project, resolve_project, semver_delta,
-        upgrade_plan, write_lockfile, LOCK_FILENAME, MANIFEST_FILENAME, SemverDelta,
+        upgrade_plan, write_lockfile, SemverDelta, LOCK_FILENAME, MANIFEST_FILENAME,
     };
 
     #[test]
@@ -818,10 +832,7 @@ mod tests {
         let report = publish_project(&project, &registry).expect("publish");
         assert_eq!(report.package, "root");
         assert_eq!(report.version, "0.1.0");
-        assert!(report
-            .published_dir
-            .join(MANIFEST_FILENAME)
-            .exists());
+        assert!(report.published_dir.join(MANIFEST_FILENAME).exists());
         assert!(report.published_dir.join("lib.yb").exists());
         let index = fs::read_to_string(report.index_path).expect("read index");
         assert!(index.contains("name = \"root\""));

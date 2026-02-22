@@ -1179,7 +1179,10 @@ fn infer_expr(
                     diagnostics.push(Diagnostic::new(
                         "E2236",
                         Severity::Error,
-                        format!("slicing is only supported for List<T> and Str; got `{}`", type_name(&other)),
+                        format!(
+                            "slicing is only supported for List<T> and Str; got `{}`",
+                            type_name(&other)
+                        ),
                         *span,
                     ));
                     TypeKind::Unknown
@@ -1226,7 +1229,10 @@ fn infer_expr(
             }
             if let Expr::Member { field, .. } = &**callee {
                 if let Expr::Member { object, field, .. } = &**callee {
-                    if let Expr::Ident { name: namespace, .. } = &**object {
+                    if let Expr::Ident {
+                        name: namespace, ..
+                    } = &**object
+                    {
                         if let Some(ret) = infer_stdlib_namespace_call(
                             namespace,
                             field,

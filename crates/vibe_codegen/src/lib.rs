@@ -249,7 +249,9 @@ fn declare_runtime_functions(
 
     let mut str_len_bytes_sig = module.make_signature();
     str_len_bytes_sig.params.push(AbiParam::new(ptr_ty));
-    str_len_bytes_sig.returns.push(AbiParam::new(ir::types::I64));
+    str_len_bytes_sig
+        .returns
+        .push(AbiParam::new(ir::types::I64));
     let str_len_bytes_fn = module
         .declare_function("vibe_str_len_bytes", Linkage::Import, &str_len_bytes_sig)
         .map_err(|e| format!("failed to declare runtime str_len_bytes symbol: {e}"))?;
@@ -445,9 +447,7 @@ fn declare_runtime_functions(
     container_key_at_str_sig
         .params
         .push(AbiParam::new(ir::types::I64));
-    container_key_at_str_sig
-        .returns
-        .push(AbiParam::new(ptr_ty));
+    container_key_at_str_sig.returns.push(AbiParam::new(ptr_ty));
     let container_key_at_str_fn = module
         .declare_function(
             "vibe_container_key_at_str",
@@ -587,12 +587,18 @@ fn declare_runtime_functions(
         .map_err(|e| format!("failed to declare runtime time_sleep_ms symbol: {e}"))?;
 
     let mut time_duration_ms_sig = module.make_signature();
-    time_duration_ms_sig.params.push(AbiParam::new(ir::types::I64));
+    time_duration_ms_sig
+        .params
+        .push(AbiParam::new(ir::types::I64));
     time_duration_ms_sig
         .returns
         .push(AbiParam::new(ir::types::I64));
     let time_duration_ms_fn = module
-        .declare_function("vibe_time_duration_ms", Linkage::Import, &time_duration_ms_sig)
+        .declare_function(
+            "vibe_time_duration_ms",
+            Linkage::Import,
+            &time_duration_ms_sig,
+        )
         .map_err(|e| format!("failed to declare runtime time_duration_ms symbol: {e}"))?;
 
     let mut path_join_sig = module.make_signature();
@@ -623,7 +629,11 @@ fn declare_runtime_functions(
         .returns
         .push(AbiParam::new(ir::types::I64));
     let path_is_absolute_fn = module
-        .declare_function("vibe_path_is_absolute", Linkage::Import, &path_is_absolute_sig)
+        .declare_function(
+            "vibe_path_is_absolute",
+            Linkage::Import,
+            &path_is_absolute_sig,
+        )
         .map_err(|e| format!("failed to declare runtime path_is_absolute symbol: {e}"))?;
 
     let mut fs_exists_sig = module.make_signature();
@@ -698,10 +708,16 @@ fn declare_runtime_functions(
         .map_err(|e| format!("failed to declare runtime json_minify symbol: {e}"))?;
 
     let mut http_status_text_sig = module.make_signature();
-    http_status_text_sig.params.push(AbiParam::new(ir::types::I64));
+    http_status_text_sig
+        .params
+        .push(AbiParam::new(ir::types::I64));
     http_status_text_sig.returns.push(AbiParam::new(ptr_ty));
     let http_status_text_fn = module
-        .declare_function("vibe_http_status_text", Linkage::Import, &http_status_text_sig)
+        .declare_function(
+            "vibe_http_status_text",
+            Linkage::Import,
+            &http_status_text_sig,
+        )
         .map_err(|e| format!("failed to declare runtime http_status_text symbol: {e}"))?;
 
     let mut http_default_port_sig = module.make_signature();
@@ -710,13 +726,23 @@ fn declare_runtime_functions(
         .returns
         .push(AbiParam::new(ir::types::I64));
     let http_default_port_fn = module
-        .declare_function("vibe_http_default_port", Linkage::Import, &http_default_port_sig)
+        .declare_function(
+            "vibe_http_default_port",
+            Linkage::Import,
+            &http_default_port_sig,
+        )
         .map_err(|e| format!("failed to declare runtime http_default_port symbol: {e}"))?;
 
     let mut http_build_request_line_sig = module.make_signature();
-    http_build_request_line_sig.params.push(AbiParam::new(ptr_ty));
-    http_build_request_line_sig.params.push(AbiParam::new(ptr_ty));
-    http_build_request_line_sig.returns.push(AbiParam::new(ptr_ty));
+    http_build_request_line_sig
+        .params
+        .push(AbiParam::new(ptr_ty));
+    http_build_request_line_sig
+        .params
+        .push(AbiParam::new(ptr_ty));
+    http_build_request_line_sig
+        .returns
+        .push(AbiParam::new(ptr_ty));
     let http_build_request_line_fn = module
         .declare_function(
             "vibe_http_build_request_line",
@@ -1370,7 +1396,9 @@ fn emit_for_stmt(
         MirForIterKind::List => {
             let local_get =
                 module.declare_func_in_func(runtime_fns.container_get_i64_fn, builder.func);
-            let call = builder.ins().call(local_get, &[iter_handle_value, idx_value]);
+            let call = builder
+                .ins()
+                .call(local_get, &[iter_handle_value, idx_value]);
             let value = builder
                 .inst_results(call)
                 .first()
@@ -1381,7 +1409,9 @@ fn emit_for_stmt(
         MirForIterKind::MapInt => {
             let local_key =
                 module.declare_func_in_func(runtime_fns.container_key_at_i64_fn, builder.func);
-            let call = builder.ins().call(local_key, &[iter_handle_value, idx_value]);
+            let call = builder
+                .ins()
+                .call(local_key, &[iter_handle_value, idx_value]);
             let key = builder
                 .inst_results(call)
                 .first()
@@ -1392,7 +1422,9 @@ fn emit_for_stmt(
         MirForIterKind::MapStr => {
             let local_key =
                 module.declare_func_in_func(runtime_fns.container_key_at_str_fn, builder.func);
-            let call = builder.ins().call(local_key, &[iter_handle_value, idx_value]);
+            let call = builder
+                .ins()
+                .call(local_key, &[iter_handle_value, idx_value]);
             let key = builder
                 .inst_results(call)
                 .first()
@@ -2160,7 +2192,7 @@ fn emit_expr(
         } => {
             if !*object_is_str {
                 return Err(
-                    "E3410: native slicing currently supports Str operands only".to_string(),
+                    "E3410: native slicing currently supports Str operands only".to_string()
                 );
             }
             let object_value = emit_expr(
@@ -2589,11 +2621,7 @@ fn emit_expr(
                             eq_value
                         }
                     } else {
-                        let cc = if is_ne {
-                            IntCC::NotEqual
-                        } else {
-                            IntCC::Equal
-                        };
+                        let cc = if is_ne { IntCC::NotEqual } else { IntCC::Equal };
                         let cmp = builder.ins().icmp(cc, l, r);
                         builder.ins().uextend(ir::types::I64, cmp)
                     }
@@ -2753,14 +2781,12 @@ fn emit_stdlib_namespace_call(
     builder: &mut FunctionBuilder<'_>,
     runtime_fns: RuntimeFunctions,
 ) -> Result<Option<ir::Value>, String> {
-    let call_no_args = |func: FuncId,
-                        module: &mut ObjectModule,
-                        builder: &mut FunctionBuilder<'_>|
-     -> ir::Value {
-        let local = module.declare_func_in_func(func, builder.func);
-        let call = builder.ins().call(local, &[]);
-        call_result_or_zero(builder, call)
-    };
+    let call_no_args =
+        |func: FuncId, module: &mut ObjectModule, builder: &mut FunctionBuilder<'_>| -> ir::Value {
+            let local = module.declare_func_in_func(func, builder.func);
+            let call = builder.ins().call(local, &[]);
+            call_result_or_zero(builder, call)
+        };
     let call_one_arg = |func: FuncId,
                         arg0: ir::Value,
                         module: &mut ObjectModule,
@@ -2798,13 +2824,22 @@ fn emit_stdlib_namespace_call(
         }
         ("time", "sleep_ms") => {
             expect_arity(1)?;
-            let _ =
-                call_one_arg(runtime_fns.time_sleep_ms_fn, lowered_args[0], module, builder);
+            let _ = call_one_arg(
+                runtime_fns.time_sleep_ms_fn,
+                lowered_args[0],
+                module,
+                builder,
+            );
             builder.ins().iconst(ir::types::I64, 0)
         }
         ("time", "duration_ms") => {
             expect_arity(1)?;
-            call_one_arg(runtime_fns.time_duration_ms_fn, lowered_args[0], module, builder)
+            call_one_arg(
+                runtime_fns.time_duration_ms_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
         }
         ("path", "join") => {
             expect_arity(2)?;
@@ -2822,11 +2857,21 @@ fn emit_stdlib_namespace_call(
         }
         ("path", "basename") => {
             expect_arity(1)?;
-            call_one_arg(runtime_fns.path_basename_fn, lowered_args[0], module, builder)
+            call_one_arg(
+                runtime_fns.path_basename_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
         }
         ("path", "is_absolute") => {
             expect_arity(1)?;
-            call_one_arg(runtime_fns.path_is_absolute_fn, lowered_args[0], module, builder)
+            call_one_arg(
+                runtime_fns.path_is_absolute_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
         }
         ("fs", "exists") => {
             expect_arity(1)?;
@@ -2834,7 +2879,12 @@ fn emit_stdlib_namespace_call(
         }
         ("fs", "read_text") => {
             expect_arity(1)?;
-            call_one_arg(runtime_fns.fs_read_text_fn, lowered_args[0], module, builder)
+            call_one_arg(
+                runtime_fns.fs_read_text_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
         }
         ("fs", "write_text") => {
             expect_arity(2)?;
@@ -2848,19 +2898,39 @@ fn emit_stdlib_namespace_call(
         }
         ("fs", "create_dir") => {
             expect_arity(1)?;
-            call_one_arg(runtime_fns.fs_create_dir_fn, lowered_args[0], module, builder)
+            call_one_arg(
+                runtime_fns.fs_create_dir_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
         }
         ("json", "is_valid") => {
             expect_arity(1)?;
-            call_one_arg(runtime_fns.json_is_valid_fn, lowered_args[0], module, builder)
+            call_one_arg(
+                runtime_fns.json_is_valid_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
         }
         ("json", "parse_i64") => {
             expect_arity(1)?;
-            call_one_arg(runtime_fns.json_parse_i64_fn, lowered_args[0], module, builder)
+            call_one_arg(
+                runtime_fns.json_parse_i64_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
         }
         ("json", "stringify_i64") => {
             expect_arity(1)?;
-            call_one_arg(runtime_fns.json_stringify_i64_fn, lowered_args[0], module, builder)
+            call_one_arg(
+                runtime_fns.json_stringify_i64_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
         }
         ("json", "minify") => {
             expect_arity(1)?;
@@ -2868,11 +2938,21 @@ fn emit_stdlib_namespace_call(
         }
         ("http", "status_text") => {
             expect_arity(1)?;
-            call_one_arg(runtime_fns.http_status_text_fn, lowered_args[0], module, builder)
+            call_one_arg(
+                runtime_fns.http_status_text_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
         }
         ("http", "default_port") => {
             expect_arity(1)?;
-            call_one_arg(runtime_fns.http_default_port_fn, lowered_args[0], module, builder)
+            call_one_arg(
+                runtime_fns.http_default_port_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
         }
         ("http", "build_request_line") => {
             expect_arity(2)?;

@@ -1,0 +1,12 @@
+{
+  "fixture": "/home/azskdev/workspace/VibeStack/vibelang/compiler/tests/fixtures/phase7/basic/typecheck/typecheck__unknown_symbol_and_mismatch.yb",
+  "cli_codes": [
+    "E2001",
+    "E2102"
+  ],
+  "lsp_codes": [
+    "E2001",
+    "E2102"
+  ],
+  "parity": true
+}

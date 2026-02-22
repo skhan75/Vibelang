@@ -694,9 +694,9 @@ impl Parser {
             }
             TokenKind::Keyword(Keyword::Async) => {
                 let kw = self.bump();
-                let inner = self
-                    .parse_unary_expr(stop)
-                    .unwrap_or_else(|| self.error_expr("E1404A", "expected expression after `async`"));
+                let inner = self.parse_unary_expr(stop).unwrap_or_else(|| {
+                    self.error_expr("E1404A", "expected expression after `async`")
+                });
                 let span = Span::new(
                     kw.span.line_start,
                     kw.span.col_start,
@@ -710,9 +710,9 @@ impl Parser {
             }
             TokenKind::Keyword(Keyword::Await) => {
                 let kw = self.bump();
-                let inner = self
-                    .parse_unary_expr(stop)
-                    .unwrap_or_else(|| self.error_expr("E1404B", "expected expression after `await`"));
+                let inner = self.parse_unary_expr(stop).unwrap_or_else(|| {
+                    self.error_expr("E1404B", "expected expression after `await`")
+                });
                 let span = Span::new(
                     kw.span.line_start,
                     kw.span.col_start,

@@ -1,0 +1,27 @@
+pub sum_upto(n: Int) -> Int {
+  @intent "sum integers from 1 to n"
+  @require n >= 0
+
+  i := 1
+  acc := 0
+
+  while i <= n {
+    acc = acc + i
+    i = i + 1
+  }
+
+  acc
+}
+
+pub main() -> Int {
+  @effect io
+
+  total := sum_upto(10)
+  if total == 55 {
+    println("sum(1..10) is correct")
+  } else {
+    println("unexpected result")
+  }
+
+  0
+}
