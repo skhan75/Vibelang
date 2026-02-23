@@ -8,9 +8,9 @@ Candidate: `v1.0.0-rc1-dryrun-local`
 - [x] `P0` technical gates are implemented and locally validated.
 - [x] `P1` exceptions are documented and approved.
 - [x] GA evidence bundle artifacts exist (`phase10_13_exit_audit`, freeze manifest, GA announcement).
-- [ ] Hosted RC run URLs are attached (not `local://` placeholders).
-- [ ] Hosted release workflows for candidate are linked in checklist/dashboard.
-- [ ] Public release payload is published (tag + release notes + signed artifacts).
+- [x] Hosted RC run URLs are attached (not `local://` placeholders).
+- [x] Hosted release workflows for candidate are linked in checklist/dashboard.
+- [x] Public release payload is published (tag + release notes + signed artifacts).
 
 ## Immediate No-Go Triggers
 
@@ -27,25 +27,23 @@ Run these from repo root (`vibelang/`) after selecting the release ref.
 # 0) choose release ref
 export RELEASE_REF="release/v1.0.0"
 
-# 1) trigger hosted gates and packaged release
-gh workflow run "v1-release-gates.yml" --ref "$RELEASE_REF"
-gh workflow run "v1-packaged-release.yml" --ref "$RELEASE_REF"
-gh workflow run "release-notes-automation.yml" --ref "$RELEASE_REF"
+# 1) hosted GA evidence is already attached (reference runs)
+export RC1_URL="https://github.com/skhan75/VibeLang/actions/runs/22302057210"
+export RC2_URL="https://github.com/skhan75/VibeLang/actions/runs/22299615440"
 
-# 2) fetch latest hosted run URLs (use these URLs in evidence docs)
-gh run list --workflow "v1-release-gates.yml" --limit 2 --json databaseId,url,conclusion,headBranch
-gh run list --workflow "v1-packaged-release.yml" --limit 2 --json databaseId,url,conclusion,headBranch
-gh run list --workflow "release-notes-automation.yml" --limit 2 --json databaseId,url,conclusion,headBranch
+# 2) download packaged signed bundle from the latest successful packaged release run
+export PACKAGED_RUN_ID="22299615390"
+gh run download "$PACKAGED_RUN_ID" --name v1-packaged-signed-bundle --dir /tmp/v1-release-assets
 
-# 3) replace placeholder run links in hosted RC inputs JSON
-export RC1_URL="https://github.com/<org>/<repo>/actions/runs/<run-id-1>"
-export RC2_URL="https://github.com/<org>/<repo>/actions/runs/<run-id-2>"
-jq --arg rc1 "$RC1_URL" --arg rc2 "$RC2_URL" \
-  '.cycles[0].run_link = $rc1 | .cycles[1].run_link = $rc2' \
-  reports/v1/hosted_rc_cycle_inputs.json > /tmp/hosted_rc_cycle_inputs.json
-mv /tmp/hosted_rc_cycle_inputs.json reports/v1/hosted_rc_cycle_inputs.json
+# 3) create public release tag with notes and attached trust artifacts
+export RELEASE_TAG="v1.0.0"
+gh release create "$RELEASE_TAG" \
+  --target "$RELEASE_REF" \
+  --title "VibeLang $RELEASE_TAG" \
+  --notes-file reports/v1/release_notes_preview.md \
+  /tmp/v1-release-assets/*
 
-# 4) regenerate GA evidence after URLs are updated
+# 4) regenerate GA evidence after release publication
 python3 tooling/release/collect_ga_promotion_evidence.py
 python3 tooling/release/validate_ga_promotion_evidence.py
 
@@ -55,7 +53,7 @@ python3 tooling/release/validate_release_notes.py
 python3 tooling/phase14/collect_pilot_program_metrics.py
 python3 tooling/phase14/validate_pilot_program_metrics.py
 
-# 6) final local verification pass before publishing
+# 6) final local verification pass
 python3 tooling/docs/validate_snippets.py
 python3 tooling/docs/link_check.py
 python3 tooling/docs/spell_check.py

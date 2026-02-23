@@ -3,12 +3,12 @@
   "cycles": [
     {
       "cycle_id": "rc-cycle-2026-02-22-01",
-      "run_link": "local://v1-release-gates/rc-cycle-2026-02-22-01",
+      "run_link": "https://github.com/skhan75/VibeLang/actions/runs/22302057210",
       "status": "pass"
     },
     {
       "cycle_id": "rc-cycle-2026-02-22-02",
-      "run_link": "local://v1-release-gates/rc-cycle-2026-02-22-02",
+      "run_link": "https://github.com/skhan75/VibeLang/actions/runs/22299615440",
       "status": "pass"
     }
   ]

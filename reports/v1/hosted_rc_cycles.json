@@ -1,20 +1,17 @@
 {
   "format": "v1-hosted-rc-cycles-v1",
   "cycle_count": 2,
-  "publication_ready": false,
-  "placeholder_links": [
-    "local://v1-release-gates/rc-cycle-2026-02-22-01",
-    "local://v1-release-gates/rc-cycle-2026-02-22-02"
-  ],
+  "publication_ready": true,
+  "placeholder_links": [],
   "cycles": [
     {
       "cycle_id": "rc-cycle-2026-02-22-01",
-      "run_link": "local://v1-release-gates/rc-cycle-2026-02-22-01",
+      "run_link": "https://github.com/skhan75/VibeLang/actions/runs/22302057210",
       "status": "pass"
     },
     {
       "cycle_id": "rc-cycle-2026-02-22-02",
-      "run_link": "local://v1-release-gates/rc-cycle-2026-02-22-02",
+      "run_link": "https://github.com/skhan75/VibeLang/actions/runs/22299615440",
       "status": "pass"
     }
   ]

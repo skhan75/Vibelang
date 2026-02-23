@@ -5,7 +5,7 @@ Date: 2026-02-23
 ## Overall Status
 
 - Release candidate cycle: `rc3-ci-cost-optimization`
-- Blocking `P0` gates open: `1` (`V1-P0-PUBLIC-EVIDENCE`)
+- Blocking `P0` gates open: `0`
 - `P1` gates open: `0`
 
 ## Gate Status Snapshot
@@ -57,7 +57,7 @@ Date: 2026-02-23
 | VG-023 Release-notes automation | `13.3.3` | LOCAL-PASS | Release/Tooling | workflow `release-notes-automation.yml`, `reports/v1/release_notes_preview.md`, job `release_notes_automation_gate` |
 | VG-024 Phase 7.4 docs/book closure | `13.3.4`, `7.4.*` | LOCAL-PASS | Docs/DX/CI | `book/`, workflow `docs-quality.yml`, `reports/docs/documentation_quality.md` |
 | VG-025 Pilot application evidence | `14.1.*` | LOCAL-PASS | Product/Runtime/DX | `pilot-apps/`, `reports/phase14/pilot_metrics.json`, pilot case studies |
-| VG-026 GA promotion gate evidence | `14.2.*`, Phase 13/14 exits | PENDING-PUBLIC-EVIDENCE | Release/Security/CI | hosted `v1-release-gates.yml` URLs + `reports/v1/phase10_13_exit_audit.md`, `reports/v1/ga_freeze_bundle_manifest.md`, `reports/v1/ga_readiness_announcement.md` |
+| VG-026 GA promotion gate evidence | `14.2.*`, Phase 13/14 exits | VALIDATED | Release/Security/CI | `https://github.com/skhan75/VibeLang/actions/runs/22302057210`, `https://github.com/skhan75/VibeLang/actions/runs/22299615440`, `reports/v1/hosted_rc_cycles.md`, `reports/v1/phase10_13_exit_audit.md`, `reports/v1/ga_freeze_bundle_manifest.md`, `reports/v1/ga_readiness_announcement.md` |
 
 ## Blocker Register (Program Work)
 
@@ -69,7 +69,8 @@ Date: 2026-02-23
 | V1-P1-DOCS-74 | P1 | Docs/DX/CI | 7.4 docs/book quality gate is now automated and published | 2026-03-12 | Closed via VG-024 (`book/`, `.github/workflows/docs-quality.yml`, `reports/docs/documentation_quality.md`) | Closed |
 | V1-P0-PILOT-EVIDENCE | P0 | Product/Runtime/DX | Pilot application package, metrics, and migration backlog are published | 2026-03-16 | Closed via VG-025 (`pilot-apps/`, `reports/phase14/*`) | Closed |
 | V1-P0-GA-PROMOTION | P0 | Release/Security/CI | GA promotion package is complete with RC-cycle ledger, phase-exit audit, and freeze manifest | 2026-03-20 | Closed via VG-026 (`reports/v1/hosted_rc_cycles.md`, `reports/v1/ga_readiness_announcement.md`) | Closed |
-| V1-P0-PUBLIC-EVIDENCE | P0 | Release/Security/CI | Hosted RC run URLs are still placeholder `local://` links; public evidence is not yet attached | 2026-02-24 | Run hosted workflows, replace run links in `reports/v1/hosted_rc_cycle_inputs.json`, regenerate GA evidence bundle | Open |
+| V1-P0-PUBLIC-EVIDENCE | P0 | Release/Security/CI | Hosted RC run URLs are now attached and GA evidence regeneration passes | 2026-02-24 | Closed via `reports/v1/hosted_rc_cycle_inputs.json`, `reports/v1/hosted_rc_cycles.md`, `reports/v1/ga_readiness_announcement.md` | Closed |
+| V1-P0-RELEASE-PUBLISH | P0 | Release/Security/CI | Public release payload is now published (tag + release notes + signed artifacts/SBOM/provenance) | 2026-02-24 | Closed via `https://github.com/skhan75/VibeLang/releases/tag/v1.0.0` | Closed |
 
 ## Open Exceptions
 

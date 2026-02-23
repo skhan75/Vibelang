@@ -6,8 +6,8 @@ Owner: `vibelang-core`
 
 ## Gate Summary
 
-- [ ] Hosted `v1-release-gates.yml` pass URL(s) are attached for current candidate
-- [ ] No open `P0` blockers
+- [x] Hosted `v1-release-gates.yml` pass URL(s) are attached for current candidate
+- [x] No open `P0` blockers
 - [x] `P1` exceptions documented and approved
 
 ## Determinism and Correctness
@@ -74,13 +74,13 @@ Owner: `vibelang-core`
 - [x] `VG-023` Release-notes automation includes known limitations and breaking changes
 - [x] `VG-024` Phase 7.4 docs/book program is closed with docs CI quality report
 - [x] `VG-025` Pilot application evidence package exists (service + CLI/tooling + metrics + case studies) (blocking `P0`)
-- [ ] `VG-026` Consecutive hosted RC cycles and GA evidence bundle are complete (blocking `P0`)
+- [x] `VG-026` Consecutive hosted RC cycles and GA evidence bundle are complete (blocking `P0`)
 
 ## Owner/Evidence Mapping For Remaining Work
 
 | Gate | Owner | Evidence Artifact(s) |
 | --- | --- | --- |
-| VG-026 | Release/Security/CI | replace `local://` links with hosted run URLs in `reports/v1/hosted_rc_cycle_inputs.json`, regenerate `reports/v1/hosted_rc_cycles.md/.json`, then re-validate GA bundle |
+| V1-P0-RELEASE-PUBLISH | Release/Security/CI | closed via `https://github.com/skhan75/VibeLang/releases/tag/v1.0.0` with signed artifacts/SBOM/provenance attached |
 
 ## Evidence Links
 
@@ -100,11 +100,11 @@ Owner: `vibelang-core`
 - [x] `reports/v1/ci_cost_optimization.md`
 - [x] `docs/selfhost/m4_transition_criteria.md`
 - [x] `docs/release/selfhost_transition_playbook.md`
-- [x] Workflow run URL: hosted CI evidence captured for current candidate cycle (`v1-packaged-release.yml`, `v1-cli-ux.yml`)
+- [x] Workflow run URLs: `v1-release-gates.yml` hosted evidence cycle attached (`https://github.com/skhan75/VibeLang/actions/runs/22302057210`, `https://github.com/skhan75/VibeLang/actions/runs/22299615440`)
 - [x] Additional artifact links: `reports/v1/smoke_validation.md`, `reports/v1/dynamic_containers_conformance.md`, `reports/v1/phase11_containers_text_readiness.md`, `reports/v1/phase11_async_thread_readiness.md`, `reports/v1/phase11_module_composition_readiness.md`, `reports/v1/phase12_stdlib_readiness.md`, `reports/v1/phase12_package_ecosystem_readiness.md`, `reports/v1/phase12_qa_ecosystem_readiness.md`, `reports/phase12/coverage_summary.json`, `reports/phase12/health_status.md`, `reports/v1/install_independence.md`, `reports/v1/distribution_readiness.md`, `reports/v1/phase8_ci_evidence.md`, `reports/v1/phase8_closeout_summary.md`, `reports/v1/selfhost_readiness.json`, `reports/v1/spec_readiness.md`, artifacts `v1-selfhost-m4-rc-cycle`, `v1-phase11-containers-text`, `v1-phase11-async-thread`, `v1-phase11-module-composition`
 
 ## Promote / Reject Decision
 
-- Decision: `no-go-pending-publication-evidence`
+- Decision: `ready-for-ga`
 - Decision owner: `vibelang-core`
-- Notes: `Engineering gates are locally green, but public GA remains blocked until hosted RC workflow run URLs and publish artifacts are attached and verified.`
+- Notes: `Hosted RC evidence and public release payload are both published; GA launch criteria are satisfied.`
