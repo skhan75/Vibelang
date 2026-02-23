@@ -1,5 +1,5 @@
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -112,7 +112,7 @@ fn temp_source_file(prefix: &str, source: &str) -> PathBuf {
     file
 }
 
-fn artifact_binary_path(source: &PathBuf, profile: &str, target: &str) -> PathBuf {
+fn artifact_binary_path(source: &Path, profile: &str, target: &str) -> PathBuf {
     let stem = source
         .file_stem()
         .and_then(|s| s.to_str())

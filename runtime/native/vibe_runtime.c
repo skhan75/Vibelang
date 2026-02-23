@@ -9,6 +9,9 @@
 #include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
+#ifdef _WIN32
+#include <direct.h>
+#endif
 
 typedef struct vibe_chan_i64 {
     pthread_mutex_t mu;
@@ -1180,7 +1183,11 @@ int64_t vibe_fs_create_dir(const char *path) {
     if (path == NULL || path[0] == '\0') {
         return 0;
     }
+#if defined(_WIN32)
+    int rc = _mkdir(path);
+#else
     int rc = mkdir(path, 0777);
+#endif
     if (rc == 0) {
         return 1;
     }

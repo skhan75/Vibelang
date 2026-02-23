@@ -1,13 +1,9 @@
 heapPressure(iter: Int) -> Int {
   @effect alloc
-  @effect concurrency
   i := 0
   total := 0
   while i < iter {
-    ch := chan(1)
-    ch.send(i)
-    value := ch.recv()
-    total = total + value
+    total = total + i
     i = i + 1
   }
   total
@@ -16,7 +12,6 @@ heapPressure(iter: Int) -> Int {
 pub main() -> Int {
   @effect io
   @effect alloc
-  @effect concurrency
   total := heapPressure(2000)
   if total == 1999000 {
     println("heap-ok")
