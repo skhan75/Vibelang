@@ -2494,6 +2494,7 @@ fn run_test(args: &TestArgs) -> Result<ExitCode, String> {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn render_test_summary_json(
     discovered_files: usize,
     selected_files: usize,

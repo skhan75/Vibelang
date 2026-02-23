@@ -415,11 +415,12 @@ fn collect_calls_from_expr(expr: &Expr, out: &mut BTreeSet<String>) {
 }
 
 fn module_span(ast: &FileAst) -> Span {
-    for decl in &ast.declarations {
-        let Declaration::Function(func) = decl;
-        return func.span;
-    }
-    Span::new(1, 1, 1, 1)
+    ast.declarations
+        .first()
+        .map(|decl| match decl {
+            Declaration::Function(func) => func.span,
+        })
+        .unwrap_or_else(|| Span::new(1, 1, 1, 1))
 }
 
 fn expected_module_name_from_path(root: &Path, source: &Path) -> Option<String> {
