@@ -1,0 +1,17 @@
+{
+  "candidate": "v1.0.0-rc1-dryrun-local",
+  "date": "2026-02-22",
+  "highlights": [
+    "Editor and diagnostics reliability hardening for v1 release gates",
+    "Unsafe governance and allocation/release benchmark artifacts are emitted per build cycle",
+    "Phase 13 operational governance docs and evidence automation landed"
+  ],
+  "known_limitations": [
+    "Hosted RC-cycle evidence is still pending for GA promotion.",
+    "Pilot application migration case studies are local-only until RC hosted runs complete."
+  ],
+  "breaking_changes": [
+    "Sendability checks now reject non-sendable values on channel send paths (`E3201`).",
+    "Release gates require explicit unsafe review markers for unsafe blocks."
+  ]
+}

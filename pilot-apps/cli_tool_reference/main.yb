@@ -1,0 +1,26 @@
+pub pending(total: Int, completed: Int) -> Int {
+  @require total >= completed
+  total - completed
+}
+
+pub completedPercent(total: Int, completed: Int) -> Int {
+  @require total > 0
+  (completed * 100) / total
+}
+
+pub main() -> Int {
+  @effect io
+
+  total := 5
+  done := 3
+  remaining := pending(total, done)
+  percent := completedPercent(total, done)
+
+  if remaining >= 0 {
+    println("cli_tool_reference pending computation ok")
+  }
+  if percent >= 0 {
+    println("cli_tool_reference percent computation ok")
+  }
+  return 0
+}

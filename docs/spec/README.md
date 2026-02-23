@@ -41,7 +41,9 @@ Phase-1 bootstrap freeze artifacts remain available for traceability:
 - `concurrency_and_scheduling.md` - `go`/channel/select runtime rules.
 - `async_await_and_threads.md` - async model and thread model definitions.
 - `ownership_sendability.md` - safe transfer/capture rules across boundaries.
+- `unsafe_escape_hatches.md` - unsafe marker syntax, scope boundaries, and audit contract.
 - `memory_model_and_gc.md` - happens-before and GC guarantees.
+- `cost_model.md` - copies/allocations/concurrency cost model and release expectations.
 - `error_model.md` - `Result`, `?`, contract failure, panic/trap semantics.
 - `module_and_visibility.md` - module/import/export and visibility semantics.
 - `abi_and_ffi.md` - ABI layout/calling conventions/interop boundaries.

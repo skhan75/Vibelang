@@ -1,0 +1,8 @@
+send_unknown() -> Int {
+  @effect concurrency
+  @effect alloc
+  ch := chan(1)
+  ch.send([])
+  0
+}
+

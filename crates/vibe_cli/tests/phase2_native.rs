@@ -321,6 +321,119 @@ fn build_accepts_debuginfo_flag_and_writes_metadata() {
 }
 
 #[test]
+fn debug_map_source_path_is_project_relative_and_stable() {
+    let (_project_root, source) = temp_project_source("vibe_debug_map_source_stable");
+    let source_str = source.to_str().expect("source path str");
+    let out = run_vibe(&["build", source_str]);
+    assert!(
+        out.status.success(),
+        "build failed:\nstdout:\n{}\nstderr:\n{}",
+        out.stdout,
+        out.stderr
+    );
+    let debug_map = fs::read_to_string(artifact_debug_map_path(
+        &source,
+        "dev",
+        "x86_64-unknown-linux-gnu",
+    ))
+    .expect("read debug map");
+    assert!(
+        debug_map.contains("source=project://main.yb"),
+        "debug map should emit project-relative source entry:\n{debug_map}"
+    );
+    assert!(
+        !debug_map.contains(source_str),
+        "debug map should not embed machine-specific absolute source path:\n{debug_map}"
+    );
+}
+
+#[test]
+fn build_emits_unsafe_audit_and_allocation_profile_artifacts() {
+    let source = temp_source_file(
+        "vibe_unsafe_audit_ok",
+        r#"
+pub main() -> Int {
+  @effect io
+  @effect alloc
+  // @unsafe begin: ffi pointer interop for raw syscall envelope
+  // @unsafe review: SEC-2026-0007
+  // @unsafe end
+  payload := []
+  println("unsafe-audit-ok")
+  payload.len()
+}
+"#,
+    );
+    let source_str = source.to_str().expect("source path str");
+    let out = run_vibe(&["build", source_str]);
+    assert!(
+        out.status.success(),
+        "build failed:\nstdout:\n{}\nstderr:\n{}",
+        out.stdout,
+        out.stderr
+    );
+
+    let unsafe_audit = fs::read_to_string(artifact_unsafe_audit_path(
+        &source,
+        "dev",
+        "x86_64-unknown-linux-gnu",
+    ))
+    .expect("read unsafe audit");
+    assert!(
+        unsafe_audit.contains("\"format\": \"vibe-unsafe-audit-v1\""),
+        "unsafe audit format marker missing:\n{unsafe_audit}"
+    );
+    assert!(
+        unsafe_audit.contains("SEC-2026-0007"),
+        "unsafe audit should include review reference:\n{unsafe_audit}"
+    );
+
+    let alloc_profile = fs::read_to_string(artifact_alloc_profile_path(
+        &source,
+        "dev",
+        "x86_64-unknown-linux-gnu",
+    ))
+    .expect("read allocation profile");
+    assert!(
+        alloc_profile.contains("\"format\": \"vibe-alloc-profile-v1\""),
+        "allocation profile format marker missing:\n{alloc_profile}"
+    );
+    assert!(
+        alloc_profile.contains("\"alloc_observed\": true"),
+        "allocation profile should report observed alloc effect:\n{alloc_profile}"
+    );
+}
+
+#[test]
+fn build_rejects_unsafe_blocks_without_review_reference() {
+    let source = temp_source_file(
+        "vibe_unsafe_audit_missing_review",
+        r#"
+pub main() -> Int {
+  @effect io
+  // @unsafe begin: low-level fd mutation
+  // @unsafe end
+  println("unsafe-audit-fail")
+  0
+}
+"#,
+    );
+    let source_str = source.to_str().expect("source path str");
+    let out = run_vibe(&["build", source_str]);
+    assert!(
+        !out.status.success(),
+        "build unexpectedly succeeded:\nstdout:\n{}\nstderr:\n{}",
+        out.stdout,
+        out.stderr
+    );
+    assert!(
+        out.stderr.contains("unsafe audit found"),
+        "expected unsafe audit failure diagnostics:\n{}",
+        out.stderr
+    );
+}
+
+#[test]
 fn build_locked_requires_lockfile_when_manifest_exists() {
     let (project_root, source) = temp_project_source("vibe_locked_missing_lock");
     let out = run_vibe(&[
@@ -1137,6 +1250,36 @@ fn artifact_debug_map_path(source: &Path, profile: &str, target: &str) -> PathBu
         .join(profile)
         .join(target)
         .join(format!("{stem}.debug.map"))
+}
+
+fn artifact_unsafe_audit_path(source: &Path, profile: &str, target: &str) -> PathBuf {
+    let stem = source
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .expect("source stem");
+    source
+        .parent()
+        .expect("source parent")
+        .join(".yb")
+        .join("artifacts")
+        .join(profile)
+        .join(target)
+        .join(format!("{stem}.unsafe.audit.json"))
+}
+
+fn artifact_alloc_profile_path(source: &Path, profile: &str, target: &str) -> PathBuf {
+    let stem = source
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .expect("source stem");
+    source
+        .parent()
+        .expect("source parent")
+        .join(".yb")
+        .join("artifacts")
+        .join(profile)
+        .join(target)
+        .join(format!("{stem}.alloc.profile.json"))
 }
 
 struct CmdOutput {

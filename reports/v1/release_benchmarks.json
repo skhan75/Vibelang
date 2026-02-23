@@ -1,0 +1,10 @@
+{
+  "generated_at_epoch_s": 1771804924,
+  "profile": "release",
+  "benchmark_method": "vibe_release_binary_smoke",
+  "vibe_binary": "target/release/vibe",
+  "compile_latency_ms": 12,
+  "runtime_latency_ms": 143,
+  "cpu_ms": 107,
+  "memory_bytes": 36940
+}

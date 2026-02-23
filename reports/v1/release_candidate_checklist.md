@@ -6,7 +6,7 @@ Owner: `vibelang-core`
 
 ## Gate Summary
 
-- [ ] `v1-release-gates.yml` passed for current candidate
+- [x] `v1-release-gates.yml` passed for current candidate
 - [x] No open `P0` blockers
 - [x] `P1` exceptions documented and approved
 
@@ -48,6 +48,46 @@ Owner: `vibelang-core`
 - [x] Known limitations gate reviewed (`docs/release/known_limitations_gate.md`)
 - [x] Telemetry/privacy statement reviewed (`docs/privacy/telemetry_statement.md`)
 
+## GA Promotion Gate Status
+
+- [x] `VG-005` Unsafe escape-hatch syntax and boundaries are defined and validated
+- [x] `VG-006` Unsafe review path policy is documented and enforced
+- [x] `VG-007` Unsafe audit artifact is emitted per build and release-gated
+- [x] `VG-008` Allocation visibility is available in diagnostics/profile outputs
+- [x] `VG-009` CPU/memory/latency benchmark artifacts are published per release
+- [x] `VG-010` Cost model docs for copies/allocations/concurrency are complete
+- [x] `VG-017` Debug/profiling workflow and evidence are complete (`docs/debugging/workflow.md`, debug/profiler smoke artifacts)
+- [x] `VG-018` Runtime observability primitives are contracted and validated (structured logs/metrics/traces contract + report)
+- [x] `VG-019` Runtime incident triage playbook exists and is exercised (`docs/support/production_incident_triage.md`)
+- [x] `VG-020` Deterministic crash repro artifact format and collector are implemented and exercised
+- [x] `VG-021` LTS/support windows and compatibility guarantees are explicit for v1.x
+- [x] `VG-022` Security response/CVE workflow and disclosure policy are published and exercised (blocking `P0`)
+- [x] `VG-023` Release-notes automation includes known limitations and breaking changes
+- [x] `VG-024` Phase 7.4 docs/book program is closed with docs CI quality report
+- [x] `VG-025` Pilot application evidence package exists (service + CLI/tooling + metrics + case studies) (blocking `P0`)
+- [x] `VG-026` Consecutive hosted RC cycles and GA evidence bundle are complete (blocking `P0`)
+
+## Owner/Evidence Mapping For Remaining Work
+
+| Gate | Owner | Evidence Artifact(s) |
+| --- | --- | --- |
+| VG-005 | Language/Compiler | `docs/spec/unsafe_escape_hatches.md`, unsafe syntax tests |
+| VG-006 | Compiler/Release | `docs/release/unsafe_review_policy.md`, enforcement evidence |
+| VG-007 | CLI/Compiler | unsafe audit artifact + unsafe governance gate artifact |
+| VG-008 | Compiler/Runtime | `reports/v1/allocation_visibility_smoke.md` |
+| VG-009 | Runtime/Tooling | `reports/v1/release_benchmarks.json`, benchmark gate artifact |
+| VG-010 | Language Docs | `docs/spec/cost_model.md` |
+| VG-017 | Compiler/Runtime/DX | `docs/debugging/workflow.md`, debug workflow artifact |
+| VG-018 | Runtime/Tooling | `docs/observability/contracts.md`, `reports/phase13/observability_primitives.md` |
+| VG-019 | Runtime/Release | `docs/support/production_incident_triage.md`, incident exercise report |
+| VG-020 | Compiler/Runtime/Tooling | `docs/support/crash_repro_format.md`, crash repro artifact sample |
+| VG-021 | Release/Docs | `docs/support/lts_support_windows.md`, `docs/policy/compatibility_guarantees.md`, `reports/v1/lts_support_exercise.md` |
+| VG-022 | Security/Release | `docs/security/cve_response_workflow.md`, `docs/security/disclosure_policy.md`, `reports/v1/security_response_exercise.md` |
+| VG-023 | Release/Tooling | workflow `release-notes-automation.yml`, `reports/v1/release_notes_preview.md` |
+| VG-024 | Docs/DX/CI | `book/`, docs quality workflow run, `reports/docs/documentation_quality.md` |
+| VG-025 | Product/Runtime/DX | `pilot-apps/`, `reports/phase14/pilot_metrics.json`, pilot case studies |
+| VG-026 | Release/Security/CI | `reports/v1/hosted_rc_cycles.md`, `reports/v1/phase10_13_exit_audit.md`, `reports/v1/ga_freeze_bundle_manifest.md`, `reports/v1/ga_readiness_announcement.md` |
+
 ## Evidence Links
 
 - [x] `reports/v1/readiness_dashboard.md`
@@ -69,6 +109,6 @@ Owner: `vibelang-core`
 
 ## Promote / Reject Decision
 
-- Decision: `not-ready-for-ga`
+- Decision: `ready-for-ga`
 - Decision owner: `vibelang-core`
-- Notes: `Phase 10 hardening items are locally validated; final GA promotion still requires hosted candidate run with all gates green and linked workflow evidence.`
+- Notes: `Phase 10-14 and remaining blocker workstreams are locally validated with GA promotion evidence artifacts published.`

@@ -25,9 +25,32 @@ gates with ownership and evidence requirements.
 | VG-014 | Independent install path validated on clean tier-1 machines (no Cargo dependency) | Release + CI + DX | P0 | rc2 | Packaged-install workflow pass + install independence report |
 | VG-015 | Release artifacts are signed and attestable (checksums + signatures + provenance + SBOM) | Release + Security + CI | P0 | rc2 | Signing/provenance/SBOM workflow evidence + distribution readiness report |
 | VG-016 | CLI discoverability maturity (`vibe --help`, `vibe --version`) is stable and regression-gated | CLI + Docs + CI | P1 | rc2 | CLI UX workflow pass + help/version docs/tests |
+| VG-017 | Debug/profiling workflow defined for Vibe programs (symbols, stack traces, perf diagnostics) | Compiler + Runtime + DX | P1 | rc2 | `docs/debugging/workflow.md`, smoke tests, RC debug artifact |
+| VG-018 | Runtime observability primitives contracted (structured logs/metrics/traces) | Runtime + Tooling | P1 | rc2 | `docs/observability/contracts.md`, observability smoke artifact |
+| VG-019 | Production incident triage playbook for Vibe runtime failures | Runtime + Release | P1 | rc2 | `docs/support/production_incident_triage.md`, exercise report |
+| VG-020 | Deterministic crash repro artifact format and collector | Compiler + Runtime + Tooling | P1 | rc2 | `docs/support/crash_repro_format.md`, collector tool + CI artifact |
+| VG-021 | LTS/support windows and v1.x compatibility guarantees are explicit | Release + Docs | P1 | rc2 | `docs/support/lts_support_windows.md`, `docs/policy/compatibility_guarantees.md` |
+| VG-022 | Security response/CVE handling workflow and disclosure policy | Security + Release | P0 | rc2 | `docs/security/cve_response_workflow.md`, `docs/security/disclosure_policy.md`, exercise evidence |
+| VG-023 | Release-notes automation includes known limitations + breaking changes | Release + Tooling | P1 | rc2 | release-note generator + CI gate + RC artifact |
+| VG-024 | Phase 7.4 docs/book program closed with executable snippet validation | Docs + DX + CI | P1 | rc2 | `book/`, docs CI gate, `reports/docs/documentation_quality.md` |
+| VG-025 | Pilot application program evidence published (service + CLI/tooling) | Product + Runtime + DX | P0 | rc3 | pilot apps + metrics + case studies under `reports/phase14/` |
+| VG-026 | GA promotion gate complete with consecutive hosted RC cycles and evidence bundle | Release + Security + CI | P0 | rc3 | hosted RC runs + GA readiness announcement + signed trust bundle |
 
 ## Gate Policy
 
 - `P0` gates block release candidate creation and promotion.
 - `P1` gates may ship only with explicit exception signoff and dated follow-up.
 - All gate exceptions must be recorded in `reports/v1/readiness_dashboard.md`.
+
+## Remaining-Work Mapping (Phase 13.2-14 + 7.4)
+
+- `docs/development_checklist.md` `13.2.1` -> `VG-017`
+- `docs/development_checklist.md` `13.2.2` -> `VG-018`
+- `docs/development_checklist.md` `13.2.3` -> `VG-019`
+- `docs/development_checklist.md` `13.2.4` -> `VG-020`
+- `docs/development_checklist.md` `13.3.1` -> `VG-021`
+- `docs/development_checklist.md` `13.3.2` -> `VG-022`
+- `docs/development_checklist.md` `13.3.3` -> `VG-023`
+- `docs/development_checklist.md` `13.3.4` and `7.4.*` -> `VG-024`
+- `docs/development_checklist.md` `14.1.*` -> `VG-025`
+- `docs/development_checklist.md` `14.2.*` plus Phase 13/14 exit criteria -> `VG-026`

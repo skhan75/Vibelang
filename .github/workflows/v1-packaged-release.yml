@@ -58,6 +58,10 @@ jobs:
             rustc -Vv
             rustup show active-toolchain
           } > "dist/toolchain-${{ matrix.target }}.txt"
+          rustc_bin="$(rustup which rustc)"
+          sha256sum "${rustc_bin}" > "dist/rustc-${{ matrix.target }}.sha256"
+          sha256sum Cargo.lock > "dist/cargo-lock-${{ matrix.target }}.sha256"
+          cp rust-toolchain.toml "dist/rust-toolchain-${{ matrix.target }}.toml"
       - name: verify linux glibc compatibility baseline
         if: ${{ matrix.target == 'x86_64-unknown-linux-gnu' }}
         shell: bash

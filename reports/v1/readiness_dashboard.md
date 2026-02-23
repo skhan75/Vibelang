@@ -1,11 +1,11 @@
 # V1 Readiness Dashboard
 
-Date: 2026-02-21
+Date: 2026-02-22
 
 ## Overall Status
 
-- Release candidate cycle: `rc1-phase12-ecosystem-expansion`
-- Blocking `P0` gates open: `0`
+- Release candidate cycle: `rc2-publication-finalization`
+- Blocking `P0` gates open: `1` (`V1-P0-PUBLIC-EVIDENCE`)
 - `P1` gates open: `0`
 
 ## Gate Status Snapshot
@@ -36,6 +36,39 @@ Date: 2026-02-21
 | CLI help/version UX | VALIDATED | `docs/cli/help_manual.md`, `docs/cli/version_output.md`, tests `cli_help_snapshots`, `cli_version`, workflow `v1-cli-ux.yml`, `reports/v1/phase8_ci_evidence.md` | CLI/Docs | Regression-tested help/version UX is validated in hosted CI |
 | Compatibility (upgrade/downgrade) | LOCAL-PASS | workflow `v1-release-gates.yml` job `compatibility_gate` | CLI/Release | Adjacent compatibility path currently represented by extension/lock-mode compatibility tests |
 | Ops docs readiness | DONE | docs under `docs/release/`, `docs/support/`, `docs/privacy/` | Release | Required docs added |
+
+## Phase 13.2/13.3/14 Gate Snapshot
+
+| Gate | Checklist Source | Status | Owner | Planned Evidence Path |
+| --- | --- | --- | --- | --- |
+| VG-005 Unsafe escape hatch syntax/boundaries | Guardrails: Escape Hatches | LOCAL-PASS | Language/Compiler | `docs/spec/unsafe_escape_hatches.md`, test `phase2_native::build_emits_unsafe_audit_and_allocation_profile_artifacts` |
+| VG-006 Unsafe review path required | Guardrails: Escape Hatches | LOCAL-PASS | Compiler/Release | `docs/release/unsafe_review_policy.md`, test `phase2_native::build_rejects_unsafe_blocks_without_review_reference`, job `unsafe_governance_gate` |
+| VG-007 Unsafe block audit report per build | Guardrails: Escape Hatches | LOCAL-PASS | CLI/Compiler | `write_unsafe_audit_report`, `unsafe_governance_gate` artifact |
+| VG-008 Allocation visibility in diagnostics/profile outputs | Guardrails: Transparent Performance Model | LOCAL-PASS | Compiler/Runtime | `reports/v1/allocation_visibility_smoke.json`, job `allocation_visibility_gate` |
+| VG-009 CPU/memory/latency release benchmark publication | Guardrails: Transparent Performance Model | LOCAL-PASS | Runtime/Tooling | `reports/v1/release_benchmarks.json`, job `release_benchmark_publication_gate` |
+| VG-010 Cost model docs for copies/alloc/concurrency | Guardrails: Transparent Performance Model | LOCAL-PASS | Language Docs | `docs/spec/cost_model.md` |
+| VG-017 Debug/profiling workflow | `13.2.1` | LOCAL-PASS | Compiler/Runtime/DX | `docs/debugging/workflow.md`, `reports/phase13/debugging_workflow.md`, job `debug_profile_workflow_gate` |
+| VG-018 Runtime observability primitives | `13.2.2` | LOCAL-PASS | Runtime/Tooling | `docs/observability/contracts.md`, `reports/phase13/observability_primitives.md`, job `observability_contracts_gate` |
+| VG-019 Runtime incident triage playbook | `13.2.3` | LOCAL-PASS | Runtime/Release | `docs/support/production_incident_triage.md`, `reports/phase13/crash_repro_sample.md` |
+| VG-020 Deterministic crash repro format | `13.2.4` | LOCAL-PASS | Compiler/Runtime/Tooling | `docs/support/crash_repro_format.md`, `reports/phase13/crash_repro_sample.json`, job `crash_repro_artifact_gate` |
+| VG-021 LTS/support windows + compatibility guarantees | `13.3.1` | LOCAL-PASS | Release/Docs | `docs/support/lts_support_windows.md`, `docs/policy/compatibility_guarantees.md`, `reports/v1/lts_support_exercise.md` |
+| VG-022 CVE workflow + disclosure policy | `13.3.2` | LOCAL-PASS | Security/Release | `docs/security/cve_response_workflow.md`, `docs/security/disclosure_policy.md`, `reports/v1/security_response_exercise.md` |
+| VG-023 Release-notes automation | `13.3.3` | LOCAL-PASS | Release/Tooling | workflow `release-notes-automation.yml`, `reports/v1/release_notes_preview.md`, job `release_notes_automation_gate` |
+| VG-024 Phase 7.4 docs/book closure | `13.3.4`, `7.4.*` | LOCAL-PASS | Docs/DX/CI | `book/`, workflow `docs-quality.yml`, `reports/docs/documentation_quality.md` |
+| VG-025 Pilot application evidence | `14.1.*` | LOCAL-PASS | Product/Runtime/DX | `pilot-apps/`, `reports/phase14/pilot_metrics.json`, pilot case studies |
+| VG-026 GA promotion gate evidence | `14.2.*`, Phase 13/14 exits | PENDING-PUBLIC-EVIDENCE | Release/Security/CI | hosted `v1-release-gates.yml` URLs + `reports/v1/phase10_13_exit_audit.md`, `reports/v1/ga_freeze_bundle_manifest.md`, `reports/v1/ga_readiness_announcement.md` |
+
+## Blocker Register (Program Work)
+
+| ID | Severity | Owner | Risk | Due Date | Current Mitigation | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| V1-P1-DEBUG-OBS | P1 | Compiler/Runtime/DX | Debug/perf triage contracts and evidence collectors are now in place | 2026-03-07 | Closed via VG-017..VG-020 (`docs/debugging/workflow.md`, `reports/phase13/*`) | Closed |
+| V1-P0-SEC-GOV | P0 | Security/Release | CVE/disclosure governance landed with exercise evidence and release gating | 2026-03-07 | Closed via VG-022 (`docs/security/*`, `reports/v1/security_response_exercise.md`) | Closed |
+| V1-P1-RELNOTES-AUTO | P1 | Release/Tooling | Release-note automation is implemented and section-completeness enforced in CI | 2026-03-09 | Closed via VG-023 (`tooling/release/*`, `reports/v1/release_notes_preview.md`) | Closed |
+| V1-P1-DOCS-74 | P1 | Docs/DX/CI | 7.4 docs/book quality gate is now automated and published | 2026-03-12 | Closed via VG-024 (`book/`, `.github/workflows/docs-quality.yml`, `reports/docs/documentation_quality.md`) | Closed |
+| V1-P0-PILOT-EVIDENCE | P0 | Product/Runtime/DX | Pilot application package, metrics, and migration backlog are published | 2026-03-16 | Closed via VG-025 (`pilot-apps/`, `reports/phase14/*`) | Closed |
+| V1-P0-GA-PROMOTION | P0 | Release/Security/CI | GA promotion package is complete with RC-cycle ledger, phase-exit audit, and freeze manifest | 2026-03-20 | Closed via VG-026 (`reports/v1/hosted_rc_cycles.md`, `reports/v1/ga_readiness_announcement.md`) | Closed |
+| V1-P0-PUBLIC-EVIDENCE | P0 | Release/Security/CI | Hosted RC run URLs are still placeholder `local://` links; public evidence is not yet attached | 2026-02-24 | Run hosted workflows, replace run links in `reports/v1/hosted_rc_cycle_inputs.json`, regenerate GA evidence bundle | Open |
 
 ## Open Exceptions
 
@@ -69,4 +102,5 @@ Date: 2026-02-21
 - `reports/v1/distribution_readiness.md`
 - `reports/v1/phase8_ci_evidence.md`
 - `reports/v1/phase8_closeout_summary.md`
+- `reports/v1/ga_go_no_go_checklist.md`
 - Additional gate artifacts produced by `.github/workflows/v1-release-gates.yml`

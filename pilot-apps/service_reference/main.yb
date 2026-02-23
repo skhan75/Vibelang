@@ -1,0 +1,21 @@
+pub processTask(task: Int) -> Int {
+  task * task + 1
+}
+
+pub serviceCycle(seed: Int) -> Int {
+  first := processTask(seed)
+  second := processTask(seed + 1)
+  first + second
+}
+
+pub main() -> Int {
+  @effect io
+
+  total := serviceCycle(2)
+  if total > 0 {
+    println("service_reference pilot run complete")
+  } else {
+    println("service_reference pilot run failed")
+  }
+  return 0
+}

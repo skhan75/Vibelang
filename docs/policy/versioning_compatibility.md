@@ -16,6 +16,10 @@ VibeLang follows SemVer for toolchain releases:
 - Lockfile schema changes require documented migration path.
 - CLI command behavior changes must include migration notes if user-visible.
 - Deterministic build behavior is a compatibility contract.
+- LTS windows and support commitments are defined in
+  `docs/support/lts_support_windows.md`.
+- Consolidated compatibility guarantees are defined in
+  `docs/policy/compatibility_guarantees.md`.
 
 ## Breaking Change Process
 

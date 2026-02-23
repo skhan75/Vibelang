@@ -1,0 +1,11 @@
+{
+  "format": "phase13-debug-workflow-v1",
+  "source_fixture": "debug_workflow.yb",
+  "debuginfo_mode": "full",
+  "runtime_output": "debug workflow smoke",
+  "artifact_presence": {
+    "debug_map": true,
+    "unsafe_audit": true,
+    "alloc_profile": true
+  }
+}

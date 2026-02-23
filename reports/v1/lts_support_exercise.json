@@ -1,0 +1,10 @@
+{
+  "format": "v1-lts-support-exercise-v1",
+  "checked_files": [
+    "docs/support/lts_support_windows.md",
+    "docs/policy/compatibility_guarantees.md",
+    "docs/policy/versioning_compatibility.md",
+    "docs/targets/support_matrix.md"
+  ],
+  "status": "pass"
+}

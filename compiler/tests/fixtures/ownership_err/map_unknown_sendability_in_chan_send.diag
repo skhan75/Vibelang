@@ -1,0 +1,1 @@
+E3201: error: non-sendable value passed to channel send: inferred `Map<Unknown, Unknown>` @ 6:11-6:17

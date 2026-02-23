@@ -3,6 +3,7 @@ import json
 import os
 import re
 import subprocess
+import tempfile
 import time
 from pathlib import Path
 
@@ -44,59 +45,72 @@ def parse_index_stats(raw_stdout: str) -> dict:
     return out
 
 
+def build_vibe_binary(repo_root: Path) -> Path:
+    build = run(["cargo", "build", "--release", "--locked", "-p", "vibe_cli"], repo_root)
+    if build["exit"] != 0:
+        raise RuntimeError(
+            "failed to build release vibe binary:\n"
+            f"stdout:\n{build['stdout']}\n"
+            f"stderr:\n{build['stderr']}"
+        )
+    vibe_bin = repo_root / "target" / "release" / "vibe"
+    if not vibe_bin.exists():
+        raise RuntimeError(f"missing built vibe binary: {vibe_bin}")
+    return vibe_bin
+
+
 def main():
     repo_root = Path(__file__).resolve().parents[2]
     reports_dir = repo_root / "reports" / "phase6" / "metrics"
     reports_dir.mkdir(parents=True, exist_ok=True)
+    vibe_bin = build_vibe_binary(repo_root)
 
     hello_fixture = repo_root / "compiler" / "tests" / "fixtures" / "build" / "hello_world.vibe"
     contract_fixture = (
         repo_root / "compiler" / "tests" / "fixtures" / "contract_ok" / "topk_contracts.vibe"
     )
 
-    compile_clean = run(
-        ["cargo", "run", "-q", "-p", "vibe_cli", "--", "check", str(hello_fixture)],
-        repo_root,
-    )
-    compile_noop = run(
-        ["cargo", "run", "-q", "-p", "vibe_cli", "--", "check", str(hello_fixture)],
-        repo_root,
-    )
-    compile_incremental = run(
-        [
-            "cargo",
-            "run",
-            "-q",
-            "-p",
-            "vibe_cli",
-            "--",
-            "index",
-            str(repo_root / "compiler" / "tests" / "fixtures" / "build"),
-            "--stats",
-        ],
-        repo_root,
-    )
-    index_stats = parse_index_stats(compile_incremental["stdout"])
-    runtime_smoke = run(
-        ["cargo", "run", "-q", "-p", "vibe_cli", "--", "run", str(hello_fixture)],
-        repo_root,
-    )
-    contract_run = run(
-        ["cargo", "run", "-q", "-p", "vibe_cli", "--", "test", str(contract_fixture)],
-        repo_root,
-    )
+    with tempfile.TemporaryDirectory(prefix="vibe_phase6_metrics_") as temp_dir:
+        temp_root = Path(temp_dir)
+        benchmark_root = temp_root / "benchmark"
+        benchmark_root.mkdir(parents=True, exist_ok=True)
+        hello_local = benchmark_root / "hello_world.vibe"
+        contract_local = benchmark_root / "topk_contracts.vibe"
+        hello_local.write_text(hello_fixture.read_text())
+        contract_local.write_text(contract_fixture.read_text())
+
+        compile_clean = run([str(vibe_bin), "check", str(hello_local)], repo_root)
+        compile_noop = run([str(vibe_bin), "check", str(hello_local)], repo_root)
+        compile_incremental = run(
+            [str(vibe_bin), "index", str(benchmark_root), "--stats"], repo_root
+        )
+        index_stats = parse_index_stats(compile_incremental["stdout"])
+        runtime_smoke = run([str(vibe_bin), "run", str(hello_local)], repo_root)
+        contract_run = run([str(vibe_bin), "test", str(contract_local)], repo_root)
+
+        parity_results = []
+        for ext in ("vibe", "yb"):
+            fixture_dir = temp_root / f"parity_{ext}"
+            fixture_dir.mkdir(parents=True, exist_ok=True)
+            fixture = fixture_dir / f"hello.{ext}"
+            fixture.write_text(hello_fixture.read_text())
+            check_out = run([str(vibe_bin), "check", str(fixture)], repo_root)
+            build_out = run([str(vibe_bin), "build", str(fixture)], repo_root)
+            run_out = run([str(vibe_bin), "run", str(fixture)], repo_root)
+            test_out = run([str(vibe_bin), "test", str(fixture)], repo_root)
+            lint_out = run([str(vibe_bin), "lint", str(fixture), "--intent"], repo_root)
+            index_out = run([str(vibe_bin), "index", str(fixture_dir)], repo_root)
+            parity_results.append(
+                check_out["exit"] == 0
+                and build_out["exit"] == 0
+                and run_out["exit"] == 0
+                and test_out["exit"] == 0
+                and lint_out["exit"] == 0
+                and index_out["exit"] == 0
+            )
+
     intent_lint = run(
-        [
-            "cargo",
-            "run",
-            "-q",
-            "-p",
-            "vibe_cli",
-            "--",
-            "lint",
-            str(repo_root / "compiler" / "tests" / "fixtures"),
-            "--intent",
-        ],
+        [str(vibe_bin), "lint", str(repo_root / "compiler" / "tests" / "fixtures"), "--intent"],
         repo_root,
     )
     cross_target_gate = run(
@@ -136,45 +150,6 @@ def main():
         ],
         repo_root,
     )
-
-    parity_results = []
-    for ext in ("vibe", "yb"):
-        fixture_dir = Path(f"/tmp/phase6_metrics_{ext}")
-        fixture_dir.mkdir(parents=True, exist_ok=True)
-        fixture = fixture_dir / f"hello.{ext}"
-        fixture.write_text(hello_fixture.read_text())
-        check_out = run(
-            ["cargo", "run", "-q", "-p", "vibe_cli", "--", "check", str(fixture)],
-            repo_root,
-        )
-        build_out = run(
-            ["cargo", "run", "-q", "-p", "vibe_cli", "--", "build", str(fixture)],
-            repo_root,
-        )
-        run_out = run(
-            ["cargo", "run", "-q", "-p", "vibe_cli", "--", "run", str(fixture)],
-            repo_root,
-        )
-        test_out = run(
-            ["cargo", "run", "-q", "-p", "vibe_cli", "--", "test", str(fixture)],
-            repo_root,
-        )
-        lint_out = run(
-            ["cargo", "run", "-q", "-p", "vibe_cli", "--", "lint", str(fixture), "--intent"],
-            repo_root,
-        )
-        index_out = run(
-            ["cargo", "run", "-q", "-p", "vibe_cli", "--", "index", str(fixture_dir)],
-            repo_root,
-        )
-        parity_results.append(
-            check_out["exit"] == 0
-            and build_out["exit"] == 0
-            and run_out["exit"] == 0
-            and test_out["exit"] == 0
-            and lint_out["exit"] == 0
-            and index_out["exit"] == 0
-        )
 
     yb_count = 0
     vibe_count = 0
@@ -230,11 +205,14 @@ def main():
         "source_extension_yb_ratio": yb_ratio,
         "dual_extension_parity_pass_rate": sum(1 for ok in parity_results if ok)
         / len(parity_results),
+        "benchmark_method": "direct_vibe_binary",
+        "vibe_binary": "target/release/vibe",
     }
 
     (reports_dir / "phase6_metrics.json").write_text(json.dumps(metrics, indent=2) + "\n")
     summary = (
         "# Phase 6 Metrics Snapshot\n\n"
+        f"- benchmark_method: {metrics['benchmark_method']}\n"
         f"- compile_clean_ms: {metrics['compile_clean_ms']}\n"
         f"- compile_noop_ms: {metrics['compile_noop_ms']}\n"
         f"- compile_incremental_ms: {metrics['compile_incremental_ms']}\n"

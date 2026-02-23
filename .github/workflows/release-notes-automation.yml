@@ -1,0 +1,25 @@
+name: release-notes-automation
+
+on:
+  push:
+    branches: ["main", "release/**"]
+  pull_request:
+    branches: ["main", "release/**"]
+  workflow_dispatch:
+
+jobs:
+  release_notes_gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: generate and validate release notes
+        run: |
+          set -euo pipefail
+          python3 tooling/release/generate_release_notes.py
+          python3 tooling/release/validate_release_notes.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-notes-preview
+          path: |
+            reports/v1/release_notes_preview.md
+            reports/v1/release_notes_preview.json

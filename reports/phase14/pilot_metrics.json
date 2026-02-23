@@ -1,0 +1,50 @@
+{
+  "format": "phase14-pilot-metrics-v1",
+  "benchmark_method": "direct_vibe_binary",
+  "vibe_binary": "target/release/vibe",
+  "apps": {
+    "service_reference": {
+      "status": "pass",
+      "checks": {
+        "check": {
+          "exit_code": 0,
+          "elapsed_ms": 10
+        },
+        "build": {
+          "exit_code": 0,
+          "elapsed_ms": 228
+        },
+        "run": {
+          "exit_code": 0,
+          "elapsed_ms": 130
+        }
+      }
+    },
+    "cli_tool_reference": {
+      "status": "pass",
+      "checks": {
+        "check": {
+          "exit_code": 0,
+          "elapsed_ms": 3
+        },
+        "build": {
+          "exit_code": 0,
+          "elapsed_ms": 131
+        },
+        "run": {
+          "exit_code": 0,
+          "elapsed_ms": 127
+        }
+      }
+    }
+  },
+  "developer_productivity_signals": {
+    "apps_validated": 2,
+    "commands_per_app": 3
+  },
+  "migration_pain_points": [
+    "effect annotations must stay explicit on concurrency and mutation paths",
+    "channel sendability checks surface latent Unknown-type usage early",
+    "release evidence generation should be scripted to avoid manual drift"
+  ]
+}

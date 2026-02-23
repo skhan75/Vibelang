@@ -31,6 +31,7 @@ severity = "high"
 
 - `vibe pkg audit` exits non-zero when findings exist.
 - CI should treat non-zero audit status as a release-blocking gate.
+- CVE/security response process is defined in `docs/security/cve_response_workflow.md`.
 
 ## Provenance baseline
 

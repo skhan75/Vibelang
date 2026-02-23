@@ -97,6 +97,17 @@ jobs:
           cargo build --release --locked -p vibe_cli
           sha256sum target/release/vibe > /tmp/vibe.sha256
           test -s /tmp/vibe.sha256
+      - name: locked mode smoke via vibe binary
+        run: |
+          set -euo pipefail
+          export PATH="$PWD/target/release:$PATH"
+          tmp_project="$(mktemp -d)"
+          vibe new locked_smoke --path "$tmp_project"
+          project_root="$tmp_project/locked_smoke"
+          vibe pkg lock --path "$project_root"
+          vibe build "$project_root/main.yb" --locked
+          vibe run "$project_root/main.yb" --locked
+          vibe test "$project_root/main.yb" --locked
       - uses: actions/upload-artifact@v4
         with:
           name: v1-release-checksums
@@ -129,13 +140,16 @@ jobs:
           rustup show active-toolchain > /tmp/v1-rebuild/active-toolchain.txt
           rustc_bin="$(rustup which rustc)"
           sha256sum "${rustc_bin}" > /tmp/v1-rebuild/rustc-bin.sha256
+          sha256sum Cargo.lock > /tmp/v1-rebuild/cargo-lock.sha256
+          cp Cargo.lock /tmp/v1-rebuild/Cargo.lock
           cp rust-toolchain.toml /tmp/v1-rebuild/rust-toolchain.toml
           cat > /tmp/v1-rebuild/summary.md <<'EOF'
           # Bit-Identical Rebuild Gate
 
           - status: pass
           - check: two clean `cargo build --release --locked -p vibe_cli` executions produced identical `vibe` binary hashes
-          - evidence files: `build1.sha256`, `build2.sha256`, `rustc-version.txt`, `active-toolchain.txt`, `rustc-bin.sha256`, `rust-toolchain.toml`
+          - lockfile state: captured from `Cargo.lock` checksum at gate runtime
+          - evidence files: `build1.sha256`, `build2.sha256`, `rustc-version.txt`, `active-toolchain.txt`, `rustc-bin.sha256`, `cargo-lock.sha256`, `Cargo.lock`, `rust-toolchain.toml`
           EOF
       - uses: actions/upload-artifact@v4
         with:
@@ -161,6 +175,227 @@ jobs:
           path: |
             reports/phase6/metrics/phase6_metrics.json
             reports/phase6/metrics/phase6_metrics.md
+
+  unsafe_governance_gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - name: run unsafe governance tests
+        run: |
+          set -euo pipefail
+          cargo test -p vibe_cli --test phase2_native build_emits_unsafe_audit_and_allocation_profile_artifacts
+          cargo test -p vibe_cli --test phase2_native build_rejects_unsafe_blocks_without_review_reference
+      - name: verify unsafe governance docs are present
+        run: |
+          set -euo pipefail
+          test -f docs/spec/unsafe_escape_hatches.md
+          test -f docs/release/unsafe_review_policy.md
+      - name: publish unsafe governance summary artifact
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/v1-unsafe-governance
+          cat > /tmp/v1-unsafe-governance/summary.md <<'EOF'
+          # Unsafe Governance Gate
+
+          - status: pass
+          - suite:
+            - `phase2_native::build_emits_unsafe_audit_and_allocation_profile_artifacts`
+            - `phase2_native::build_rejects_unsafe_blocks_without_review_reference`
+          - docs:
+            - `docs/spec/unsafe_escape_hatches.md`
+            - `docs/release/unsafe_review_policy.md`
+          EOF
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v1-unsafe-governance-gate
+          path: /tmp/v1-unsafe-governance/summary.md
+
+  allocation_visibility_gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - name: collect allocation visibility smoke report
+        run: |
+          set -euo pipefail
+          python3 tooling/metrics/collect_allocation_visibility.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v1-allocation-visibility-smoke
+          path: |
+            reports/v1/allocation_visibility_smoke.json
+            reports/v1/allocation_visibility_smoke.md
+
+  release_benchmark_publication_gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - name: collect and validate release benchmark artifacts
+        run: |
+          set -euo pipefail
+          python3 tooling/metrics/collect_release_benchmarks.py
+          python3 tooling/metrics/validate_release_benchmarks.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v1-release-benchmark-artifacts
+          path: |
+            reports/v1/release_benchmarks.json
+            reports/v1/release_benchmarks.md
+
+  debug_profile_workflow_gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - name: run debug/profile workflow tests and evidence collector
+        run: |
+          set -euo pipefail
+          cargo test -p vibe_cli --test phase2_native build_accepts_debuginfo_flag_and_writes_metadata
+          cargo test -p vibe_cli --test phase2_native debug_map_source_path_is_project_relative_and_stable
+          python3 tooling/debugging/collect_debugging_workflow_report.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v1-debug-profile-workflow
+          path: |
+            reports/phase13/debugging_workflow.json
+            reports/phase13/debugging_workflow.md
+
+  observability_contracts_gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - name: collect observability primitives report
+        run: |
+          set -euo pipefail
+          python3 tooling/observability/collect_observability_primitives_report.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v1-observability-contracts
+          path: |
+            reports/phase13/observability_primitives.json
+            reports/phase13/observability_primitives.md
+
+  crash_repro_artifact_gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - name: collect crash repro artifact sample
+        run: |
+          set -euo pipefail
+          python3 tooling/debugging/collect_crash_repro.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v1-crash-repro-sample
+          path: |
+            reports/phase13/crash_repro_sample.json
+            reports/phase13/crash_repro_sample.md
+
+  lts_support_governance_gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: collect lts support governance evidence
+        run: |
+          set -euo pipefail
+          python3 tooling/support/collect_lts_support_exercise.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v1-lts-support-governance
+          path: |
+            reports/v1/lts_support_exercise.json
+            reports/v1/lts_support_exercise.md
+
+  security_response_governance_gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: collect security response governance evidence
+        run: |
+          set -euo pipefail
+          python3 tooling/security/collect_security_response_exercise.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v1-security-response-governance
+          path: |
+            reports/v1/security_response_exercise.json
+            reports/v1/security_response_exercise.md
+
+  release_notes_automation_gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: generate and validate release notes preview
+        run: |
+          set -euo pipefail
+          python3 tooling/release/generate_release_notes.py
+          python3 tooling/release/validate_release_notes.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v1-release-notes-preview
+          path: |
+            reports/v1/release_notes_preview.md
+            reports/v1/release_notes_preview.json
+
+  pilot_application_program_gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - name: collect and validate pilot program metrics
+        run: |
+          set -euo pipefail
+          python3 tooling/phase14/collect_pilot_program_metrics.py
+          python3 tooling/phase14/validate_pilot_program_metrics.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v1-pilot-application-program
+          path: |
+            pilot-apps/
+            reports/phase14/pilot_metrics.json
+            reports/phase14/pilot_metrics.md
+            reports/phase14/service_reference_case_study.md
+            reports/phase14/cli_tool_reference_case_study.md
+            reports/phase14/migration_pain_points.md
+
+  ga_promotion_gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: collect and validate ga promotion evidence
+        run: |
+          set -euo pipefail
+          python3 tooling/release/collect_ga_promotion_evidence.py
+          python3 tooling/release/validate_ga_promotion_evidence.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v1-ga-promotion-evidence
+          path: |
+            reports/v1/hosted_rc_cycle_inputs.json
+            reports/v1/hosted_rc_cycles.json
+            reports/v1/hosted_rc_cycles.md
+            reports/v1/phase10_13_exit_audit.json
+            reports/v1/phase10_13_exit_audit.md
+            reports/v1/ga_freeze_bundle_manifest.json
+            reports/v1/ga_freeze_bundle_manifest.md
+            reports/v1/ga_readiness_announcement.md
 
   quality_and_coverage_gate:
     runs-on: ubuntu-latest
@@ -245,6 +480,18 @@ jobs:
           test -f docs/install/verification.md
           test -f docs/install/update_and_rollback.md
           test -f docs/install/troubleshooting.md
+          test -f docs/debugging/workflow.md
+          test -f docs/observability/contracts.md
+          test -f docs/support/production_incident_triage.md
+          test -f docs/support/crash_repro_format.md
+          test -f docs/support/lts_support_windows.md
+          test -f docs/policy/compatibility_guarantees.md
+          test -f docs/security/cve_response_workflow.md
+          test -f docs/security/disclosure_policy.md
+          test -f docs/release/release_notes_policy.md
+          test -f pilot-apps/README.md
+          test -f pilot-apps/service_reference/main.yb
+          test -f pilot-apps/cli_tool_reference/main.yb
 
   linux_compatibility_gate:
     strategy:
@@ -932,6 +1179,45 @@ jobs:
           test -f docs/install/update_and_rollback.md
           test -f docs/install/troubleshooting.md
 
+  docs_program_gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: verify docs program assets are present
+        run: |
+          set -euo pipefail
+          test -f docs/docs_program/information_architecture.md
+          test -f docs/docs_program/engine_and_layout.md
+          test -f docs/docs_program/versioning_strategy.md
+          test -f docs/docs_program/style_guide.md
+          test -f docs/usability/docs_walkthrough_checklist.md
+          test -f book/book.toml
+          test -f book/src/SUMMARY.md
+          test -f book/src/ch01_getting_started.md
+          test -f book/src/ch02_core_syntax_semantics.md
+          test -f book/src/ch03_types_functions_errors.md
+          test -f book/src/ch04_contracts_examples.md
+          test -f book/src/ch05_effects_performance.md
+          test -f book/src/ch06_concurrency.md
+          test -f book/src/ch07_tooling.md
+          test -f book/src/ch08_intent_sidecar.md
+          test -f book/src/ch09_migration_compatibility.md
+          test -f book/src/ch10_advanced_internals.md
+      - name: run docs quality automation
+        run: |
+          set -euo pipefail
+          python3 tooling/docs/validate_snippets.py
+          python3 tooling/docs/link_check.py
+          python3 tooling/docs/spell_check.py
+          python3 tooling/docs/stale_example_check.py
+          python3 tooling/docs/compute_docs_coverage.py
+          python3 tooling/docs/generate_documentation_quality_report.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v1-docs-program-gate
+          path: reports/docs/
+
   reports_gate:
     runs-on: ubuntu-latest
     steps:
@@ -959,6 +1245,45 @@ jobs:
           test -f reports/v1/distribution_readiness.md
           test -f reports/v1/phase8_ci_evidence.md
           test -f reports/v1/phase8_closeout_summary.md
+          test -f reports/v1/allocation_visibility_smoke.json
+          test -f reports/v1/allocation_visibility_smoke.md
+          test -f reports/v1/release_benchmarks.json
+          test -f reports/v1/release_benchmarks.md
+          test -f reports/v1/lts_support_exercise.json
+          test -f reports/v1/lts_support_exercise.md
+          test -f reports/v1/security_response_exercise.json
+          test -f reports/v1/security_response_exercise.md
+          test -f reports/v1/release_notes_preview.md
+          test -f reports/v1/release_notes_preview.json
+          test -f reports/docs/documentation_quality.md
+          test -f reports/docs/documentation_quality.json
+          test -f reports/phase13/debugging_workflow.json
+          test -f reports/phase13/debugging_workflow.md
+          test -f reports/phase13/observability_primitives.json
+          test -f reports/phase13/observability_primitives.md
+          test -f reports/phase13/crash_repro_sample.json
+          test -f reports/phase13/crash_repro_sample.md
+          test -f reports/phase14/pilot_metrics.json
+          test -f reports/phase14/pilot_metrics.md
+          test -f reports/phase14/service_reference_case_study.md
+          test -f reports/phase14/cli_tool_reference_case_study.md
+          test -f reports/phase14/migration_pain_points.md
+          test -f reports/v1/hosted_rc_cycle_inputs.json
+          test -f reports/v1/hosted_rc_cycles.json
+          test -f reports/v1/hosted_rc_cycles.md
+          test -f reports/v1/phase10_13_exit_audit.json
+          test -f reports/v1/phase10_13_exit_audit.md
+          test -f reports/v1/ga_freeze_bundle_manifest.json
+          test -f reports/v1/ga_freeze_bundle_manifest.md
+          test -f reports/v1/ga_readiness_announcement.md
+          test -f reports/v1/hosted_rc_cycle_inputs.json
+          test -f reports/v1/hosted_rc_cycles.json
+          test -f reports/v1/hosted_rc_cycles.md
+          test -f reports/v1/phase10_13_exit_audit.json
+          test -f reports/v1/phase10_13_exit_audit.md
+          test -f reports/v1/ga_freeze_bundle_manifest.json
+          test -f reports/v1/ga_freeze_bundle_manifest.md
+          test -f reports/v1/ga_readiness_announcement.md
 
   release_pr_report_links_gate:
     if: ${{ github.event_name == 'pull_request' && startsWith(github.head_ref, 'release/') }}
@@ -987,6 +1312,11 @@ jobs:
           echo "$PR_BODY" | grep -q "reports/v1/selfhost_m2_readiness.md"
           echo "$PR_BODY" | grep -q "reports/v1/selfhost_m3_expansion.md"
           echo "$PR_BODY" | grep -q "reports/v1/selfhost_readiness.md"
+          echo "$PR_BODY" | grep -q "reports/v1/release_notes_preview.md"
+          echo "$PR_BODY" | grep -q "reports/phase14/pilot_metrics.json"
+          echo "$PR_BODY" | grep -q "reports/phase14/service_reference_case_study.md"
+          echo "$PR_BODY" | grep -q "reports/phase14/cli_tool_reference_case_study.md"
+          echo "$PR_BODY" | grep -q "reports/v1/ga_readiness_announcement.md"
           echo "$PR_BODY" | grep -q "docs/selfhost/m4_transition_criteria.md"
           echo "$PR_BODY" | grep -q "docs/release/selfhost_transition_playbook.md"
           echo "$PR_BODY" | grep -q "v1-selfhost-m3-shadow"
@@ -1008,6 +1338,17 @@ jobs:
       - packaging_integrity_smoke
       - bit_identical_rebuild_gate
       - metrics_threshold_smoke
+      - unsafe_governance_gate
+      - allocation_visibility_gate
+      - release_benchmark_publication_gate
+      - debug_profile_workflow_gate
+      - observability_contracts_gate
+      - crash_repro_artifact_gate
+      - lts_support_governance_gate
+      - security_response_governance_gate
+      - release_notes_automation_gate
+      - pilot_application_program_gate
+      - ga_promotion_gate
       - quality_and_coverage_gate
       - cli_ux_gate
       - independent_install_gate
@@ -1028,6 +1369,7 @@ jobs:
       - selfhost_m4_rc_cycle_gate
       - selfhost_transition_gate
       - readiness_docs_gate
+      - docs_program_gate
       - reports_gate
     steps:
       - name: v1 gates summary

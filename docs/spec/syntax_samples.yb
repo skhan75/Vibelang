@@ -29,7 +29,7 @@ pub transfer(from: Account, to: Account, amount: Int) -> Result<Void, Error> {
   ok()
 }
 
-pub runAll(tasks: List<Job>) -> List<JobResult> {
+pub runAll(tasks: List<Int>) -> List<Int> {
   @intent "process all tasks concurrently"
   @ensure len(.) == len(tasks)
   @effect alloc

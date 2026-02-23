@@ -1,0 +1,5 @@
+[book]
+title = "The VibeLang Book"
+author = "vibelang-core"
+language = "en"
+src = "src"

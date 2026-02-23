@@ -1,0 +1,10 @@
+{
+  "format": "v1-release-notes-preview-v1",
+  "candidate": "v1.0.0-rc1-dryrun-local",
+  "date": "2026-02-22",
+  "counts": {
+    "highlights": 3,
+    "known_limitations": 2,
+    "breaking_changes": 2
+  }
+}

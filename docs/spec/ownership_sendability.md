@@ -80,6 +80,8 @@ Ownership diagnostics and effects are coupled:
 - Explicit unsafe escape hatches may exist for advanced interop.
 - Unsafe blocks must be isolated and auditable.
 - Unsafe use does not relax deterministic diagnostics requirements.
+- Concrete marker syntax and review/audit requirements are defined in
+  `docs/spec/unsafe_escape_hatches.md`.
 
 ## Determinism Requirements
 

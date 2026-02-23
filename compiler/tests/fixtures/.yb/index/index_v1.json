@@ -3923,6 +3923,133 @@
       ],
       "dependencies": []
     },
+    "/home/azskdev/workspace/VibeStack/vibelang/compiler/tests/fixtures/ownership_err/map_unknown_sendability_in_chan_send.yb": {
+      "file": "/home/azskdev/workspace/VibeStack/vibelang/compiler/tests/fixtures/ownership_err/map_unknown_sendability_in_chan_send.yb",
+      "file_hash": "189d3446a2f70be968b6eed42a221e1b1267e76a0eb20e52bfd05df69465ff43",
+      "symbols": [
+        {
+          "id": 3838125109078983546,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/compiler/tests/fixtures/ownership_err/map_unknown_sendability_in_chan_send.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 5,
+            "line_end": 8,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 18022224266773857150,
+          "name": "concurrency",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/compiler/tests/fixtures/ownership_err/map_unknown_sendability_in_chan_send.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 16739647387385727269,
+          "name": "alloc",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/compiler/tests/fixtures/ownership_err/map_unknown_sendability_in_chan_send.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 15820325620620102285,
+          "name": "ch",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/compiler/tests/fixtures/ownership_err/map_unknown_sendability_in_chan_send.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 3,
+            "line_end": 4,
+            "col_end": 4
+          }
+        },
+        {
+          "id": 13248236711254112863,
+          "name": "pending",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/compiler/tests/fixtures/ownership_err/map_unknown_sendability_in_chan_send.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 3,
+            "line_end": 5,
+            "col_end": 9
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 15820325620620102285,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/compiler/tests/fixtures/ownership_err/map_unknown_sendability_in_chan_send.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 3,
+            "line_end": 6,
+            "col_end": 4
+          }
+        },
+        {
+          "symbol_id": 13248236711254112863,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/compiler/tests/fixtures/ownership_err/map_unknown_sendability_in_chan_send.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 11,
+            "line_end": 6,
+            "col_end": 17
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 3838125109078983546,
+          "function_name": "main",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/compiler/tests/fixtures/ownership_err/map_unknown_sendability_in_chan_send.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "alloc",
+            "concurrency"
+          ],
+          "effects_observed": [
+            "alloc",
+            "concurrency"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [
+        {
+          "code": "E3201",
+          "severity": "Error",
+          "message": "non-sendable value passed to channel send: inferred `Map<Unknown, Unknown>`",
+          "span": {
+            "line_start": 6,
+            "col_start": 11,
+            "line_end": 6,
+            "col_end": 17
+          }
+        }
+      ],
+      "dependencies": []
+    },
     "/home/azskdev/workspace/VibeStack/vibelang/compiler/tests/fixtures/ownership_err/map_unknown_sendability_in_go.yb": {
       "file": "/home/azskdev/workspace/VibeStack/vibelang/compiler/tests/fixtures/ownership_err/map_unknown_sendability_in_go.yb",
       "file_hash": "2a416583f44562653175d559275796a6118729870c622ca714474cc543f65f5b",
@@ -4402,6 +4529,110 @@
             "col_start": 1,
             "line_end": 7,
             "col_end": 1
+          }
+        }
+      ],
+      "dependencies": []
+    },
+    "/home/azskdev/workspace/VibeStack/vibelang/compiler/tests/fixtures/ownership_err/unknown_sendability_in_chan_send.yb": {
+      "file": "/home/azskdev/workspace/VibeStack/vibelang/compiler/tests/fixtures/ownership_err/unknown_sendability_in_chan_send.yb",
+      "file_hash": "7173f85428fe0177f57522e702bee7e171d860c29dd631487297ef4c64579867",
+      "symbols": [
+        {
+          "id": 14880573014027199752,
+          "name": "send_unknown",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/compiler/tests/fixtures/ownership_err/unknown_sendability_in_chan_send.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 7,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 11405679448183841569,
+          "name": "concurrency",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/compiler/tests/fixtures/ownership_err/unknown_sendability_in_chan_send.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 15588370163587558068,
+          "name": "alloc",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/compiler/tests/fixtures/ownership_err/unknown_sendability_in_chan_send.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 14136577432785260254,
+          "name": "ch",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/compiler/tests/fixtures/ownership_err/unknown_sendability_in_chan_send.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 3,
+            "line_end": 4,
+            "col_end": 4
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 14136577432785260254,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/compiler/tests/fixtures/ownership_err/unknown_sendability_in_chan_send.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 3,
+            "line_end": 5,
+            "col_end": 4
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 14880573014027199752,
+          "function_name": "send_unknown",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/compiler/tests/fixtures/ownership_err/unknown_sendability_in_chan_send.yb",
+          "signature_hash": "c868dfc7b1a50d24d337f3bb4762e3ed2d203818786d453fa0c0e40a8330fa8e",
+          "effects_declared": [
+            "alloc",
+            "concurrency"
+          ],
+          "effects_observed": [
+            "alloc",
+            "concurrency"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [
+        {
+          "code": "E3201",
+          "severity": "Error",
+          "message": "non-sendable value passed to channel send: inferred `List<Unknown>`",
+          "span": {
+            "line_start": 5,
+            "col_start": 11,
+            "line_end": 5,
+            "col_end": 12
           }
         }
       ],

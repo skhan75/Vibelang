@@ -100,11 +100,13 @@ fn run() -> Result<ExitCode, String> {
             let build_args = parse_build_like_args(&args, false)?;
             let artifacts = build_source(&build_args)?;
             println!(
-                "built {} (object: {}, runtime: {}, debug-map: {})",
+                "built {} (object: {}, runtime: {}, debug-map: {}, unsafe-audit: {}, alloc-profile: {})",
                 artifacts.binary_path.display(),
                 artifacts.object_path.display(),
                 artifacts.runtime_object_path.display(),
-                artifacts.debug_map_path.display()
+                artifacts.debug_map_path.display(),
+                artifacts.unsafe_audit_path.display(),
+                artifacts.alloc_profile_path.display()
             );
             Ok(ExitCode::SUCCESS)
         }
@@ -555,6 +557,8 @@ struct BuildArtifacts {
     object_path: PathBuf,
     runtime_object_path: PathBuf,
     debug_map_path: PathBuf,
+    unsafe_audit_path: PathBuf,
+    alloc_profile_path: PathBuf,
     binary_path: PathBuf,
 }
 
@@ -2159,11 +2163,29 @@ fn build_source(args: &BuildArgs) -> Result<BuildArtifacts, String> {
                 args.source_path.display()
             )
         })?;
+    let unsafe_audit_path = write_unsafe_audit_report(&artifacts_dir, &args.source_path, stem)
+        .map_err(|e| {
+            format!(
+                "failed to write unsafe audit report for `{}`: {e}",
+                args.source_path.display()
+            )
+        })?;
+    let alloc_profile_path =
+        write_alloc_profile(&artifacts_dir, &args.source_path, &checked.hir, stem).map_err(
+            |e| {
+                format!(
+                    "failed to write allocation profile for `{}`: {e}",
+                    args.source_path.display()
+                )
+            },
+        )?;
 
     Ok(BuildArtifacts {
         object_path,
         runtime_object_path,
         debug_map_path,
+        unsafe_audit_path,
+        alloc_profile_path,
         binary_path,
     })
 }
@@ -2294,22 +2316,28 @@ fn enforce_locked_mode(source_path: &Path) -> Result<(), String> {
 }
 
 fn normalize_source_for_debug_map(source_path: &Path) -> String {
-    let canonical = source_path
-        .canonicalize()
-        .unwrap_or_else(|_| source_path.to_path_buf());
-    if let Some(project_root) = find_project_root(&canonical) {
-        if let Ok(rel) = canonical.strip_prefix(&project_root) {
-            return format!("project://{}", rel.to_string_lossy().replace('\\', "/"));
+    let mut candidates = vec![source_path.to_path_buf()];
+    if let Ok(canonical) = source_path.canonicalize() {
+        if canonical != source_path {
+            candidates.push(canonical);
         }
     }
-    if let Ok(cwd) = env::current_dir() {
-        if let Ok(rel) = canonical.strip_prefix(cwd) {
-            return format!("./{}", rel.to_string_lossy().replace('\\', "/"));
+
+    for candidate in &candidates {
+        if let Some(project_root) = find_project_root(candidate) {
+            if let Ok(rel) = candidate.strip_prefix(&project_root) {
+                let normalized = rel.to_string_lossy().replace('\\', "/");
+                if !normalized.is_empty() {
+                    return format!("project://{normalized}");
+                }
+            }
         }
     }
-    let file_name = canonical
-        .file_name()
-        .and_then(|s| s.to_str())
+
+    let file_name = candidates
+        .iter()
+        .filter_map(|path| path.file_name().and_then(|s| s.to_str()))
+        .find(|name| !name.is_empty())
         .unwrap_or("source");
     format!("external://{file_name}")
 }
@@ -2690,6 +2718,306 @@ fn has_main_function(ast: &vibe_ast::FileAst) -> bool {
         let vibe_ast::Declaration::Function(func) = decl;
         func.name == "main"
     })
+}
+
+#[derive(Debug, Clone)]
+struct UnsafeAuditBlock {
+    file: String,
+    begin_line: usize,
+    end_line: usize,
+    reason: String,
+    review: String,
+}
+
+#[derive(Debug, Clone)]
+struct PendingUnsafeBlock {
+    begin_line: usize,
+    reason: String,
+    review: Option<String>,
+}
+
+fn comment_payload<'a>(line: &'a str, marker: &str) -> Option<&'a str> {
+    let trimmed = line.trim();
+    let comment = trimmed.strip_prefix("//")?.trim();
+    let payload = comment.strip_prefix(marker)?.trim();
+    Some(payload)
+}
+
+fn comment_contains_unsafe(line: &str) -> bool {
+    let trimmed = line.trim();
+    let Some(comment) = trimmed.strip_prefix("//") else {
+        return false;
+    };
+    comment.contains("@unsafe")
+}
+
+fn source_files_for_unsafe_audit(source_path: &Path) -> Result<Vec<PathBuf>, String> {
+    let target = find_project_root(source_path).unwrap_or_else(|| source_path.to_path_buf());
+    let mut files = collect_vibe_files(&target)?;
+    files.sort_by(|a, b| a.to_string_lossy().cmp(&b.to_string_lossy()));
+    files.dedup();
+    Ok(files)
+}
+
+fn collect_unsafe_blocks_for_file(
+    file: &Path,
+    source: &str,
+    blocks: &mut Vec<UnsafeAuditBlock>,
+    violations: &mut Vec<String>,
+) {
+    let mut pending: Option<PendingUnsafeBlock> = None;
+    for (idx, line) in source.lines().enumerate() {
+        let line_no = idx + 1;
+        if let Some(payload) = comment_payload(line, "@unsafe begin:") {
+            if pending.is_some() {
+                violations.push(format!(
+                    "{}:{} nested `@unsafe begin` is not allowed",
+                    file.display(),
+                    line_no
+                ));
+                continue;
+            }
+            let reason = if payload.is_empty() {
+                violations.push(format!(
+                    "{}:{} `@unsafe begin:` requires a non-empty reason",
+                    file.display(),
+                    line_no
+                ));
+                "unspecified".to_string()
+            } else {
+                payload.to_string()
+            };
+            pending = Some(PendingUnsafeBlock {
+                begin_line: line_no,
+                reason,
+                review: None,
+            });
+            continue;
+        }
+
+        if let Some(payload) = comment_payload(line, "@unsafe review:") {
+            let Some(active) = pending.as_mut() else {
+                violations.push(format!(
+                    "{}:{} `@unsafe review:` appears outside an unsafe block",
+                    file.display(),
+                    line_no
+                ));
+                continue;
+            };
+            if payload.is_empty() {
+                violations.push(format!(
+                    "{}:{} `@unsafe review:` requires a non-empty review ticket/reference",
+                    file.display(),
+                    line_no
+                ));
+                continue;
+            }
+            active.review = Some(payload.to_string());
+            continue;
+        }
+
+        if comment_payload(line, "@unsafe end").is_some() {
+            let Some(active) = pending.take() else {
+                violations.push(format!(
+                    "{}:{} `@unsafe end` appears without matching `@unsafe begin:`",
+                    file.display(),
+                    line_no
+                ));
+                continue;
+            };
+            let Some(review) = active.review else {
+                violations.push(format!(
+                    "{}:{} unsafe block missing `@unsafe review:` between begin/end",
+                    file.display(),
+                    active.begin_line
+                ));
+                continue;
+            };
+            blocks.push(UnsafeAuditBlock {
+                file: file.display().to_string(),
+                begin_line: active.begin_line,
+                end_line: line_no,
+                reason: active.reason,
+                review,
+            });
+            continue;
+        }
+
+        if comment_contains_unsafe(line) {
+            violations.push(format!(
+                "{}:{} unsupported unsafe marker; expected one of `@unsafe begin:`, `@unsafe review:`, or `@unsafe end`",
+                file.display(),
+                line_no
+            ));
+        }
+    }
+    if let Some(active) = pending.take() {
+        violations.push(format!(
+            "{}:{} unclosed unsafe block (missing `@unsafe end`)",
+            file.display(),
+            active.begin_line
+        ));
+    }
+}
+
+fn write_unsafe_audit_report(
+    artifacts_dir: &Path,
+    source_path: &Path,
+    stem: &str,
+) -> Result<PathBuf, String> {
+    let files = source_files_for_unsafe_audit(source_path)?;
+    let mut blocks = Vec::new();
+    let mut violations = Vec::new();
+    for file in files {
+        let source = fs::read_to_string(&file)
+            .map_err(|e| format!("failed to read `{}` for unsafe audit: {e}", file.display()))?;
+        collect_unsafe_blocks_for_file(&file, &source, &mut blocks, &mut violations);
+    }
+    blocks.sort_by(|a, b| {
+        a.file
+            .cmp(&b.file)
+            .then(a.begin_line.cmp(&b.begin_line))
+            .then(a.end_line.cmp(&b.end_line))
+    });
+
+    let mut out = String::new();
+    out.push_str("{\n");
+    out.push_str("  \"format\": \"vibe-unsafe-audit-v1\",\n");
+    out.push_str(&format!(
+        "  \"source\": \"{}\",\n",
+        json_escape(&normalize_source_for_debug_map(source_path))
+    ));
+    out.push_str("  \"blocks\": [\n");
+    for (idx, block) in blocks.iter().enumerate() {
+        let comma = if idx + 1 == blocks.len() { "" } else { "," };
+        out.push_str(&format!(
+            "    {{\"file\":\"{}\",\"begin_line\":{},\"end_line\":{},\"reason\":\"{}\",\"review\":\"{}\"}}{comma}\n",
+            json_escape(&block.file),
+            block.begin_line,
+            block.end_line,
+            json_escape(&block.reason),
+            json_escape(&block.review),
+        ));
+    }
+    out.push_str("  ],\n");
+    out.push_str("  \"violations\": [\n");
+    for (idx, violation) in violations.iter().enumerate() {
+        let comma = if idx + 1 == violations.len() { "" } else { "," };
+        out.push_str(&format!("    \"{}\"{comma}\n", json_escape(violation)));
+    }
+    out.push_str("  ]\n");
+    out.push_str("}\n");
+
+    let report_path = artifacts_dir.join(format!("{stem}.unsafe.audit.json"));
+    fs::write(&report_path, out)
+        .map_err(|e| format!("failed to write `{}`: {e}", report_path.display()))?;
+
+    if !violations.is_empty() {
+        let mut details = String::new();
+        for violation in &violations {
+            details.push_str(&format!("  - {violation}\n"));
+        }
+        return Err(format!(
+            "unsafe audit found {} violation(s); see `{}`\n{}",
+            violations.len(),
+            report_path.display(),
+            details
+        ));
+    }
+    Ok(report_path)
+}
+
+fn write_alloc_profile(
+    artifacts_dir: &Path,
+    source_path: &Path,
+    hir: &vibe_hir::HirProgram,
+    stem: &str,
+) -> Result<PathBuf, String> {
+    let mut functions = hir
+        .functions
+        .iter()
+        .map(|function| {
+            let effects_declared = function
+                .effects_declared
+                .iter()
+                .cloned()
+                .collect::<Vec<_>>();
+            let effects_observed = function
+                .effects_observed
+                .iter()
+                .cloned()
+                .collect::<Vec<_>>();
+            (
+                function.name.clone(),
+                effects_declared,
+                effects_observed,
+                function.effects_declared.contains("alloc"),
+                function.effects_observed.contains("alloc"),
+            )
+        })
+        .collect::<Vec<_>>();
+    functions.sort_by(|a, b| a.0.cmp(&b.0));
+
+    let alloc_declared_count = functions.iter().filter(|entry| entry.3).count();
+    let alloc_observed_count = functions.iter().filter(|entry| entry.4).count();
+
+    let mut out = String::new();
+    out.push_str("{\n");
+    out.push_str("  \"format\": \"vibe-alloc-profile-v1\",\n");
+    out.push_str(&format!(
+        "  \"source\": \"{}\",\n",
+        json_escape(&normalize_source_for_debug_map(source_path))
+    ));
+    out.push_str("  \"functions\": [\n");
+    for (idx, function) in functions.iter().enumerate() {
+        let comma = if idx + 1 == functions.len() { "" } else { "," };
+        out.push_str("    {\n");
+        out.push_str(&format!(
+            "      \"name\": \"{}\",\n",
+            json_escape(&function.0)
+        ));
+        out.push_str(&format!("      \"alloc_declared\": {},\n", function.3));
+        out.push_str(&format!("      \"alloc_observed\": {},\n", function.4));
+        out.push_str("      \"effects_declared\": [");
+        for (eff_idx, effect) in function.1.iter().enumerate() {
+            let eff_comma = if eff_idx + 1 == function.1.len() {
+                ""
+            } else {
+                ","
+            };
+            out.push_str(&format!("\"{}\"{eff_comma}", json_escape(effect)));
+        }
+        out.push_str("],\n");
+        out.push_str("      \"effects_observed\": [");
+        for (eff_idx, effect) in function.2.iter().enumerate() {
+            let eff_comma = if eff_idx + 1 == function.2.len() {
+                ""
+            } else {
+                ","
+            };
+            out.push_str(&format!("\"{}\"{eff_comma}", json_escape(effect)));
+        }
+        out.push_str("]\n");
+        out.push_str(&format!("    }}{comma}\n"));
+    }
+    out.push_str("  ],\n");
+    out.push_str("  \"summary\": {\n");
+    out.push_str(&format!("    \"functions_total\": {},\n", functions.len()));
+    out.push_str(&format!(
+        "    \"alloc_declared_count\": {},\n",
+        alloc_declared_count
+    ));
+    out.push_str(&format!(
+        "    \"alloc_observed_count\": {}\n",
+        alloc_observed_count
+    ));
+    out.push_str("  }\n");
+    out.push_str("}\n");
+
+    let profile_path = artifacts_dir.join(format!("{stem}.alloc.profile.json"));
+    fs::write(&profile_path, out)
+        .map_err(|e| format!("failed to write `{}`: {e}", profile_path.display()))?;
+    Ok(profile_path)
 }
 
 fn write_debug_map(

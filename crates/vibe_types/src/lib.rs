@@ -17,7 +17,9 @@ use crate::effect_diagnostics::emit_effect_diagnostics;
 use crate::effect_propagation::{
     collect_direct_calls, compute_transitive_effects, FunctionEffectSummary,
 };
-use crate::ownership::{check_go_sendability, check_shared_mutation_in_concurrent_context};
+use crate::ownership::{
+    check_go_sendability, check_shared_mutation_in_concurrent_context, is_sendable_type,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TypeKind {
@@ -1258,7 +1260,24 @@ fn infer_expr(
                         }
                         return TypeKind::Unknown;
                     }
-                    "send" | "close" => {
+                    "send" => {
+                        observed_effects.insert("concurrency".to_string());
+                        if let Some(value_ty) = arg_types.first() {
+                            if !is_sendable_type(value_ty) {
+                                diagnostics.push(Diagnostic::new(
+                                    "E3201",
+                                    Severity::Error,
+                                    format!(
+                                        "non-sendable value passed to channel send: inferred `{}`",
+                                        type_name(value_ty)
+                                    ),
+                                    args.first().map(|arg| arg.span()).unwrap_or(callee.span()),
+                                ));
+                            }
+                        }
+                        return TypeKind::Void;
+                    }
+                    "close" => {
                         observed_effects.insert("concurrency".to_string());
                         return TypeKind::Void;
                     }

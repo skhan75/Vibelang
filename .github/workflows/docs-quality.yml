@@ -1,0 +1,28 @@
+name: docs-quality
+
+on:
+  push:
+    branches: ["main", "release/**"]
+  pull_request:
+    branches: ["main", "release/**"]
+  workflow_dispatch:
+
+jobs:
+  docs_quality_gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: run docs quality checks
+        run: |
+          set -euo pipefail
+          python3 tooling/docs/validate_snippets.py
+          python3 tooling/docs/link_check.py
+          python3 tooling/docs/spell_check.py
+          python3 tooling/docs/stale_example_check.py
+          python3 tooling/docs/compute_docs_coverage.py
+          python3 tooling/docs/generate_documentation_quality_report.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: docs-quality-artifacts
+          path: reports/docs/

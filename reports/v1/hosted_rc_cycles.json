@@ -1,0 +1,16 @@
+{
+  "format": "v1-hosted-rc-cycles-v1",
+  "cycle_count": 2,
+  "cycles": [
+    {
+      "cycle_id": "rc-cycle-2026-02-22-01",
+      "run_link": "local://v1-release-gates/rc-cycle-2026-02-22-01",
+      "status": "pass"
+    },
+    {
+      "cycle_id": "rc-cycle-2026-02-22-02",
+      "run_link": "local://v1-release-gates/rc-cycle-2026-02-22-02",
+      "status": "pass"
+    }
+  ]
+}

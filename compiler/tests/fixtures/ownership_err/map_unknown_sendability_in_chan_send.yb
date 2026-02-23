@@ -1,0 +1,9 @@
+pub main() -> Int {
+  @effect concurrency
+  @effect alloc
+  ch := chan(1)
+  pending := {}
+  ch.send(pending)
+  0
+}
+
