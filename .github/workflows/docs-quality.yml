@@ -3,9 +3,25 @@ name: docs-quality
 on:
   push:
     branches: ["main", "release/**"]
+    paths:
+      - ".github/workflows/docs-quality.yml"
+      - "book/**"
+      - "docs/**"
+      - "tooling/docs/**"
+      - "reports/docs/**"
   pull_request:
     branches: ["main", "release/**"]
+    paths:
+      - ".github/workflows/docs-quality.yml"
+      - "book/**"
+      - "docs/**"
+      - "tooling/docs/**"
+      - "reports/docs/**"
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   docs_quality_gate:
@@ -13,6 +29,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - name: run docs quality checks
         run: |
           set -euo pipefail
@@ -26,3 +43,4 @@ jobs:
         with:
           name: docs-quality-artifacts
           path: reports/docs/
+          retention-days: 3

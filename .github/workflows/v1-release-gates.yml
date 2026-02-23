@@ -3,12 +3,28 @@ name: v1-release-gates
 on:
   push:
     branches: ["main", "release/**"]
-  pull_request:
-    branches: ["main", "release/**"]
+    paths:
+      - ".github/workflows/v1-release-gates.yml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "crates/**"
+      - "compiler/**"
+      - "runtime/**"
+      - "tooling/**"
+      - "docs/**"
+      - "reports/**"
+      - "selfhost/**"
+      - "pilot-apps/**"
+      - "book/**"
   workflow_dispatch:
 
 env:
   RUST_TOOLCHAIN_VERSION: "1.85.1"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   determinism_and_core_smokes:
@@ -18,6 +34,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - uses: Swatinem/rust-cache@v2
       - name: deterministic build + frontend determinism
         run: |
           set -euo pipefail
@@ -32,6 +49,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - uses: Swatinem/rust-cache@v2
       - name: runtime and concurrency bounded stress
         run: |
           set -euo pipefail
@@ -46,6 +64,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - uses: Swatinem/rust-cache@v2
       - name: run native contract runtime enforcement suites
         run: |
           set -euo pipefail
@@ -71,6 +90,7 @@ jobs:
         with:
           name: v1-contract-runtime-enforcement
           path: /tmp/v1-contract-runtime/summary.md
+          retention-days: 3
 
   intent_validation_smokes:
     runs-on: ubuntu-latest
@@ -79,6 +99,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - uses: Swatinem/rust-cache@v2
       - name: intent verifier-gate smoke
         run: |
           set -euo pipefail
@@ -91,6 +112,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - uses: Swatinem/rust-cache@v2
       - name: build release binary and emit checksum
         run: |
           set -euo pipefail
@@ -112,6 +134,7 @@ jobs:
         with:
           name: v1-release-checksums
           path: /tmp/vibe.sha256
+          retention-days: 3
 
   bit_identical_rebuild_gate:
     runs-on: ubuntu-latest
@@ -120,6 +143,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - uses: Swatinem/rust-cache@v2
       - name: build twice from clean state and compare binary hashes
         run: |
           set -euo pipefail
@@ -155,6 +179,7 @@ jobs:
         with:
           name: v1-bit-identical-rebuild-evidence
           path: /tmp/v1-rebuild/*
+          retention-days: 3
 
   metrics_threshold_smoke:
     runs-on: ubuntu-latest
@@ -163,6 +188,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - uses: Swatinem/rust-cache@v2
       - name: collect and validate metrics thresholds
         run: |
           set -euo pipefail
@@ -172,6 +198,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: v1-metrics-threshold-snapshot
+          retention-days: 3
           path: |
             reports/phase6/metrics/phase6_metrics.json
             reports/phase6/metrics/phase6_metrics.md
@@ -183,6 +210,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - uses: Swatinem/rust-cache@v2
       - name: run unsafe governance tests
         run: |
           set -euo pipefail
@@ -212,6 +240,7 @@ jobs:
         with:
           name: v1-unsafe-governance-gate
           path: /tmp/v1-unsafe-governance/summary.md
+          retention-days: 3
 
   allocation_visibility_gate:
     runs-on: ubuntu-latest
@@ -220,6 +249,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - uses: Swatinem/rust-cache@v2
       - name: collect allocation visibility smoke report
         run: |
           set -euo pipefail
@@ -227,6 +257,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: v1-allocation-visibility-smoke
+          retention-days: 3
           path: |
             reports/v1/allocation_visibility_smoke.json
             reports/v1/allocation_visibility_smoke.md
@@ -238,6 +269,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - uses: Swatinem/rust-cache@v2
       - name: collect and validate release benchmark artifacts
         run: |
           set -euo pipefail
@@ -246,6 +278,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: v1-release-benchmark-artifacts
+          retention-days: 3
           path: |
             reports/v1/release_benchmarks.json
             reports/v1/release_benchmarks.md
@@ -257,6 +290,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - uses: Swatinem/rust-cache@v2
       - name: run debug/profile workflow tests and evidence collector
         run: |
           set -euo pipefail
@@ -266,6 +300,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: v1-debug-profile-workflow
+          retention-days: 3
           path: |
             reports/phase13/debugging_workflow.json
             reports/phase13/debugging_workflow.md
@@ -277,6 +312,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - uses: Swatinem/rust-cache@v2
       - name: collect observability primitives report
         run: |
           set -euo pipefail
@@ -284,6 +320,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: v1-observability-contracts
+          retention-days: 3
           path: |
             reports/phase13/observability_primitives.json
             reports/phase13/observability_primitives.md
@@ -295,6 +332,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - uses: Swatinem/rust-cache@v2
       - name: collect crash repro artifact sample
         run: |
           set -euo pipefail
@@ -302,6 +340,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: v1-crash-repro-sample
+          retention-days: 3
           path: |
             reports/phase13/crash_repro_sample.json
             reports/phase13/crash_repro_sample.md
@@ -317,6 +356,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: v1-lts-support-governance
+          retention-days: 3
           path: |
             reports/v1/lts_support_exercise.json
             reports/v1/lts_support_exercise.md
@@ -332,6 +372,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: v1-security-response-governance
+          retention-days: 3
           path: |
             reports/v1/security_response_exercise.json
             reports/v1/security_response_exercise.md
@@ -348,6 +389,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: v1-release-notes-preview
+          retention-days: 3
           path: |
             reports/v1/release_notes_preview.md
             reports/v1/release_notes_preview.json
@@ -359,6 +401,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - uses: Swatinem/rust-cache@v2
       - name: collect and validate pilot program metrics
         run: |
           set -euo pipefail
@@ -367,6 +410,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: v1-pilot-application-program
+          retention-days: 3
           path: |
             pilot-apps/
             reports/phase14/pilot_metrics.json
@@ -387,6 +431,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: v1-ga-promotion-evidence
+          retention-days: 3
           path: |
             reports/v1/hosted_rc_cycle_inputs.json
             reports/v1/hosted_rc_cycles.json
@@ -404,6 +449,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - uses: Swatinem/rust-cache@v2
       - name: validate coverage policy and v1 quality budgets
         run: |
           set -euo pipefail
@@ -421,6 +467,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - uses: Swatinem/rust-cache@v2
       - name: run CLI help/version regression tests
         run: |
           set -euo pipefail
@@ -439,6 +486,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - uses: Swatinem/rust-cache@v2
       - name: build packaged candidate binary
         run: |
           set -euo pipefail
@@ -506,6 +554,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - uses: Swatinem/rust-cache@v2
       - name: build release binary for linux compatibility lane
         run: |
           set -euo pipefail
@@ -570,6 +619,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - uses: Swatinem/rust-cache@v2
       - name: run dynamic container frontend coverage
         run: |
           set -euo pipefail
@@ -588,6 +638,7 @@ jobs:
         with:
           name: v1-dynamic-containers-conformance
           path: reports/v1/dynamic_containers_conformance.md
+          retention-days: 3
 
   phase11_containers_text_gate:
     runs-on: ubuntu-latest
@@ -596,6 +647,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - uses: Swatinem/rust-cache@v2
       - name: run phase11 container + text native conformance
         run: |
           set -euo pipefail
@@ -621,6 +673,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: v1-phase11-containers-text
+          retention-days: 3
           path: |
             /tmp/v1-phase11-containers-text/summary.md
             reports/v1/phase11_containers_text_readiness.md
@@ -632,6 +685,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - uses: Swatinem/rust-cache@v2
       - name: run phase11 async/thread conformance suites
         run: |
           set -euo pipefail
@@ -659,6 +713,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: v1-phase11-async-thread
+          retention-days: 3
           path: |
             /tmp/v1-phase11-async-thread/summary.md
             reports/v1/phase11_async_thread_readiness.md
@@ -670,6 +725,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - uses: Swatinem/rust-cache@v2
       - name: run phase11 module composition conformance suites
         run: |
           set -euo pipefail
@@ -701,6 +757,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: v1-phase11-module-composition
+          retention-days: 3
           path: |
             /tmp/v1-phase11-module-composition/summary.md
             reports/v1/phase11_module_composition_readiness.md
@@ -714,6 +771,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - uses: Swatinem/rust-cache@v2
       - name: run phase12 stdlib conformance suites
         run: |
           set -euo pipefail
@@ -747,6 +805,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: v1-phase12-stdlib
+          retention-days: 3
           path: |
             /tmp/v1-phase12-stdlib/summary.md
             reports/v1/phase12_stdlib_readiness.md
@@ -760,6 +819,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - uses: Swatinem/rust-cache@v2
       - name: run phase12 package lifecycle suites
         run: |
           set -euo pipefail
@@ -791,6 +851,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: v1-phase12-package-ecosystem
+          retention-days: 3
           path: |
             /tmp/v1-phase12-package/summary.md
             reports/v1/phase12_package_ecosystem_readiness.md
@@ -802,6 +863,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - uses: Swatinem/rust-cache@v2
       - name: run phase12 QA ergonomics suites
         run: |
           set -euo pipefail
@@ -837,6 +899,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: v1-phase12-qa-ecosystem
+          retention-days: 3
           path: |
             /tmp/v1-phase12-qa/summary.md
             reports/v1/phase12_qa_ecosystem_readiness.md
@@ -850,6 +913,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - uses: Swatinem/rust-cache@v2
       - name: install valgrind for leak lane
         run: |
           set -euo pipefail
@@ -877,6 +941,7 @@ jobs:
         with:
           name: v1-memory-gc-default-gate
           path: /tmp/v1-memory-gc/summary.md
+          retention-days: 3
 
   spec_integrity_gate:
     runs-on: ubuntu-latest
@@ -938,6 +1003,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - uses: Swatinem/rust-cache@v2
       - name: run adjacent-version and lock-mode compatibility path
         run: |
           set -euo pipefail
@@ -957,6 +1023,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - uses: Swatinem/rust-cache@v2
       - name: run selfhost formatter parity and determinism tests
         run: |
           set -euo pipefail
@@ -973,6 +1040,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: v1-selfhost-readiness
+          retention-days: 3
           path: |
             reports/v1/selfhost_readiness.md
             reports/v1/selfhost_readiness.json
@@ -986,6 +1054,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - uses: Swatinem/rust-cache@v2
       - name: run M2 docs and diagnostics parity suites
         run: |
           set -euo pipefail
@@ -1004,6 +1073,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: v1-selfhost-m2-readiness
+          retention-days: 3
           path: |
             docs/selfhost/m2_formatter_diagnostics_contract.md
             reports/v1/selfhost_m2_readiness.md
@@ -1017,6 +1087,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - uses: Swatinem/rust-cache@v2
       - name: run expanded M3 shadow parity + determinism checks
         env:
           VIBE_SELFHOST_M3_ARTIFACT_DIR: /tmp/v1-selfhost-m3
@@ -1040,6 +1111,7 @@ jobs:
         if: ${{ always() }}
         with:
           name: v1-selfhost-m3-shadow
+          retention-days: 3
           path: |
             /tmp/v1-selfhost-m3
             reports/v1/selfhost_m3_expansion.md
@@ -1052,6 +1124,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - uses: Swatinem/rust-cache@v2
       - name: run promoted selfhost diagnostics ordering candidate checks
         env:
           VIBE_DIAGNOSTICS_SORT_MODE: selfhost-default
@@ -1088,6 +1161,7 @@ jobs:
         with:
           name: v1-selfhost-m4-rc-cycle
           path: /tmp/v1-selfhost-m4
+          retention-days: 3
 
   selfhost_transition_gate:
     runs-on: ubuntu-latest
@@ -1096,6 +1170,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - uses: Swatinem/rust-cache@v2
       - name: verify required selfhost evidence documents exist
         run: |
           set -euo pipefail
@@ -1126,6 +1201,7 @@ jobs:
         if: ${{ always() }}
         with:
           name: v1-selfhost-transition-gate
+          retention-days: 3
           path: |
             /tmp/v1-selfhost-m3-transition
             reports/v1/selfhost_m2_readiness.md
@@ -1184,6 +1260,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - name: verify docs program assets are present
         run: |
           set -euo pipefail
@@ -1217,6 +1294,7 @@ jobs:
         with:
           name: v1-docs-program-gate
           path: reports/docs/
+          retention-days: 3
 
   reports_gate:
     runs-on: ubuntu-latest

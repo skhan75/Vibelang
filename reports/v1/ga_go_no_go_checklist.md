@@ -1,6 +1,6 @@
 # V1 GA Go/No-Go Checklist (Strict)
 
-Date: 2026-02-22
+Date: 2026-02-23
 Candidate: `v1.0.0-rc1-dryrun-local`
 
 ## Hard Go Criteria
@@ -68,6 +68,7 @@ python3 tooling/docs/generate_documentation_quality_report.py
 
 - `reports/v1/release_candidate_checklist.md`
 - `reports/v1/readiness_dashboard.md`
+- `reports/v1/ci_cost_optimization.md`
 - `reports/v1/hosted_rc_cycles.md`
 - `reports/v1/phase10_13_exit_audit.md`
 - `reports/v1/ga_freeze_bundle_manifest.md`
@@ -80,6 +81,14 @@ python3 tooling/docs/generate_documentation_quality_report.py
   - signatures
   - provenance
   - SBOM
+
+## CI Cost Controls (Operational, Non-Blocking)
+
+- [x] Path-scoped workflow triggers are enabled for all release/phase workflows.
+- [x] In-flight stale runs are auto-canceled via workflow-level concurrency controls.
+- [x] Rust cache and short artifact retention are enabled in CI.
+- [x] `v1-release-gates.yml` PR duplication is removed.
+- [x] `v1-packaged-release.yml` PR lane is reduced to Linux-only packaging.
 
 ## Final Decision Rule
 

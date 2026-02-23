@@ -3,9 +3,27 @@ name: release-notes-automation
 on:
   push:
     branches: ["main", "release/**"]
+    paths:
+      - ".github/workflows/release-notes-automation.yml"
+      - "tooling/release/**"
+      - "docs/release/**"
+      - "docs/support/**"
+      - "docs/security/**"
+      - "reports/v1/**"
   pull_request:
     branches: ["main", "release/**"]
+    paths:
+      - ".github/workflows/release-notes-automation.yml"
+      - "tooling/release/**"
+      - "docs/release/**"
+      - "docs/support/**"
+      - "docs/security/**"
+      - "reports/v1/**"
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   release_notes_gate:
@@ -20,6 +38,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: release-notes-preview
+          retention-days: 3
           path: |
             reports/v1/release_notes_preview.md
             reports/v1/release_notes_preview.json

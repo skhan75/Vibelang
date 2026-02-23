@@ -3,9 +3,27 @@ name: v1-cli-ux
 on:
   push:
     branches: ["main", "release/**"]
+    paths:
+      - ".github/workflows/v1-cli-ux.yml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "crates/vibe_cli/**"
+      - "docs/cli/**"
   pull_request:
     branches: ["main", "release/**"]
+    paths:
+      - ".github/workflows/v1-cli-ux.yml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "crates/vibe_cli/**"
+      - "docs/cli/**"
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   cli_help_and_version_regressions:
@@ -13,6 +31,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - name: run CLI help/version tests
         run: |
           set -euo pipefail

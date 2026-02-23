@@ -2,8 +2,31 @@ name: phase2-native
 
 on:
   push:
-    branches: ["**"]
+    branches: ["main", "release/**"]
+    paths:
+      - ".github/workflows/phase2-native.yml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "crates/**"
+      - "compiler/**"
+      - "runtime/**"
+      - "tooling/**"
   pull_request:
+    branches: ["main", "release/**"]
+    paths:
+      - ".github/workflows/phase2-native.yml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "crates/**"
+      - "compiler/**"
+      - "runtime/**"
+      - "tooling/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   backend_tests:
@@ -11,6 +34,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - name: backend and cli tests
         run: |
           set -euo pipefail
@@ -24,6 +48,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - name: build hello-world fixture
         run: |
           set -euo pipefail
@@ -50,6 +75,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - name: deterministic native build output
         run: |
           set -euo pipefail

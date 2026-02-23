@@ -2,8 +2,31 @@ name: phase1-frontend
 
 on:
   push:
-    branches: ["**"]
+    branches: ["main", "release/**"]
+    paths:
+      - ".github/workflows/phase1-frontend.yml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "crates/**"
+      - "compiler/**"
+      - "runtime/**"
+      - "tooling/**"
   pull_request:
+    branches: ["main", "release/**"]
+    paths:
+      - ".github/workflows/phase1-frontend.yml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "crates/**"
+      - "compiler/**"
+      - "runtime/**"
+      - "tooling/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   fmt_lint:
@@ -13,6 +36,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
       - name: cargo fmt
         run: cargo fmt --all --check
       - name: cargo clippy
@@ -23,6 +47,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - name: cargo test
         run: cargo test --workspace --all-targets
 
@@ -31,6 +56,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - name: deterministic check and hir output
         run: |
           set -euo pipefail

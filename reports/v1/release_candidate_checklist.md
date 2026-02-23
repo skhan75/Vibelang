@@ -1,7 +1,7 @@
 # V1 Release Candidate Checklist
 
 Candidate: `v1.0.0-rc1-dryrun-local`  
-Date: 2026-02-22  
+Date: 2026-02-23  
 Owner: `vibelang-core`
 
 ## Gate Summary
@@ -40,6 +40,15 @@ Owner: `vibelang-core`
 - [x] Tier-1 packaged install smokes passed on clean machines (Linux/macOS/Windows; no Cargo dependency)
 - [x] Signed artifact trust bundle passed (signature + provenance + SBOM validation)
 - [x] Compatibility tests (upgrade/downgrade) passed (when enabled)
+
+## CI Cost Efficiency (Non-Blocking)
+
+- [x] Workflow triggers are scoped to `main`/`release/**` with path filters to avoid unrelated fan-out.
+- [x] Workflow-level concurrency cancellation is enabled to stop obsolete in-flight runs.
+- [x] Rust job caching is enabled with `Swatinem/rust-cache@v2`.
+- [x] `v1-release-gates.yml` no longer runs on pull requests.
+- [x] `v1-packaged-release.yml` pull-request lane is Linux-only; signed/multi-OS install lanes are reserved for push/release runs.
+- [x] Artifact retention is reduced to `3` days for uploaded CI evidence bundles.
 
 ## Operational Readiness
 
@@ -88,6 +97,7 @@ Owner: `vibelang-core`
 - [x] `reports/v1/install_independence.md`
 - [x] `reports/v1/distribution_readiness.md`
 - [x] `reports/v1/phase8_ci_evidence.md`
+- [x] `reports/v1/ci_cost_optimization.md`
 - [x] `docs/selfhost/m4_transition_criteria.md`
 - [x] `docs/release/selfhost_transition_playbook.md`
 - [x] Workflow run URL: hosted CI evidence captured for current candidate cycle (`v1-packaged-release.yml`, `v1-cli-ux.yml`)

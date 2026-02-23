@@ -2,8 +2,31 @@ name: phase3-concurrency
 
 on:
   push:
-    branches: ["**"]
+    branches: ["main", "release/**"]
+    paths:
+      - ".github/workflows/phase3-concurrency.yml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "crates/**"
+      - "compiler/**"
+      - "runtime/**"
+      - "tooling/**"
   pull_request:
+    branches: ["main", "release/**"]
+    paths:
+      - ".github/workflows/phase3-concurrency.yml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "crates/**"
+      - "compiler/**"
+      - "runtime/**"
+      - "tooling/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   compiler_safety:
@@ -11,6 +34,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - name: frontend ownership/effect/concurrency diagnostics
         run: |
           set -euo pipefail
@@ -21,6 +45,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - name: runtime concurrency unit tests
         run: |
           set -euo pipefail
@@ -31,6 +56,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - name: go/chan/select native fixture smoke
         run: |
           set -euo pipefail
@@ -48,6 +74,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - name: bounded runtime stress tests
         run: |
           set -euo pipefail
@@ -59,6 +86,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - name: deterministic native build + diagnostics ordering
         run: |
           set -euo pipefail

@@ -1,10 +1,10 @@
 # V1 Readiness Dashboard
 
-Date: 2026-02-22
+Date: 2026-02-23
 
 ## Overall Status
 
-- Release candidate cycle: `rc2-publication-finalization`
+- Release candidate cycle: `rc3-ci-cost-optimization`
 - Blocking `P0` gates open: `1` (`V1-P0-PUBLIC-EVIDENCE`)
 - `P1` gates open: `0`
 
@@ -34,6 +34,7 @@ Date: 2026-02-22
 | Independent no-Cargo install | VALIDATED | `reports/v1/install_independence.md`, `reports/v1/phase8_ci_evidence.md`, workflow `v1-release-gates.yml` jobs `independent_install_gate`, `linux_compatibility_gate`, workflow `v1-packaged-release.yml` jobs `install_smoke_linux`, `install_smoke_linux_latest`, `install_smoke_macos`, `install_smoke_windows` | Release/CI | Hosted cross-platform packaged install cycle and Linux compatibility lanes are validated for Phase 8 closure |
 | Distribution trust stack (signature/provenance/SBOM) | VALIDATED | `reports/v1/distribution_readiness.md`, `reports/v1/phase8_ci_evidence.md`, workflow `v1-packaged-release.yml` jobs `packaged_reproducibility`, `sign_attest_and_sbom` | Release/Security/CI | Hosted signed/provenance/SBOM artifact cycle is now validated for Phase 8 closure |
 | CLI help/version UX | VALIDATED | `docs/cli/help_manual.md`, `docs/cli/version_output.md`, tests `cli_help_snapshots`, `cli_version`, workflow `v1-cli-ux.yml`, `reports/v1/phase8_ci_evidence.md` | CLI/Docs | Regression-tested help/version UX is validated in hosted CI |
+| CI workflow cost controls | VALIDATED | `reports/v1/ci_cost_optimization.md`, workflow headers under `.github/workflows/*.yml` | Release/CI | Branch/path scoping, concurrency cancellation, Rust cache, PR packaging reduction, and short artifact retention are now enforced |
 | Compatibility (upgrade/downgrade) | LOCAL-PASS | workflow `v1-release-gates.yml` job `compatibility_gate` | CLI/Release | Adjacent compatibility path currently represented by extension/lock-mode compatibility tests |
 | Ops docs readiness | DONE | docs under `docs/release/`, `docs/support/`, `docs/privacy/` | Release | Required docs added |
 
@@ -102,5 +103,6 @@ Date: 2026-02-22
 - `reports/v1/distribution_readiness.md`
 - `reports/v1/phase8_ci_evidence.md`
 - `reports/v1/phase8_closeout_summary.md`
+- `reports/v1/ci_cost_optimization.md`
 - `reports/v1/ga_go_no_go_checklist.md`
 - Additional gate artifacts produced by `.github/workflows/v1-release-gates.yml`

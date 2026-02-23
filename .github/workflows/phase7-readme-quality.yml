@@ -2,8 +2,33 @@ name: phase7-readme-quality
 
 on:
   push:
-    branches: ["**"]
+    branches: ["main", "release/**"]
+    paths:
+      - ".github/workflows/phase7-readme-quality.yml"
+      - "README.md"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "crates/**"
+      - "compiler/**"
+      - "runtime/**"
+      - "docs/**"
   pull_request:
+    branches: ["main", "release/**"]
+    paths:
+      - ".github/workflows/phase7-readme-quality.yml"
+      - "README.md"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "crates/**"
+      - "compiler/**"
+      - "runtime/**"
+      - "docs/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   readme_markdown_and_links:
@@ -29,6 +54,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - name: build vibe binary
         run: |
           set -euo pipefail

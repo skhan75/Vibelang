@@ -2,8 +2,31 @@ name: phase4-indexer-lsp
 
 on:
   push:
-    branches: ["**"]
+    branches: ["main", "release/**"]
+    paths:
+      - ".github/workflows/phase4-indexer-lsp.yml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "crates/**"
+      - "compiler/**"
+      - "runtime/**"
+      - "tooling/**"
   pull_request:
+    branches: ["main", "release/**"]
+    paths:
+      - ".github/workflows/phase4-indexer-lsp.yml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "crates/**"
+      - "compiler/**"
+      - "runtime/**"
+      - "tooling/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   indexer_and_lsp_unit_tests:
@@ -11,6 +34,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - name: run indexer and lsp crate tests
         run: |
           set -euo pipefail
@@ -22,6 +46,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - name: run phase4 cli integration tests
         run: |
           set -euo pipefail
@@ -32,6 +57,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - name: index medium fixture corpus
         run: |
           set -euo pipefail
@@ -60,6 +86,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - name: verify deterministic index snapshots
         run: |
           set -euo pipefail

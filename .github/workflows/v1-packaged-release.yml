@@ -3,8 +3,28 @@ name: v1-packaged-release
 on:
   push:
     branches: ["main", "release/**"]
+    paths:
+      - ".github/workflows/v1-packaged-release.yml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "crates/**"
+      - "compiler/**"
+      - "runtime/**"
+      - "tooling/release/**"
+      - "docs/release/**"
   pull_request:
     branches: ["main", "release/**"]
+    paths:
+      - ".github/workflows/v1-packaged-release.yml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "crates/**"
+      - "compiler/**"
+      - "runtime/**"
+      - "tooling/release/**"
+      - "docs/release/**"
   workflow_dispatch:
 
 permissions:
@@ -12,6 +32,10 @@ permissions:
 
 env:
   RUST_TOOLCHAIN_VERSION: "1.85.1"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   package_artifacts:
@@ -33,12 +57,14 @@ jobs:
             target: x86_64-pc-windows-msvc
             archive: zip
             binary_name: vibe.exe
+    if: ${{ github.event_name != 'pull_request' || matrix.target == 'x86_64-unknown-linux-gnu' }}
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
           targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
       - name: ensure target stdlib is installed
         shell: bash
         run: |
@@ -181,6 +207,7 @@ jobs:
         with:
           name: v1-package-${{ matrix.target }}
           path: dist/*
+          retention-days: 3
 
   packaged_reproducibility:
     name: packaged-reproducibility
@@ -211,6 +238,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: v1-packaged-reproducibility
+          retention-days: 3
           path: |
             /tmp/v1-current-checksums.json
             /tmp/v1-packaged-reproducibility.md
@@ -218,6 +246,7 @@ jobs:
   sign_attest_and_sbom:
     name: sign-attest-sbom
     runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'pull_request' }}
     needs:
       - package_artifacts
       - packaged_reproducibility
@@ -317,10 +346,12 @@ jobs:
         with:
           name: v1-packaged-signed-bundle
           path: /tmp/v1-packaged/*
+          retention-days: 3
 
   install_smoke_linux:
     name: install-smoke-linux
     runs-on: ubuntu-22.04
+    if: ${{ github.event_name != 'pull_request' }}
     needs: sign_attest_and_sbom
     steps:
       - uses: actions/download-artifact@v4
@@ -404,6 +435,7 @@ jobs:
   install_smoke_linux_latest:
     name: install-smoke-linux-latest
     runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'pull_request' }}
     needs: sign_attest_and_sbom
     steps:
       - uses: actions/download-artifact@v4
@@ -487,6 +519,7 @@ jobs:
   install_smoke_macos:
     name: install-smoke-macos
     runs-on: macos-latest
+    if: ${{ github.event_name != 'pull_request' }}
     needs: sign_attest_and_sbom
     steps:
       - uses: actions/download-artifact@v4
@@ -568,6 +601,7 @@ jobs:
   install_smoke_windows:
     name: install-smoke-windows
     runs-on: windows-latest
+    if: ${{ github.event_name != 'pull_request' }}
     needs: sign_attest_and_sbom
     steps:
       - uses: actions/download-artifact@v4

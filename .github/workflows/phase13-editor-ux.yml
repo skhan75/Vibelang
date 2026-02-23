@@ -2,8 +2,37 @@ name: phase13-editor-ux
 
 on:
   push:
-    branches: ["**"]
+    branches: ["main", "release/**"]
+    paths:
+      - ".github/workflows/phase13-editor-ux.yml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "crates/**"
+      - "compiler/**"
+      - "runtime/**"
+      - "tooling/phase13/**"
+      - "tooling/metrics/**"
+      - "editor-support/**"
+      - "reports/phase13/**"
   pull_request:
+    branches: ["main", "release/**"]
+    paths:
+      - ".github/workflows/phase13-editor-ux.yml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "crates/**"
+      - "compiler/**"
+      - "runtime/**"
+      - "tooling/phase13/**"
+      - "tooling/metrics/**"
+      - "editor-support/**"
+      - "reports/phase13/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   grammar_and_language_assets:
@@ -20,6 +49,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - name: run vibe_lsp unit coverage
         run: |
           set -euo pipefail
@@ -50,6 +80,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - name: collect and enforce editor ux benchmark budgets
         run: |
           set -euo pipefail
@@ -66,4 +97,5 @@ jobs:
         with:
           name: phase13-editor-ux-reports
           path: reports/phase13
+          retention-days: 3
 

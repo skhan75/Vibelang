@@ -2,8 +2,33 @@ name: phase7-language-validation
 
 on:
   push:
-    branches: ["**"]
+    branches: ["main", "release/**"]
+    paths:
+      - ".github/workflows/phase7-language-validation.yml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "crates/**"
+      - "compiler/**"
+      - "runtime/**"
+      - "tooling/**"
+      - "reports/phase7/**"
   pull_request:
+    branches: ["main", "release/**"]
+    paths:
+      - ".github/workflows/phase7-language-validation.yml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "crates/**"
+      - "compiler/**"
+      - "runtime/**"
+      - "tooling/**"
+      - "reports/phase7/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   frontend_corpus_matrix:
@@ -11,6 +36,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - name: run phase7 frontend corpus checks
         run: |
           set -euo pipefail
@@ -22,6 +48,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - name: run phase7 single-thread suite
         run: |
           set -euo pipefail
@@ -32,6 +59,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - name: run phase7 concurrency suite
         run: |
           set -euo pipefail
@@ -42,6 +70,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - name: run phase7 intent tests
         run: |
           set -euo pipefail
@@ -54,6 +83,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: phase7-intent-quality-trend
+          retention-days: 3
           path: |
             reports/phase7/intent_lint_quality_trend.json
             reports/phase7/intent_lint_quality_trend.md

@@ -2,9 +2,36 @@ name: phase6-metrics
 
 on:
   push:
-    branches: ["**"]
+    branches: ["main", "release/**"]
+    paths:
+      - ".github/workflows/phase6-metrics.yml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "crates/**"
+      - "tooling/metrics/**"
+      - "tooling/phase14/**"
+      - "docs/testing/**"
+      - "reports/phase6/**"
+      - "reports/phase14/**"
   pull_request:
+    branches: ["main", "release/**"]
+    paths:
+      - ".github/workflows/phase6-metrics.yml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "crates/**"
+      - "tooling/metrics/**"
+      - "tooling/phase14/**"
+      - "docs/testing/**"
+      - "reports/phase6/**"
+      - "reports/phase14/**"
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   collect_and_validate_metrics:
@@ -12,6 +39,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - name: collect phase6 metrics
         run: |
           set -euo pipefail
@@ -24,3 +52,4 @@ jobs:
         with:
           name: phase6-metrics
           path: reports/phase6/metrics/
+          retention-days: 3
