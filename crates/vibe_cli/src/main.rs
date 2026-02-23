@@ -2286,6 +2286,9 @@ fn find_project_root(path: &Path) -> Option<PathBuf> {
     } else {
         path.parent()?.to_path_buf()
     };
+    if current.as_os_str().is_empty() {
+        current = PathBuf::from(".");
+    }
     loop {
         if current.join(MANIFEST_FILENAME).is_file() {
             return Some(current);

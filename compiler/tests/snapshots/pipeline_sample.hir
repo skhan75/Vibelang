@@ -117,6 +117,85 @@ HirProgram {
                         },
                     ],
                 },
+                ContractCheck {
+                    kind: Ensure,
+                    expr: HirExpr {
+                        kind: Binary {
+                            left: HirExpr {
+                                kind: Call {
+                                    callee: HirExpr {
+                                        kind: Ident(
+                                            "len",
+                                        ),
+                                        ty: "Unknown",
+                                    },
+                                    args: [
+                                        HirExpr {
+                                            kind: Call {
+                                                callee: HirExpr {
+                                                    kind: Member {
+                                                        object: HirExpr {
+                                                            kind: Ident(
+                                                                "out",
+                                                            ),
+                                                            ty: "Chan<Unknown>",
+                                                        },
+                                                        field: "take",
+                                                    },
+                                                    ty: "Chan<Unknown>",
+                                                },
+                                                args: [
+                                                    HirExpr {
+                                                        kind: Call {
+                                                            callee: HirExpr {
+                                                                kind: Ident(
+                                                                    "len",
+                                                                ),
+                                                                ty: "Unknown",
+                                                            },
+                                                            args: [
+                                                                HirExpr {
+                                                                    kind: Ident(
+                                                                        "tasks",
+                                                                    ),
+                                                                    ty: "List<Unknown>",
+                                                                },
+                                                            ],
+                                                        },
+                                                        ty: "Int",
+                                                    },
+                                                ],
+                                            },
+                                            ty: "Unknown",
+                                        },
+                                    ],
+                                },
+                                ty: "Int",
+                            },
+                            op: Eq,
+                            right: HirExpr {
+                                kind: Call {
+                                    callee: HirExpr {
+                                        kind: Ident(
+                                            "len",
+                                        ),
+                                        ty: "Unknown",
+                                    },
+                                    args: [
+                                        HirExpr {
+                                            kind: Ident(
+                                                "tasks",
+                                            ),
+                                            ty: "List<Unknown>",
+                                        },
+                                    ],
+                                },
+                                ty: "Int",
+                            },
+                        },
+                        ty: "Bool",
+                    },
+                },
             ],
             tail_expr: Some(
                 HirExpr {

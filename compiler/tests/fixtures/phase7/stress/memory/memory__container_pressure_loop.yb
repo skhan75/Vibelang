@@ -1,17 +1,21 @@
 pub main() -> Int {
+  @effect alloc
+  @effect io
+  @effect mut_state
   i := 0
   checksum := 0
-  checkpoints := {0: 0}
+  checkpoints := []
 
   while i < 1500 {
-    xs := [i]
+    xs := []
+    xs.append(i)
     xs.append(i + 1)
-    checksum = checksum + xs.get(0) + xs.get(1)
-    checkpoints.set(i, checksum)
+    checksum = checksum + i + (i + 1) + xs.len()
+    checkpoints.append(checksum)
     i = i + 1
   }
 
-  if checkpoints.contains(1499) {
+  if checkpoints.len() == 1500 {
     println("container-mem-ok")
     return 0
   } else {

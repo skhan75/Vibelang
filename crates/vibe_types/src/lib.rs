@@ -314,6 +314,7 @@ pub fn check_and_lower(ast: &FileAst) -> CheckOutput {
     CheckOutput { diagnostics, hir }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn check_stmt(
     stmt: &Stmt,
     env: &mut BTreeMap<String, TypeKind>,

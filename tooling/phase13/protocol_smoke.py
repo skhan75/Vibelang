@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+import subprocess
 import tempfile
 from pathlib import Path
 
@@ -22,6 +23,20 @@ def main() -> None:
         fail(f"fixture missing: {fixture}")
     source = fixture.read_text()
 
+    build = subprocess.run(
+        ["cargo", "build", "-q", "-p", "vibe_cli"],
+        cwd=repo_root,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if build.returncode != 0:
+        fail(
+            "failed to build vibe_cli before protocol smoke:\n"
+            f"stdout:\n{build.stdout}\n"
+            f"stderr:\n{build.stderr}"
+        )
+
     with tempfile.TemporaryDirectory(prefix="vibe_phase13_protocol_") as temp_dir:
         index_root = Path(temp_dir) / "index"
         command = [
@@ -37,7 +52,8 @@ def main() -> None:
             "--index-root",
             str(index_root),
         ]
-        client = JsonRpcClient(command, cwd=str(repo_root))
+        # CI cold starts can take longer before JSON-RPC stream is ready.
+        client = JsonRpcClient(command, cwd=str(repo_root), timeout_s=45.0)
 
         initialize, initialize_ms = client.request("initialize", {})
         if "result" not in initialize:

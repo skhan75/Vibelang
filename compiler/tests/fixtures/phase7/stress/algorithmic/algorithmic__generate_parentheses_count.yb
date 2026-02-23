@@ -1,30 +1,26 @@
 catalan_count(n: Int) -> Int {
-  counts := [1]
-  i := 1
-  while i <= n {
-    counts.append(0)
-    i = i + 1
+  @effect alloc
+  @effect mut_state
+  if n <= 1 {
+    return 1
   }
 
-  i = 1
-  while i <= n {
-    total := 0
-    j := 0
-    while j < i {
-      left := counts.get(j)
-      right := counts.get(i - 1 - j)
-      total = total + left * right
-      j = j + 1
-    }
-    counts.set(i, total)
+  total := 0
+  i := 0
+  while i < n {
+    left := catalan_count(i)
+    right := catalan_count(n - 1 - i)
+    total = total + left * right
     i = i + 1
   }
-  return counts.get(n)
+  return total
 }
 
 pub main() -> Int {
-  cfg := {"target": 4}
-  target := cfg.get("target")
+  @effect io
+  @effect alloc
+  @effect mut_state
+  target := 4
   value := catalan_count(target)
   if value == 14 {
     println("paren-ok")
