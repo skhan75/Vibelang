@@ -29,6 +29,10 @@ def main() -> None:
             raise SystemExit(f"hosted RC cycle not passing: {cycle}")
         if not cycle.get("run_link"):
             raise SystemExit(f"hosted RC cycle missing run_link: {cycle}")
+    placeholder_links = [
+        cycle["run_link"] for cycle in cycles if str(cycle.get("run_link", "")).startswith("local://")
+    ]
+    publication_ready = len(placeholder_links) == 0
 
     phase_exit_evidence = [
         "reports/v1/selfhost_readiness.md",
@@ -71,15 +75,23 @@ def main() -> None:
     hosted_json = {
         "format": "v1-hosted-rc-cycles-v1",
         "cycle_count": len(cycles),
+        "publication_ready": publication_ready,
+        "placeholder_links": placeholder_links,
         "cycles": cycles,
     }
     (reports_v1 / "hosted_rc_cycles.json").write_text(json.dumps(hosted_json, indent=2) + "\n")
     (reports_v1 / "hosted_rc_cycles.md").write_text(
         "# Consecutive Hosted RC Cycles\n\n"
         f"- cycle_count: {len(cycles)}\n"
+        f"- publication_ready: {publication_ready}\n"
         + "\n".join(
             f"- `{cycle['cycle_id']}`: `{cycle['run_link']}` ({cycle['status']})"
             for cycle in cycles
+        )
+        + (
+            "\n- pending_action: replace `local://` links with hosted CI run URLs before public GA\n"
+            if not publication_ready
+            else "\n"
         )
         + "\n"
     )
@@ -109,7 +121,7 @@ def main() -> None:
 
     (reports_v1 / "ga_readiness_announcement.md").write_text(
         "# VibeLang GA Readiness Announcement\n\n"
-        "- status: ready-for-ga\n"
+        f"- status: {'ready-for-ga' if publication_ready else 'no-go-pending-publication-evidence'}\n"
         "- decision_date: 2026-02-22\n"
         "- hosted_rc_cycles: `reports/v1/hosted_rc_cycles.md`\n"
         "- phase_exit_audit: `reports/v1/phase10_13_exit_audit.md`\n"
@@ -122,6 +134,14 @@ def main() -> None:
         "| Compatibility guarantees | `docs/policy/compatibility_guarantees.md` | Active |\n"
         "| Known limitations | `docs/release/known_limitations_gate.md` | Accepted + published |\n"
         "| Breaking changes communication | `reports/v1/release_notes_preview.md` | Automated |\n"
+        + (
+            "\n## Remaining Required Actions\n\n"
+            "- replace placeholder hosted RC run links in `reports/v1/hosted_rc_cycle_inputs.json`\n"
+            "- rerun `tooling/release/collect_ga_promotion_evidence.py`\n"
+            "- rerun `tooling/release/validate_ga_promotion_evidence.py`\n"
+            if not publication_ready
+            else ""
+        )
     )
 
     print(f"wrote {reports_v1 / 'ga_readiness_announcement.md'}")

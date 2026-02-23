@@ -1,6 +1,11 @@
 {
   "format": "v1-hosted-rc-cycles-v1",
   "cycle_count": 2,
+  "publication_ready": false,
+  "placeholder_links": [
+    "local://v1-release-gates/rc-cycle-2026-02-22-01",
+    "local://v1-release-gates/rc-cycle-2026-02-22-02"
+  ],
   "cycles": [
     {
       "cycle_id": "rc-cycle-2026-02-22-01",

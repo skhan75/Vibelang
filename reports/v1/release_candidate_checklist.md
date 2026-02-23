@@ -1,13 +1,13 @@
 # V1 Release Candidate Checklist
 
 Candidate: `v1.0.0-rc1-dryrun-local`  
-Date: 2026-02-21  
+Date: 2026-02-22  
 Owner: `vibelang-core`
 
 ## Gate Summary
 
-- [x] `v1-release-gates.yml` passed for current candidate
-- [x] No open `P0` blockers
+- [ ] Hosted `v1-release-gates.yml` pass URL(s) are attached for current candidate
+- [ ] No open `P0` blockers
 - [x] `P1` exceptions documented and approved
 
 ## Determinism and Correctness
@@ -65,32 +65,18 @@ Owner: `vibelang-core`
 - [x] `VG-023` Release-notes automation includes known limitations and breaking changes
 - [x] `VG-024` Phase 7.4 docs/book program is closed with docs CI quality report
 - [x] `VG-025` Pilot application evidence package exists (service + CLI/tooling + metrics + case studies) (blocking `P0`)
-- [x] `VG-026` Consecutive hosted RC cycles and GA evidence bundle are complete (blocking `P0`)
+- [ ] `VG-026` Consecutive hosted RC cycles and GA evidence bundle are complete (blocking `P0`)
 
 ## Owner/Evidence Mapping For Remaining Work
 
 | Gate | Owner | Evidence Artifact(s) |
 | --- | --- | --- |
-| VG-005 | Language/Compiler | `docs/spec/unsafe_escape_hatches.md`, unsafe syntax tests |
-| VG-006 | Compiler/Release | `docs/release/unsafe_review_policy.md`, enforcement evidence |
-| VG-007 | CLI/Compiler | unsafe audit artifact + unsafe governance gate artifact |
-| VG-008 | Compiler/Runtime | `reports/v1/allocation_visibility_smoke.md` |
-| VG-009 | Runtime/Tooling | `reports/v1/release_benchmarks.json`, benchmark gate artifact |
-| VG-010 | Language Docs | `docs/spec/cost_model.md` |
-| VG-017 | Compiler/Runtime/DX | `docs/debugging/workflow.md`, debug workflow artifact |
-| VG-018 | Runtime/Tooling | `docs/observability/contracts.md`, `reports/phase13/observability_primitives.md` |
-| VG-019 | Runtime/Release | `docs/support/production_incident_triage.md`, incident exercise report |
-| VG-020 | Compiler/Runtime/Tooling | `docs/support/crash_repro_format.md`, crash repro artifact sample |
-| VG-021 | Release/Docs | `docs/support/lts_support_windows.md`, `docs/policy/compatibility_guarantees.md`, `reports/v1/lts_support_exercise.md` |
-| VG-022 | Security/Release | `docs/security/cve_response_workflow.md`, `docs/security/disclosure_policy.md`, `reports/v1/security_response_exercise.md` |
-| VG-023 | Release/Tooling | workflow `release-notes-automation.yml`, `reports/v1/release_notes_preview.md` |
-| VG-024 | Docs/DX/CI | `book/`, docs quality workflow run, `reports/docs/documentation_quality.md` |
-| VG-025 | Product/Runtime/DX | `pilot-apps/`, `reports/phase14/pilot_metrics.json`, pilot case studies |
-| VG-026 | Release/Security/CI | `reports/v1/hosted_rc_cycles.md`, `reports/v1/phase10_13_exit_audit.md`, `reports/v1/ga_freeze_bundle_manifest.md`, `reports/v1/ga_readiness_announcement.md` |
+| VG-026 | Release/Security/CI | replace `local://` links with hosted run URLs in `reports/v1/hosted_rc_cycle_inputs.json`, regenerate `reports/v1/hosted_rc_cycles.md/.json`, then re-validate GA bundle |
 
 ## Evidence Links
 
 - [x] `reports/v1/readiness_dashboard.md`
+- [x] `reports/v1/ga_go_no_go_checklist.md`
 - [x] `reports/v1/selfhost_readiness.md`
 - [x] `reports/v1/spec_readiness.md`
 - [x] `reports/v1/phase11_containers_text_readiness.md`
@@ -109,6 +95,6 @@ Owner: `vibelang-core`
 
 ## Promote / Reject Decision
 
-- Decision: `ready-for-ga`
+- Decision: `no-go-pending-publication-evidence`
 - Decision owner: `vibelang-core`
-- Notes: `Phase 10-14 and remaining blocker workstreams are locally validated with GA promotion evidence artifacts published.`
+- Notes: `Engineering gates are locally green, but public GA remains blocked until hosted RC workflow run URLs and publish artifacts are attached and verified.`

@@ -1227,6 +1227,7 @@ jobs:
           set -euo pipefail
           test -f reports/v1/readiness_dashboard.md
           test -f reports/v1/release_candidate_checklist.md
+          test -f reports/v1/ga_go_no_go_checklist.md
           test -f reports/v1/selfhost_readiness.md
           test -f reports/v1/selfhost_readiness.json
           test -f reports/v1/selfhost_m2_readiness.md
@@ -1296,6 +1297,7 @@ jobs:
           set -euo pipefail
           echo "$PR_BODY" | grep -q "reports/v1/readiness_dashboard.md"
           echo "$PR_BODY" | grep -q "reports/v1/release_candidate_checklist.md"
+          echo "$PR_BODY" | grep -q "reports/v1/ga_go_no_go_checklist.md"
           echo "$PR_BODY" | grep -q "reports/v1/dynamic_containers_conformance.md"
           echo "$PR_BODY" | grep -q "reports/v1/phase11_containers_text_readiness.md"
           echo "$PR_BODY" | grep -q "reports/v1/phase11_async_thread_readiness.md"

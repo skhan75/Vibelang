@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+import os
 from pathlib import Path
 
 
@@ -22,6 +23,16 @@ def main() -> None:
         raise SystemExit("hosted_rc_cycles format mismatch")
     if hosted.get("cycle_count", 0) < 2:
         raise SystemExit("at least two hosted RC cycles are required")
+    publication_ready = bool(hosted.get("publication_ready", False))
+    placeholder_links = hosted.get("placeholder_links", [])
+    if not isinstance(placeholder_links, list):
+        raise SystemExit("hosted_rc_cycles placeholder_links must be a list")
+    strict_public = os.environ.get("STRICT_PUBLIC", "0") == "1"
+    if strict_public and not publication_ready:
+        raise SystemExit(
+            "STRICT_PUBLIC=1 requires hosted RC links (no local:// placeholders). "
+            f"pending placeholders: {placeholder_links}"
+        )
 
     phase = json.loads((reports_v1 / "phase10_13_exit_audit.json").read_text())
     if phase.get("format") != "v1-phase10-13-exit-audit-v1":
@@ -36,7 +47,10 @@ def main() -> None:
     if not isinstance(checksums, dict) or len(checksums) == 0:
         raise SystemExit("ga_freeze_bundle_manifest must contain checksums")
 
-    print("GA promotion evidence validation passed")
+    if publication_ready:
+        print("GA promotion evidence validation passed (publication-ready)")
+    else:
+        print("GA promotion evidence validation passed (pending hosted URL publication)")
 
 
 if __name__ == "__main__":
