@@ -145,6 +145,17 @@ def parse_vibe_build_output(stdout: str) -> Path:
     fail(f"unable to parse VibeLang build output binary path.\nstdout:\n{stdout}")
 
 
+def parse_vibe_compile_phase_report(stdout: str) -> Path | None:
+    for line in stdout.splitlines():
+        stripped = line.strip()
+        match = re.search(r"compile-phases:\s*([^)]+)\)", stripped)
+        if not match:
+            continue
+        path = Path(match.group(1).strip())
+        return path
+    return None
+
+
 def ensure_vibe_binary(repo_root: Path) -> Path:
     candidate_paths: list[Path] = []
     target_dir_env = os.environ.get("CARGO_TARGET_DIR")
@@ -188,6 +199,7 @@ def compile_case_binary(
     build_dir.mkdir(parents=True, exist_ok=True)
     run_cmd: list[str]
     artifact_path: Path
+    compile_phase_report_path: Path | None = None
     if language == "vibelang":
         compile_cmd = [str(vibe_bin), "build", str(source), "--profile", "release"]
         compile_out = run_with_metrics(compile_cmd, repo_root)
@@ -200,6 +212,9 @@ def compile_case_binary(
         artifact_path = parse_vibe_build_output(str(compile_out["stdout"]))
         if not artifact_path.is_absolute():
             artifact_path = repo_root / artifact_path
+        compile_phase_report_path = parse_vibe_compile_phase_report(str(compile_out["stdout"]))
+        if compile_phase_report_path is not None and not compile_phase_report_path.is_absolute():
+            compile_phase_report_path = repo_root / compile_phase_report_path
         run_cmd = [str(artifact_path)]
     elif language == "c":
         artifact_path = build_dir / "bench_c"
@@ -310,6 +325,8 @@ def compile_case_binary(
         "binary_path": str(artifact_path),
         "binary_size_bytes": int(artifact_path.stat().st_size),
     }
+    if compile_phase_report_path is not None:
+        compile_record["compile_phase_report_path"] = str(compile_phase_report_path)
     return compile_record, run_cmd
 
 
