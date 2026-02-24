@@ -201,7 +201,14 @@ def compile_case_binary(
     artifact_path: Path
     compile_phase_report_path: Path | None = None
     if language == "vibelang":
-        compile_cmd = [str(vibe_bin), "build", str(source), "--profile", "release"]
+        compile_cmd = [
+            str(vibe_bin),
+            "build",
+            str(source),
+            "--profile",
+            "release",
+            "--emit-compile-phases",
+        ]
         compile_out = run_with_metrics(compile_cmd, repo_root)
         if int(compile_out["exit_code"]) != 0:
             fail(

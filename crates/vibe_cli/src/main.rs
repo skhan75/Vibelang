@@ -99,16 +99,28 @@ fn run() -> Result<ExitCode, String> {
         "build" => {
             let build_args = parse_build_like_args(&args, false)?;
             let artifacts = build_source(&build_args)?;
-            println!(
-                "built {} (object: {}, runtime: {}, debug-map: {}, unsafe-audit: {}, alloc-profile: {}, compile-phases: {})",
-                artifacts.binary_path.display(),
-                artifacts.object_path.display(),
-                artifacts.runtime_object_path.display(),
-                artifacts.debug_map_path.display(),
-                artifacts.unsafe_audit_path.display(),
-                artifacts.alloc_profile_path.display(),
-                artifacts.compile_phase_report_path.display()
-            );
+            if let Some(compile_phase_report_path) = &artifacts.compile_phase_report_path {
+                println!(
+                    "built {} (object: {}, runtime: {}, debug-map: {}, unsafe-audit: {}, alloc-profile: {}, compile-phases: {})",
+                    artifacts.binary_path.display(),
+                    artifacts.object_path.display(),
+                    artifacts.runtime_object_path.display(),
+                    artifacts.debug_map_path.display(),
+                    artifacts.unsafe_audit_path.display(),
+                    artifacts.alloc_profile_path.display(),
+                    compile_phase_report_path.display()
+                );
+            } else {
+                println!(
+                    "built {} (object: {}, runtime: {}, debug-map: {}, unsafe-audit: {}, alloc-profile: {})",
+                    artifacts.binary_path.display(),
+                    artifacts.object_path.display(),
+                    artifacts.runtime_object_path.display(),
+                    artifacts.debug_map_path.display(),
+                    artifacts.unsafe_audit_path.display(),
+                    artifacts.alloc_profile_path.display()
+                );
+            }
             Ok(ExitCode::SUCCESS)
         }
         "run" => {
@@ -277,7 +289,7 @@ DESCRIPTION
             r#"vibe build
 
 USAGE
-  vibe build <path> [--profile dev|release] [--target <triple>] [--debuginfo none|line|full] [--offline] [--locked] [--emit-obj-only]
+  vibe build <path> [--profile dev|release] [--target <triple>] [--debuginfo none|line|full] [--offline] [--locked] [--emit-obj-only] [--emit-compile-phases]
 
 FLAGS
   --profile <name>          Build profile (dev|release)
@@ -286,6 +298,7 @@ FLAGS
   --offline                 Informational offline mode flag
   --locked                  Enforce lockfile/manifest locked-mode checks
   --emit-obj-only           Skip runtime compile/link and emit object-only artifacts
+  --emit-compile-phases     Emit compile phase timing report artifact (`*.compile_phases.json`)
 "#,
         ),
         "run" => Some(
@@ -299,13 +312,14 @@ DESCRIPTION
 
 NOTES
   `--emit-obj-only` is not valid for `vibe run`.
+  `--emit-compile-phases` is valid and opt-in.
 "#,
         ),
         "test" => Some(
             r#"vibe test
 
 USAGE
-  vibe test <path|dir> [--profile dev|release] [--target <triple>] [--debuginfo none|line|full] [--offline] [--locked] [--filter <substr>] [--shard <index>/<total>] [--report text|json|--json]
+  vibe test <path|dir> [--profile dev|release] [--target <triple>] [--debuginfo none|line|full] [--offline] [--locked] [--emit-compile-phases] [--filter <substr>] [--shard <index>/<total>] [--report text|json|--json]
 
 DESCRIPTION
   Runs file/directory tests, including contract/example checks where applicable.
@@ -550,6 +564,7 @@ struct BuildArgs {
     offline: bool,
     locked: bool,
     emit_obj_only: bool,
+    emit_compile_phases: bool,
     exec_args: Vec<String>,
 }
 
@@ -560,7 +575,7 @@ struct BuildArtifacts {
     debug_map_path: PathBuf,
     unsafe_audit_path: PathBuf,
     alloc_profile_path: PathBuf,
-    compile_phase_report_path: PathBuf,
+    compile_phase_report_path: Option<PathBuf>,
     binary_path: PathBuf,
 }
 
@@ -669,6 +684,7 @@ fn parse_build_like_args(args: &[String], allow_exec_args: bool) -> Result<Build
     let mut offline = false;
     let mut locked = false;
     let mut emit_obj_only = false;
+    let mut emit_compile_phases = false;
     let mut exec_args = Vec::new();
 
     while idx < args.len() {
@@ -721,6 +737,9 @@ fn parse_build_like_args(args: &[String], allow_exec_args: bool) -> Result<Build
             "--emit-obj-only" => {
                 emit_obj_only = true;
             }
+            "--emit-compile-phases" => {
+                emit_compile_phases = true;
+            }
             other => {
                 return Err(format!("unknown argument `{other}`"));
             }
@@ -736,6 +755,7 @@ fn parse_build_like_args(args: &[String], allow_exec_args: bool) -> Result<Build
         offline,
         locked,
         emit_obj_only,
+        emit_compile_phases,
         exec_args,
     })
 }
@@ -754,6 +774,7 @@ fn parse_test_args(args: &[String]) -> Result<TestArgs, String> {
     let mut offline = false;
     let mut locked = false;
     let mut emit_obj_only = false;
+    let mut emit_compile_phases = false;
     let mut filter = None;
     let mut shard = None;
     let mut report = TestReportFormat::Text;
@@ -799,6 +820,9 @@ fn parse_test_args(args: &[String]) -> Result<TestArgs, String> {
             }
             "--emit-obj-only" => {
                 emit_obj_only = true;
+            }
+            "--emit-compile-phases" => {
+                emit_compile_phases = true;
             }
             "--filter" => {
                 idx += 1;
@@ -849,6 +873,7 @@ fn parse_test_args(args: &[String]) -> Result<TestArgs, String> {
             offline,
             locked,
             emit_obj_only,
+            emit_compile_phases,
             exec_args: Vec::new(),
         },
         filter,
@@ -2080,27 +2105,60 @@ fn run_pkg(args: &PkgArgs) -> Result<ExitCode, String> {
 }
 
 fn build_source(args: &BuildArgs) -> Result<BuildArtifacts, String> {
-    let total_start = std::time::Instant::now();
-    let locked_start = std::time::Instant::now();
+    let timing_enabled = args.emit_compile_phases;
+    let total_start = if timing_enabled {
+        Some(std::time::Instant::now())
+    } else {
+        None
+    };
+    let locked_start = if timing_enabled {
+        Some(std::time::Instant::now())
+    } else {
+        None
+    };
     if args.locked {
         enforce_locked_mode(&args.source_path)?;
     }
-    let locked_ms = locked_start.elapsed().as_millis();
+    let locked_ms = locked_start
+        .as_ref()
+        .map(|start| start.elapsed().as_millis())
+        .unwrap_or(0);
 
-    let resolve_start = std::time::Instant::now();
+    let resolve_start = if timing_enabled {
+        Some(std::time::Instant::now())
+    } else {
+        None
+    };
     let unit = resolve_compilation_unit(&args.source_path)?;
-    let resolve_ms = resolve_start.elapsed().as_millis();
+    let resolve_ms = resolve_start
+        .as_ref()
+        .map(|start| start.elapsed().as_millis())
+        .unwrap_or(0);
 
-    let check_start = std::time::Instant::now();
+    let check_start = if timing_enabled {
+        Some(std::time::Instant::now())
+    } else {
+        None
+    };
     let checked = check_and_lower(&unit.ast);
-    let check_ms = check_start.elapsed().as_millis();
+    let check_ms = check_start
+        .as_ref()
+        .map(|start| start.elapsed().as_millis())
+        .unwrap_or(0);
 
-    let diagnostics_start = std::time::Instant::now();
+    let diagnostics_start = if timing_enabled {
+        Some(std::time::Instant::now())
+    } else {
+        None
+    };
     let mut all = Diagnostics::default();
     all.extend(unit.diagnostics.clone().into_sorted());
     all.extend(checked.diagnostics.into_sorted());
     let diags = all.to_golden();
-    let diagnostics_ms = diagnostics_start.elapsed().as_millis();
+    let diagnostics_ms = diagnostics_start
+        .as_ref()
+        .map(|start| start.elapsed().as_millis())
+        .unwrap_or(0);
     if !diags.trim().is_empty() {
         eprintln!("{diags}");
     }
@@ -2108,16 +2166,34 @@ fn build_source(args: &BuildArgs) -> Result<BuildArtifacts, String> {
         return Err("build failed due to errors".to_string());
     }
 
-    let contract_preflight_start = std::time::Instant::now();
+    let contract_preflight_start = if timing_enabled {
+        Some(std::time::Instant::now())
+    } else {
+        None
+    };
     enforce_contract_preflight(&unit.ast, &args.source_path, &args.profile)?;
-    let contract_preflight_ms = contract_preflight_start.elapsed().as_millis();
+    let contract_preflight_ms = contract_preflight_start
+        .as_ref()
+        .map(|start| start.elapsed().as_millis())
+        .unwrap_or(0);
 
-    let mir_lower_start = std::time::Instant::now();
+    let mir_lower_start = if timing_enabled {
+        Some(std::time::Instant::now())
+    } else {
+        None
+    };
     let mir =
         lower_hir_to_mir(&checked.hir).map_err(|e| format!("HIR->MIR lowering failed: {e}"))?;
-    let mir_lower_ms = mir_lower_start.elapsed().as_millis();
+    let mir_lower_ms = mir_lower_start
+        .as_ref()
+        .map(|start| start.elapsed().as_millis())
+        .unwrap_or(0);
 
-    let codegen_start = std::time::Instant::now();
+    let codegen_start = if timing_enabled {
+        Some(std::time::Instant::now())
+    } else {
+        None
+    };
     let object_bytes = emit_object(
         &mir,
         &CodegenOptions {
@@ -2127,13 +2203,20 @@ fn build_source(args: &BuildArgs) -> Result<BuildArtifacts, String> {
         },
     )
     .map_err(|e| format!("codegen failed: {e}"))?;
-    let codegen_ms = codegen_start.elapsed().as_millis();
+    let codegen_ms = codegen_start
+        .as_ref()
+        .map(|start| start.elapsed().as_millis())
+        .unwrap_or(0);
 
     if args.offline {
         // Phase 2 keeps AI and network out of the compile path. This flag is currently informational.
     }
 
-    let io_prepare_start = std::time::Instant::now();
+    let io_prepare_start = if timing_enabled {
+        Some(std::time::Instant::now())
+    } else {
+        None
+    };
     let artifacts_dir = artifact_directory(&args.source_path, &args.profile, &args.target);
     fs::create_dir_all(&artifacts_dir)
         .map_err(|e| format!("failed to create artifacts directory: {e}"))?;
@@ -2145,12 +2228,22 @@ fn build_source(args: &BuildArgs) -> Result<BuildArtifacts, String> {
         .ok_or_else(|| "invalid source filename".to_string())?;
     let object_path = artifacts_dir.join(format!("{stem}.o"));
     let binary_path = artifacts_dir.join(stem);
-    let io_prepare_ms = io_prepare_start.elapsed().as_millis();
+    let io_prepare_ms = io_prepare_start
+        .as_ref()
+        .map(|start| start.elapsed().as_millis())
+        .unwrap_or(0);
 
-    let object_write_start = std::time::Instant::now();
+    let object_write_start = if timing_enabled {
+        Some(std::time::Instant::now())
+    } else {
+        None
+    };
     fs::write(&object_path, object_bytes)
         .map_err(|e| format!("failed to write object `{}`: {e}", object_path.display()))?;
-    let object_write_ms = object_write_start.elapsed().as_millis();
+    let object_write_ms = object_write_start
+        .as_ref()
+        .map(|start| start.elapsed().as_millis())
+        .unwrap_or(0);
 
     let runtime_options = RuntimeBuildOptions {
         target: args.target.clone(),
@@ -2161,7 +2254,11 @@ fn build_source(args: &BuildArgs) -> Result<BuildArtifacts, String> {
     let mut link_ms = 0u128;
     let mut obj_only_stub_write_ms = 0u128;
     let (runtime_object_path, binary_path) = if args.emit_obj_only {
-        let stub_write_start = std::time::Instant::now();
+        let stub_write_start = if timing_enabled {
+            Some(std::time::Instant::now())
+        } else {
+            None
+        };
         let runtime_stub = artifacts_dir.join("vibe_runtime.obj_only");
         let binary_stub = artifacts_dir.join(format!("{stem}.obj_only"));
         fs::write(&runtime_stub, "obj-only build; runtime compile skipped\n").map_err(|e| {
@@ -2176,23 +2273,44 @@ fn build_source(args: &BuildArgs) -> Result<BuildArtifacts, String> {
                 binary_stub.display()
             )
         })?;
-        obj_only_stub_write_ms = stub_write_start.elapsed().as_millis();
+        obj_only_stub_write_ms = stub_write_start
+            .as_ref()
+            .map(|start| start.elapsed().as_millis())
+            .unwrap_or(0);
         (runtime_stub, binary_stub)
     } else {
-        let runtime_compile_start = std::time::Instant::now();
+        let runtime_compile_start = if timing_enabled {
+            Some(std::time::Instant::now())
+        } else {
+            None
+        };
         let runtime_object_path = compile_runtime_object(&artifacts_dir, &runtime_options)?;
-        runtime_compile_ms = runtime_compile_start.elapsed().as_millis();
-        let link_start = std::time::Instant::now();
+        runtime_compile_ms = runtime_compile_start
+            .as_ref()
+            .map(|start| start.elapsed().as_millis())
+            .unwrap_or(0);
+        let link_start = if timing_enabled {
+            Some(std::time::Instant::now())
+        } else {
+            None
+        };
         link_executable(
             &object_path,
             &runtime_object_path,
             &binary_path,
             &runtime_options,
         )?;
-        link_ms = link_start.elapsed().as_millis();
+        link_ms = link_start
+            .as_ref()
+            .map(|start| start.elapsed().as_millis())
+            .unwrap_or(0);
         (runtime_object_path, binary_path)
     };
-    let aux_artifacts_start = std::time::Instant::now();
+    let aux_artifacts_start = if timing_enabled {
+        Some(std::time::Instant::now())
+    } else {
+        None
+    };
     let debug_map_path = write_debug_map(&artifacts_dir, &args.source_path, args, &mir, stem)
         .map_err(|e| {
             format!(
@@ -2216,63 +2334,71 @@ fn build_source(args: &BuildArgs) -> Result<BuildArtifacts, String> {
                 )
             },
         )?;
-    let aux_artifacts_ms = aux_artifacts_start.elapsed().as_millis();
+    let aux_artifacts_ms = aux_artifacts_start
+        .as_ref()
+        .map(|start| start.elapsed().as_millis())
+        .unwrap_or(0);
 
-    let compile_phase_report_path = artifacts_dir.join(format!("{stem}.compile_phases.json"));
-    let total_ms = total_start.elapsed().as_millis();
-    let report_json = format!(
-        concat!(
-            "{{\n",
-            "  \"format\": \"vibe-compiler-phase-timing-v1\",\n",
-            "  \"source\": \"{}\",\n",
-            "  \"profile\": \"{}\",\n",
-            "  \"target\": \"{}\",\n",
-            "  \"debuginfo\": \"{}\",\n",
-            "  \"emit_obj_only\": {},\n",
-            "  \"phases_ms\": {{\n",
-            "    \"locked_mode\": {},\n",
-            "    \"resolve_compilation_unit\": {},\n",
-            "    \"check_and_lower\": {},\n",
-            "    \"diagnostics_merge\": {},\n",
-            "    \"contract_preflight\": {},\n",
-            "    \"hir_to_mir_lower\": {},\n",
-            "    \"codegen_emit_object\": {},\n",
-            "    \"artifact_io_prepare\": {},\n",
-            "    \"object_write\": {},\n",
-            "    \"runtime_compile\": {},\n",
-            "    \"link\": {},\n",
-            "    \"obj_only_stub_write\": {},\n",
-            "    \"auxiliary_reports\": {},\n",
-            "    \"total\": {}\n",
-            "  }}\n",
-            "}}\n"
-        ),
-        json_escape(&args.source_path.display().to_string()),
-        json_escape(&args.profile),
-        json_escape(&args.target),
-        json_escape(&args.debuginfo),
-        args.emit_obj_only,
-        locked_ms,
-        resolve_ms,
-        check_ms,
-        diagnostics_ms,
-        contract_preflight_ms,
-        mir_lower_ms,
-        codegen_ms,
-        io_prepare_ms,
-        object_write_ms,
-        runtime_compile_ms,
-        link_ms,
-        obj_only_stub_write_ms,
-        aux_artifacts_ms,
-        total_ms
-    );
-    fs::write(&compile_phase_report_path, report_json).map_err(|e| {
-        format!(
-            "failed to write compile phase report `{}`: {e}",
-            compile_phase_report_path.display()
-        )
-    })?;
+    let compile_phase_report_path = if timing_enabled {
+        let path = artifacts_dir.join(format!("{stem}.compile_phases.json"));
+        let total_ms = total_start
+            .as_ref()
+            .map(|start| start.elapsed().as_millis())
+            .unwrap_or(0);
+        let report_json = format!(
+            concat!(
+                "{{\n",
+                "  \"format\": \"vibe-compiler-phase-timing-v1\",\n",
+                "  \"source\": \"{}\",\n",
+                "  \"profile\": \"{}\",\n",
+                "  \"target\": \"{}\",\n",
+                "  \"debuginfo\": \"{}\",\n",
+                "  \"emit_obj_only\": {},\n",
+                "  \"phases_ms\": {{\n",
+                "    \"locked_mode\": {},\n",
+                "    \"resolve_compilation_unit\": {},\n",
+                "    \"check_and_lower\": {},\n",
+                "    \"diagnostics_merge\": {},\n",
+                "    \"contract_preflight\": {},\n",
+                "    \"hir_to_mir_lower\": {},\n",
+                "    \"codegen_emit_object\": {},\n",
+                "    \"artifact_io_prepare\": {},\n",
+                "    \"object_write\": {},\n",
+                "    \"runtime_compile\": {},\n",
+                "    \"link\": {},\n",
+                "    \"obj_only_stub_write\": {},\n",
+                "    \"auxiliary_reports\": {},\n",
+                "    \"total\": {}\n",
+                "  }}\n",
+                "}}\n"
+            ),
+            json_escape(&args.source_path.display().to_string()),
+            json_escape(&args.profile),
+            json_escape(&args.target),
+            json_escape(&args.debuginfo),
+            args.emit_obj_only,
+            locked_ms,
+            resolve_ms,
+            check_ms,
+            diagnostics_ms,
+            contract_preflight_ms,
+            mir_lower_ms,
+            codegen_ms,
+            io_prepare_ms,
+            object_write_ms,
+            runtime_compile_ms,
+            link_ms,
+            obj_only_stub_write_ms,
+            aux_artifacts_ms,
+            total_ms
+        );
+        fs::write(&path, report_json).map_err(|e| {
+            format!("failed to write compile phase report `{}`: {e}", path.display())
+        })?;
+        Some(path)
+    } else {
+        None
+    };
 
     Ok(BuildArtifacts {
         object_path,
@@ -2516,6 +2642,7 @@ fn run_test(args: &TestArgs) -> Result<ExitCode, String> {
                 offline: args.build.offline,
                 locked: args.build.locked,
                 emit_obj_only: false,
+                emit_compile_phases: args.build.emit_compile_phases,
                 exec_args: Vec::new(),
             };
             let artifacts = build_source(&single_file_args)?;
