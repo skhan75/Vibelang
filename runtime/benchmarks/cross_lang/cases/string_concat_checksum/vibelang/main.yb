@@ -1,0 +1,21 @@
+pub main() -> Int {
+  @effect io
+  @effect alloc
+  @effect mut_state
+  iterations := 50000
+  checksum := 0
+  i := 0
+  while i < iterations {
+    si := json.stringify_i64(i)
+    sj := json.stringify_i64(i + 7)
+    pi := json.parse_i64(si)
+    pj := json.parse_i64(sj)
+    checksum = checksum + pi + pj
+    i = i + 1
+  }
+  ops := iterations
+  println("RESULT")
+  println(json.stringify_i64(checksum))
+  println(json.stringify_i64(ops))
+  0
+}

@@ -66,6 +66,29 @@ pub fn compile_runtime_object(
         })?;
         embedded_src
     };
+    let stamp_path = output_dir.join("vibe_runtime.build.stamp");
+    let current_stamp = format!(
+        "target={}\nprofile={}\ndebuginfo={}\n",
+        options.target, options.profile, options.debuginfo
+    );
+    if out_obj.exists() && stamp_path.exists() {
+        let stamp_matches = std::fs::read_to_string(&stamp_path)
+            .map(|contents| contents == current_stamp)
+            .unwrap_or(false);
+        if stamp_matches {
+            let src_meta = std::fs::metadata(&source_for_compile).ok();
+            let out_meta = std::fs::metadata(&out_obj).ok();
+            if let (Some(src_meta), Some(out_meta)) = (src_meta, out_meta) {
+                if let (Ok(src_modified), Ok(out_modified)) =
+                    (src_meta.modified(), out_meta.modified())
+                {
+                    if out_modified >= src_modified {
+                        return Ok(out_obj);
+                    }
+                }
+            }
+        }
+    }
 
     let mut cmd = Command::new("cc");
     cmd.arg("-c")
@@ -104,6 +127,7 @@ pub fn compile_runtime_object(
             String::from_utf8_lossy(&output.stderr)
         ));
     }
+    let _ = std::fs::write(&stamp_path, current_stamp);
     Ok(out_obj)
 }
 

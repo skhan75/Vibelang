@@ -1,0 +1,97 @@
+name: cross-language-benchmarks
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: Benchmark profile to run
+        type: choice
+        default: quick
+        options:
+          - quick
+          - full
+  schedule:
+    - cron: "0 4 * * *"
+  push:
+    branches: ["main", "release/**"]
+    paths:
+      - ".github/workflows/cross-language-benchmarks.yml"
+      - "runtime/benchmarks/cross_lang/**"
+      - "tooling/metrics/collect_cross_language_benchmarks.py"
+      - "tooling/metrics/validate_cross_language_benchmarks.py"
+      - "tooling/metrics/compare_cross_language_benchmarks.py"
+  pull_request:
+    branches: ["main", "release/**"]
+    paths:
+      - ".github/workflows/cross-language-benchmarks.yml"
+      - "runtime/benchmarks/cross_lang/**"
+      - "tooling/metrics/collect_cross_language_benchmarks.py"
+      - "tooling/metrics/validate_cross_language_benchmarks.py"
+      - "tooling/metrics/compare_cross_language_benchmarks.py"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  benchmark_suite:
+    runs-on: ubuntu-latest
+    env:
+      PROFILE: ${{ github.event_name == 'schedule' && 'full' || (github.event.inputs.profile || 'quick') }}
+      RUN_LANE: native-linux-authoritative
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.85.1
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23.4"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: install TypeScript compiler
+        run: npm install --global typescript
+      - name: collect cross-language benchmark results
+        run: |
+          set -euo pipefail
+          python3 tooling/metrics/collect_cross_language_benchmarks.py --profile "${PROFILE}"
+      - name: validate benchmark results and generate summary
+        run: |
+          set -euo pipefail
+          BASELINE_ARG=""
+          if [ -f "reports/benchmarks/cross_lang/full/results.json" ]; then
+            BASELINE_ARG="--baseline-results reports/benchmarks/cross_lang/full/results.json"
+          fi
+          python3 tooling/metrics/validate_cross_language_benchmarks.py \
+            --results "reports/benchmarks/cross_lang/${PROFILE}/results.json" \
+            --budget-file "reports/benchmarks/cross_lang/analysis/performance_budgets.json" \
+            --enforce-budgets \
+            ${BASELINE_ARG}
+      - name: build benchmark delta report
+        run: |
+          set -euo pipefail
+          if [ -f "reports/benchmarks/cross_lang/full/results.json" ]; then
+            python3 tooling/metrics/compare_cross_language_benchmarks.py \
+              --baseline-results "reports/benchmarks/cross_lang/full/results.json" \
+              --candidate-results "reports/benchmarks/cross_lang/latest/results.json"
+          else
+            echo "Skipping delta report; baseline full results not available yet."
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cross-language-benchmarks-${{ env.PROFILE }}-${{ env.RUN_LANE }}
+          retention-days: 30
+          path: |
+            reports/benchmarks/cross_lang/${{ env.PROFILE }}/results.json
+            reports/benchmarks/cross_lang/${{ env.PROFILE }}/summary.md
+            reports/benchmarks/cross_lang/${{ env.PROFILE }}/drift_vs_*.json
+            reports/benchmarks/cross_lang/${{ env.PROFILE }}/drift_vs_*.md
+            reports/benchmarks/cross_lang/latest/results.json
+            reports/benchmarks/cross_lang/latest/summary.md
+            reports/benchmarks/cross_lang/latest/trend.json
+            reports/benchmarks/cross_lang/latest/trend.md
+            reports/benchmarks/cross_lang/analysis/deltas/latest_delta.json
+            reports/benchmarks/cross_lang/analysis/deltas/latest_delta.md
+

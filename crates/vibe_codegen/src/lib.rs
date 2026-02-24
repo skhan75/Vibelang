@@ -33,6 +33,7 @@ impl Default for CodegenOptions {
 }
 
 #[derive(Clone, Copy)]
+#[allow(dead_code)]
 struct RuntimeFunctions {
     print_fn: FuncId,
     panic_fn: FuncId,
@@ -41,6 +42,8 @@ struct RuntimeFunctions {
     container_len_fn: FuncId,
     container_get_i64_fn: FuncId,
     container_set_i64_fn: FuncId,
+    container_get_auto_i64_fn: FuncId,
+    container_set_auto_i64_fn: FuncId,
     container_contains_i64_fn: FuncId,
     container_remove_i64_fn: FuncId,
     map_new_i64_i64_fn: FuncId,
@@ -49,6 +52,8 @@ struct RuntimeFunctions {
     container_set_str_i64_fn: FuncId,
     container_contains_str_i64_fn: FuncId,
     container_remove_str_i64_fn: FuncId,
+    container_contains_auto_i64_fn: FuncId,
+    container_remove_auto_i64_fn: FuncId,
     container_key_at_i64_fn: FuncId,
     container_key_at_str_fn: FuncId,
     container_eq_fn: FuncId,
@@ -325,6 +330,41 @@ fn declare_runtime_functions(
         )
         .map_err(|e| format!("failed to declare runtime container_set_i64 symbol: {e}"))?;
 
+    let mut container_get_auto_i64_sig = module.make_signature();
+    container_get_auto_i64_sig.params.push(AbiParam::new(ptr_ty));
+    container_get_auto_i64_sig
+        .params
+        .push(AbiParam::new(ir::types::I64));
+    container_get_auto_i64_sig
+        .returns
+        .push(AbiParam::new(ir::types::I64));
+    let container_get_auto_i64_fn = module
+        .declare_function(
+            "vibe_container_get_auto_i64",
+            Linkage::Import,
+            &container_get_auto_i64_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime container_get_auto_i64 symbol: {e}"))?;
+
+    let mut container_set_auto_i64_sig = module.make_signature();
+    container_set_auto_i64_sig.params.push(AbiParam::new(ptr_ty));
+    container_set_auto_i64_sig
+        .params
+        .push(AbiParam::new(ir::types::I64));
+    container_set_auto_i64_sig
+        .params
+        .push(AbiParam::new(ir::types::I64));
+    container_set_auto_i64_sig
+        .returns
+        .push(AbiParam::new(ir::types::I64));
+    let container_set_auto_i64_fn = module
+        .declare_function(
+            "vibe_container_set_auto_i64",
+            Linkage::Import,
+            &container_set_auto_i64_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime container_set_auto_i64 symbol: {e}"))?;
+
     let mut container_contains_i64_sig = module.make_signature();
     container_contains_i64_sig
         .params
@@ -425,6 +465,42 @@ fn declare_runtime_functions(
             &container_remove_str_i64_sig,
         )
         .map_err(|e| format!("failed to declare runtime container_remove_str_i64 symbol: {e}"))?;
+
+    let mut container_contains_auto_i64_sig = module.make_signature();
+    container_contains_auto_i64_sig
+        .params
+        .push(AbiParam::new(ptr_ty));
+    container_contains_auto_i64_sig
+        .params
+        .push(AbiParam::new(ir::types::I64));
+    container_contains_auto_i64_sig
+        .returns
+        .push(AbiParam::new(ir::types::I64));
+    let container_contains_auto_i64_fn = module
+        .declare_function(
+            "vibe_container_contains_auto_i64",
+            Linkage::Import,
+            &container_contains_auto_i64_sig,
+        )
+        .map_err(|e| {
+            format!("failed to declare runtime container_contains_auto_i64 symbol: {e}")
+        })?;
+
+    let mut container_remove_auto_i64_sig = module.make_signature();
+    container_remove_auto_i64_sig.params.push(AbiParam::new(ptr_ty));
+    container_remove_auto_i64_sig
+        .params
+        .push(AbiParam::new(ir::types::I64));
+    container_remove_auto_i64_sig
+        .returns
+        .push(AbiParam::new(ir::types::I64));
+    let container_remove_auto_i64_fn = module
+        .declare_function(
+            "vibe_container_remove_auto_i64",
+            Linkage::Import,
+            &container_remove_auto_i64_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime container_remove_auto_i64 symbol: {e}"))?;
 
     let mut container_key_at_i64_sig = module.make_signature();
     container_key_at_i64_sig.params.push(AbiParam::new(ptr_ty));
@@ -759,6 +835,8 @@ fn declare_runtime_functions(
         container_len_fn,
         container_get_i64_fn,
         container_set_i64_fn,
+        container_get_auto_i64_fn,
+        container_set_auto_i64_fn,
         container_contains_i64_fn,
         container_remove_i64_fn,
         map_new_i64_i64_fn,
@@ -767,6 +845,8 @@ fn declare_runtime_functions(
         container_set_str_i64_fn,
         container_contains_str_i64_fn,
         container_remove_str_i64_fn,
+        container_contains_auto_i64_fn,
+        container_remove_auto_i64_fn,
         container_key_at_i64_fn,
         container_key_at_str_fn,
         container_eq_fn,
@@ -2044,7 +2124,7 @@ fn emit_expr(
                     .ok_or_else(|| "map runtime call did not return map handle".to_string())?
             } else {
                 let (first_key_expr, _) = &entries[0];
-                let use_str_keys = is_known_string_expr(first_key_expr);
+                let use_str_keys = is_known_string_expr_with_owner(first_key_expr, owner);
                 let local_new = if use_str_keys {
                     module.declare_func_in_func(runtime_fns.map_new_str_i64_fn, builder.func)
                 } else {
@@ -2088,7 +2168,7 @@ fn emit_expr(
                         );
                     }
                     if use_str_keys {
-                        if !is_known_string_expr(key_expr) {
+                        if !is_known_string_expr_with_owner(key_expr, owner) {
                             return Err(
                                 "E3401: map literal key kinds must be consistent (all Str or all Int)"
                                     .to_string(),
@@ -2100,7 +2180,7 @@ fn emit_expr(
                         );
                         builder.ins().call(local_set, &[map_handle, key, value]);
                     } else {
-                        if is_known_string_expr(key_expr) {
+                        if is_known_string_expr_with_owner(key_expr, owner) {
                             return Err(
                                 "E3401: map literal key kinds must be consistent (all Str or all Int)"
                                     .to_string(),
@@ -2439,19 +2519,8 @@ fn emit_expr(
                             return Err("`.get()` expects one key/index argument".to_string());
                         }
                         let key = lowered_args[0];
-                        let key_is_str = is_known_string_expr(&args[0])
-                            || builder.func.dfg.value_type(key) == ptr_ty;
-                        let local_get = if key_is_str {
-                            module.declare_func_in_func(
-                                runtime_fns.container_get_str_i64_fn,
-                                builder.func,
-                            )
-                        } else {
-                            module.declare_func_in_func(
-                                runtime_fns.container_get_i64_fn,
-                                builder.func,
-                            )
-                        };
+                        let local_get = module
+                            .declare_func_in_func(runtime_fns.container_get_auto_i64_fn, builder.func);
                         let call = builder.ins().call(local_get, &[object_value, key]);
                         return Ok(builder
                             .inst_results(call)
@@ -2472,19 +2541,8 @@ fn emit_expr(
                                 "E3404: `.set()` currently supports Int values only".to_string()
                             );
                         }
-                        let key_is_str = is_known_string_expr(&args[0])
-                            || builder.func.dfg.value_type(key) == ptr_ty;
-                        let local_set = if key_is_str {
-                            module.declare_func_in_func(
-                                runtime_fns.container_set_str_i64_fn,
-                                builder.func,
-                            )
-                        } else {
-                            module.declare_func_in_func(
-                                runtime_fns.container_set_i64_fn,
-                                builder.func,
-                            )
-                        };
+                        let local_set = module
+                            .declare_func_in_func(runtime_fns.container_set_auto_i64_fn, builder.func);
                         let call = builder.ins().call(local_set, &[object_value, key, value]);
                         return Ok(builder
                             .inst_results(call)
@@ -2497,19 +2555,10 @@ fn emit_expr(
                             return Err("`.contains()` expects one key argument".to_string());
                         }
                         let key = lowered_args[0];
-                        let key_is_str = is_known_string_expr(&args[0])
-                            || builder.func.dfg.value_type(key) == ptr_ty;
-                        let local_contains = if key_is_str {
-                            module.declare_func_in_func(
-                                runtime_fns.container_contains_str_i64_fn,
-                                builder.func,
-                            )
-                        } else {
-                            module.declare_func_in_func(
-                                runtime_fns.container_contains_i64_fn,
-                                builder.func,
-                            )
-                        };
+                        let local_contains = module.declare_func_in_func(
+                            runtime_fns.container_contains_auto_i64_fn,
+                            builder.func,
+                        );
                         let call = builder.ins().call(local_contains, &[object_value, key]);
                         return Ok(builder
                             .inst_results(call)
@@ -2522,19 +2571,8 @@ fn emit_expr(
                             return Err("`.remove()` expects one key argument".to_string());
                         }
                         let key = lowered_args[0];
-                        let key_is_str = is_known_string_expr(&args[0])
-                            || builder.func.dfg.value_type(key) == ptr_ty;
-                        let local_remove = if key_is_str {
-                            module.declare_func_in_func(
-                                runtime_fns.container_remove_str_i64_fn,
-                                builder.func,
-                            )
-                        } else {
-                            module.declare_func_in_func(
-                                runtime_fns.container_remove_i64_fn,
-                                builder.func,
-                            )
-                        };
+                        let local_remove = module
+                            .declare_func_in_func(runtime_fns.container_remove_auto_i64_fn, builder.func);
                         let call = builder.ins().call(local_remove, &[object_value, key]);
                         return Ok(builder
                             .inst_results(call)
@@ -3000,6 +3038,71 @@ fn is_known_string_expr(expr: &MirExpr) -> bool {
             true
         }
         MirExpr::Slice { object_is_str, .. } => *object_is_str,
+        _ => false,
+    }
+}
+
+fn collect_var_string_assignments(
+    stmts: &[MirStmt],
+    target: &str,
+    saw_assignment: &mut bool,
+    all_string: &mut bool,
+) {
+    for stmt in stmts {
+        match stmt {
+            MirStmt::Let { name, expr } | MirStmt::Assign { name, expr } => {
+                if name == target {
+                    *saw_assignment = true;
+                    if !is_known_string_expr(expr) {
+                        *all_string = false;
+                    }
+                }
+            }
+            MirStmt::If {
+                then_body,
+                else_body,
+                ..
+            } => {
+                collect_var_string_assignments(then_body, target, saw_assignment, all_string);
+                collect_var_string_assignments(else_body, target, saw_assignment, all_string);
+            }
+            MirStmt::For { body, .. }
+            | MirStmt::While { body, .. }
+            | MirStmt::Repeat { body, .. } => {
+                collect_var_string_assignments(body, target, saw_assignment, all_string);
+            }
+            _ => {}
+        }
+    }
+}
+
+fn is_var_known_string_in_owner(owner: &MirFunction, name: &str) -> bool {
+    for param in &owner.params {
+        if param.name == name {
+            return param.ty == MirType::Str;
+        }
+    }
+    let mut saw_assignment = false;
+    let mut all_string = true;
+    collect_var_string_assignments(
+        &owner.body,
+        name,
+        &mut saw_assignment,
+        &mut all_string,
+    );
+    saw_assignment && all_string
+}
+
+fn is_known_string_expr_with_owner(expr: &MirExpr, owner: &MirFunction) -> bool {
+    if is_known_string_expr(expr) {
+        return true;
+    }
+    match expr {
+        MirExpr::Var(name) => is_var_known_string_in_owner(owner, name),
+        MirExpr::Binary { left, op, right } if op == "Add" => {
+            is_known_string_expr_with_owner(left, owner)
+                && is_known_string_expr_with_owner(right, owner)
+        }
         _ => false,
     }
 }

@@ -1,0 +1,32 @@
+ping_sender(out) -> Int {
+  @effect concurrency
+  rounds := 50000
+  token := 1
+  r := 0
+  while r < rounds {
+    token = token + 1
+    out.send(token)
+    r = r + 1
+  }
+  0
+}
+
+pub main() -> Int {
+  @effect io
+  @effect alloc
+  @effect concurrency
+  rounds := 50000
+  out := chan(1)
+  go ping_sender(out)
+  checksum := 0
+  r := 0
+  while r < rounds {
+    checksum = checksum + out.recv()
+    r = r + 1
+  }
+  ops := rounds
+  println("RESULT")
+  println(json.stringify_i64(checksum))
+  println(json.stringify_i64(ops))
+  0
+}

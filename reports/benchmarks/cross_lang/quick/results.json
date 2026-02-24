@@ -1,0 +1,5615 @@
+{
+  "format": "vibe-cross-language-benchmarks-v1",
+  "suite_name": "cross_lang_starter8",
+  "profile": "quick",
+  "languages": [
+    "vibelang",
+    "c",
+    "rust",
+    "go",
+    "python",
+    "typescript"
+  ],
+  "generated_at_epoch_s": 1771927188,
+  "generated_at_utc": "2026-02-24T09:59:48Z",
+  "run_config": {
+    "warmup_runs": 1,
+    "measured_runs": 5
+  },
+  "manifest_path": "runtime/benchmarks/cross_lang/manifest.json",
+  "environment": {
+    "hostname": "Sami-PC",
+    "platform": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35",
+    "kernel_release": "6.6.87.2-microsoft-standard-WSL2",
+    "architecture": "x86_64",
+    "cpu_model": "AMD Ryzen 9 5900X 12-Core Processor",
+    "cpu_governor": "unavailable",
+    "logical_cpus": 24,
+    "physical_cores": 12,
+    "memory_total_kb": 32817292,
+    "swap_total_kb": 8388608,
+    "numa_nodes": [
+      "node0"
+    ],
+    "is_wsl": true,
+    "benchmark_launch": {
+      "argv": [
+        "tooling/metrics/collect_cross_language_benchmarks.py",
+        "--profile",
+        "quick"
+      ],
+      "profile": "quick"
+    },
+    "source_revisions": {
+      "repo_git_revision": "a4f694dba56b4c77ae0546dce0ae46f8d4344ee9",
+      "toolchain_revision": "a4f694dba56b4c77ae0546dce0ae46f8d4344ee9"
+    },
+    "tool_versions": {
+      "gcc": "gcc (Ubuntu 11.4.0-1ubuntu1~22.04.2) 11.4.0",
+      "rustc": "rustc 1.85.1 (4eb161250 2025-03-15)",
+      "go": "go version go1.23.4 linux/amd64",
+      "python3": "Python 3.10.12",
+      "node": "v21.5.0",
+      "tsc": "unavailable",
+      "vibe": "vibe 0.1.0 (commit=unknown, target=x86_64-linux, profile=release)"
+    }
+  },
+  "cases": [
+    {
+      "id": "fib_recursive",
+      "category": "compute",
+      "description": "Fibonacci recurrence CPU baseline (iterative safety variant).",
+      "expected_ops": 200000,
+      "languages": {
+        "vibelang": {
+          "source": "runtime/benchmarks/cross_lang/cases/fib_recursive/vibelang/main.yb",
+          "compile": {
+            "command": [
+              "/tmp/cursor-sandbox-cache/4c484c4d772e5e35f0b33795e3776c53/cargo-target/release/vibe",
+              "build",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/fib_recursive/vibelang/main.yb",
+              "--profile",
+              "release"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 482,
+            "cpu_ms": 439,
+            "max_rss_kb": 37632,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/fib_recursive/vibelang/.yb/artifacts/release/x86_64-unknown-linux-gnu/main",
+            "binary_size_bytes": 97352
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 1,
+                "max_rss_kb": 1344,
+                "checksum": 143590626,
+                "ops": 200000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 2,
+                "max_rss_kb": 1344,
+                "checksum": 143590626,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 2,
+                "max_rss_kb": 1344,
+                "checksum": 143590626,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 1,
+                "max_rss_kb": 1344,
+                "checksum": 143590626,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 0,
+                "max_rss_kb": 1344,
+                "checksum": 143590626,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 2,
+                "max_rss_kb": 1344,
+                "checksum": 143590626,
+                "ops": 200000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 2.0,
+              "median_wall_ms": 2.0,
+              "p95_wall_ms": 2.0,
+              "p99_wall_ms": 2.0,
+              "stddev_wall_ms": 0.0,
+              "mad_wall_ms": 0.0,
+              "rsd_wall_pct": 0.0,
+              "mean_cpu_ms": 1.4,
+              "mean_max_rss_kb": 1344.0
+            }
+          },
+          "result": {
+            "checksum": 143590626,
+            "ops": 200000
+          }
+        },
+        "c": {
+          "source": "runtime/benchmarks/cross_lang/cases/fib_recursive/c/main.c",
+          "compile": {
+            "command": [
+              "gcc",
+              "-O3",
+              "-DNDEBUG",
+              "-pthread",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/fib_recursive/c/main.c",
+              "-o",
+              "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/fib_recursive/c/bench_c"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 98,
+            "cpu_ms": 47,
+            "max_rss_kb": 22272,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/fib_recursive/c/bench_c",
+            "binary_size_bytes": 16008
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 1,
+                "max_rss_kb": 1344,
+                "checksum": 143590626,
+                "ops": 200000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 1,
+                "max_rss_kb": 1344,
+                "checksum": 143590626,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 2,
+                "max_rss_kb": 1344,
+                "checksum": 143590626,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 1,
+                "max_rss_kb": 1344,
+                "checksum": 143590626,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 0,
+                "max_rss_kb": 1344,
+                "checksum": 143590626,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 1,
+                "max_rss_kb": 1344,
+                "checksum": 143590626,
+                "ops": 200000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 2.0,
+              "median_wall_ms": 2.0,
+              "p95_wall_ms": 2.0,
+              "p99_wall_ms": 2.0,
+              "stddev_wall_ms": 0.0,
+              "mad_wall_ms": 0.0,
+              "rsd_wall_pct": 0.0,
+              "mean_cpu_ms": 1.0,
+              "mean_max_rss_kb": 1344.0
+            }
+          },
+          "result": {
+            "checksum": 143590626,
+            "ops": 200000
+          }
+        },
+        "rust": {
+          "source": "runtime/benchmarks/cross_lang/cases/fib_recursive/rust/main.rs",
+          "compile": {
+            "command": [
+              "rustc",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/fib_recursive/rust/main.rs",
+              "-C",
+              "opt-level=3",
+              "-C",
+              "codegen-units=1",
+              "-C",
+              "debuginfo=0",
+              "-o",
+              "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/fib_recursive/rust/bench_rust"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 250,
+            "cpu_ms": 209,
+            "max_rss_kb": 92544,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/fib_recursive/rust/bench_rust",
+            "binary_size_bytes": 3974360
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 1,
+                "max_rss_kb": 1728,
+                "checksum": 143590626,
+                "ops": 200000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 1,
+                "max_rss_kb": 1920,
+                "checksum": 143590626,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 0,
+                "max_rss_kb": 1920,
+                "checksum": 143590626,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 1,
+                "max_rss_kb": 1920,
+                "checksum": 143590626,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 1,
+                "max_rss_kb": 1728,
+                "checksum": 143590626,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 1,
+                "max_rss_kb": 1920,
+                "checksum": 143590626,
+                "ops": 200000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 2.0,
+              "median_wall_ms": 2.0,
+              "p95_wall_ms": 2.0,
+              "p99_wall_ms": 2.0,
+              "stddev_wall_ms": 0.0,
+              "mad_wall_ms": 0.0,
+              "rsd_wall_pct": 0.0,
+              "mean_cpu_ms": 0.8,
+              "mean_max_rss_kb": 1881.6
+            }
+          },
+          "result": {
+            "checksum": 143590626,
+            "ops": 200000
+          }
+        },
+        "go": {
+          "source": "runtime/benchmarks/cross_lang/cases/fib_recursive/go/main.go",
+          "compile": {
+            "command": [
+              "go",
+              "build",
+              "-trimpath",
+              "-ldflags",
+              "-s -w",
+              "-o",
+              "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/fib_recursive/go/bench_go",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/fib_recursive/go/main.go"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 113,
+            "cpu_ms": 206,
+            "max_rss_kb": 17856,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/fib_recursive/go/bench_go",
+            "binary_size_bytes": 1384600
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 7,
+                "cpu_ms": 3,
+                "max_rss_kb": 1728,
+                "checksum": 143590626,
+                "ops": 200000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 2,
+                "max_rss_kb": 1728,
+                "checksum": 143590626,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 2,
+                "max_rss_kb": 1728,
+                "checksum": 143590626,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 3,
+                "cpu_ms": 3,
+                "max_rss_kb": 1728,
+                "checksum": 143590626,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 2,
+                "max_rss_kb": 1728,
+                "checksum": 143590626,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 2,
+                "max_rss_kb": 1728,
+                "checksum": 143590626,
+                "ops": 200000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 2.2,
+              "median_wall_ms": 2.0,
+              "p95_wall_ms": 3.0,
+              "p99_wall_ms": 3.0,
+              "stddev_wall_ms": 0.4,
+              "mad_wall_ms": 0.0,
+              "rsd_wall_pct": 18.181818181818183,
+              "mean_cpu_ms": 2.2,
+              "mean_max_rss_kb": 1728.0
+            }
+          },
+          "result": {
+            "checksum": 143590626,
+            "ops": 200000
+          }
+        },
+        "python": {
+          "source": "runtime/benchmarks/cross_lang/cases/fib_recursive/python/main.py",
+          "compile": {
+            "command": [
+              "python3",
+              "-m",
+              "py_compile",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/fib_recursive/python/main.py"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 29,
+            "cpu_ms": 25,
+            "max_rss_kb": 10752,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/fib_recursive/python/main.py",
+            "binary_size_bytes": 248
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 37,
+                "cpu_ms": 36,
+                "max_rss_kb": 8832,
+                "checksum": 143590626,
+                "ops": 200000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 42,
+                "cpu_ms": 38,
+                "max_rss_kb": 8832,
+                "checksum": 143590626,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 43,
+                "cpu_ms": 39,
+                "max_rss_kb": 8640,
+                "checksum": 143590626,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 40,
+                "cpu_ms": 37,
+                "max_rss_kb": 8832,
+                "checksum": 143590626,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 39,
+                "cpu_ms": 36,
+                "max_rss_kb": 8832,
+                "checksum": 143590626,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 37,
+                "cpu_ms": 37,
+                "max_rss_kb": 8832,
+                "checksum": 143590626,
+                "ops": 200000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 40.2,
+              "median_wall_ms": 40.0,
+              "p95_wall_ms": 43.0,
+              "p99_wall_ms": 43.0,
+              "stddev_wall_ms": 2.1354156504062622,
+              "mad_wall_ms": 2.0,
+              "rsd_wall_pct": 5.311979229866324,
+              "mean_cpu_ms": 37.4,
+              "mean_max_rss_kb": 8793.6
+            }
+          },
+          "result": {
+            "checksum": 143590626,
+            "ops": 200000
+          }
+        },
+        "typescript": {
+          "source": "runtime/benchmarks/cross_lang/cases/fib_recursive/typescript/main.ts",
+          "compile": {
+            "command": [
+              "npx",
+              "--yes",
+              "-p",
+              "typescript",
+              "tsc",
+              "--target",
+              "ES2020",
+              "--module",
+              "commonjs",
+              "--skipLibCheck",
+              "--outDir",
+              "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/fib_recursive/typescript",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/fib_recursive/typescript/main.ts"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 1147,
+            "cpu_ms": 1658,
+            "max_rss_kb": 135000,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/fib_recursive/typescript/main.js",
+            "binary_size_bytes": 315
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 32,
+                "cpu_ms": 33,
+                "max_rss_kb": 44352,
+                "checksum": 143590626,
+                "ops": 200000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 39,
+                "cpu_ms": 39,
+                "max_rss_kb": 44352,
+                "checksum": 143590626,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 35,
+                "cpu_ms": 36,
+                "max_rss_kb": 44352,
+                "checksum": 143590626,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 35,
+                "cpu_ms": 36,
+                "max_rss_kb": 44352,
+                "checksum": 143590626,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 34,
+                "cpu_ms": 31,
+                "max_rss_kb": 44352,
+                "checksum": 143590626,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 36,
+                "cpu_ms": 37,
+                "max_rss_kb": 44352,
+                "checksum": 143590626,
+                "ops": 200000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 35.8,
+              "median_wall_ms": 35.0,
+              "p95_wall_ms": 39.0,
+              "p99_wall_ms": 39.0,
+              "stddev_wall_ms": 1.7204650534085253,
+              "mad_wall_ms": 1.0,
+              "rsd_wall_pct": 4.805768305610406,
+              "mean_cpu_ms": 35.8,
+              "mean_max_rss_kb": 44352.0
+            }
+          },
+          "result": {
+            "checksum": 143590626,
+            "ops": 200000
+          }
+        }
+      },
+      "parity": {
+        "checksum_match": true,
+        "ops_match": true,
+        "checksum_by_language": {
+          "vibelang": 143590626,
+          "c": 143590626,
+          "rust": 143590626,
+          "go": 143590626,
+          "python": 143590626,
+          "typescript": 143590626
+        },
+        "ops_by_language": {
+          "vibelang": 200000,
+          "c": 200000,
+          "rust": 200000,
+          "go": 200000,
+          "python": 200000,
+          "typescript": 200000
+        }
+      }
+    },
+    {
+      "id": "prime_sieve",
+      "category": "compute_memory",
+      "description": "Prime counting via deterministic trial division.",
+      "expected_ops": 12000,
+      "languages": {
+        "vibelang": {
+          "source": "runtime/benchmarks/cross_lang/cases/prime_sieve/vibelang/main.yb",
+          "compile": {
+            "command": [
+              "/tmp/cursor-sandbox-cache/4c484c4d772e5e35f0b33795e3776c53/cargo-target/release/vibe",
+              "build",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/prime_sieve/vibelang/main.yb",
+              "--profile",
+              "release"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 569,
+            "cpu_ms": 513,
+            "max_rss_kb": 37440,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/prime_sieve/vibelang/.yb/artifacts/release/x86_64-unknown-linux-gnu/main",
+            "binary_size_bytes": 97384
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 1,
+                "max_rss_kb": 1344,
+                "checksum": 1446034435,
+                "ops": 12000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 1,
+                "max_rss_kb": 1344,
+                "checksum": 1446034435,
+                "ops": 12000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 1,
+                "max_rss_kb": 1344,
+                "checksum": 1446034435,
+                "ops": 12000
+              },
+              {
+                "elapsed_ms": 3,
+                "cpu_ms": 2,
+                "max_rss_kb": 1344,
+                "checksum": 1446034435,
+                "ops": 12000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 1,
+                "max_rss_kb": 1344,
+                "checksum": 1446034435,
+                "ops": 12000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 0,
+                "max_rss_kb": 1344,
+                "checksum": 1446034435,
+                "ops": 12000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 2.2,
+              "median_wall_ms": 2.0,
+              "p95_wall_ms": 3.0,
+              "p99_wall_ms": 3.0,
+              "stddev_wall_ms": 0.4,
+              "mad_wall_ms": 0.0,
+              "rsd_wall_pct": 18.181818181818183,
+              "mean_cpu_ms": 1.0,
+              "mean_max_rss_kb": 1344.0
+            }
+          },
+          "result": {
+            "checksum": 1446034435,
+            "ops": 12000
+          }
+        },
+        "c": {
+          "source": "runtime/benchmarks/cross_lang/cases/prime_sieve/c/main.c",
+          "compile": {
+            "command": [
+              "gcc",
+              "-O3",
+              "-DNDEBUG",
+              "-pthread",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/prime_sieve/c/main.c",
+              "-o",
+              "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/prime_sieve/c/bench_c"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 100,
+            "cpu_ms": 56,
+            "max_rss_kb": 21696,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/prime_sieve/c/bench_c",
+            "binary_size_bytes": 16008
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 1,
+                "max_rss_kb": 1344,
+                "checksum": 1446034435,
+                "ops": 12000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 2,
+                "max_rss_kb": 1344,
+                "checksum": 1446034435,
+                "ops": 12000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 1,
+                "max_rss_kb": 1344,
+                "checksum": 1446034435,
+                "ops": 12000
+              },
+              {
+                "elapsed_ms": 1,
+                "cpu_ms": 1,
+                "max_rss_kb": 1344,
+                "checksum": 1446034435,
+                "ops": 12000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 1,
+                "max_rss_kb": 1344,
+                "checksum": 1446034435,
+                "ops": 12000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 1,
+                "max_rss_kb": 1344,
+                "checksum": 1446034435,
+                "ops": 12000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 1.8,
+              "median_wall_ms": 2.0,
+              "p95_wall_ms": 2.0,
+              "p99_wall_ms": 2.0,
+              "stddev_wall_ms": 0.4,
+              "mad_wall_ms": 0.0,
+              "rsd_wall_pct": 22.222222222222225,
+              "mean_cpu_ms": 1.2,
+              "mean_max_rss_kb": 1344.0
+            }
+          },
+          "result": {
+            "checksum": 1446034435,
+            "ops": 12000
+          }
+        },
+        "rust": {
+          "source": "runtime/benchmarks/cross_lang/cases/prime_sieve/rust/main.rs",
+          "compile": {
+            "command": [
+              "rustc",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/prime_sieve/rust/main.rs",
+              "-C",
+              "opt-level=3",
+              "-C",
+              "codegen-units=1",
+              "-C",
+              "debuginfo=0",
+              "-o",
+              "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/prime_sieve/rust/bench_rust"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 228,
+            "cpu_ms": 190,
+            "max_rss_kb": 89856,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/prime_sieve/rust/bench_rust",
+            "binary_size_bytes": 3974360
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 1,
+                "max_rss_kb": 1920,
+                "checksum": 1446034435,
+                "ops": 12000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 3,
+                "cpu_ms": 1,
+                "max_rss_kb": 1920,
+                "checksum": 1446034435,
+                "ops": 12000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 1,
+                "max_rss_kb": 1728,
+                "checksum": 1446034435,
+                "ops": 12000
+              },
+              {
+                "elapsed_ms": 3,
+                "cpu_ms": 1,
+                "max_rss_kb": 1920,
+                "checksum": 1446034435,
+                "ops": 12000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 2,
+                "max_rss_kb": 1920,
+                "checksum": 1446034435,
+                "ops": 12000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 1,
+                "max_rss_kb": 1728,
+                "checksum": 1446034435,
+                "ops": 12000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 2.4,
+              "median_wall_ms": 2.0,
+              "p95_wall_ms": 3.0,
+              "p99_wall_ms": 3.0,
+              "stddev_wall_ms": 0.4898979485566356,
+              "mad_wall_ms": 0.0,
+              "rsd_wall_pct": 20.41241452319315,
+              "mean_cpu_ms": 1.2,
+              "mean_max_rss_kb": 1843.2
+            }
+          },
+          "result": {
+            "checksum": 1446034435,
+            "ops": 12000
+          }
+        },
+        "go": {
+          "source": "runtime/benchmarks/cross_lang/cases/prime_sieve/go/main.go",
+          "compile": {
+            "command": [
+              "go",
+              "build",
+              "-trimpath",
+              "-ldflags",
+              "-s -w",
+              "-o",
+              "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/prime_sieve/go/bench_go",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/prime_sieve/go/main.go"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 96,
+            "cpu_ms": 255,
+            "max_rss_kb": 17832,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/prime_sieve/go/bench_go",
+            "binary_size_bytes": 1384600
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 8,
+                "cpu_ms": 3,
+                "max_rss_kb": 1728,
+                "checksum": 1446034435,
+                "ops": 12000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 4,
+                "cpu_ms": 3,
+                "max_rss_kb": 1728,
+                "checksum": 1446034435,
+                "ops": 12000
+              },
+              {
+                "elapsed_ms": 3,
+                "cpu_ms": 3,
+                "max_rss_kb": 1728,
+                "checksum": 1446034435,
+                "ops": 12000
+              },
+              {
+                "elapsed_ms": 3,
+                "cpu_ms": 3,
+                "max_rss_kb": 1728,
+                "checksum": 1446034435,
+                "ops": 12000
+              },
+              {
+                "elapsed_ms": 4,
+                "cpu_ms": 3,
+                "max_rss_kb": 1728,
+                "checksum": 1446034435,
+                "ops": 12000
+              },
+              {
+                "elapsed_ms": 3,
+                "cpu_ms": 2,
+                "max_rss_kb": 1728,
+                "checksum": 1446034435,
+                "ops": 12000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 3.4,
+              "median_wall_ms": 3.0,
+              "p95_wall_ms": 4.0,
+              "p99_wall_ms": 4.0,
+              "stddev_wall_ms": 0.4898979485566356,
+              "mad_wall_ms": 0.0,
+              "rsd_wall_pct": 14.408763192842224,
+              "mean_cpu_ms": 2.8,
+              "mean_max_rss_kb": 1728.0
+            }
+          },
+          "result": {
+            "checksum": 1446034435,
+            "ops": 12000
+          }
+        },
+        "python": {
+          "source": "runtime/benchmarks/cross_lang/cases/prime_sieve/python/main.py",
+          "compile": {
+            "command": [
+              "python3",
+              "-m",
+              "py_compile",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/prime_sieve/python/main.py"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 31,
+            "cpu_ms": 30,
+            "max_rss_kb": 10752,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/prime_sieve/python/main.py",
+            "binary_size_bytes": 405
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 32,
+                "cpu_ms": 30,
+                "max_rss_kb": 8832,
+                "checksum": 1446034435,
+                "ops": 12000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 32,
+                "cpu_ms": 29,
+                "max_rss_kb": 8832,
+                "checksum": 1446034435,
+                "ops": 12000
+              },
+              {
+                "elapsed_ms": 30,
+                "cpu_ms": 29,
+                "max_rss_kb": 8832,
+                "checksum": 1446034435,
+                "ops": 12000
+              },
+              {
+                "elapsed_ms": 28,
+                "cpu_ms": 26,
+                "max_rss_kb": 8832,
+                "checksum": 1446034435,
+                "ops": 12000
+              },
+              {
+                "elapsed_ms": 36,
+                "cpu_ms": 34,
+                "max_rss_kb": 8832,
+                "checksum": 1446034435,
+                "ops": 12000
+              },
+              {
+                "elapsed_ms": 34,
+                "cpu_ms": 33,
+                "max_rss_kb": 8832,
+                "checksum": 1446034435,
+                "ops": 12000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 32.0,
+              "median_wall_ms": 32.0,
+              "p95_wall_ms": 36.0,
+              "p99_wall_ms": 36.0,
+              "stddev_wall_ms": 2.8284271247461903,
+              "mad_wall_ms": 2.0,
+              "rsd_wall_pct": 8.838834764831844,
+              "mean_cpu_ms": 30.2,
+              "mean_max_rss_kb": 8832.0
+            }
+          },
+          "result": {
+            "checksum": 1446034435,
+            "ops": 12000
+          }
+        },
+        "typescript": {
+          "source": "runtime/benchmarks/cross_lang/cases/prime_sieve/typescript/main.ts",
+          "compile": {
+            "command": [
+              "npx",
+              "--yes",
+              "-p",
+              "typescript",
+              "tsc",
+              "--target",
+              "ES2020",
+              "--module",
+              "commonjs",
+              "--skipLibCheck",
+              "--outDir",
+              "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/prime_sieve/typescript",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/prime_sieve/typescript/main.ts"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 1144,
+            "cpu_ms": 1660,
+            "max_rss_kb": 136876,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/prime_sieve/typescript/main.js",
+            "binary_size_bytes": 469
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 33,
+                "cpu_ms": 34,
+                "max_rss_kb": 44736,
+                "checksum": 1446034435,
+                "ops": 12000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 33,
+                "cpu_ms": 32,
+                "max_rss_kb": 44736,
+                "checksum": 1446034435,
+                "ops": 12000
+              },
+              {
+                "elapsed_ms": 32,
+                "cpu_ms": 33,
+                "max_rss_kb": 44736,
+                "checksum": 1446034435,
+                "ops": 12000
+              },
+              {
+                "elapsed_ms": 38,
+                "cpu_ms": 38,
+                "max_rss_kb": 44736,
+                "checksum": 1446034435,
+                "ops": 12000
+              },
+              {
+                "elapsed_ms": 38,
+                "cpu_ms": 39,
+                "max_rss_kb": 44736,
+                "checksum": 1446034435,
+                "ops": 12000
+              },
+              {
+                "elapsed_ms": 39,
+                "cpu_ms": 40,
+                "max_rss_kb": 44928,
+                "checksum": 1446034435,
+                "ops": 12000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 36.0,
+              "median_wall_ms": 38.0,
+              "p95_wall_ms": 39.0,
+              "p99_wall_ms": 39.0,
+              "stddev_wall_ms": 2.898275349237888,
+              "mad_wall_ms": 1.0,
+              "rsd_wall_pct": 8.050764858994134,
+              "mean_cpu_ms": 36.4,
+              "mean_max_rss_kb": 44774.4
+            }
+          },
+          "result": {
+            "checksum": 1446034435,
+            "ops": 12000
+          }
+        }
+      },
+      "parity": {
+        "checksum_match": true,
+        "ops_match": true,
+        "checksum_by_language": {
+          "vibelang": 1446034435,
+          "c": 1446034435,
+          "rust": 1446034435,
+          "go": 1446034435,
+          "python": 1446034435,
+          "typescript": 1446034435
+        },
+        "ops_by_language": {
+          "vibelang": 12000,
+          "c": 12000,
+          "rust": 12000,
+          "go": 12000,
+          "python": 12000,
+          "typescript": 12000
+        }
+      }
+    },
+    {
+      "id": "sort_int",
+      "category": "containers",
+      "description": "Deterministic integer generation and top-k ranking extraction.",
+      "expected_ops": 120000,
+      "languages": {
+        "vibelang": {
+          "source": "runtime/benchmarks/cross_lang/cases/sort_int/vibelang/main.yb",
+          "compile": {
+            "command": [
+              "/tmp/cursor-sandbox-cache/4c484c4d772e5e35f0b33795e3776c53/cargo-target/release/vibe",
+              "build",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/sort_int/vibelang/main.yb",
+              "--profile",
+              "release"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 544,
+            "cpu_ms": 501,
+            "max_rss_kb": 37632,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/sort_int/vibelang/.yb/artifacts/release/x86_64-unknown-linux-gnu/main",
+            "binary_size_bytes": 97352
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 2,
+                "max_rss_kb": 1344,
+                "checksum": -1646839244266835,
+                "ops": 120000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 0,
+                "max_rss_kb": 1344,
+                "checksum": -1646839244266835,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 0,
+                "max_rss_kb": 1344,
+                "checksum": -1646839244266835,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 1,
+                "max_rss_kb": 1344,
+                "checksum": -1646839244266835,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 2,
+                "max_rss_kb": 1344,
+                "checksum": -1646839244266835,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 3,
+                "cpu_ms": 1,
+                "max_rss_kb": 1344,
+                "checksum": -1646839244266835,
+                "ops": 120000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 2.2,
+              "median_wall_ms": 2.0,
+              "p95_wall_ms": 3.0,
+              "p99_wall_ms": 3.0,
+              "stddev_wall_ms": 0.4,
+              "mad_wall_ms": 0.0,
+              "rsd_wall_pct": 18.181818181818183,
+              "mean_cpu_ms": 0.8,
+              "mean_max_rss_kb": 1344.0
+            }
+          },
+          "result": {
+            "checksum": -1646839244266835,
+            "ops": 120000
+          }
+        },
+        "c": {
+          "source": "runtime/benchmarks/cross_lang/cases/sort_int/c/main.c",
+          "compile": {
+            "command": [
+              "gcc",
+              "-O3",
+              "-DNDEBUG",
+              "-pthread",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/sort_int/c/main.c",
+              "-o",
+              "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/sort_int/c/bench_c"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 85,
+            "cpu_ms": 44,
+            "max_rss_kb": 22080,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/sort_int/c/bench_c",
+            "binary_size_bytes": 16008
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 1,
+                "max_rss_kb": 1344,
+                "checksum": -1646839244266835,
+                "ops": 120000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 1,
+                "cpu_ms": 0,
+                "max_rss_kb": 1344,
+                "checksum": -1646839244266835,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 1,
+                "cpu_ms": 1,
+                "max_rss_kb": 1344,
+                "checksum": -1646839244266835,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 1,
+                "cpu_ms": 0,
+                "max_rss_kb": 1344,
+                "checksum": -1646839244266835,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 1,
+                "cpu_ms": 1,
+                "max_rss_kb": 1344,
+                "checksum": -1646839244266835,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 1,
+                "cpu_ms": 0,
+                "max_rss_kb": 1344,
+                "checksum": -1646839244266835,
+                "ops": 120000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 1.0,
+              "median_wall_ms": 1.0,
+              "p95_wall_ms": 1.0,
+              "p99_wall_ms": 1.0,
+              "stddev_wall_ms": 0.0,
+              "mad_wall_ms": 0.0,
+              "rsd_wall_pct": 0.0,
+              "mean_cpu_ms": 0.4,
+              "mean_max_rss_kb": 1344.0
+            }
+          },
+          "result": {
+            "checksum": -1646839244266835,
+            "ops": 120000
+          }
+        },
+        "rust": {
+          "source": "runtime/benchmarks/cross_lang/cases/sort_int/rust/main.rs",
+          "compile": {
+            "command": [
+              "rustc",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/sort_int/rust/main.rs",
+              "-C",
+              "opt-level=3",
+              "-C",
+              "codegen-units=1",
+              "-C",
+              "debuginfo=0",
+              "-o",
+              "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/sort_int/rust/bench_rust"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 233,
+            "cpu_ms": 200,
+            "max_rss_kb": 93312,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/sort_int/rust/bench_rust",
+            "binary_size_bytes": 3974360
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 1,
+                "max_rss_kb": 1920,
+                "checksum": -1646839244266835,
+                "ops": 120000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 1,
+                "max_rss_kb": 1920,
+                "checksum": -1646839244266835,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 1,
+                "cpu_ms": 0,
+                "max_rss_kb": 1920,
+                "checksum": -1646839244266835,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 2,
+                "max_rss_kb": 1728,
+                "checksum": -1646839244266835,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 3,
+                "cpu_ms": 2,
+                "max_rss_kb": 1920,
+                "checksum": -1646839244266835,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 1,
+                "max_rss_kb": 1920,
+                "checksum": -1646839244266835,
+                "ops": 120000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 2.0,
+              "median_wall_ms": 2.0,
+              "p95_wall_ms": 3.0,
+              "p99_wall_ms": 3.0,
+              "stddev_wall_ms": 0.6324555320336759,
+              "mad_wall_ms": 0.0,
+              "rsd_wall_pct": 31.622776601683793,
+              "mean_cpu_ms": 1.2,
+              "mean_max_rss_kb": 1881.6
+            }
+          },
+          "result": {
+            "checksum": -1646839244266835,
+            "ops": 120000
+          }
+        },
+        "go": {
+          "source": "runtime/benchmarks/cross_lang/cases/sort_int/go/main.go",
+          "compile": {
+            "command": [
+              "go",
+              "build",
+              "-trimpath",
+              "-ldflags",
+              "-s -w",
+              "-o",
+              "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/sort_int/go/bench_go",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/sort_int/go/main.go"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 138,
+            "cpu_ms": 240,
+            "max_rss_kb": 18624,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/sort_int/go/bench_go",
+            "binary_size_bytes": 1384600
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 7,
+                "cpu_ms": 4,
+                "max_rss_kb": 1728,
+                "checksum": -1646839244266835,
+                "ops": 120000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 3,
+                "cpu_ms": 3,
+                "max_rss_kb": 1728,
+                "checksum": -1646839244266835,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 2,
+                "max_rss_kb": 1728,
+                "checksum": -1646839244266835,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 2,
+                "max_rss_kb": 1728,
+                "checksum": -1646839244266835,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 3,
+                "cpu_ms": 2,
+                "max_rss_kb": 1728,
+                "checksum": -1646839244266835,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 2,
+                "max_rss_kb": 1728,
+                "checksum": -1646839244266835,
+                "ops": 120000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 2.4,
+              "median_wall_ms": 2.0,
+              "p95_wall_ms": 3.0,
+              "p99_wall_ms": 3.0,
+              "stddev_wall_ms": 0.4898979485566356,
+              "mad_wall_ms": 0.0,
+              "rsd_wall_pct": 20.41241452319315,
+              "mean_cpu_ms": 2.2,
+              "mean_max_rss_kb": 1728.0
+            }
+          },
+          "result": {
+            "checksum": -1646839244266835,
+            "ops": 120000
+          }
+        },
+        "python": {
+          "source": "runtime/benchmarks/cross_lang/cases/sort_int/python/main.py",
+          "compile": {
+            "command": [
+              "python3",
+              "-m",
+              "py_compile",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/sort_int/python/main.py"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 28,
+            "cpu_ms": 27,
+            "max_rss_kb": 10560,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/sort_int/python/main.py",
+            "binary_size_bytes": 642
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 59,
+                "cpu_ms": 54,
+                "max_rss_kb": 8832,
+                "checksum": -1646839244266835,
+                "ops": 120000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 57,
+                "cpu_ms": 55,
+                "max_rss_kb": 9024,
+                "checksum": -1646839244266835,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 60,
+                "cpu_ms": 58,
+                "max_rss_kb": 8832,
+                "checksum": -1646839244266835,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 59,
+                "cpu_ms": 58,
+                "max_rss_kb": 8832,
+                "checksum": -1646839244266835,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 61,
+                "cpu_ms": 58,
+                "max_rss_kb": 9024,
+                "checksum": -1646839244266835,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 61,
+                "cpu_ms": 57,
+                "max_rss_kb": 8832,
+                "checksum": -1646839244266835,
+                "ops": 120000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 59.6,
+              "median_wall_ms": 60.0,
+              "p95_wall_ms": 61.0,
+              "p99_wall_ms": 61.0,
+              "stddev_wall_ms": 1.4966629547095767,
+              "mad_wall_ms": 1.0,
+              "rsd_wall_pct": 2.511179454210699,
+              "mean_cpu_ms": 57.2,
+              "mean_max_rss_kb": 8908.8
+            }
+          },
+          "result": {
+            "checksum": -1646839244266835,
+            "ops": 120000
+          }
+        },
+        "typescript": {
+          "source": "runtime/benchmarks/cross_lang/cases/sort_int/typescript/main.ts",
+          "compile": {
+            "command": [
+              "npx",
+              "--yes",
+              "-p",
+              "typescript",
+              "tsc",
+              "--target",
+              "ES2020",
+              "--module",
+              "commonjs",
+              "--skipLibCheck",
+              "--outDir",
+              "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/sort_int/typescript",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/sort_int/typescript/main.ts"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 1050,
+            "cpu_ms": 1550,
+            "max_rss_kb": 136136,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/sort_int/typescript/main.js",
+            "binary_size_bytes": 847
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 44,
+                "cpu_ms": 47,
+                "max_rss_kb": 46464,
+                "checksum": -1646839244266835,
+                "ops": 120000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 43,
+                "cpu_ms": 47,
+                "max_rss_kb": 45880,
+                "checksum": -1646839244266835,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 45,
+                "cpu_ms": 49,
+                "max_rss_kb": 46272,
+                "checksum": -1646839244266835,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 42,
+                "cpu_ms": 44,
+                "max_rss_kb": 46464,
+                "checksum": -1646839244266835,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 42,
+                "cpu_ms": 45,
+                "max_rss_kb": 46464,
+                "checksum": -1646839244266835,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 42,
+                "cpu_ms": 45,
+                "max_rss_kb": 46088,
+                "checksum": -1646839244266835,
+                "ops": 120000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 42.8,
+              "median_wall_ms": 42.0,
+              "p95_wall_ms": 45.0,
+              "p99_wall_ms": 45.0,
+              "stddev_wall_ms": 1.1661903789690602,
+              "mad_wall_ms": 0.0,
+              "rsd_wall_pct": 2.7247438760959355,
+              "mean_cpu_ms": 46.0,
+              "mean_max_rss_kb": 46233.6
+            }
+          },
+          "result": {
+            "checksum": -1646839244266835,
+            "ops": 120000
+          }
+        }
+      },
+      "parity": {
+        "checksum_match": true,
+        "ops_match": true,
+        "checksum_by_language": {
+          "vibelang": -1646839244266835,
+          "c": -1646839244266835,
+          "rust": -1646839244266835,
+          "go": -1646839244266835,
+          "python": -1646839244266835,
+          "typescript": -1646839244266835
+        },
+        "ops_by_language": {
+          "vibelang": 120000,
+          "c": 120000,
+          "rust": 120000,
+          "go": 120000,
+          "python": 120000,
+          "typescript": 120000
+        }
+      }
+    },
+    {
+      "id": "hashmap_frequency",
+      "category": "maps",
+      "description": "Map increment/lookup frequency workload.",
+      "expected_ops": 200000,
+      "languages": {
+        "vibelang": {
+          "source": "runtime/benchmarks/cross_lang/cases/hashmap_frequency/vibelang/main.yb",
+          "compile": {
+            "command": [
+              "/tmp/cursor-sandbox-cache/4c484c4d772e5e35f0b33795e3776c53/cargo-target/release/vibe",
+              "build",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/hashmap_frequency/vibelang/main.yb",
+              "--profile",
+              "release"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 455,
+            "cpu_ms": 412,
+            "max_rss_kb": 37632,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/hashmap_frequency/vibelang/.yb/artifacts/release/x86_64-unknown-linux-gnu/main",
+            "binary_size_bytes": 102280
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 18,
+                "cpu_ms": 16,
+                "max_rss_kb": 7680,
+                "checksum": 25794519,
+                "ops": 200000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 18,
+                "cpu_ms": 14,
+                "max_rss_kb": 7680,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 19,
+                "cpu_ms": 15,
+                "max_rss_kb": 7680,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 18,
+                "cpu_ms": 16,
+                "max_rss_kb": 7680,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 19,
+                "cpu_ms": 17,
+                "max_rss_kb": 7488,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 18,
+                "cpu_ms": 17,
+                "max_rss_kb": 7680,
+                "checksum": 25794519,
+                "ops": 200000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 18.4,
+              "median_wall_ms": 18.0,
+              "p95_wall_ms": 19.0,
+              "p99_wall_ms": 19.0,
+              "stddev_wall_ms": 0.4898979485566356,
+              "mad_wall_ms": 0.0,
+              "rsd_wall_pct": 2.6624888508512807,
+              "mean_cpu_ms": 15.8,
+              "mean_max_rss_kb": 7641.6
+            }
+          },
+          "result": {
+            "checksum": 25794519,
+            "ops": 200000
+          }
+        },
+        "c": {
+          "source": "runtime/benchmarks/cross_lang/cases/hashmap_frequency/c/main.c",
+          "compile": {
+            "command": [
+              "gcc",
+              "-O3",
+              "-DNDEBUG",
+              "-pthread",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/hashmap_frequency/c/main.c",
+              "-o",
+              "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/hashmap_frequency/c/bench_c"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 98,
+            "cpu_ms": 54,
+            "max_rss_kb": 24768,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/hashmap_frequency/c/bench_c",
+            "binary_size_bytes": 16096
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 0,
+                "max_rss_kb": 1344,
+                "checksum": 25794519,
+                "ops": 200000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 1,
+                "cpu_ms": 0,
+                "max_rss_kb": 1344,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 0,
+                "max_rss_kb": 1344,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 2,
+                "max_rss_kb": 1344,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 1,
+                "cpu_ms": 0,
+                "max_rss_kb": 1344,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 1,
+                "max_rss_kb": 1344,
+                "checksum": 25794519,
+                "ops": 200000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 1.6,
+              "median_wall_ms": 2.0,
+              "p95_wall_ms": 2.0,
+              "p99_wall_ms": 2.0,
+              "stddev_wall_ms": 0.4898979485566356,
+              "mad_wall_ms": 0.0,
+              "rsd_wall_pct": 30.618621784789724,
+              "mean_cpu_ms": 0.6,
+              "mean_max_rss_kb": 1344.0
+            }
+          },
+          "result": {
+            "checksum": 25794519,
+            "ops": 200000
+          }
+        },
+        "rust": {
+          "source": "runtime/benchmarks/cross_lang/cases/hashmap_frequency/rust/main.rs",
+          "compile": {
+            "command": [
+              "rustc",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/hashmap_frequency/rust/main.rs",
+              "-C",
+              "opt-level=3",
+              "-C",
+              "codegen-units=1",
+              "-C",
+              "debuginfo=0",
+              "-o",
+              "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/hashmap_frequency/rust/bench_rust"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 319,
+            "cpu_ms": 276,
+            "max_rss_kb": 109060,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/hashmap_frequency/rust/bench_rust",
+            "binary_size_bytes": 3995528
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 3,
+                "cpu_ms": 1,
+                "max_rss_kb": 1728,
+                "checksum": 25794519,
+                "ops": 200000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 3,
+                "cpu_ms": 1,
+                "max_rss_kb": 1728,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 3,
+                "cpu_ms": 0,
+                "max_rss_kb": 1920,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 3,
+                "cpu_ms": 3,
+                "max_rss_kb": 1920,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 3,
+                "cpu_ms": 0,
+                "max_rss_kb": 1920,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 3,
+                "cpu_ms": 3,
+                "max_rss_kb": 1728,
+                "checksum": 25794519,
+                "ops": 200000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 3.0,
+              "median_wall_ms": 3.0,
+              "p95_wall_ms": 3.0,
+              "p99_wall_ms": 3.0,
+              "stddev_wall_ms": 0.0,
+              "mad_wall_ms": 0.0,
+              "rsd_wall_pct": 0.0,
+              "mean_cpu_ms": 1.4,
+              "mean_max_rss_kb": 1843.2
+            }
+          },
+          "result": {
+            "checksum": 25794519,
+            "ops": 200000
+          }
+        },
+        "go": {
+          "source": "runtime/benchmarks/cross_lang/cases/hashmap_frequency/go/main.go",
+          "compile": {
+            "command": [
+              "go",
+              "build",
+              "-trimpath",
+              "-ldflags",
+              "-s -w",
+              "-o",
+              "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/hashmap_frequency/go/bench_go",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/hashmap_frequency/go/main.go"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 140,
+            "cpu_ms": 518,
+            "max_rss_kb": 17856,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/hashmap_frequency/go/bench_go",
+            "binary_size_bytes": 1388696
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 9,
+                "cpu_ms": 6,
+                "max_rss_kb": 1920,
+                "checksum": 25794519,
+                "ops": 200000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 5,
+                "cpu_ms": 5,
+                "max_rss_kb": 1920,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 7,
+                "cpu_ms": 7,
+                "max_rss_kb": 1728,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 8,
+                "cpu_ms": 4,
+                "max_rss_kb": 1728,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 5,
+                "cpu_ms": 4,
+                "max_rss_kb": 1920,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 5,
+                "cpu_ms": 3,
+                "max_rss_kb": 1920,
+                "checksum": 25794519,
+                "ops": 200000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 6.0,
+              "median_wall_ms": 5.0,
+              "p95_wall_ms": 8.0,
+              "p99_wall_ms": 8.0,
+              "stddev_wall_ms": 1.2649110640673518,
+              "mad_wall_ms": 0.0,
+              "rsd_wall_pct": 21.081851067789195,
+              "mean_cpu_ms": 4.6,
+              "mean_max_rss_kb": 1843.2
+            }
+          },
+          "result": {
+            "checksum": 25794519,
+            "ops": 200000
+          }
+        },
+        "python": {
+          "source": "runtime/benchmarks/cross_lang/cases/hashmap_frequency/python/main.py",
+          "compile": {
+            "command": [
+              "python3",
+              "-m",
+              "py_compile",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/hashmap_frequency/python/main.py"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 29,
+            "cpu_ms": 28,
+            "max_rss_kb": 10368,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/hashmap_frequency/python/main.py",
+            "binary_size_bytes": 304
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 50,
+                "cpu_ms": 46,
+                "max_rss_kb": 8832,
+                "checksum": 25794519,
+                "ops": 200000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 48,
+                "cpu_ms": 44,
+                "max_rss_kb": 8640,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 44,
+                "cpu_ms": 44,
+                "max_rss_kb": 8832,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 45,
+                "cpu_ms": 43,
+                "max_rss_kb": 8832,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 48,
+                "cpu_ms": 45,
+                "max_rss_kb": 8832,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 46,
+                "cpu_ms": 45,
+                "max_rss_kb": 8832,
+                "checksum": 25794519,
+                "ops": 200000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 46.2,
+              "median_wall_ms": 46.0,
+              "p95_wall_ms": 48.0,
+              "p99_wall_ms": 48.0,
+              "stddev_wall_ms": 1.6,
+              "mad_wall_ms": 2.0,
+              "rsd_wall_pct": 3.463203463203463,
+              "mean_cpu_ms": 44.2,
+              "mean_max_rss_kb": 8793.6
+            }
+          },
+          "result": {
+            "checksum": 25794519,
+            "ops": 200000
+          }
+        },
+        "typescript": {
+          "source": "runtime/benchmarks/cross_lang/cases/hashmap_frequency/typescript/main.ts",
+          "compile": {
+            "command": [
+              "npx",
+              "--yes",
+              "-p",
+              "typescript",
+              "tsc",
+              "--target",
+              "ES2020",
+              "--module",
+              "commonjs",
+              "--skipLibCheck",
+              "--outDir",
+              "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/hashmap_frequency/typescript",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/hashmap_frequency/typescript/main.ts"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 996,
+            "cpu_ms": 1450,
+            "max_rss_kb": 137452,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/hashmap_frequency/typescript/main.js",
+            "binary_size_bytes": 394
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 30,
+                "cpu_ms": 29,
+                "max_rss_kb": 45696,
+                "checksum": 25794519,
+                "ops": 200000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 31,
+                "cpu_ms": 33,
+                "max_rss_kb": 45696,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 35,
+                "cpu_ms": 37,
+                "max_rss_kb": 45696,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 30,
+                "cpu_ms": 32,
+                "max_rss_kb": 45504,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 31,
+                "cpu_ms": 32,
+                "max_rss_kb": 45696,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 29,
+                "cpu_ms": 31,
+                "max_rss_kb": 45696,
+                "checksum": 25794519,
+                "ops": 200000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 31.2,
+              "median_wall_ms": 31.0,
+              "p95_wall_ms": 35.0,
+              "p99_wall_ms": 35.0,
+              "stddev_wall_ms": 2.039607805437114,
+              "mad_wall_ms": 1.0,
+              "rsd_wall_pct": 6.537204504606136,
+              "mean_cpu_ms": 33.0,
+              "mean_max_rss_kb": 45657.6
+            }
+          },
+          "result": {
+            "checksum": 25794519,
+            "ops": 200000
+          }
+        }
+      },
+      "parity": {
+        "checksum_match": true,
+        "ops_match": true,
+        "checksum_by_language": {
+          "vibelang": 25794519,
+          "c": 25794519,
+          "rust": 25794519,
+          "go": 25794519,
+          "python": 25794519,
+          "typescript": 25794519
+        },
+        "ops_by_language": {
+          "vibelang": 200000,
+          "c": 200000,
+          "rust": 200000,
+          "go": 200000,
+          "python": 200000,
+          "typescript": 200000
+        }
+      }
+    },
+    {
+      "id": "hashmap_frequency_int_key",
+      "category": "maps",
+      "description": "Map increment/lookup workload with explicit Int keys.",
+      "expected_ops": 200000,
+      "languages": {
+        "vibelang": {
+          "source": "runtime/benchmarks/cross_lang/cases/hashmap_frequency_int_key/vibelang/main.yb",
+          "compile": {
+            "command": [
+              "/tmp/cursor-sandbox-cache/4c484c4d772e5e35f0b33795e3776c53/cargo-target/release/vibe",
+              "build",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/hashmap_frequency_int_key/vibelang/main.yb",
+              "--profile",
+              "release"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 463,
+            "cpu_ms": 419,
+            "max_rss_kb": 37440,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/hashmap_frequency_int_key/vibelang/.yb/artifacts/release/x86_64-unknown-linux-gnu/main",
+            "binary_size_bytes": 102232
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 5,
+                "cpu_ms": 2,
+                "max_rss_kb": 1344,
+                "checksum": 25794519,
+                "ops": 200000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 5,
+                "cpu_ms": 4,
+                "max_rss_kb": 1344,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 5,
+                "cpu_ms": 2,
+                "max_rss_kb": 1344,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 6,
+                "cpu_ms": 5,
+                "max_rss_kb": 1344,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 5,
+                "cpu_ms": 3,
+                "max_rss_kb": 1344,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 6,
+                "cpu_ms": 5,
+                "max_rss_kb": 1344,
+                "checksum": 25794519,
+                "ops": 200000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 5.4,
+              "median_wall_ms": 5.0,
+              "p95_wall_ms": 6.0,
+              "p99_wall_ms": 6.0,
+              "stddev_wall_ms": 0.4898979485566356,
+              "mad_wall_ms": 0.0,
+              "rsd_wall_pct": 9.072184232530288,
+              "mean_cpu_ms": 3.8,
+              "mean_max_rss_kb": 1344.0
+            }
+          },
+          "result": {
+            "checksum": 25794519,
+            "ops": 200000
+          }
+        },
+        "c": {
+          "source": "runtime/benchmarks/cross_lang/cases/hashmap_frequency_int_key/c/main.c",
+          "compile": {
+            "command": [
+              "gcc",
+              "-O3",
+              "-DNDEBUG",
+              "-pthread",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/hashmap_frequency_int_key/c/main.c",
+              "-o",
+              "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/hashmap_frequency_int_key/c/bench_c"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 90,
+            "cpu_ms": 48,
+            "max_rss_kb": 24768,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/hashmap_frequency_int_key/c/bench_c",
+            "binary_size_bytes": 16096
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 1,
+                "max_rss_kb": 1344,
+                "checksum": 25794519,
+                "ops": 200000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 2,
+                "max_rss_kb": 1344,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 1,
+                "cpu_ms": 1,
+                "max_rss_kb": 1344,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 1,
+                "max_rss_kb": 1344,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 0,
+                "max_rss_kb": 1344,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 1,
+                "cpu_ms": 0,
+                "max_rss_kb": 1344,
+                "checksum": 25794519,
+                "ops": 200000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 1.6,
+              "median_wall_ms": 2.0,
+              "p95_wall_ms": 2.0,
+              "p99_wall_ms": 2.0,
+              "stddev_wall_ms": 0.4898979485566356,
+              "mad_wall_ms": 0.0,
+              "rsd_wall_pct": 30.618621784789724,
+              "mean_cpu_ms": 0.8,
+              "mean_max_rss_kb": 1344.0
+            }
+          },
+          "result": {
+            "checksum": 25794519,
+            "ops": 200000
+          }
+        },
+        "rust": {
+          "source": "runtime/benchmarks/cross_lang/cases/hashmap_frequency_int_key/rust/main.rs",
+          "compile": {
+            "command": [
+              "rustc",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/hashmap_frequency_int_key/rust/main.rs",
+              "-C",
+              "opt-level=3",
+              "-C",
+              "codegen-units=1",
+              "-C",
+              "debuginfo=0",
+              "-o",
+              "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/hashmap_frequency_int_key/rust/bench_rust"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 293,
+            "cpu_ms": 265,
+            "max_rss_kb": 109072,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/hashmap_frequency_int_key/rust/bench_rust",
+            "binary_size_bytes": 3995528
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 3,
+                "cpu_ms": 3,
+                "max_rss_kb": 1728,
+                "checksum": 25794519,
+                "ops": 200000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 3,
+                "cpu_ms": 1,
+                "max_rss_kb": 1920,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 3,
+                "cpu_ms": 2,
+                "max_rss_kb": 1920,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 3,
+                "cpu_ms": 2,
+                "max_rss_kb": 1728,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 3,
+                "cpu_ms": 0,
+                "max_rss_kb": 1920,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 3,
+                "cpu_ms": 3,
+                "max_rss_kb": 1728,
+                "checksum": 25794519,
+                "ops": 200000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 3.0,
+              "median_wall_ms": 3.0,
+              "p95_wall_ms": 3.0,
+              "p99_wall_ms": 3.0,
+              "stddev_wall_ms": 0.0,
+              "mad_wall_ms": 0.0,
+              "rsd_wall_pct": 0.0,
+              "mean_cpu_ms": 1.6,
+              "mean_max_rss_kb": 1843.2
+            }
+          },
+          "result": {
+            "checksum": 25794519,
+            "ops": 200000
+          }
+        },
+        "go": {
+          "source": "runtime/benchmarks/cross_lang/cases/hashmap_frequency_int_key/go/main.go",
+          "compile": {
+            "command": [
+              "go",
+              "build",
+              "-trimpath",
+              "-ldflags",
+              "-s -w",
+              "-o",
+              "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/hashmap_frequency_int_key/go/bench_go",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/hashmap_frequency_int_key/go/main.go"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 129,
+            "cpu_ms": 212,
+            "max_rss_kb": 18816,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/hashmap_frequency_int_key/go/bench_go",
+            "binary_size_bytes": 1388696
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 8,
+                "cpu_ms": 3,
+                "max_rss_kb": 1920,
+                "checksum": 25794519,
+                "ops": 200000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 4,
+                "cpu_ms": 2,
+                "max_rss_kb": 1920,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 4,
+                "cpu_ms": 4,
+                "max_rss_kb": 1920,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 4,
+                "cpu_ms": 2,
+                "max_rss_kb": 1728,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 4,
+                "cpu_ms": 4,
+                "max_rss_kb": 1728,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 4,
+                "cpu_ms": 4,
+                "max_rss_kb": 1728,
+                "checksum": 25794519,
+                "ops": 200000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 4.0,
+              "median_wall_ms": 4.0,
+              "p95_wall_ms": 4.0,
+              "p99_wall_ms": 4.0,
+              "stddev_wall_ms": 0.0,
+              "mad_wall_ms": 0.0,
+              "rsd_wall_pct": 0.0,
+              "mean_cpu_ms": 3.2,
+              "mean_max_rss_kb": 1804.8
+            }
+          },
+          "result": {
+            "checksum": 25794519,
+            "ops": 200000
+          }
+        },
+        "python": {
+          "source": "runtime/benchmarks/cross_lang/cases/hashmap_frequency_int_key/python/main.py",
+          "compile": {
+            "command": [
+              "python3",
+              "-m",
+              "py_compile",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/hashmap_frequency_int_key/python/main.py"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 24,
+            "cpu_ms": 22,
+            "max_rss_kb": 10368,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/hashmap_frequency_int_key/python/main.py",
+            "binary_size_bytes": 304
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 43,
+                "cpu_ms": 42,
+                "max_rss_kb": 8832,
+                "checksum": 25794519,
+                "ops": 200000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 50,
+                "cpu_ms": 47,
+                "max_rss_kb": 8640,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 46,
+                "cpu_ms": 44,
+                "max_rss_kb": 8832,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 43,
+                "cpu_ms": 41,
+                "max_rss_kb": 8832,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 44,
+                "cpu_ms": 42,
+                "max_rss_kb": 8832,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 44,
+                "cpu_ms": 42,
+                "max_rss_kb": 8832,
+                "checksum": 25794519,
+                "ops": 200000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 45.4,
+              "median_wall_ms": 44.0,
+              "p95_wall_ms": 50.0,
+              "p99_wall_ms": 50.0,
+              "stddev_wall_ms": 2.4979991993593593,
+              "mad_wall_ms": 1.0,
+              "rsd_wall_pct": 5.502200879646166,
+              "mean_cpu_ms": 43.2,
+              "mean_max_rss_kb": 8793.6
+            }
+          },
+          "result": {
+            "checksum": 25794519,
+            "ops": 200000
+          }
+        },
+        "typescript": {
+          "source": "runtime/benchmarks/cross_lang/cases/hashmap_frequency_int_key/typescript/main.ts",
+          "compile": {
+            "command": [
+              "npx",
+              "--yes",
+              "-p",
+              "typescript",
+              "tsc",
+              "--target",
+              "ES2020",
+              "--module",
+              "commonjs",
+              "--skipLibCheck",
+              "--outDir",
+              "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/hashmap_frequency_int_key/typescript",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/hashmap_frequency_int_key/typescript/main.ts"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 1072,
+            "cpu_ms": 1629,
+            "max_rss_kb": 137708,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/hashmap_frequency_int_key/typescript/main.js",
+            "binary_size_bytes": 394
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 31,
+                "cpu_ms": 32,
+                "max_rss_kb": 45696,
+                "checksum": 25794519,
+                "ops": 200000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 31,
+                "cpu_ms": 32,
+                "max_rss_kb": 45120,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 31,
+                "cpu_ms": 32,
+                "max_rss_kb": 45696,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 30,
+                "cpu_ms": 32,
+                "max_rss_kb": 45696,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 32,
+                "cpu_ms": 32,
+                "max_rss_kb": 45696,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 32,
+                "cpu_ms": 32,
+                "max_rss_kb": 45504,
+                "checksum": 25794519,
+                "ops": 200000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 31.2,
+              "median_wall_ms": 31.0,
+              "p95_wall_ms": 32.0,
+              "p99_wall_ms": 32.0,
+              "stddev_wall_ms": 0.7483314773547883,
+              "mad_wall_ms": 1.0,
+              "rsd_wall_pct": 2.398498324855091,
+              "mean_cpu_ms": 32.0,
+              "mean_max_rss_kb": 45542.4
+            }
+          },
+          "result": {
+            "checksum": 25794519,
+            "ops": 200000
+          }
+        }
+      },
+      "parity": {
+        "checksum_match": true,
+        "ops_match": true,
+        "checksum_by_language": {
+          "vibelang": 25794519,
+          "c": 25794519,
+          "rust": 25794519,
+          "go": 25794519,
+          "python": 25794519,
+          "typescript": 25794519
+        },
+        "ops_by_language": {
+          "vibelang": 200000,
+          "c": 200000,
+          "rust": 200000,
+          "go": 200000,
+          "python": 200000,
+          "typescript": 200000
+        }
+      }
+    },
+    {
+      "id": "hashmap_frequency_str_key",
+      "category": "maps",
+      "description": "Map increment/lookup workload with explicit string keys.",
+      "expected_ops": 200000,
+      "languages": {
+        "vibelang": {
+          "source": "runtime/benchmarks/cross_lang/cases/hashmap_frequency_str_key/vibelang/main.yb",
+          "compile": {
+            "command": [
+              "/tmp/cursor-sandbox-cache/4c484c4d772e5e35f0b33795e3776c53/cargo-target/release/vibe",
+              "build",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/hashmap_frequency_str_key/vibelang/main.yb",
+              "--profile",
+              "release"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 444,
+            "cpu_ms": 401,
+            "max_rss_kb": 37440,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/hashmap_frequency_str_key/vibelang/.yb/artifacts/release/x86_64-unknown-linux-gnu/main",
+            "binary_size_bytes": 102280
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 17,
+                "cpu_ms": 16,
+                "max_rss_kb": 7680,
+                "checksum": 25794519,
+                "ops": 200000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 17,
+                "cpu_ms": 14,
+                "max_rss_kb": 7680,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 17,
+                "cpu_ms": 16,
+                "max_rss_kb": 7680,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 17,
+                "cpu_ms": 15,
+                "max_rss_kb": 7680,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 17,
+                "cpu_ms": 17,
+                "max_rss_kb": 7680,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 17,
+                "cpu_ms": 15,
+                "max_rss_kb": 7680,
+                "checksum": 25794519,
+                "ops": 200000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 17.0,
+              "median_wall_ms": 17.0,
+              "p95_wall_ms": 17.0,
+              "p99_wall_ms": 17.0,
+              "stddev_wall_ms": 0.0,
+              "mad_wall_ms": 0.0,
+              "rsd_wall_pct": 0.0,
+              "mean_cpu_ms": 15.4,
+              "mean_max_rss_kb": 7680.0
+            }
+          },
+          "result": {
+            "checksum": 25794519,
+            "ops": 200000
+          }
+        },
+        "c": {
+          "source": "runtime/benchmarks/cross_lang/cases/hashmap_frequency_str_key/c/main.c",
+          "compile": {
+            "command": [
+              "gcc",
+              "-O3",
+              "-DNDEBUG",
+              "-pthread",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/hashmap_frequency_str_key/c/main.c",
+              "-o",
+              "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/hashmap_frequency_str_key/c/bench_c"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 106,
+            "cpu_ms": 58,
+            "max_rss_kb": 24960,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/hashmap_frequency_str_key/c/bench_c",
+            "binary_size_bytes": 16280
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 18,
+                "cpu_ms": 15,
+                "max_rss_kb": 1344,
+                "checksum": 25794519,
+                "ops": 200000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 18,
+                "cpu_ms": 16,
+                "max_rss_kb": 1344,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 18,
+                "cpu_ms": 14,
+                "max_rss_kb": 1344,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 29,
+                "cpu_ms": 27,
+                "max_rss_kb": 1344,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 17,
+                "cpu_ms": 14,
+                "max_rss_kb": 1344,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 18,
+                "cpu_ms": 16,
+                "max_rss_kb": 1344,
+                "checksum": 25794519,
+                "ops": 200000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 20.0,
+              "median_wall_ms": 18.0,
+              "p95_wall_ms": 29.0,
+              "p99_wall_ms": 29.0,
+              "stddev_wall_ms": 4.516635916254486,
+              "mad_wall_ms": 0.0,
+              "rsd_wall_pct": 22.58317958127243,
+              "mean_cpu_ms": 17.4,
+              "mean_max_rss_kb": 1344.0
+            }
+          },
+          "result": {
+            "checksum": 25794519,
+            "ops": 200000
+          }
+        },
+        "rust": {
+          "source": "runtime/benchmarks/cross_lang/cases/hashmap_frequency_str_key/rust/main.rs",
+          "compile": {
+            "command": [
+              "rustc",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/hashmap_frequency_str_key/rust/main.rs",
+              "-C",
+              "opt-level=3",
+              "-C",
+              "codegen-units=1",
+              "-C",
+              "debuginfo=0",
+              "-o",
+              "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/hashmap_frequency_str_key/rust/bench_rust"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 338,
+            "cpu_ms": 306,
+            "max_rss_kb": 113108,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/hashmap_frequency_str_key/rust/bench_rust",
+            "binary_size_bytes": 4000280
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 10,
+                "cpu_ms": 6,
+                "max_rss_kb": 1920,
+                "checksum": 25794519,
+                "ops": 200000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 10,
+                "cpu_ms": 8,
+                "max_rss_kb": 1920,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 10,
+                "cpu_ms": 9,
+                "max_rss_kb": 1728,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 12,
+                "cpu_ms": 11,
+                "max_rss_kb": 1728,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 10,
+                "cpu_ms": 7,
+                "max_rss_kb": 1728,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 11,
+                "cpu_ms": 8,
+                "max_rss_kb": 1920,
+                "checksum": 25794519,
+                "ops": 200000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 10.6,
+              "median_wall_ms": 10.0,
+              "p95_wall_ms": 12.0,
+              "p99_wall_ms": 12.0,
+              "stddev_wall_ms": 0.8,
+              "mad_wall_ms": 0.0,
+              "rsd_wall_pct": 7.547169811320756,
+              "mean_cpu_ms": 8.6,
+              "mean_max_rss_kb": 1804.8
+            }
+          },
+          "result": {
+            "checksum": 25794519,
+            "ops": 200000
+          }
+        },
+        "go": {
+          "source": "runtime/benchmarks/cross_lang/cases/hashmap_frequency_str_key/go/main.go",
+          "compile": {
+            "command": [
+              "go",
+              "build",
+              "-trimpath",
+              "-ldflags",
+              "-s -w",
+              "-o",
+              "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/hashmap_frequency_str_key/go/bench_go",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/hashmap_frequency_str_key/go/main.go"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 111,
+            "cpu_ms": 232,
+            "max_rss_kb": 19008,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/hashmap_frequency_str_key/go/bench_go",
+            "binary_size_bytes": 1388696
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 12,
+                "cpu_ms": 6,
+                "max_rss_kb": 2304,
+                "checksum": 25794519,
+                "ops": 200000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 9,
+                "cpu_ms": 8,
+                "max_rss_kb": 2112,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 8,
+                "cpu_ms": 6,
+                "max_rss_kb": 2112,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 8,
+                "cpu_ms": 5,
+                "max_rss_kb": 2304,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 8,
+                "cpu_ms": 5,
+                "max_rss_kb": 2112,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 8,
+                "cpu_ms": 5,
+                "max_rss_kb": 2112,
+                "checksum": 25794519,
+                "ops": 200000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 8.2,
+              "median_wall_ms": 8.0,
+              "p95_wall_ms": 9.0,
+              "p99_wall_ms": 9.0,
+              "stddev_wall_ms": 0.4,
+              "mad_wall_ms": 0.0,
+              "rsd_wall_pct": 4.878048780487806,
+              "mean_cpu_ms": 5.8,
+              "mean_max_rss_kb": 2150.4
+            }
+          },
+          "result": {
+            "checksum": 25794519,
+            "ops": 200000
+          }
+        },
+        "python": {
+          "source": "runtime/benchmarks/cross_lang/cases/hashmap_frequency_str_key/python/main.py",
+          "compile": {
+            "command": [
+              "python3",
+              "-m",
+              "py_compile",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/hashmap_frequency_str_key/python/main.py"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 25,
+            "cpu_ms": 23,
+            "max_rss_kb": 10752,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/hashmap_frequency_str_key/python/main.py",
+            "binary_size_bytes": 344
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 64,
+                "cpu_ms": 62,
+                "max_rss_kb": 8832,
+                "checksum": 25794519,
+                "ops": 200000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 63,
+                "cpu_ms": 61,
+                "max_rss_kb": 8832,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 69,
+                "cpu_ms": 65,
+                "max_rss_kb": 8832,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 64,
+                "cpu_ms": 64,
+                "max_rss_kb": 8832,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 66,
+                "cpu_ms": 65,
+                "max_rss_kb": 8640,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 86,
+                "cpu_ms": 84,
+                "max_rss_kb": 8832,
+                "checksum": 25794519,
+                "ops": 200000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 69.6,
+              "median_wall_ms": 66.0,
+              "p95_wall_ms": 86.0,
+              "p99_wall_ms": 86.0,
+              "stddev_wall_ms": 8.452218643646175,
+              "mad_wall_ms": 3.0,
+              "rsd_wall_pct": 12.143992304089332,
+              "mean_cpu_ms": 67.8,
+              "mean_max_rss_kb": 8793.6
+            }
+          },
+          "result": {
+            "checksum": 25794519,
+            "ops": 200000
+          }
+        },
+        "typescript": {
+          "source": "runtime/benchmarks/cross_lang/cases/hashmap_frequency_str_key/typescript/main.ts",
+          "compile": {
+            "command": [
+              "npx",
+              "--yes",
+              "-p",
+              "typescript",
+              "tsc",
+              "--target",
+              "ES2020",
+              "--module",
+              "commonjs",
+              "--skipLibCheck",
+              "--outDir",
+              "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/hashmap_frequency_str_key/typescript",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/hashmap_frequency_str_key/typescript/main.ts"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 1036,
+            "cpu_ms": 1477,
+            "max_rss_kb": 137900,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/hashmap_frequency_str_key/typescript/main.js",
+            "binary_size_bytes": 454
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 35,
+                "cpu_ms": 38,
+                "max_rss_kb": 45888,
+                "checksum": 25794519,
+                "ops": 200000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 33,
+                "cpu_ms": 32,
+                "max_rss_kb": 45888,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 34,
+                "cpu_ms": 33,
+                "max_rss_kb": 45696,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 33,
+                "cpu_ms": 32,
+                "max_rss_kb": 45696,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 33,
+                "cpu_ms": 34,
+                "max_rss_kb": 45888,
+                "checksum": 25794519,
+                "ops": 200000
+              },
+              {
+                "elapsed_ms": 35,
+                "cpu_ms": 37,
+                "max_rss_kb": 45888,
+                "checksum": 25794519,
+                "ops": 200000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 33.6,
+              "median_wall_ms": 33.0,
+              "p95_wall_ms": 35.0,
+              "p99_wall_ms": 35.0,
+              "stddev_wall_ms": 0.8,
+              "mad_wall_ms": 0.0,
+              "rsd_wall_pct": 2.380952380952381,
+              "mean_cpu_ms": 33.6,
+              "mean_max_rss_kb": 45811.2
+            }
+          },
+          "result": {
+            "checksum": 25794519,
+            "ops": 200000
+          }
+        }
+      },
+      "parity": {
+        "checksum_match": true,
+        "ops_match": true,
+        "checksum_by_language": {
+          "vibelang": 25794519,
+          "c": 25794519,
+          "rust": 25794519,
+          "go": 25794519,
+          "python": 25794519,
+          "typescript": 25794519
+        },
+        "ops_by_language": {
+          "vibelang": 200000,
+          "c": 200000,
+          "rust": 200000,
+          "go": 200000,
+          "python": 200000,
+          "typescript": 200000
+        }
+      }
+    },
+    {
+      "id": "string_concat_checksum",
+      "category": "strings",
+      "description": "String construction plus numeric parse checksum loop.",
+      "expected_ops": 50000,
+      "languages": {
+        "vibelang": {
+          "source": "runtime/benchmarks/cross_lang/cases/string_concat_checksum/vibelang/main.yb",
+          "compile": {
+            "command": [
+              "/tmp/cursor-sandbox-cache/4c484c4d772e5e35f0b33795e3776c53/cargo-target/release/vibe",
+              "build",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/string_concat_checksum/vibelang/main.yb",
+              "--profile",
+              "release"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 473,
+            "cpu_ms": 433,
+            "max_rss_kb": 37440,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/string_concat_checksum/vibelang/.yb/artifacts/release/x86_64-unknown-linux-gnu/main",
+            "binary_size_bytes": 97552
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 8,
+                "cpu_ms": 5,
+                "max_rss_kb": 4416,
+                "checksum": 2500300000,
+                "ops": 50000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 8,
+                "cpu_ms": 4,
+                "max_rss_kb": 4416,
+                "checksum": 2500300000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 7,
+                "cpu_ms": 4,
+                "max_rss_kb": 4416,
+                "checksum": 2500300000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 7,
+                "cpu_ms": 7,
+                "max_rss_kb": 4416,
+                "checksum": 2500300000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 7,
+                "cpu_ms": 5,
+                "max_rss_kb": 4416,
+                "checksum": 2500300000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 7,
+                "cpu_ms": 6,
+                "max_rss_kb": 4416,
+                "checksum": 2500300000,
+                "ops": 50000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 7.2,
+              "median_wall_ms": 7.0,
+              "p95_wall_ms": 8.0,
+              "p99_wall_ms": 8.0,
+              "stddev_wall_ms": 0.4,
+              "mad_wall_ms": 0.0,
+              "rsd_wall_pct": 5.555555555555556,
+              "mean_cpu_ms": 5.2,
+              "mean_max_rss_kb": 4416.0
+            }
+          },
+          "result": {
+            "checksum": 2500300000,
+            "ops": 50000
+          }
+        },
+        "c": {
+          "source": "runtime/benchmarks/cross_lang/cases/string_concat_checksum/c/main.c",
+          "compile": {
+            "command": [
+              "gcc",
+              "-O3",
+              "-DNDEBUG",
+              "-pthread",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/string_concat_checksum/c/main.c",
+              "-o",
+              "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/string_concat_checksum/c/bench_c"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 102,
+            "cpu_ms": 54,
+            "max_rss_kb": 24768,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/string_concat_checksum/c/bench_c",
+            "binary_size_bytes": 16104
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 3,
+                "cpu_ms": 0,
+                "max_rss_kb": 1536,
+                "checksum": 2500300000,
+                "ops": 50000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 3,
+                "cpu_ms": 1,
+                "max_rss_kb": 1536,
+                "checksum": 2500300000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 3,
+                "cpu_ms": 0,
+                "max_rss_kb": 1536,
+                "checksum": 2500300000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 3,
+                "cpu_ms": 3,
+                "max_rss_kb": 1536,
+                "checksum": 2500300000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 3,
+                "cpu_ms": 2,
+                "max_rss_kb": 1536,
+                "checksum": 2500300000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 3,
+                "cpu_ms": 2,
+                "max_rss_kb": 1536,
+                "checksum": 2500300000,
+                "ops": 50000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 3.0,
+              "median_wall_ms": 3.0,
+              "p95_wall_ms": 3.0,
+              "p99_wall_ms": 3.0,
+              "stddev_wall_ms": 0.0,
+              "mad_wall_ms": 0.0,
+              "rsd_wall_pct": 0.0,
+              "mean_cpu_ms": 1.6,
+              "mean_max_rss_kb": 1536.0
+            }
+          },
+          "result": {
+            "checksum": 2500300000,
+            "ops": 50000
+          }
+        },
+        "rust": {
+          "source": "runtime/benchmarks/cross_lang/cases/string_concat_checksum/rust/main.rs",
+          "compile": {
+            "command": [
+              "rustc",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/string_concat_checksum/rust/main.rs",
+              "-C",
+              "opt-level=3",
+              "-C",
+              "codegen-units=1",
+              "-C",
+              "debuginfo=0",
+              "-o",
+              "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/string_concat_checksum/rust/bench_rust"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 244,
+            "cpu_ms": 213,
+            "max_rss_kb": 105604,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/string_concat_checksum/rust/bench_rust",
+            "binary_size_bytes": 3979040
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 4,
+                "cpu_ms": 4,
+                "max_rss_kb": 1920,
+                "checksum": 2500300000,
+                "ops": 50000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 4,
+                "cpu_ms": 4,
+                "max_rss_kb": 1728,
+                "checksum": 2500300000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 4,
+                "cpu_ms": 1,
+                "max_rss_kb": 1728,
+                "checksum": 2500300000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 4,
+                "cpu_ms": 1,
+                "max_rss_kb": 1728,
+                "checksum": 2500300000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 4,
+                "cpu_ms": 1,
+                "max_rss_kb": 1920,
+                "checksum": 2500300000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 4,
+                "cpu_ms": 0,
+                "max_rss_kb": 1728,
+                "checksum": 2500300000,
+                "ops": 50000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 4.0,
+              "median_wall_ms": 4.0,
+              "p95_wall_ms": 4.0,
+              "p99_wall_ms": 4.0,
+              "stddev_wall_ms": 0.0,
+              "mad_wall_ms": 0.0,
+              "rsd_wall_pct": 0.0,
+              "mean_cpu_ms": 1.4,
+              "mean_max_rss_kb": 1766.4
+            }
+          },
+          "result": {
+            "checksum": 2500300000,
+            "ops": 50000
+          }
+        },
+        "go": {
+          "source": "runtime/benchmarks/cross_lang/cases/string_concat_checksum/go/main.go",
+          "compile": {
+            "command": [
+              "go",
+              "build",
+              "-trimpath",
+              "-ldflags",
+              "-s -w",
+              "-o",
+              "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/string_concat_checksum/go/bench_go",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/string_concat_checksum/go/main.go"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 142,
+            "cpu_ms": 297,
+            "max_rss_kb": 18432,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/string_concat_checksum/go/bench_go",
+            "binary_size_bytes": 1392792
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 11,
+                "cpu_ms": 7,
+                "max_rss_kb": 2304,
+                "checksum": 2500300000,
+                "ops": 50000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 7,
+                "cpu_ms": 7,
+                "max_rss_kb": 2112,
+                "checksum": 2500300000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 6,
+                "cpu_ms": 3,
+                "max_rss_kb": 2304,
+                "checksum": 2500300000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 6,
+                "cpu_ms": 6,
+                "max_rss_kb": 2304,
+                "checksum": 2500300000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 5,
+                "cpu_ms": 6,
+                "max_rss_kb": 2304,
+                "checksum": 2500300000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 6,
+                "cpu_ms": 6,
+                "max_rss_kb": 2304,
+                "checksum": 2500300000,
+                "ops": 50000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 6.0,
+              "median_wall_ms": 6.0,
+              "p95_wall_ms": 7.0,
+              "p99_wall_ms": 7.0,
+              "stddev_wall_ms": 0.6324555320336759,
+              "mad_wall_ms": 0.0,
+              "rsd_wall_pct": 10.540925533894598,
+              "mean_cpu_ms": 5.6,
+              "mean_max_rss_kb": 2265.6
+            }
+          },
+          "result": {
+            "checksum": 2500300000,
+            "ops": 50000
+          }
+        },
+        "python": {
+          "source": "runtime/benchmarks/cross_lang/cases/string_concat_checksum/python/main.py",
+          "compile": {
+            "command": [
+              "python3",
+              "-m",
+              "py_compile",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/string_concat_checksum/python/main.py"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 28,
+            "cpu_ms": 25,
+            "max_rss_kb": 10752,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/string_concat_checksum/python/main.py",
+            "binary_size_bytes": 237
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 44,
+                "cpu_ms": 44,
+                "max_rss_kb": 8832,
+                "checksum": 2500300000,
+                "ops": 50000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 35,
+                "cpu_ms": 32,
+                "max_rss_kb": 8832,
+                "checksum": 2500300000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 36,
+                "cpu_ms": 32,
+                "max_rss_kb": 9024,
+                "checksum": 2500300000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 37,
+                "cpu_ms": 35,
+                "max_rss_kb": 8832,
+                "checksum": 2500300000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 36,
+                "cpu_ms": 34,
+                "max_rss_kb": 8832,
+                "checksum": 2500300000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 33,
+                "cpu_ms": 30,
+                "max_rss_kb": 9024,
+                "checksum": 2500300000,
+                "ops": 50000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 35.4,
+              "median_wall_ms": 36.0,
+              "p95_wall_ms": 37.0,
+              "p99_wall_ms": 37.0,
+              "stddev_wall_ms": 1.3564659966250536,
+              "mad_wall_ms": 1.0,
+              "rsd_wall_pct": 3.831824849223316,
+              "mean_cpu_ms": 32.6,
+              "mean_max_rss_kb": 8908.8
+            }
+          },
+          "result": {
+            "checksum": 2500300000,
+            "ops": 50000
+          }
+        },
+        "typescript": {
+          "source": "runtime/benchmarks/cross_lang/cases/string_concat_checksum/typescript/main.ts",
+          "compile": {
+            "command": [
+              "npx",
+              "--yes",
+              "-p",
+              "typescript",
+              "tsc",
+              "--target",
+              "ES2020",
+              "--module",
+              "commonjs",
+              "--skipLibCheck",
+              "--outDir",
+              "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/string_concat_checksum/typescript",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/string_concat_checksum/typescript/main.ts"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 1041,
+            "cpu_ms": 1519,
+            "max_rss_kb": 137364,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/string_concat_checksum/typescript/main.js",
+            "binary_size_bytes": 335
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 34,
+                "cpu_ms": 35,
+                "max_rss_kb": 46272,
+                "checksum": 2500300000,
+                "ops": 50000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 33,
+                "cpu_ms": 34,
+                "max_rss_kb": 46272,
+                "checksum": 2500300000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 34,
+                "cpu_ms": 35,
+                "max_rss_kb": 45888,
+                "checksum": 2500300000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 33,
+                "cpu_ms": 33,
+                "max_rss_kb": 46080,
+                "checksum": 2500300000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 35,
+                "cpu_ms": 36,
+                "max_rss_kb": 46272,
+                "checksum": 2500300000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 33,
+                "cpu_ms": 35,
+                "max_rss_kb": 46272,
+                "checksum": 2500300000,
+                "ops": 50000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 33.6,
+              "median_wall_ms": 33.0,
+              "p95_wall_ms": 35.0,
+              "p99_wall_ms": 35.0,
+              "stddev_wall_ms": 0.8,
+              "mad_wall_ms": 0.0,
+              "rsd_wall_pct": 2.380952380952381,
+              "mean_cpu_ms": 34.6,
+              "mean_max_rss_kb": 46156.8
+            }
+          },
+          "result": {
+            "checksum": 2500300000,
+            "ops": 50000
+          }
+        }
+      },
+      "parity": {
+        "checksum_match": true,
+        "ops_match": true,
+        "checksum_by_language": {
+          "vibelang": 2500300000,
+          "c": 2500300000,
+          "rust": 2500300000,
+          "go": 2500300000,
+          "python": 2500300000,
+          "typescript": 2500300000
+        },
+        "ops_by_language": {
+          "vibelang": 50000,
+          "c": 50000,
+          "rust": 50000,
+          "go": 50000,
+          "python": 50000,
+          "typescript": 50000
+        }
+      }
+    },
+    {
+      "id": "json_roundtrip",
+      "category": "json",
+      "description": "JSON minify/validate loop with deterministic checksum.",
+      "expected_ops": 120000,
+      "languages": {
+        "vibelang": {
+          "source": "runtime/benchmarks/cross_lang/cases/json_roundtrip/vibelang/main.yb",
+          "compile": {
+            "command": [
+              "/tmp/cursor-sandbox-cache/4c484c4d772e5e35f0b33795e3776c53/cargo-target/release/vibe",
+              "build",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/json_roundtrip/vibelang/main.yb",
+              "--profile",
+              "release"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 458,
+            "cpu_ms": 409,
+            "max_rss_kb": 37632,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/json_roundtrip/vibelang/.yb/artifacts/release/x86_64-unknown-linux-gnu/main",
+            "binary_size_bytes": 97728
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 9,
+                "cpu_ms": 9,
+                "max_rss_kb": 5184,
+                "checksum": 1481400000,
+                "ops": 120000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 10,
+                "cpu_ms": 8,
+                "max_rss_kb": 5184,
+                "checksum": 1481400000,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 9,
+                "cpu_ms": 6,
+                "max_rss_kb": 5184,
+                "checksum": 1481400000,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 10,
+                "cpu_ms": 8,
+                "max_rss_kb": 4800,
+                "checksum": 1481400000,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 11,
+                "cpu_ms": 9,
+                "max_rss_kb": 5184,
+                "checksum": 1481400000,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 9,
+                "cpu_ms": 6,
+                "max_rss_kb": 5184,
+                "checksum": 1481400000,
+                "ops": 120000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 9.8,
+              "median_wall_ms": 10.0,
+              "p95_wall_ms": 11.0,
+              "p99_wall_ms": 11.0,
+              "stddev_wall_ms": 0.7483314773547883,
+              "mad_wall_ms": 1.0,
+              "rsd_wall_pct": 7.636035483212125,
+              "mean_cpu_ms": 7.4,
+              "mean_max_rss_kb": 5107.2
+            }
+          },
+          "result": {
+            "checksum": 1481400000,
+            "ops": 120000
+          }
+        },
+        "c": {
+          "source": "runtime/benchmarks/cross_lang/cases/json_roundtrip/c/main.c",
+          "compile": {
+            "command": [
+              "gcc",
+              "-O3",
+              "-DNDEBUG",
+              "-pthread",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/json_roundtrip/c/main.c",
+              "-o",
+              "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/json_roundtrip/c/bench_c"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 112,
+            "cpu_ms": 64,
+            "max_rss_kb": 23616,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/json_roundtrip/c/bench_c",
+            "binary_size_bytes": 16152
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 7,
+                "cpu_ms": 3,
+                "max_rss_kb": 1536,
+                "checksum": 1481400000,
+                "ops": 120000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 6,
+                "cpu_ms": 4,
+                "max_rss_kb": 1536,
+                "checksum": 1481400000,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 6,
+                "cpu_ms": 5,
+                "max_rss_kb": 1536,
+                "checksum": 1481400000,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 7,
+                "cpu_ms": 3,
+                "max_rss_kb": 1536,
+                "checksum": 1481400000,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 7,
+                "cpu_ms": 3,
+                "max_rss_kb": 1536,
+                "checksum": 1481400000,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 7,
+                "cpu_ms": 3,
+                "max_rss_kb": 1536,
+                "checksum": 1481400000,
+                "ops": 120000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 6.6,
+              "median_wall_ms": 7.0,
+              "p95_wall_ms": 7.0,
+              "p99_wall_ms": 7.0,
+              "stddev_wall_ms": 0.4898979485566356,
+              "mad_wall_ms": 0.0,
+              "rsd_wall_pct": 7.422696190252055,
+              "mean_cpu_ms": 3.6,
+              "mean_max_rss_kb": 1536.0
+            }
+          },
+          "result": {
+            "checksum": 1481400000,
+            "ops": 120000
+          }
+        },
+        "rust": {
+          "source": "runtime/benchmarks/cross_lang/cases/json_roundtrip/rust/main.rs",
+          "compile": {
+            "command": [
+              "rustc",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/json_roundtrip/rust/main.rs",
+              "-C",
+              "opt-level=3",
+              "-C",
+              "codegen-units=1",
+              "-C",
+              "debuginfo=0",
+              "-o",
+              "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/json_roundtrip/rust/bench_rust"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 327,
+            "cpu_ms": 290,
+            "max_rss_kb": 109828,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/json_roundtrip/rust/bench_rust",
+            "binary_size_bytes": 3978824
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 9,
+                "cpu_ms": 9,
+                "max_rss_kb": 1728,
+                "checksum": 1481400000,
+                "ops": 120000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 9,
+                "cpu_ms": 7,
+                "max_rss_kb": 1920,
+                "checksum": 1481400000,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 8,
+                "cpu_ms": 6,
+                "max_rss_kb": 1920,
+                "checksum": 1481400000,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 9,
+                "cpu_ms": 9,
+                "max_rss_kb": 1728,
+                "checksum": 1481400000,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 9,
+                "cpu_ms": 8,
+                "max_rss_kb": 1920,
+                "checksum": 1481400000,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 8,
+                "cpu_ms": 6,
+                "max_rss_kb": 1728,
+                "checksum": 1481400000,
+                "ops": 120000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 8.6,
+              "median_wall_ms": 9.0,
+              "p95_wall_ms": 9.0,
+              "p99_wall_ms": 9.0,
+              "stddev_wall_ms": 0.4898979485566356,
+              "mad_wall_ms": 0.0,
+              "rsd_wall_pct": 5.696487773914368,
+              "mean_cpu_ms": 7.2,
+              "mean_max_rss_kb": 1843.2
+            }
+          },
+          "result": {
+            "checksum": 1481400000,
+            "ops": 120000
+          }
+        },
+        "go": {
+          "source": "runtime/benchmarks/cross_lang/cases/json_roundtrip/go/main.go",
+          "compile": {
+            "command": [
+              "go",
+              "build",
+              "-trimpath",
+              "-ldflags",
+              "-s -w",
+              "-o",
+              "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/json_roundtrip/go/bench_go",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/json_roundtrip/go/main.go"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 102,
+            "cpu_ms": 203,
+            "max_rss_kb": 17708,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/json_roundtrip/go/bench_go",
+            "binary_size_bytes": 1392792
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 22,
+                "cpu_ms": 16,
+                "max_rss_kb": 4608,
+                "checksum": 1481400000,
+                "ops": 120000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 18,
+                "cpu_ms": 17,
+                "max_rss_kb": 4608,
+                "checksum": 1481400000,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 18,
+                "cpu_ms": 18,
+                "max_rss_kb": 4608,
+                "checksum": 1481400000,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 17,
+                "cpu_ms": 15,
+                "max_rss_kb": 4608,
+                "checksum": 1481400000,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 18,
+                "cpu_ms": 18,
+                "max_rss_kb": 4608,
+                "checksum": 1481400000,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 17,
+                "cpu_ms": 18,
+                "max_rss_kb": 4608,
+                "checksum": 1481400000,
+                "ops": 120000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 17.6,
+              "median_wall_ms": 18.0,
+              "p95_wall_ms": 18.0,
+              "p99_wall_ms": 18.0,
+              "stddev_wall_ms": 0.4898979485566356,
+              "mad_wall_ms": 0.0,
+              "rsd_wall_pct": 2.7835110713445204,
+              "mean_cpu_ms": 17.2,
+              "mean_max_rss_kb": 4608.0
+            }
+          },
+          "result": {
+            "checksum": 1481400000,
+            "ops": 120000
+          }
+        },
+        "python": {
+          "source": "runtime/benchmarks/cross_lang/cases/json_roundtrip/python/main.py",
+          "compile": {
+            "command": [
+              "python3",
+              "-m",
+              "py_compile",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/json_roundtrip/python/main.py"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 25,
+            "cpu_ms": 24,
+            "max_rss_kb": 10752,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/json_roundtrip/python/main.py",
+            "binary_size_bytes": 606
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 226,
+                "cpu_ms": 226,
+                "max_rss_kb": 8832,
+                "checksum": 1481400000,
+                "ops": 120000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 220,
+                "cpu_ms": 220,
+                "max_rss_kb": 8832,
+                "checksum": 1481400000,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 238,
+                "cpu_ms": 235,
+                "max_rss_kb": 9024,
+                "checksum": 1481400000,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 234,
+                "cpu_ms": 234,
+                "max_rss_kb": 9024,
+                "checksum": 1481400000,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 217,
+                "cpu_ms": 214,
+                "max_rss_kb": 8832,
+                "checksum": 1481400000,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 241,
+                "cpu_ms": 237,
+                "max_rss_kb": 8832,
+                "checksum": 1481400000,
+                "ops": 120000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 230.0,
+              "median_wall_ms": 234.0,
+              "p95_wall_ms": 241.0,
+              "p99_wall_ms": 241.0,
+              "stddev_wall_ms": 9.695359714832659,
+              "mad_wall_ms": 7.0,
+              "rsd_wall_pct": 4.2153737890576775,
+              "mean_cpu_ms": 228.0,
+              "mean_max_rss_kb": 8908.8
+            }
+          },
+          "result": {
+            "checksum": 1481400000,
+            "ops": 120000
+          }
+        },
+        "typescript": {
+          "source": "runtime/benchmarks/cross_lang/cases/json_roundtrip/typescript/main.ts",
+          "compile": {
+            "command": [
+              "npx",
+              "--yes",
+              "-p",
+              "typescript",
+              "tsc",
+              "--target",
+              "ES2020",
+              "--module",
+              "commonjs",
+              "--skipLibCheck",
+              "--outDir",
+              "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/json_roundtrip/typescript",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/json_roundtrip/typescript/main.ts"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 980,
+            "cpu_ms": 1447,
+            "max_rss_kb": 137396,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/json_roundtrip/typescript/main.js",
+            "binary_size_bytes": 696
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 67,
+                "cpu_ms": 70,
+                "max_rss_kb": 46848,
+                "checksum": 1481400000,
+                "ops": 120000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 73,
+                "cpu_ms": 75,
+                "max_rss_kb": 46848,
+                "checksum": 1481400000,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 66,
+                "cpu_ms": 72,
+                "max_rss_kb": 46848,
+                "checksum": 1481400000,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 70,
+                "cpu_ms": 74,
+                "max_rss_kb": 46848,
+                "checksum": 1481400000,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 70,
+                "cpu_ms": 74,
+                "max_rss_kb": 46848,
+                "checksum": 1481400000,
+                "ops": 120000
+              },
+              {
+                "elapsed_ms": 74,
+                "cpu_ms": 77,
+                "max_rss_kb": 46656,
+                "checksum": 1481400000,
+                "ops": 120000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 70.6,
+              "median_wall_ms": 70.0,
+              "p95_wall_ms": 74.0,
+              "p99_wall_ms": 74.0,
+              "stddev_wall_ms": 2.8,
+              "mad_wall_ms": 3.0,
+              "rsd_wall_pct": 3.9660056657223794,
+              "mean_cpu_ms": 74.4,
+              "mean_max_rss_kb": 46809.6
+            }
+          },
+          "result": {
+            "checksum": 1481400000,
+            "ops": 120000
+          }
+        }
+      },
+      "parity": {
+        "checksum_match": true,
+        "ops_match": true,
+        "checksum_by_language": {
+          "vibelang": 1481400000,
+          "c": 1481400000,
+          "rust": 1481400000,
+          "go": 1481400000,
+          "python": 1481400000,
+          "typescript": 1481400000
+        },
+        "ops_by_language": {
+          "vibelang": 120000,
+          "c": 120000,
+          "rust": 120000,
+          "go": 120000,
+          "python": 120000,
+          "typescript": 120000
+        }
+      }
+    },
+    {
+      "id": "channel_pingpong",
+      "category": "concurrency_latency",
+      "description": "Request/response channel ping-pong rounds.",
+      "expected_ops": 50000,
+      "languages": {
+        "vibelang": {
+          "source": "runtime/benchmarks/cross_lang/cases/channel_pingpong/vibelang/main.yb",
+          "compile": {
+            "command": [
+              "/tmp/cursor-sandbox-cache/4c484c4d772e5e35f0b33795e3776c53/cargo-target/release/vibe",
+              "build",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/channel_pingpong/vibelang/main.yb",
+              "--profile",
+              "release"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 488,
+            "cpu_ms": 452,
+            "max_rss_kb": 37632,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/channel_pingpong/vibelang/.yb/artifacts/release/x86_64-unknown-linux-gnu/main",
+            "binary_size_bytes": 98128
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 1841,
+                "cpu_ms": 1498,
+                "max_rss_kb": 1152,
+                "checksum": 1250075000,
+                "ops": 50000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 2187,
+                "cpu_ms": 1739,
+                "max_rss_kb": 1344,
+                "checksum": 1250075000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 2050,
+                "cpu_ms": 1638,
+                "max_rss_kb": 1152,
+                "checksum": 1250075000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 2047,
+                "cpu_ms": 1633,
+                "max_rss_kb": 1344,
+                "checksum": 1250075000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 2130,
+                "cpu_ms": 1688,
+                "max_rss_kb": 1152,
+                "checksum": 1250075000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 2104,
+                "cpu_ms": 1668,
+                "max_rss_kb": 1152,
+                "checksum": 1250075000,
+                "ops": 50000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 2103.6,
+              "median_wall_ms": 2104.0,
+              "p95_wall_ms": 2187.0,
+              "p99_wall_ms": 2187.0,
+              "stddev_wall_ms": 52.40076335321844,
+              "mad_wall_ms": 54.0,
+              "rsd_wall_pct": 2.491004152558397,
+              "mean_cpu_ms": 1673.2,
+              "mean_max_rss_kb": 1228.8
+            }
+          },
+          "result": {
+            "checksum": 1250075000,
+            "ops": 50000
+          }
+        },
+        "c": {
+          "source": "runtime/benchmarks/cross_lang/cases/channel_pingpong/c/main.c",
+          "compile": {
+            "command": [
+              "gcc",
+              "-O3",
+              "-DNDEBUG",
+              "-pthread",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/channel_pingpong/c/main.c",
+              "-o",
+              "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/channel_pingpong/c/bench_c"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 90,
+            "cpu_ms": 49,
+            "max_rss_kb": 24768,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/channel_pingpong/c/bench_c",
+            "binary_size_bytes": 16416
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 1996,
+                "cpu_ms": 1575,
+                "max_rss_kb": 1344,
+                "checksum": 1250075000,
+                "ops": 50000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 1973,
+                "cpu_ms": 1558,
+                "max_rss_kb": 1344,
+                "checksum": 1250075000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 1909,
+                "cpu_ms": 1502,
+                "max_rss_kb": 1536,
+                "checksum": 1250075000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 1903,
+                "cpu_ms": 1512,
+                "max_rss_kb": 1344,
+                "checksum": 1250075000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 1778,
+                "cpu_ms": 1420,
+                "max_rss_kb": 1344,
+                "checksum": 1250075000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 1712,
+                "cpu_ms": 1359,
+                "max_rss_kb": 1344,
+                "checksum": 1250075000,
+                "ops": 50000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 1855.0,
+              "median_wall_ms": 1903.0,
+              "p95_wall_ms": 1973.0,
+              "p99_wall_ms": 1973.0,
+              "stddev_wall_ms": 95.41697962102971,
+              "mad_wall_ms": 70.0,
+              "rsd_wall_pct": 5.14377248630888,
+              "mean_cpu_ms": 1470.2,
+              "mean_max_rss_kb": 1382.4
+            }
+          },
+          "result": {
+            "checksum": 1250075000,
+            "ops": 50000
+          }
+        },
+        "rust": {
+          "source": "runtime/benchmarks/cross_lang/cases/channel_pingpong/rust/main.rs",
+          "compile": {
+            "command": [
+              "rustc",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/channel_pingpong/rust/main.rs",
+              "-C",
+              "opt-level=3",
+              "-C",
+              "codegen-units=1",
+              "-C",
+              "debuginfo=0",
+              "-o",
+              "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/channel_pingpong/rust/bench_rust"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 566,
+            "cpu_ms": 539,
+            "max_rss_kb": 116740,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/channel_pingpong/rust/bench_rust",
+            "binary_size_bytes": 4045296
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 1695,
+                "cpu_ms": 1357,
+                "max_rss_kb": 1920,
+                "checksum": 1250075000,
+                "ops": 50000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 1715,
+                "cpu_ms": 1386,
+                "max_rss_kb": 1920,
+                "checksum": 1250075000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 1777,
+                "cpu_ms": 1419,
+                "max_rss_kb": 2112,
+                "checksum": 1250075000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 1725,
+                "cpu_ms": 1386,
+                "max_rss_kb": 1920,
+                "checksum": 1250075000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 1744,
+                "cpu_ms": 1397,
+                "max_rss_kb": 1920,
+                "checksum": 1250075000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 1711,
+                "cpu_ms": 1369,
+                "max_rss_kb": 2112,
+                "checksum": 1250075000,
+                "ops": 50000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 1734.4,
+              "median_wall_ms": 1725.0,
+              "p95_wall_ms": 1777.0,
+              "p99_wall_ms": 1777.0,
+              "stddev_wall_ms": 24.16278129686233,
+              "mad_wall_ms": 14.0,
+              "rsd_wall_pct": 1.393149290640125,
+              "mean_cpu_ms": 1391.4,
+              "mean_max_rss_kb": 1996.8
+            }
+          },
+          "result": {
+            "checksum": 1250075000,
+            "ops": 50000
+          }
+        },
+        "go": {
+          "source": "runtime/benchmarks/cross_lang/cases/channel_pingpong/go/main.go",
+          "compile": {
+            "command": [
+              "go",
+              "build",
+              "-trimpath",
+              "-ldflags",
+              "-s -w",
+              "-o",
+              "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/channel_pingpong/go/bench_go",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/channel_pingpong/go/main.go"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 134,
+            "cpu_ms": 216,
+            "max_rss_kb": 18624,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/channel_pingpong/go/bench_go",
+            "binary_size_bytes": 1388696
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 17,
+                "cpu_ms": 15,
+                "max_rss_kb": 1728,
+                "checksum": 1250075000,
+                "ops": 50000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 13,
+                "cpu_ms": 14,
+                "max_rss_kb": 1728,
+                "checksum": 1250075000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 13,
+                "cpu_ms": 15,
+                "max_rss_kb": 1728,
+                "checksum": 1250075000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 13,
+                "cpu_ms": 15,
+                "max_rss_kb": 1728,
+                "checksum": 1250075000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 12,
+                "cpu_ms": 13,
+                "max_rss_kb": 1728,
+                "checksum": 1250075000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 13,
+                "cpu_ms": 15,
+                "max_rss_kb": 1728,
+                "checksum": 1250075000,
+                "ops": 50000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 12.8,
+              "median_wall_ms": 13.0,
+              "p95_wall_ms": 13.0,
+              "p99_wall_ms": 13.0,
+              "stddev_wall_ms": 0.4,
+              "mad_wall_ms": 0.0,
+              "rsd_wall_pct": 3.125,
+              "mean_cpu_ms": 14.4,
+              "mean_max_rss_kb": 1728.0
+            }
+          },
+          "result": {
+            "checksum": 1250075000,
+            "ops": 50000
+          }
+        },
+        "python": {
+          "source": "runtime/benchmarks/cross_lang/cases/channel_pingpong/python/main.py",
+          "compile": {
+            "command": [
+              "python3",
+              "-m",
+              "py_compile",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/channel_pingpong/python/main.py"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 24,
+            "cpu_ms": 24,
+            "max_rss_kb": 10752,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/channel_pingpong/python/main.py",
+            "binary_size_bytes": 533
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 2521,
+                "cpu_ms": 2409,
+                "max_rss_kb": 9024,
+                "checksum": 1250075000,
+                "ops": 50000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 2430,
+                "cpu_ms": 2365,
+                "max_rss_kb": 9024,
+                "checksum": 1250075000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 2462,
+                "cpu_ms": 2413,
+                "max_rss_kb": 9408,
+                "checksum": 1250075000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 2499,
+                "cpu_ms": 2399,
+                "max_rss_kb": 9216,
+                "checksum": 1250075000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 2429,
+                "cpu_ms": 2400,
+                "max_rss_kb": 9216,
+                "checksum": 1250075000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 2403,
+                "cpu_ms": 2366,
+                "max_rss_kb": 9024,
+                "checksum": 1250075000,
+                "ops": 50000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 2444.6,
+              "median_wall_ms": 2430.0,
+              "p95_wall_ms": 2499.0,
+              "p99_wall_ms": 2499.0,
+              "stddev_wall_ms": 33.012724819378356,
+              "mad_wall_ms": 27.0,
+              "rsd_wall_pct": 1.3504346240439482,
+              "mean_cpu_ms": 2388.6,
+              "mean_max_rss_kb": 9177.6
+            }
+          },
+          "result": {
+            "checksum": 1250075000,
+            "ops": 50000
+          }
+        },
+        "typescript": {
+          "source": "runtime/benchmarks/cross_lang/cases/channel_pingpong/typescript/main.ts",
+          "compile": {
+            "command": [
+              "npx",
+              "--yes",
+              "-p",
+              "typescript",
+              "tsc",
+              "--target",
+              "ES2020",
+              "--module",
+              "commonjs",
+              "--skipLibCheck",
+              "--outDir",
+              "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/channel_pingpong/typescript",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/channel_pingpong/typescript/main.ts"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 1015,
+            "cpu_ms": 1491,
+            "max_rss_kb": 138412,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/channel_pingpong/typescript/main.js",
+            "binary_size_bytes": 1081
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 2642,
+                "cpu_ms": 2678,
+                "max_rss_kb": 58888,
+                "checksum": 1250075000,
+                "ops": 50000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 2577,
+                "cpu_ms": 2627,
+                "max_rss_kb": 59704,
+                "checksum": 1250075000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 2584,
+                "cpu_ms": 2625,
+                "max_rss_kb": 59408,
+                "checksum": 1250075000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 2680,
+                "cpu_ms": 2695,
+                "max_rss_kb": 58188,
+                "checksum": 1250075000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 2809,
+                "cpu_ms": 2822,
+                "max_rss_kb": 58948,
+                "checksum": 1250075000,
+                "ops": 50000
+              },
+              {
+                "elapsed_ms": 2938,
+                "cpu_ms": 2920,
+                "max_rss_kb": 59380,
+                "checksum": 1250075000,
+                "ops": 50000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 2717.6,
+              "median_wall_ms": 2680.0,
+              "p95_wall_ms": 2938.0,
+              "p99_wall_ms": 2938.0,
+              "stddev_wall_ms": 138.53606028756556,
+              "mad_wall_ms": 103.0,
+              "rsd_wall_pct": 5.097735512495053,
+              "mean_cpu_ms": 2737.8,
+              "mean_max_rss_kb": 59125.6
+            }
+          },
+          "result": {
+            "checksum": 1250075000,
+            "ops": 50000
+          }
+        }
+      },
+      "parity": {
+        "checksum_match": true,
+        "ops_match": true,
+        "checksum_by_language": {
+          "vibelang": 1250075000,
+          "c": 1250075000,
+          "rust": 1250075000,
+          "go": 1250075000,
+          "python": 1250075000,
+          "typescript": 1250075000
+        },
+        "ops_by_language": {
+          "vibelang": 50000,
+          "c": 50000,
+          "rust": 50000,
+          "go": 50000,
+          "python": 50000,
+          "typescript": 50000
+        }
+      }
+    },
+    {
+      "id": "worker_pool_reduce",
+      "category": "concurrency_throughput",
+      "description": "Four-worker partitioned reduction workload.",
+      "expected_ops": 60000,
+      "languages": {
+        "vibelang": {
+          "source": "runtime/benchmarks/cross_lang/cases/worker_pool_reduce/vibelang/main.yb",
+          "compile": {
+            "command": [
+              "/tmp/cursor-sandbox-cache/4c484c4d772e5e35f0b33795e3776c53/cargo-target/release/vibe",
+              "build",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/worker_pool_reduce/vibelang/main.yb",
+              "--profile",
+              "release"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 448,
+            "cpu_ms": 411,
+            "max_rss_kb": 37824,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/worker_pool_reduce/vibelang/.yb/artifacts/release/x86_64-unknown-linux-gnu/main",
+            "binary_size_bytes": 98224
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 1,
+                "max_rss_kb": 1344,
+                "checksum": 1800030000,
+                "ops": 60000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 1,
+                "cpu_ms": 1,
+                "max_rss_kb": 1344,
+                "checksum": 1800030000,
+                "ops": 60000
+              },
+              {
+                "elapsed_ms": 1,
+                "cpu_ms": 1,
+                "max_rss_kb": 1344,
+                "checksum": 1800030000,
+                "ops": 60000
+              },
+              {
+                "elapsed_ms": 1,
+                "cpu_ms": 1,
+                "max_rss_kb": 1344,
+                "checksum": 1800030000,
+                "ops": 60000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 1,
+                "max_rss_kb": 1344,
+                "checksum": 1800030000,
+                "ops": 60000
+              },
+              {
+                "elapsed_ms": 1,
+                "cpu_ms": 1,
+                "max_rss_kb": 1344,
+                "checksum": 1800030000,
+                "ops": 60000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 1.2,
+              "median_wall_ms": 1.0,
+              "p95_wall_ms": 2.0,
+              "p99_wall_ms": 2.0,
+              "stddev_wall_ms": 0.4,
+              "mad_wall_ms": 0.0,
+              "rsd_wall_pct": 33.333333333333336,
+              "mean_cpu_ms": 1.0,
+              "mean_max_rss_kb": 1344.0
+            }
+          },
+          "result": {
+            "checksum": 1800030000,
+            "ops": 60000
+          }
+        },
+        "c": {
+          "source": "runtime/benchmarks/cross_lang/cases/worker_pool_reduce/c/main.c",
+          "compile": {
+            "command": [
+              "gcc",
+              "-O3",
+              "-DNDEBUG",
+              "-pthread",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/worker_pool_reduce/c/main.c",
+              "-o",
+              "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/worker_pool_reduce/c/bench_c"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 83,
+            "cpu_ms": 41,
+            "max_rss_kb": 23424,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/worker_pool_reduce/c/bench_c",
+            "binary_size_bytes": 16192
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 1,
+                "max_rss_kb": 1344,
+                "checksum": 1800030000,
+                "ops": 60000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 1,
+                "max_rss_kb": 1344,
+                "checksum": 1800030000,
+                "ops": 60000
+              },
+              {
+                "elapsed_ms": 1,
+                "cpu_ms": 1,
+                "max_rss_kb": 1344,
+                "checksum": 1800030000,
+                "ops": 60000
+              },
+              {
+                "elapsed_ms": 1,
+                "cpu_ms": 1,
+                "max_rss_kb": 1344,
+                "checksum": 1800030000,
+                "ops": 60000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 2,
+                "max_rss_kb": 1344,
+                "checksum": 1800030000,
+                "ops": 60000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 2,
+                "max_rss_kb": 1344,
+                "checksum": 1800030000,
+                "ops": 60000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 1.6,
+              "median_wall_ms": 2.0,
+              "p95_wall_ms": 2.0,
+              "p99_wall_ms": 2.0,
+              "stddev_wall_ms": 0.4898979485566356,
+              "mad_wall_ms": 0.0,
+              "rsd_wall_pct": 30.618621784789724,
+              "mean_cpu_ms": 1.4,
+              "mean_max_rss_kb": 1344.0
+            }
+          },
+          "result": {
+            "checksum": 1800030000,
+            "ops": 60000
+          }
+        },
+        "rust": {
+          "source": "runtime/benchmarks/cross_lang/cases/worker_pool_reduce/rust/main.rs",
+          "compile": {
+            "command": [
+              "rustc",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/worker_pool_reduce/rust/main.rs",
+              "-C",
+              "opt-level=3",
+              "-C",
+              "codegen-units=1",
+              "-C",
+              "debuginfo=0",
+              "-o",
+              "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/worker_pool_reduce/rust/bench_rust"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 597,
+            "cpu_ms": 561,
+            "max_rss_kb": 117508,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/worker_pool_reduce/rust/bench_rust",
+            "binary_size_bytes": 4035216
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 1,
+                "max_rss_kb": 2112,
+                "checksum": 1800030000,
+                "ops": 60000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 2,
+                "max_rss_kb": 2112,
+                "checksum": 1800030000,
+                "ops": 60000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 2,
+                "max_rss_kb": 1920,
+                "checksum": 1800030000,
+                "ops": 60000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 2,
+                "max_rss_kb": 2112,
+                "checksum": 1800030000,
+                "ops": 60000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 2,
+                "max_rss_kb": 1920,
+                "checksum": 1800030000,
+                "ops": 60000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 2,
+                "max_rss_kb": 2112,
+                "checksum": 1800030000,
+                "ops": 60000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 2.0,
+              "median_wall_ms": 2.0,
+              "p95_wall_ms": 2.0,
+              "p99_wall_ms": 2.0,
+              "stddev_wall_ms": 0.0,
+              "mad_wall_ms": 0.0,
+              "rsd_wall_pct": 0.0,
+              "mean_cpu_ms": 2.0,
+              "mean_max_rss_kb": 2035.2
+            }
+          },
+          "result": {
+            "checksum": 1800030000,
+            "ops": 60000
+          }
+        },
+        "go": {
+          "source": "runtime/benchmarks/cross_lang/cases/worker_pool_reduce/go/main.go",
+          "compile": {
+            "command": [
+              "go",
+              "build",
+              "-trimpath",
+              "-ldflags",
+              "-s -w",
+              "-o",
+              "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/worker_pool_reduce/go/bench_go",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/worker_pool_reduce/go/main.go"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 145,
+            "cpu_ms": 235,
+            "max_rss_kb": 18624,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/worker_pool_reduce/go/bench_go",
+            "binary_size_bytes": 1388696
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 7,
+                "cpu_ms": 4,
+                "max_rss_kb": 1920,
+                "checksum": 1800030000,
+                "ops": 60000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 3,
+                "cpu_ms": 3,
+                "max_rss_kb": 1728,
+                "checksum": 1800030000,
+                "ops": 60000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 2,
+                "max_rss_kb": 1728,
+                "checksum": 1800030000,
+                "ops": 60000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 2,
+                "max_rss_kb": 1728,
+                "checksum": 1800030000,
+                "ops": 60000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 2,
+                "max_rss_kb": 1728,
+                "checksum": 1800030000,
+                "ops": 60000
+              },
+              {
+                "elapsed_ms": 2,
+                "cpu_ms": 2,
+                "max_rss_kb": 1728,
+                "checksum": 1800030000,
+                "ops": 60000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 2.2,
+              "median_wall_ms": 2.0,
+              "p95_wall_ms": 3.0,
+              "p99_wall_ms": 3.0,
+              "stddev_wall_ms": 0.4,
+              "mad_wall_ms": 0.0,
+              "rsd_wall_pct": 18.181818181818183,
+              "mean_cpu_ms": 2.2,
+              "mean_max_rss_kb": 1728.0
+            }
+          },
+          "result": {
+            "checksum": 1800030000,
+            "ops": 60000
+          }
+        },
+        "python": {
+          "source": "runtime/benchmarks/cross_lang/cases/worker_pool_reduce/python/main.py",
+          "compile": {
+            "command": [
+              "python3",
+              "-m",
+              "py_compile",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/worker_pool_reduce/python/main.py"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 27,
+            "cpu_ms": 22,
+            "max_rss_kb": 10752,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/worker_pool_reduce/python/main.py",
+            "binary_size_bytes": 566
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 21,
+                "cpu_ms": 16,
+                "max_rss_kb": 9024,
+                "checksum": 1800030000,
+                "ops": 60000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 20,
+                "cpu_ms": 15,
+                "max_rss_kb": 9216,
+                "checksum": 1800030000,
+                "ops": 60000
+              },
+              {
+                "elapsed_ms": 20,
+                "cpu_ms": 14,
+                "max_rss_kb": 9024,
+                "checksum": 1800030000,
+                "ops": 60000
+              },
+              {
+                "elapsed_ms": 20,
+                "cpu_ms": 14,
+                "max_rss_kb": 9024,
+                "checksum": 1800030000,
+                "ops": 60000
+              },
+              {
+                "elapsed_ms": 22,
+                "cpu_ms": 18,
+                "max_rss_kb": 9216,
+                "checksum": 1800030000,
+                "ops": 60000
+              },
+              {
+                "elapsed_ms": 21,
+                "cpu_ms": 14,
+                "max_rss_kb": 9024,
+                "checksum": 1800030000,
+                "ops": 60000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 20.6,
+              "median_wall_ms": 20.0,
+              "p95_wall_ms": 22.0,
+              "p99_wall_ms": 22.0,
+              "stddev_wall_ms": 0.8,
+              "mad_wall_ms": 0.0,
+              "rsd_wall_pct": 3.8834951456310676,
+              "mean_cpu_ms": 15.0,
+              "mean_max_rss_kb": 9100.8
+            }
+          },
+          "result": {
+            "checksum": 1800030000,
+            "ops": 60000
+          }
+        },
+        "typescript": {
+          "source": "runtime/benchmarks/cross_lang/cases/worker_pool_reduce/typescript/main.ts",
+          "compile": {
+            "command": [
+              "npx",
+              "--yes",
+              "-p",
+              "typescript",
+              "tsc",
+              "--target",
+              "ES2020",
+              "--module",
+              "commonjs",
+              "--skipLibCheck",
+              "--outDir",
+              "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/worker_pool_reduce/typescript",
+              "/home/azskdev/workspace/VibeStack/vibelang/runtime/benchmarks/cross_lang/cases/worker_pool_reduce/typescript/main.ts"
+            ],
+            "exit_code": 0,
+            "elapsed_ms": 1098,
+            "cpu_ms": 1638,
+            "max_rss_kb": 138800,
+            "binary_path": "/home/azskdev/workspace/VibeStack/vibelang/reports/benchmarks/cross_lang/quick/build/worker_pool_reduce/typescript/main.js",
+            "binary_size_bytes": 1305
+          },
+          "runtime": {
+            "warmups": [
+              {
+                "elapsed_ms": 65,
+                "cpu_ms": 161,
+                "max_rss_kb": 75072,
+                "checksum": 1800030000,
+                "ops": 60000
+              }
+            ],
+            "runs": [
+              {
+                "elapsed_ms": 66,
+                "cpu_ms": 176,
+                "max_rss_kb": 74880,
+                "checksum": 1800030000,
+                "ops": 60000
+              },
+              {
+                "elapsed_ms": 66,
+                "cpu_ms": 167,
+                "max_rss_kb": 74496,
+                "checksum": 1800030000,
+                "ops": 60000
+              },
+              {
+                "elapsed_ms": 62,
+                "cpu_ms": 151,
+                "max_rss_kb": 74880,
+                "checksum": 1800030000,
+                "ops": 60000
+              },
+              {
+                "elapsed_ms": 66,
+                "cpu_ms": 162,
+                "max_rss_kb": 75264,
+                "checksum": 1800030000,
+                "ops": 60000
+              },
+              {
+                "elapsed_ms": 64,
+                "cpu_ms": 160,
+                "max_rss_kb": 74688,
+                "checksum": 1800030000,
+                "ops": 60000
+              }
+            ],
+            "summary": {
+              "mean_wall_ms": 64.8,
+              "median_wall_ms": 66.0,
+              "p95_wall_ms": 66.0,
+              "p99_wall_ms": 66.0,
+              "stddev_wall_ms": 1.6,
+              "mad_wall_ms": 0.0,
+              "rsd_wall_pct": 2.469135802469136,
+              "mean_cpu_ms": 163.2,
+              "mean_max_rss_kb": 74841.6
+            }
+          },
+          "result": {
+            "checksum": 1800030000,
+            "ops": 60000
+          }
+        }
+      },
+      "parity": {
+        "checksum_match": true,
+        "ops_match": true,
+        "checksum_by_language": {
+          "vibelang": 1800030000,
+          "c": 1800030000,
+          "rust": 1800030000,
+          "go": 1800030000,
+          "python": 1800030000,
+          "typescript": 1800030000
+        },
+        "ops_by_language": {
+          "vibelang": 60000,
+          "c": 60000,
+          "rust": 60000,
+          "go": 60000,
+          "python": 60000,
+          "typescript": 60000
+        }
+      }
+    }
+  ],
+  "summary": {
+    "per_case": [
+      {
+        "case_id": "fib_recursive",
+        "mean_wall_ms": {
+          "vibelang": 2.0,
+          "c": 2.0,
+          "rust": 2.0,
+          "go": 2.2,
+          "python": 40.2,
+          "typescript": 35.8
+        },
+        "vibelang_ratio_vs": {
+          "c": 1.0,
+          "rust": 1.0,
+          "go": 0.9090909090909091,
+          "python": 0.04975124378109452,
+          "typescript": 0.0558659217877095
+        },
+        "vibelang_ratio_vs_c": 1.0,
+        "vibelang_ratio_vs_rust": 1.0,
+        "vibelang_ratio_vs_go": 0.9090909090909091,
+        "vibelang_ratio_vs_python": 0.04975124378109452,
+        "vibelang_ratio_vs_typescript": 0.0558659217877095
+      },
+      {
+        "case_id": "prime_sieve",
+        "mean_wall_ms": {
+          "vibelang": 2.2,
+          "c": 1.8,
+          "rust": 2.4,
+          "go": 3.4,
+          "python": 32.0,
+          "typescript": 36.0
+        },
+        "vibelang_ratio_vs": {
+          "c": 1.2222222222222223,
+          "rust": 0.9166666666666667,
+          "go": 0.6470588235294118,
+          "python": 0.06875,
+          "typescript": 0.061111111111111116
+        },
+        "vibelang_ratio_vs_c": 1.2222222222222223,
+        "vibelang_ratio_vs_rust": 0.9166666666666667,
+        "vibelang_ratio_vs_go": 0.6470588235294118,
+        "vibelang_ratio_vs_python": 0.06875,
+        "vibelang_ratio_vs_typescript": 0.061111111111111116
+      },
+      {
+        "case_id": "sort_int",
+        "mean_wall_ms": {
+          "vibelang": 2.2,
+          "c": 1.0,
+          "rust": 2.0,
+          "go": 2.4,
+          "python": 59.6,
+          "typescript": 42.8
+        },
+        "vibelang_ratio_vs": {
+          "c": 2.2,
+          "rust": 1.1,
+          "go": 0.9166666666666667,
+          "python": 0.03691275167785235,
+          "typescript": 0.05140186915887851
+        },
+        "vibelang_ratio_vs_c": 2.2,
+        "vibelang_ratio_vs_rust": 1.1,
+        "vibelang_ratio_vs_go": 0.9166666666666667,
+        "vibelang_ratio_vs_python": 0.03691275167785235,
+        "vibelang_ratio_vs_typescript": 0.05140186915887851
+      },
+      {
+        "case_id": "hashmap_frequency",
+        "mean_wall_ms": {
+          "vibelang": 18.4,
+          "c": 1.6,
+          "rust": 3.0,
+          "go": 6.0,
+          "python": 46.2,
+          "typescript": 31.2
+        },
+        "vibelang_ratio_vs": {
+          "c": 11.499999999999998,
+          "rust": 6.133333333333333,
+          "go": 3.0666666666666664,
+          "python": 0.3982683982683982,
+          "typescript": 0.5897435897435898
+        },
+        "vibelang_ratio_vs_c": 11.499999999999998,
+        "vibelang_ratio_vs_rust": 6.133333333333333,
+        "vibelang_ratio_vs_go": 3.0666666666666664,
+        "vibelang_ratio_vs_python": 0.3982683982683982,
+        "vibelang_ratio_vs_typescript": 0.5897435897435898
+      },
+      {
+        "case_id": "hashmap_frequency_int_key",
+        "mean_wall_ms": {
+          "vibelang": 5.4,
+          "c": 1.6,
+          "rust": 3.0,
+          "go": 4.0,
+          "python": 45.4,
+          "typescript": 31.2
+        },
+        "vibelang_ratio_vs": {
+          "c": 3.375,
+          "rust": 1.8,
+          "go": 1.35,
+          "python": 0.11894273127753305,
+          "typescript": 0.1730769230769231
+        },
+        "vibelang_ratio_vs_c": 3.375,
+        "vibelang_ratio_vs_rust": 1.8,
+        "vibelang_ratio_vs_go": 1.35,
+        "vibelang_ratio_vs_python": 0.11894273127753305,
+        "vibelang_ratio_vs_typescript": 0.1730769230769231
+      },
+      {
+        "case_id": "hashmap_frequency_str_key",
+        "mean_wall_ms": {
+          "vibelang": 17.0,
+          "c": 20.0,
+          "rust": 10.6,
+          "go": 8.2,
+          "python": 69.6,
+          "typescript": 33.6
+        },
+        "vibelang_ratio_vs": {
+          "c": 0.85,
+          "rust": 1.6037735849056605,
+          "go": 2.073170731707317,
+          "python": 0.2442528735632184,
+          "typescript": 0.5059523809523809
+        },
+        "vibelang_ratio_vs_c": 0.85,
+        "vibelang_ratio_vs_rust": 1.6037735849056605,
+        "vibelang_ratio_vs_go": 2.073170731707317,
+        "vibelang_ratio_vs_python": 0.2442528735632184,
+        "vibelang_ratio_vs_typescript": 0.5059523809523809
+      },
+      {
+        "case_id": "string_concat_checksum",
+        "mean_wall_ms": {
+          "vibelang": 7.2,
+          "c": 3.0,
+          "rust": 4.0,
+          "go": 6.0,
+          "python": 35.4,
+          "typescript": 33.6
+        },
+        "vibelang_ratio_vs": {
+          "c": 2.4,
+          "rust": 1.8,
+          "go": 1.2,
+          "python": 0.2033898305084746,
+          "typescript": 0.21428571428571427
+        },
+        "vibelang_ratio_vs_c": 2.4,
+        "vibelang_ratio_vs_rust": 1.8,
+        "vibelang_ratio_vs_go": 1.2,
+        "vibelang_ratio_vs_python": 0.2033898305084746,
+        "vibelang_ratio_vs_typescript": 0.21428571428571427
+      },
+      {
+        "case_id": "json_roundtrip",
+        "mean_wall_ms": {
+          "vibelang": 9.8,
+          "c": 6.6,
+          "rust": 8.6,
+          "go": 17.6,
+          "python": 230.0,
+          "typescript": 70.6
+        },
+        "vibelang_ratio_vs": {
+          "c": 1.484848484848485,
+          "rust": 1.1395348837209303,
+          "go": 0.5568181818181818,
+          "python": 0.042608695652173914,
+          "typescript": 0.1388101983002833
+        },
+        "vibelang_ratio_vs_c": 1.484848484848485,
+        "vibelang_ratio_vs_rust": 1.1395348837209303,
+        "vibelang_ratio_vs_go": 0.5568181818181818,
+        "vibelang_ratio_vs_python": 0.042608695652173914,
+        "vibelang_ratio_vs_typescript": 0.1388101983002833
+      },
+      {
+        "case_id": "channel_pingpong",
+        "mean_wall_ms": {
+          "vibelang": 2103.6,
+          "c": 1855.0,
+          "rust": 1734.4,
+          "go": 12.8,
+          "python": 2444.6,
+          "typescript": 2717.6
+        },
+        "vibelang_ratio_vs": {
+          "c": 1.1340161725067386,
+          "rust": 1.2128690036900367,
+          "go": 164.34374999999997,
+          "python": 0.8605088767078458,
+          "typescript": 0.7740653517809832
+        },
+        "vibelang_ratio_vs_c": 1.1340161725067386,
+        "vibelang_ratio_vs_rust": 1.2128690036900367,
+        "vibelang_ratio_vs_go": 164.34374999999997,
+        "vibelang_ratio_vs_python": 0.8605088767078458,
+        "vibelang_ratio_vs_typescript": 0.7740653517809832
+      },
+      {
+        "case_id": "worker_pool_reduce",
+        "mean_wall_ms": {
+          "vibelang": 1.2,
+          "c": 1.6,
+          "rust": 2.0,
+          "go": 2.2,
+          "python": 20.6,
+          "typescript": 64.8
+        },
+        "vibelang_ratio_vs": {
+          "c": 0.7499999999999999,
+          "rust": 0.6,
+          "go": 0.5454545454545454,
+          "python": 0.058252427184466014,
+          "typescript": 0.018518518518518517
+        },
+        "vibelang_ratio_vs_c": 0.7499999999999999,
+        "vibelang_ratio_vs_rust": 0.6,
+        "vibelang_ratio_vs_go": 0.5454545454545454,
+        "vibelang_ratio_vs_python": 0.058252427184466014,
+        "vibelang_ratio_vs_typescript": 0.018518518518518517
+      }
+    ],
+    "geomean_vibelang_ratio_vs": {
+      "c": 1.7496602660865697,
+      "rust": 1.3885711989648506,
+      "go": 1.7550133886018817,
+      "python": 0.12029576427042364,
+      "typescript": 0.14411382865484487
+    },
+    "geomean_vibelang_ratio_vs_c": 1.7496602660865697,
+    "geomean_vibelang_ratio_vs_rust": 1.3885711989648506,
+    "geomean_vibelang_ratio_vs_go": 1.7550133886018817,
+    "geomean_vibelang_ratio_vs_python": 0.12029576427042364,
+    "geomean_vibelang_ratio_vs_typescript": 0.14411382865484487
+  }
+}

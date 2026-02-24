@@ -1,0 +1,40 @@
+{
+  "format": "vibe-cross-language-performance-budget-v1",
+  "geomean_ratio_max": {
+    "c": 3.0,
+    "rust": 2.2,
+    "go": 3.2,
+    "python": 0.25,
+    "typescript": 0.25
+  },
+  "case_ratio_max": {
+    "hashmap_frequency": {
+      "c": 20.0,
+      "rust": 10.0,
+      "go": 8.0
+    },
+    "hashmap_frequency_int_key": {
+      "c": 5.0,
+      "rust": 2.5,
+      "go": 2.5
+    },
+    "channel_pingpong": {
+      "go": 220.0
+    },
+    "string_concat_checksum": {
+      "c": 5.0
+    },
+    "worker_pool_reduce": {
+      "c": 2.0
+    }
+  },
+  "rerun_policy": {
+    "hotspot_cases": [
+      "channel_pingpong",
+      "worker_pool_reduce"
+    ],
+    "rsd_wall_pct_threshold": 15.0,
+    "regression_pct_threshold": 10.0,
+    "enforce_rerun_gate": false
+  }
+}

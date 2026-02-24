@@ -23,6 +23,13 @@ typedef struct vibe_chan_i64 {
     int64_t tail;
     int64_t size;
     int closed;
+    int64_t send_fast_path_hits;
+    int64_t recv_fast_path_hits;
+    int64_t send_slow_path_hits;
+    int64_t recv_slow_path_hits;
+    int64_t send_wait_count;
+    int64_t recv_wait_count;
+    int64_t contention_count;
 } vibe_chan_i64;
 
 typedef struct vibe_spawn0_ctx {
@@ -57,6 +64,12 @@ typedef struct vibe_map_i64_i64 {
     int64_t len;
     int64_t cap;
     vibe_map_i64_entry *entries;
+    int64_t hash_cap;
+    int64_t hash_len;
+    int64_t *hash_slots;
+    int64_t collision_count;
+    int64_t resize_count;
+    int64_t probe_steps;
 } vibe_map_i64_i64;
 
 typedef struct vibe_map_str_entry {
@@ -69,10 +82,25 @@ typedef struct vibe_map_str_i64 {
     int64_t len;
     int64_t cap;
     vibe_map_str_entry *entries;
+    int64_t hash_cap;
+    int64_t hash_len;
+    int64_t *hash_slots;
+    int64_t collision_count;
+    int64_t resize_count;
+    int64_t probe_steps;
 } vibe_map_str_i64;
 
 static pthread_mutex_t vibe_select_cursor_mu = PTHREAD_MUTEX_INITIALIZER;
 static uint64_t vibe_select_cursor = 0;
+static int64_t vibe_json_parse_calls = 0;
+static int64_t vibe_json_stringify_calls = 0;
+static int64_t vibe_json_minify_calls = 0;
+static int64_t vibe_json_validate_calls = 0;
+static int64_t vibe_json_allocations = 0;
+
+static void vibe_counter_inc(int64_t *counter) {
+    __sync_fetch_and_add(counter, 1);
+}
 
 void vibe_println(const char *s) {
     if (s == NULL) {
@@ -210,6 +238,216 @@ int64_t vibe_list_len_i64(void *handle) {
     return list->len;
 }
 
+static uint64_t vibe_hash_u64(uint64_t value) {
+    value ^= value >> 33;
+    value *= 0xff51afd7ed558ccdull;
+    value ^= value >> 33;
+    value *= 0xc4ceb9fe1a85ec53ull;
+    value ^= value >> 33;
+    return value;
+}
+
+static uint64_t vibe_hash_i64_key(int64_t key) {
+    return vibe_hash_u64((uint64_t)key ^ 0x9e3779b97f4a7c15ull);
+}
+
+static uint64_t vibe_hash_cstr_key(const char *key) {
+    const unsigned char *bytes = (const unsigned char *)(key == NULL ? "" : key);
+    uint64_t hash = 1469598103934665603ull;
+    while (*bytes != '\0') {
+        hash ^= (uint64_t)(*bytes);
+        hash *= 1099511628211ull;
+        bytes += 1;
+    }
+    return hash;
+}
+
+static int64_t vibe_next_hash_capacity(int64_t min_cap) {
+    int64_t cap = 16;
+    while (cap < min_cap) {
+        cap *= 2;
+    }
+    return cap;
+}
+
+static void vibe_map_i64_hash_ensure(vibe_map_i64_i64 *map, int64_t min_cap);
+static void vibe_map_str_hash_ensure(vibe_map_str_i64 *map, int64_t min_cap);
+
+static int64_t vibe_map_i64_find_slot(
+    vibe_map_i64_i64 *map,
+    int64_t key,
+    int64_t *found,
+    int64_t *probe_count
+) {
+    if (map->hash_cap <= 0 || map->hash_slots == NULL) {
+        *found = 0;
+        if (probe_count != NULL) {
+            *probe_count = 0;
+        }
+        return -1;
+    }
+    uint64_t hash = vibe_hash_i64_key(key);
+    int64_t mask = map->hash_cap - 1;
+    int64_t slot = (int64_t)(hash & (uint64_t)mask);
+    int64_t first_tombstone = -1;
+    int64_t probes = 0;
+    while (1) {
+        probes += 1;
+        int64_t marker = map->hash_slots[slot];
+        if (marker == 0) {
+            *found = 0;
+            if (probe_count != NULL) {
+                *probe_count = probes;
+            }
+            return first_tombstone >= 0 ? first_tombstone : slot;
+        }
+        if (marker < 0) {
+            if (first_tombstone < 0) {
+                first_tombstone = slot;
+            }
+        } else {
+            int64_t entry_index = marker - 1;
+            if (entry_index >= 0 && entry_index < map->len && map->entries[entry_index].key == key) {
+                *found = 1;
+                if (probe_count != NULL) {
+                    *probe_count = probes;
+                }
+                return slot;
+            }
+        }
+        slot = (slot + 1) & mask;
+    }
+}
+
+static int64_t vibe_map_str_find_slot(
+    vibe_map_str_i64 *map,
+    const char *key,
+    int64_t *found,
+    int64_t *probe_count
+) {
+    const char *safe_key = key == NULL ? "" : key;
+    if (map->hash_cap <= 0 || map->hash_slots == NULL) {
+        *found = 0;
+        if (probe_count != NULL) {
+            *probe_count = 0;
+        }
+        return -1;
+    }
+    uint64_t hash = vibe_hash_cstr_key(safe_key);
+    int64_t mask = map->hash_cap - 1;
+    int64_t slot = (int64_t)(hash & (uint64_t)mask);
+    int64_t first_tombstone = -1;
+    int64_t probes = 0;
+    while (1) {
+        probes += 1;
+        int64_t marker = map->hash_slots[slot];
+        if (marker == 0) {
+            *found = 0;
+            if (probe_count != NULL) {
+                *probe_count = probes;
+            }
+            return first_tombstone >= 0 ? first_tombstone : slot;
+        }
+        if (marker < 0) {
+            if (first_tombstone < 0) {
+                first_tombstone = slot;
+            }
+        } else {
+            int64_t entry_index = marker - 1;
+            if (entry_index >= 0
+                && entry_index < map->len
+                && strcmp(map->entries[entry_index].key, safe_key) == 0) {
+                *found = 1;
+                if (probe_count != NULL) {
+                    *probe_count = probes;
+                }
+                return slot;
+            }
+        }
+        slot = (slot + 1) & mask;
+    }
+}
+
+static void vibe_map_i64_hash_rebuild(vibe_map_i64_i64 *map, int64_t new_cap) {
+    int64_t cap = vibe_next_hash_capacity(new_cap);
+    int64_t *slots = (int64_t *)calloc((size_t)cap, sizeof(int64_t));
+    if (slots == NULL) {
+        vibe_panic("failed to allocate i64 map hash slots");
+    }
+    free(map->hash_slots);
+    map->hash_slots = slots;
+    map->hash_cap = cap;
+    map->hash_len = 0;
+    map->resize_count += 1;
+    for (int64_t i = 0; i < map->len; i++) {
+        int64_t found = 0;
+        int64_t probes = 0;
+        int64_t slot = vibe_map_i64_find_slot(map, map->entries[i].key, &found, &probes);
+        if (slot < 0) {
+            vibe_panic("failed to rebuild i64 map hash slots");
+        }
+        map->hash_slots[slot] = i + 1;
+        map->hash_len += 1;
+        map->probe_steps += probes;
+    }
+}
+
+static void vibe_map_str_hash_rebuild(vibe_map_str_i64 *map, int64_t new_cap) {
+    int64_t cap = vibe_next_hash_capacity(new_cap);
+    int64_t *slots = (int64_t *)calloc((size_t)cap, sizeof(int64_t));
+    if (slots == NULL) {
+        vibe_panic("failed to allocate string map hash slots");
+    }
+    free(map->hash_slots);
+    map->hash_slots = slots;
+    map->hash_cap = cap;
+    map->hash_len = 0;
+    map->resize_count += 1;
+    for (int64_t i = 0; i < map->len; i++) {
+        int64_t found = 0;
+        int64_t probes = 0;
+        int64_t slot = vibe_map_str_find_slot(map, map->entries[i].key, &found, &probes);
+        if (slot < 0) {
+            vibe_panic("failed to rebuild string map hash slots");
+        }
+        map->hash_slots[slot] = i + 1;
+        map->hash_len += 1;
+        map->probe_steps += probes;
+    }
+}
+
+static void vibe_map_i64_hash_ensure(vibe_map_i64_i64 *map, int64_t min_cap) {
+    if (map->hash_cap < min_cap || map->hash_slots == NULL) {
+        vibe_map_i64_hash_rebuild(map, min_cap);
+    }
+}
+
+static void vibe_map_str_hash_ensure(vibe_map_str_i64 *map, int64_t min_cap) {
+    if (map->hash_cap < min_cap || map->hash_slots == NULL) {
+        vibe_map_str_hash_rebuild(map, min_cap);
+    }
+}
+
+static void vibe_map_i64_maybe_grow_hash(vibe_map_i64_i64 *map) {
+    if (map->hash_cap <= 0) {
+        vibe_map_i64_hash_ensure(map, 16);
+        return;
+    }
+    if ((map->hash_len + 1) * 10 >= map->hash_cap * 7) {
+        vibe_map_i64_hash_rebuild(map, map->hash_cap * 2);
+    }
+}
+
+static void vibe_map_str_maybe_grow_hash(vibe_map_str_i64 *map) {
+    if (map->hash_cap <= 0) {
+        vibe_map_str_hash_ensure(map, 16);
+        return;
+    }
+    if ((map->hash_len + 1) * 10 >= map->hash_cap * 7) {
+        vibe_map_str_hash_rebuild(map, map->hash_cap * 2);
+    }
+}
+
 static void vibe_map_i64_ensure_capacity(vibe_map_i64_i64 *map, int64_t min_cap) {
     if (map == NULL) {
         vibe_panic("map handle is null");
@@ -251,16 +489,30 @@ int64_t vibe_map_set_i64_i64(void *handle, int64_t key, int64_t value) {
     if (map == NULL || map->tag != VIBE_CONTAINER_MAP_I64_I64) {
         vibe_panic("map.set(i64, i64) called on non-map handle");
     }
-    for (int64_t i = 0; i < map->len; i++) {
-        if (map->entries[i].key == key) {
-            map->entries[i].value = value;
-            return 0;
-        }
+    vibe_map_i64_hash_ensure(map, 16);
+    vibe_map_i64_maybe_grow_hash(map);
+    int64_t found = 0;
+    int64_t probes = 0;
+    int64_t slot = vibe_map_i64_find_slot(map, key, &found, &probes);
+    if (slot < 0) {
+        vibe_panic("failed to find i64 map slot");
+    }
+    map->probe_steps += probes;
+    if (found) {
+        int64_t entry_index = map->hash_slots[slot] - 1;
+        map->entries[entry_index].value = value;
+        return 0;
+    }
+    if (probes > 1) {
+        map->collision_count += 1;
     }
     vibe_map_i64_ensure_capacity(map, map->len + 1);
-    map->entries[map->len].key = key;
-    map->entries[map->len].value = value;
+    int64_t entry_index = map->len;
+    map->entries[entry_index].key = key;
+    map->entries[entry_index].value = value;
+    map->hash_slots[slot] = entry_index + 1;
     map->len += 1;
+    map->hash_len += 1;
     return 0;
 }
 
@@ -269,10 +521,16 @@ int64_t vibe_map_get_i64_i64(void *handle, int64_t key) {
     if (map == NULL || map->tag != VIBE_CONTAINER_MAP_I64_I64) {
         vibe_panic("map.get(i64) called on non-map handle");
     }
-    for (int64_t i = 0; i < map->len; i++) {
-        if (map->entries[i].key == key) {
-            return map->entries[i].value;
-        }
+    if (map->hash_cap <= 0 || map->hash_slots == NULL || map->len == 0) {
+        return 0;
+    }
+    int64_t found = 0;
+    int64_t probes = 0;
+    int64_t slot = vibe_map_i64_find_slot(map, key, &found, &probes);
+    map->probe_steps += probes;
+    if (found && slot >= 0) {
+        int64_t entry_index = map->hash_slots[slot] - 1;
+        return map->entries[entry_index].value;
     }
     return 0;
 }
@@ -282,12 +540,14 @@ int64_t vibe_map_contains_i64_i64(void *handle, int64_t key) {
     if (map == NULL || map->tag != VIBE_CONTAINER_MAP_I64_I64) {
         vibe_panic("map.contains(i64) called on non-map handle");
     }
-    for (int64_t i = 0; i < map->len; i++) {
-        if (map->entries[i].key == key) {
-            return 1;
-        }
+    if (map->hash_cap <= 0 || map->hash_slots == NULL || map->len == 0) {
+        return 0;
     }
-    return 0;
+    int64_t found = 0;
+    int64_t probes = 0;
+    vibe_map_i64_find_slot(map, key, &found, &probes);
+    map->probe_steps += probes;
+    return found ? 1 : 0;
 }
 
 int64_t vibe_map_remove_i64_i64(void *handle, int64_t key) {
@@ -295,16 +555,30 @@ int64_t vibe_map_remove_i64_i64(void *handle, int64_t key) {
     if (map == NULL || map->tag != VIBE_CONTAINER_MAP_I64_I64) {
         vibe_panic("map.remove(i64) called on non-map handle");
     }
-    for (int64_t i = 0; i < map->len; i++) {
-        if (map->entries[i].key == key) {
-            for (int64_t j = i + 1; j < map->len; j++) {
-                map->entries[j - 1] = map->entries[j];
-            }
-            map->len -= 1;
-            return 1;
-        }
+    if (map->hash_cap <= 0 || map->hash_slots == NULL || map->len == 0) {
+        return 0;
     }
-    return 0;
+    int64_t found = 0;
+    int64_t probes = 0;
+    int64_t slot = vibe_map_i64_find_slot(map, key, &found, &probes);
+    map->probe_steps += probes;
+    if (!found || slot < 0) {
+        return 0;
+    }
+    int64_t removed_entry = map->hash_slots[slot] - 1;
+    for (int64_t i = removed_entry + 1; i < map->len; i++) {
+        map->entries[i - 1] = map->entries[i];
+    }
+    map->len -= 1;
+    if (map->hash_len > 0) {
+        map->hash_len -= 1;
+    }
+    if (map->hash_cap > 16 && map->hash_len * 4 < map->hash_cap) {
+        vibe_map_i64_hash_rebuild(map, map->hash_cap / 2);
+    } else {
+        vibe_map_i64_hash_rebuild(map, map->hash_cap);
+    }
+    return 1;
 }
 
 int64_t vibe_map_len_i64_i64(void *handle) {
@@ -313,6 +587,30 @@ int64_t vibe_map_len_i64_i64(void *handle) {
         vibe_panic("map.len called on non-map handle");
     }
     return map->len;
+}
+
+int64_t vibe_map_collision_count_i64_i64(void *handle) {
+    vibe_map_i64_i64 *map = (vibe_map_i64_i64 *)handle;
+    if (map == NULL || map->tag != VIBE_CONTAINER_MAP_I64_I64) {
+        vibe_panic("map collision_count called on non-map handle");
+    }
+    return map->collision_count;
+}
+
+int64_t vibe_map_resize_count_i64_i64(void *handle) {
+    vibe_map_i64_i64 *map = (vibe_map_i64_i64 *)handle;
+    if (map == NULL || map->tag != VIBE_CONTAINER_MAP_I64_I64) {
+        vibe_panic("map resize_count called on non-map handle");
+    }
+    return map->resize_count;
+}
+
+int64_t vibe_map_probe_steps_i64_i64(void *handle) {
+    vibe_map_i64_i64 *map = (vibe_map_i64_i64 *)handle;
+    if (map == NULL || map->tag != VIBE_CONTAINER_MAP_I64_I64) {
+        vibe_panic("map probe_steps called on non-map handle");
+    }
+    return map->probe_steps;
 }
 
 static void vibe_map_str_ensure_capacity(vibe_map_str_i64 *map, int64_t min_cap) {
@@ -357,16 +655,30 @@ int64_t vibe_map_set_str_i64(void *handle, const char *key, int64_t value) {
         vibe_panic("map.set(Str, i64) called on non-map handle");
     }
     const char *safe_key = key == NULL ? "" : key;
-    for (int64_t i = 0; i < map->len; i++) {
-        if (strcmp(map->entries[i].key, safe_key) == 0) {
-            map->entries[i].value = value;
-            return 0;
-        }
+    vibe_map_str_hash_ensure(map, 16);
+    vibe_map_str_maybe_grow_hash(map);
+    int64_t found = 0;
+    int64_t probes = 0;
+    int64_t slot = vibe_map_str_find_slot(map, safe_key, &found, &probes);
+    if (slot < 0) {
+        vibe_panic("failed to find string map slot");
+    }
+    map->probe_steps += probes;
+    if (found) {
+        int64_t entry_index = map->hash_slots[slot] - 1;
+        map->entries[entry_index].value = value;
+        return 0;
+    }
+    if (probes > 1) {
+        map->collision_count += 1;
     }
     vibe_map_str_ensure_capacity(map, map->len + 1);
-    map->entries[map->len].key = vibe_strdup_or_panic(safe_key);
-    map->entries[map->len].value = value;
+    int64_t entry_index = map->len;
+    map->entries[entry_index].key = vibe_strdup_or_panic(safe_key);
+    map->entries[entry_index].value = value;
+    map->hash_slots[slot] = entry_index + 1;
     map->len += 1;
+    map->hash_len += 1;
     return 0;
 }
 
@@ -375,11 +687,16 @@ int64_t vibe_map_get_str_i64(void *handle, const char *key) {
     if (map == NULL || map->tag != VIBE_CONTAINER_MAP_STR_I64) {
         vibe_panic("map.get(Str) called on non-map handle");
     }
-    const char *safe_key = key == NULL ? "" : key;
-    for (int64_t i = 0; i < map->len; i++) {
-        if (strcmp(map->entries[i].key, safe_key) == 0) {
-            return map->entries[i].value;
-        }
+    if (map->hash_cap <= 0 || map->hash_slots == NULL || map->len == 0) {
+        return 0;
+    }
+    int64_t found = 0;
+    int64_t probes = 0;
+    int64_t slot = vibe_map_str_find_slot(map, key, &found, &probes);
+    map->probe_steps += probes;
+    if (found && slot >= 0) {
+        int64_t entry_index = map->hash_slots[slot] - 1;
+        return map->entries[entry_index].value;
     }
     return 0;
 }
@@ -389,13 +706,14 @@ int64_t vibe_map_contains_str_i64(void *handle, const char *key) {
     if (map == NULL || map->tag != VIBE_CONTAINER_MAP_STR_I64) {
         vibe_panic("map.contains(Str) called on non-map handle");
     }
-    const char *safe_key = key == NULL ? "" : key;
-    for (int64_t i = 0; i < map->len; i++) {
-        if (strcmp(map->entries[i].key, safe_key) == 0) {
-            return 1;
-        }
+    if (map->hash_cap <= 0 || map->hash_slots == NULL || map->len == 0) {
+        return 0;
     }
-    return 0;
+    int64_t found = 0;
+    int64_t probes = 0;
+    vibe_map_str_find_slot(map, key, &found, &probes);
+    map->probe_steps += probes;
+    return found ? 1 : 0;
 }
 
 int64_t vibe_map_remove_str_i64(void *handle, const char *key) {
@@ -403,18 +721,31 @@ int64_t vibe_map_remove_str_i64(void *handle, const char *key) {
     if (map == NULL || map->tag != VIBE_CONTAINER_MAP_STR_I64) {
         vibe_panic("map.remove(Str) called on non-map handle");
     }
-    const char *safe_key = key == NULL ? "" : key;
-    for (int64_t i = 0; i < map->len; i++) {
-        if (strcmp(map->entries[i].key, safe_key) == 0) {
-            free(map->entries[i].key);
-            for (int64_t j = i + 1; j < map->len; j++) {
-                map->entries[j - 1] = map->entries[j];
-            }
-            map->len -= 1;
-            return 1;
-        }
+    if (map->hash_cap <= 0 || map->hash_slots == NULL || map->len == 0) {
+        return 0;
     }
-    return 0;
+    int64_t found = 0;
+    int64_t probes = 0;
+    int64_t slot = vibe_map_str_find_slot(map, key, &found, &probes);
+    map->probe_steps += probes;
+    if (!found || slot < 0) {
+        return 0;
+    }
+    int64_t removed_entry = map->hash_slots[slot] - 1;
+    free(map->entries[removed_entry].key);
+    for (int64_t i = removed_entry + 1; i < map->len; i++) {
+        map->entries[i - 1] = map->entries[i];
+    }
+    map->len -= 1;
+    if (map->hash_len > 0) {
+        map->hash_len -= 1;
+    }
+    if (map->hash_cap > 16 && map->hash_len * 4 < map->hash_cap) {
+        vibe_map_str_hash_rebuild(map, map->hash_cap / 2);
+    } else {
+        vibe_map_str_hash_rebuild(map, map->hash_cap);
+    }
+    return 1;
 }
 
 int64_t vibe_map_len_str_i64(void *handle) {
@@ -423,6 +754,30 @@ int64_t vibe_map_len_str_i64(void *handle) {
         vibe_panic("map.len called on non-map handle");
     }
     return map->len;
+}
+
+int64_t vibe_map_collision_count_str_i64(void *handle) {
+    vibe_map_str_i64 *map = (vibe_map_str_i64 *)handle;
+    if (map == NULL || map->tag != VIBE_CONTAINER_MAP_STR_I64) {
+        vibe_panic("map collision_count called on non-map handle");
+    }
+    return map->collision_count;
+}
+
+int64_t vibe_map_resize_count_str_i64(void *handle) {
+    vibe_map_str_i64 *map = (vibe_map_str_i64 *)handle;
+    if (map == NULL || map->tag != VIBE_CONTAINER_MAP_STR_I64) {
+        vibe_panic("map resize_count called on non-map handle");
+    }
+    return map->resize_count;
+}
+
+int64_t vibe_map_probe_steps_str_i64(void *handle) {
+    vibe_map_str_i64 *map = (vibe_map_str_i64 *)handle;
+    if (map == NULL || map->tag != VIBE_CONTAINER_MAP_STR_I64) {
+        vibe_panic("map probe_steps called on non-map handle");
+    }
+    return map->probe_steps;
 }
 
 int64_t vibe_container_len(void *handle) {
@@ -512,6 +867,10 @@ int64_t vibe_container_get_str_i64(void *handle, const char *key) {
     if (tag == VIBE_CONTAINER_MAP_STR_I64) {
         return vibe_map_get_str_i64(handle, key);
     }
+    if (tag == VIBE_CONTAINER_MAP_I64_I64) {
+        int64_t int_key = (int64_t)(intptr_t)key;
+        return vibe_map_get_i64_i64(handle, int_key);
+    }
     vibe_panic("container get(Str) is only valid for Map<Str, Int>");
     return 0;
 }
@@ -523,6 +882,10 @@ int64_t vibe_container_set_str_i64(void *handle, const char *key, int64_t value)
     int64_t tag = *((int64_t *)handle);
     if (tag == VIBE_CONTAINER_MAP_STR_I64) {
         return vibe_map_set_str_i64(handle, key, value);
+    }
+    if (tag == VIBE_CONTAINER_MAP_I64_I64) {
+        int64_t int_key = (int64_t)(intptr_t)key;
+        return vibe_map_set_i64_i64(handle, int_key, value);
     }
     vibe_panic("container set(Str, Int) is only valid for Map<Str, Int>");
     return 0;
@@ -536,6 +899,10 @@ int64_t vibe_container_contains_str_i64(void *handle, const char *key) {
     if (tag == VIBE_CONTAINER_MAP_STR_I64) {
         return vibe_map_contains_str_i64(handle, key);
     }
+    if (tag == VIBE_CONTAINER_MAP_I64_I64) {
+        int64_t int_key = (int64_t)(intptr_t)key;
+        return vibe_map_contains_i64_i64(handle, int_key);
+    }
     vibe_panic("container contains(Str) is only valid for Map<Str, Int>");
     return 0;
 }
@@ -548,7 +915,81 @@ int64_t vibe_container_remove_str_i64(void *handle, const char *key) {
     if (tag == VIBE_CONTAINER_MAP_STR_I64) {
         return vibe_map_remove_str_i64(handle, key);
     }
+    if (tag == VIBE_CONTAINER_MAP_I64_I64) {
+        int64_t int_key = (int64_t)(intptr_t)key;
+        return vibe_map_remove_i64_i64(handle, int_key);
+    }
     vibe_panic("container remove(Str) is only valid for Map<Str, Int>");
+    return 0;
+}
+
+int64_t vibe_container_get_auto_i64(void *handle, int64_t key_or_index) {
+    if (handle == NULL) {
+        vibe_panic("container get(auto) called on null handle");
+    }
+    int64_t tag = *((int64_t *)handle);
+    if (tag == VIBE_CONTAINER_LIST_I64) {
+        return vibe_list_get_i64(handle, key_or_index);
+    }
+    if (tag == VIBE_CONTAINER_MAP_I64_I64) {
+        return vibe_map_get_i64_i64(handle, key_or_index);
+    }
+    if (tag == VIBE_CONTAINER_MAP_STR_I64) {
+        const char *key = (const char *)(uintptr_t)key_or_index;
+        return vibe_map_get_str_i64(handle, key);
+    }
+    vibe_panic("container get(auto) unsupported container type");
+    return 0;
+}
+
+int64_t vibe_container_set_auto_i64(void *handle, int64_t key_or_index, int64_t value) {
+    if (handle == NULL) {
+        vibe_panic("container set(auto) called on null handle");
+    }
+    int64_t tag = *((int64_t *)handle);
+    if (tag == VIBE_CONTAINER_LIST_I64) {
+        return vibe_list_set_i64(handle, key_or_index, value);
+    }
+    if (tag == VIBE_CONTAINER_MAP_I64_I64) {
+        return vibe_map_set_i64_i64(handle, key_or_index, value);
+    }
+    if (tag == VIBE_CONTAINER_MAP_STR_I64) {
+        const char *key = (const char *)(uintptr_t)key_or_index;
+        return vibe_map_set_str_i64(handle, key, value);
+    }
+    vibe_panic("container set(auto) unsupported container type");
+    return 0;
+}
+
+int64_t vibe_container_contains_auto_i64(void *handle, int64_t key_raw) {
+    if (handle == NULL) {
+        vibe_panic("container contains(auto) called on null handle");
+    }
+    int64_t tag = *((int64_t *)handle);
+    if (tag == VIBE_CONTAINER_MAP_I64_I64) {
+        return vibe_map_contains_i64_i64(handle, key_raw);
+    }
+    if (tag == VIBE_CONTAINER_MAP_STR_I64) {
+        const char *key = (const char *)(uintptr_t)key_raw;
+        return vibe_map_contains_str_i64(handle, key);
+    }
+    vibe_panic("container contains(auto) is only valid for map containers");
+    return 0;
+}
+
+int64_t vibe_container_remove_auto_i64(void *handle, int64_t key_raw) {
+    if (handle == NULL) {
+        vibe_panic("container remove(auto) called on null handle");
+    }
+    int64_t tag = *((int64_t *)handle);
+    if (tag == VIBE_CONTAINER_MAP_I64_I64) {
+        return vibe_map_remove_i64_i64(handle, key_raw);
+    }
+    if (tag == VIBE_CONTAINER_MAP_STR_I64) {
+        const char *key = (const char *)(uintptr_t)key_raw;
+        return vibe_map_remove_str_i64(handle, key);
+    }
+    vibe_panic("container remove(auto) is only valid for map containers");
     return 0;
 }
 
@@ -830,8 +1271,35 @@ int64_t vibe_chan_send_i64(void *handle, int64_t value) {
     if (ch == NULL) {
         return 1;
     }
+    int64_t lock_contended = 0;
+    if (pthread_mutex_trylock(&ch->mu) == 0) {
+        if (ch->closed) {
+            pthread_mutex_unlock(&ch->mu);
+            return 1;
+        }
+        if (ch->size < ch->capacity) {
+            ch->buffer[ch->tail] = value;
+            ch->tail += 1;
+            if (ch->tail >= ch->capacity) {
+                ch->tail = 0;
+            }
+            ch->size += 1;
+            ch->send_fast_path_hits += 1;
+            pthread_cond_signal(&ch->can_recv);
+            pthread_mutex_unlock(&ch->mu);
+            return 0;
+        }
+        ch->contention_count += 1;
+        pthread_mutex_unlock(&ch->mu);
+    } else {
+        lock_contended = 1;
+    }
     pthread_mutex_lock(&ch->mu);
+    if (lock_contended) {
+        ch->contention_count += 1;
+    }
     while (!ch->closed && ch->size >= ch->capacity) {
+        ch->send_wait_count += 1;
         pthread_cond_wait(&ch->can_send, &ch->mu);
     }
     if (ch->closed) {
@@ -839,8 +1307,12 @@ int64_t vibe_chan_send_i64(void *handle, int64_t value) {
         return 1;
     }
     ch->buffer[ch->tail] = value;
-    ch->tail = (ch->tail + 1) % ch->capacity;
+    ch->tail += 1;
+    if (ch->tail >= ch->capacity) {
+        ch->tail = 0;
+    }
     ch->size += 1;
+    ch->send_slow_path_hits += 1;
     pthread_cond_signal(&ch->can_recv);
     pthread_mutex_unlock(&ch->mu);
     return 0;
@@ -851,8 +1323,35 @@ int64_t vibe_chan_recv_i64(void *handle) {
     if (ch == NULL) {
         return 0;
     }
+    int64_t lock_contended = 0;
+    if (pthread_mutex_trylock(&ch->mu) == 0) {
+        if (ch->size > 0) {
+            int64_t value = ch->buffer[ch->head];
+            ch->head += 1;
+            if (ch->head >= ch->capacity) {
+                ch->head = 0;
+            }
+            ch->size -= 1;
+            ch->recv_fast_path_hits += 1;
+            pthread_cond_signal(&ch->can_send);
+            pthread_mutex_unlock(&ch->mu);
+            return value;
+        }
+        if (ch->closed) {
+            pthread_mutex_unlock(&ch->mu);
+            return 0;
+        }
+        ch->contention_count += 1;
+        pthread_mutex_unlock(&ch->mu);
+    } else {
+        lock_contended = 1;
+    }
     pthread_mutex_lock(&ch->mu);
+    if (lock_contended) {
+        ch->contention_count += 1;
+    }
     while (!ch->closed && ch->size == 0) {
+        ch->recv_wait_count += 1;
         pthread_cond_wait(&ch->can_recv, &ch->mu);
     }
     if (ch->size == 0) {
@@ -860,8 +1359,12 @@ int64_t vibe_chan_recv_i64(void *handle) {
         return 0;
     }
     int64_t value = ch->buffer[ch->head];
-    ch->head = (ch->head + 1) % ch->capacity;
+    ch->head += 1;
+    if (ch->head >= ch->capacity) {
+        ch->head = 0;
+    }
     ch->size -= 1;
+    ch->recv_slow_path_hits += 1;
     pthread_cond_signal(&ch->can_send);
     pthread_mutex_unlock(&ch->mu);
     return value;
@@ -875,8 +1378,12 @@ int64_t vibe_chan_try_recv_i64(void *handle, int64_t *out_value) {
     pthread_mutex_lock(&ch->mu);
     if (ch->size > 0) {
         int64_t value = ch->buffer[ch->head];
-        ch->head = (ch->head + 1) % ch->capacity;
+        ch->head += 1;
+        if (ch->head >= ch->capacity) {
+            ch->head = 0;
+        }
         ch->size -= 1;
+        ch->recv_fast_path_hits += 1;
         pthread_cond_signal(&ch->can_send);
         pthread_mutex_unlock(&ch->mu);
         if (out_value != NULL) {
@@ -921,6 +1428,83 @@ int64_t vibe_chan_is_closed_i64(void *handle) {
     int64_t result = ch->closed ? 1 : 0;
     pthread_mutex_unlock(&ch->mu);
     return result;
+}
+
+int64_t vibe_chan_send_fast_hits_i64(void *handle) {
+    vibe_chan_i64 *ch = (vibe_chan_i64 *)handle;
+    if (ch == NULL) {
+        return 0;
+    }
+    pthread_mutex_lock(&ch->mu);
+    int64_t value = ch->send_fast_path_hits;
+    pthread_mutex_unlock(&ch->mu);
+    return value;
+}
+
+int64_t vibe_chan_recv_fast_hits_i64(void *handle) {
+    vibe_chan_i64 *ch = (vibe_chan_i64 *)handle;
+    if (ch == NULL) {
+        return 0;
+    }
+    pthread_mutex_lock(&ch->mu);
+    int64_t value = ch->recv_fast_path_hits;
+    pthread_mutex_unlock(&ch->mu);
+    return value;
+}
+
+int64_t vibe_chan_send_slow_hits_i64(void *handle) {
+    vibe_chan_i64 *ch = (vibe_chan_i64 *)handle;
+    if (ch == NULL) {
+        return 0;
+    }
+    pthread_mutex_lock(&ch->mu);
+    int64_t value = ch->send_slow_path_hits;
+    pthread_mutex_unlock(&ch->mu);
+    return value;
+}
+
+int64_t vibe_chan_recv_slow_hits_i64(void *handle) {
+    vibe_chan_i64 *ch = (vibe_chan_i64 *)handle;
+    if (ch == NULL) {
+        return 0;
+    }
+    pthread_mutex_lock(&ch->mu);
+    int64_t value = ch->recv_slow_path_hits;
+    pthread_mutex_unlock(&ch->mu);
+    return value;
+}
+
+int64_t vibe_chan_send_wait_count_i64(void *handle) {
+    vibe_chan_i64 *ch = (vibe_chan_i64 *)handle;
+    if (ch == NULL) {
+        return 0;
+    }
+    pthread_mutex_lock(&ch->mu);
+    int64_t value = ch->send_wait_count;
+    pthread_mutex_unlock(&ch->mu);
+    return value;
+}
+
+int64_t vibe_chan_recv_wait_count_i64(void *handle) {
+    vibe_chan_i64 *ch = (vibe_chan_i64 *)handle;
+    if (ch == NULL) {
+        return 0;
+    }
+    pthread_mutex_lock(&ch->mu);
+    int64_t value = ch->recv_wait_count;
+    pthread_mutex_unlock(&ch->mu);
+    return value;
+}
+
+int64_t vibe_chan_contention_count_i64(void *handle) {
+    vibe_chan_i64 *ch = (vibe_chan_i64 *)handle;
+    if (ch == NULL) {
+        return 0;
+    }
+    pthread_mutex_lock(&ch->mu);
+    int64_t value = ch->contention_count;
+    pthread_mutex_unlock(&ch->mu);
+    return value;
 }
 
 static void *vibe_spawn0_entry(void *opaque) {
@@ -1209,7 +1793,52 @@ static const char *vibe_trim_end_ptr(const char *raw) {
     return end;
 }
 
+static int64_t vibe_parse_i64_strict(const char *start, const char *end, int64_t *out_value) {
+    if (start == NULL || end == NULL || start >= end || out_value == NULL) {
+        return 0;
+    }
+    const char *cur = start;
+    int negative = 0;
+    if (*cur == '+' || *cur == '-') {
+        negative = (*cur == '-');
+        cur += 1;
+        if (cur >= end) {
+            return 0;
+        }
+    }
+    uint64_t value = 0;
+    uint64_t limit = negative ? ((uint64_t)INT64_MAX + 1ull) : (uint64_t)INT64_MAX;
+    int saw_digit = 0;
+    while (cur < end) {
+        unsigned char ch = (unsigned char)(*cur);
+        if (ch < '0' || ch > '9') {
+            return 0;
+        }
+        saw_digit = 1;
+        uint64_t digit = (uint64_t)(ch - '0');
+        if (value > (limit - digit) / 10ull) {
+            return 0;
+        }
+        value = value * 10ull + digit;
+        cur += 1;
+    }
+    if (!saw_digit) {
+        return 0;
+    }
+    if (negative) {
+        if (value == (uint64_t)INT64_MAX + 1ull) {
+            *out_value = INT64_MIN;
+        } else {
+            *out_value = -(int64_t)value;
+        }
+    } else {
+        *out_value = (int64_t)value;
+    }
+    return 1;
+}
+
 int64_t vibe_json_is_valid(const char *raw) {
+    vibe_counter_inc(&vibe_json_validate_calls);
     if (raw == NULL) {
         return 0;
     }
@@ -1228,45 +1857,71 @@ int64_t vibe_json_is_valid(const char *raw) {
         (len == 4 && strncmp(start, "null", 4) == 0)) {
         return 1;
     }
-    char *parse_end = NULL;
-    (void)strtoll(start, &parse_end, 10);
-    return parse_end == end ? 1 : 0;
+    int64_t parsed = 0;
+    return vibe_parse_i64_strict(start, end, &parsed);
 }
 
 int64_t vibe_json_parse_i64(const char *raw) {
+    vibe_counter_inc(&vibe_json_parse_calls);
     if (raw == NULL) {
         return 0;
     }
     const char *start = vibe_trim_start(raw);
-    char *parse_end = NULL;
-    int64_t value = strtoll(start, &parse_end, 10);
-    if (parse_end == start) {
-        return 0;
-    }
-    while (parse_end != NULL && *parse_end != '\0' && isspace((unsigned char)*parse_end)) {
-        parse_end += 1;
-    }
-    if (parse_end != NULL && *parse_end != '\0') {
+    const char *end = vibe_trim_end_ptr(start);
+    int64_t value = 0;
+    if (!vibe_parse_i64_strict(start, end, &value)) {
         return 0;
     }
     return value;
 }
 
 char *vibe_json_stringify_i64(int64_t value) {
-    char buffer[64];
-    snprintf(buffer, sizeof(buffer), "%lld", (long long)value);
-    return vibe_strdup_or_panic(buffer);
+    vibe_counter_inc(&vibe_json_stringify_calls);
+    char buffer[32];
+    int pos = (int)(sizeof(buffer) - 1);
+    buffer[pos] = '\0';
+    uint64_t magnitude;
+    int negative = value < 0;
+    if (negative) {
+        magnitude = (uint64_t)(-(value + 1)) + 1ull;
+    } else {
+        magnitude = (uint64_t)value;
+    }
+    do {
+        uint64_t digit = magnitude % 10ull;
+        buffer[--pos] = (char)('0' + digit);
+        magnitude /= 10ull;
+    } while (magnitude > 0);
+    if (negative) {
+        buffer[--pos] = '-';
+    }
+    vibe_counter_inc(&vibe_json_allocations);
+    return vibe_strdup_or_panic(&buffer[pos]);
 }
 
 char *vibe_json_minify(const char *raw) {
+    vibe_counter_inc(&vibe_json_minify_calls);
     if (raw == NULL) {
+        vibe_counter_inc(&vibe_json_allocations);
         return vibe_strdup_or_panic("");
     }
     size_t len = strlen(raw);
+    int has_whitespace = 0;
+    for (size_t i = 0; i < len; i++) {
+        if (isspace((unsigned char)raw[i])) {
+            has_whitespace = 1;
+            break;
+        }
+    }
+    if (!has_whitespace) {
+        vibe_counter_inc(&vibe_json_allocations);
+        return vibe_strdup_or_panic(raw);
+    }
     char *out = (char *)calloc(len + 1, sizeof(char));
     if (out == NULL) {
         vibe_panic("failed to allocate json.minify output");
     }
+    vibe_counter_inc(&vibe_json_allocations);
     int in_string = 0;
     int escaped = 0;
     size_t out_idx = 0;
@@ -1295,6 +1950,26 @@ char *vibe_json_minify(const char *raw) {
     }
     out[out_idx] = '\0';
     return out;
+}
+
+int64_t vibe_json_parse_call_count(void) {
+    return vibe_json_parse_calls;
+}
+
+int64_t vibe_json_stringify_call_count(void) {
+    return vibe_json_stringify_calls;
+}
+
+int64_t vibe_json_minify_call_count(void) {
+    return vibe_json_minify_calls;
+}
+
+int64_t vibe_json_validate_call_count(void) {
+    return vibe_json_validate_calls;
+}
+
+int64_t vibe_json_allocation_count(void) {
+    return vibe_json_allocations;
 }
 
 char *vibe_http_status_text(int64_t code) {
