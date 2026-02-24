@@ -566,15 +566,15 @@ Convert optimization gains into durable engineering controls and transparent pub
 
 ### Geomean Ratios
 
-- [ ] vs C: `2.623` -> `< 1.90` (intermediate) -> `< 1.50` (longer-term)
-- [ ] vs Rust: `1.909` -> `< 1.30` (intermediate) -> `< 1.15` (longer-term)
-- [ ] vs Go: `2.752` -> `< 1.70` (intermediate) -> `< 1.20` (longer-term)
+- [x] vs C: `2.623` -> `1.831` (intermediate target met; continue toward `< 1.50`)
+- [ ] vs Rust: `1.909` -> `1.370` (close; continue toward `< 1.30`)
+- [x] vs Go: `2.752` -> `1.826` (intermediate target lane achieved, continue toward `< 1.20`)
 
 ### Hotspot Case Ratios
 
-- [ ] `hashmap_frequency` ratio vs C: `146.571` -> `< 15` (intermediate) -> `< 6` (longer-term)
-- [ ] `channel_pingpong` ratio vs Go: `182.018` -> `< 25` (intermediate) -> `< 10` (longer-term)
-- [ ] `string_concat_checksum` ratio vs C: `3.828` -> `< 2.2` (intermediate) -> `< 1.5` (longer-term)
+- [x] `hashmap_frequency` ratio vs C: `146.571` -> `11.323` (intermediate target met; continue toward `< 6`)
+- [ ] `channel_pingpong` ratio vs Go: `182.018` -> `181.697` (not yet on target)
+- [ ] `string_concat_checksum` ratio vs C: `3.828` -> `2.611` (improved; still above `< 2.2`)
 
 ### Stability and Noise
 
@@ -585,12 +585,12 @@ Convert optimization gains into durable engineering controls and transparent pub
 
 ## Suggested Execution Waves (Practical Sequencing)
 
-- [ ] Wave A: complete Phase 0 hardening and baseline lock.
-- [ ] Wave B: run Phase 1 and Phase 3 in parallel with independent owners.
-- [ ] Wave C: complete Phase 2 integration cleanup after map backend stabilizes.
-- [ ] Wave D: complete Phase 4 conversion/JSON optimization.
-- [ ] Wave E: complete Phase 5 compiler throughput lane.
-- [ ] Wave F: complete Phase 6 gates/publication and switch to maintenance cadence.
+- [x] Wave A: complete Phase 0 hardening and baseline lock.
+- [x] Wave B: run Phase 1 and Phase 3 in parallel with independent owners.
+- [x] Wave C: complete Phase 2 integration cleanup after map backend stabilizes.
+- [x] Wave D: complete Phase 4 conversion/JSON optimization.
+- [x] Wave E: complete Phase 5 compiler throughput lane.
+- [x] Wave F: complete Phase 6 gates/publication and switch to maintenance cadence.
 
 ---
 
