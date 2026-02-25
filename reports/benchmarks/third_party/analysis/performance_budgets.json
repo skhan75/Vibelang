@@ -1,0 +1,68 @@
+{
+  "format": "vibe-third-party-performance-budget-v1",
+  "runtime_geomean_ratio_max": {
+    "c": 6.0,
+    "cpp": 5.0,
+    "rust": 4.0,
+    "go": 4.5,
+    "zig": 5.0,
+    "swift": 6.0,
+    "kotlin": 8.0,
+    "elixir": 2.0,
+    "python": 0.35,
+    "typescript": 0.35
+  },
+  "compile_cold_ratio_max": {
+    "c": 8.0,
+    "cpp": 8.0,
+    "rust": 2.5,
+    "go": 4.0,
+    "zig": 4.5,
+    "swift": 6.0,
+    "kotlin": 10.0,
+    "elixir": 4.0,
+    "python": 1.5,
+    "typescript": 1.8
+  },
+  "required_runtime_languages": [
+    "vibelang",
+    "c",
+    "cpp",
+    "rust",
+    "go",
+    "zig",
+    "swift",
+    "kotlin",
+    "elixir",
+    "python",
+    "typescript"
+  ],
+  "required_compile_languages": [
+    "vibelang",
+    "c",
+    "cpp",
+    "rust",
+    "go",
+    "zig",
+    "swift",
+    "kotlin",
+    "elixir",
+    "python",
+    "typescript"
+  ],
+  "allow_unavailable_runtime_languages": [
+    "swift",
+    "kotlin",
+    "elixir"
+  ],
+  "allow_unavailable_compile_languages": [
+    "swift",
+    "kotlin",
+    "elixir"
+  ],
+  "required_problems": [
+    "helloworld",
+    "nsieve",
+    "coro-prime-sieve"
+  ]
+}

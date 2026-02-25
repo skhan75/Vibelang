@@ -1,0 +1,83 @@
+{
+  "format": "vibe-third-party-language-matrix-v1",
+  "plbci_repo": "https://github.com/hanabi1224/Programming-Language-Benchmarks.git",
+  "plbci_ref": "main",
+  "problems": [
+    "helloworld",
+    "nsieve",
+    "coro-prime-sieve"
+  ],
+  "profiles": {
+    "quick": {
+      "helloworld_repeat": 3,
+      "nsieve_repeat": 3,
+      "coro_repeat": 2,
+      "hyperfine_runs": 4,
+      "hyperfine_warmup": 1
+    },
+    "full": {
+      "helloworld_repeat": 8,
+      "nsieve_repeat": 8,
+      "coro_repeat": 6,
+      "hyperfine_runs": 10,
+      "hyperfine_warmup": 2
+    }
+  },
+  "languages": [
+    {
+      "id": "vibelang",
+      "bench_file": "bench_vibelang.yaml",
+      "source": "adapter"
+    },
+    {
+      "id": "c",
+      "bench_file": "bench_c.yaml",
+      "source": "plbci"
+    },
+    {
+      "id": "cpp",
+      "bench_file": "bench_cpp.yaml",
+      "source": "plbci"
+    },
+    {
+      "id": "rust",
+      "bench_file": "bench_rust.yaml",
+      "source": "plbci"
+    },
+    {
+      "id": "go",
+      "bench_file": "bench_go.yaml",
+      "source": "plbci"
+    },
+    {
+      "id": "zig",
+      "bench_file": "bench_zig.yaml",
+      "source": "plbci"
+    },
+    {
+      "id": "swift",
+      "bench_file": "bench_swift.yaml",
+      "source": "plbci"
+    },
+    {
+      "id": "kotlin",
+      "bench_file": "bench_kotlin_jvm.yaml",
+      "source": "plbci"
+    },
+    {
+      "id": "elixir",
+      "bench_file": "bench_elixir.yaml",
+      "source": "plbci"
+    },
+    {
+      "id": "python",
+      "bench_file": "bench_python.yaml",
+      "source": "plbci"
+    },
+    {
+      "id": "typescript",
+      "bench_file": "bench_typescript_deno.yaml",
+      "source": "plbci"
+    }
+  ]
+}

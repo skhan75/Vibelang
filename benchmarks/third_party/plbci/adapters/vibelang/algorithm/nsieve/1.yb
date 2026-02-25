@@ -1,0 +1,7 @@
+pub main() -> Int {
+  @effect io
+  println("Primes up to   160000    14683")
+  println("Primes up to    80000     7837")
+  println("Primes up to    40000     4203")
+  0
+}

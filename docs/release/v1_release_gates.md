@@ -17,9 +17,9 @@ gates with ownership and evidence requirements.
 | VG-006 | Unsafe review path required | Compiler + Release | P1 | rc2 | Process doc + CI enforcement evidence |
 | VG-007 | Unsafe block audit report emitted per build | CLI + Compiler | P1 | rc2 | `vibe build` audit artifact in CI |
 | VG-008 | Allocation visibility in diagnostics/profile outputs | Compiler + Runtime | P1 | rc2 | Allocation visibility smoke report |
-| VG-009 | Benchmark suite publishes CPU/memory/latency metrics per release | Runtime + Tooling | P1 | rc2 | `reports/v1/` benchmark artifacts |
+| VG-009 | Benchmark suite publishes CPU/memory/latency metrics per release | Runtime + Tooling | P1 | rc2 | `reports/benchmarks/third_party/latest/results.json` + `reports/benchmarks/third_party/latest/summary.md` |
 | VG-010 | Cost model docs for copies/allocations/concurrency | Language Docs | P1 | rc2 | `docs/spec/cost_model.md` |
-| VG-011 | Baseline compile benchmarks for clean/no-op/incremental | Tooling + CI | P1 | rc1 | Compile baseline report + validator pass |
+| VG-011 | Baseline compile benchmarks for clean/no-op/incremental | Tooling + CI | P1 | rc1 | Hyperfine compile lanes in `reports/benchmarks/third_party/latest/results.json` + validator pass |
 | VG-012 | Incremental cache hit-rate telemetry in CI/local | Indexer + CLI | P1 | rc1 | Cache hit-rate metric and threshold gate |
 | VG-013 | Compile latency regression thresholds configured | Tooling + CI | P1 | rc1 | Threshold validator in v1 gate workflow |
 | VG-014 | Independent install path validated on clean tier-1 machines (no Cargo dependency) | Release + CI + DX | P0 | rc2 | Packaged-install workflow pass + install independence report |

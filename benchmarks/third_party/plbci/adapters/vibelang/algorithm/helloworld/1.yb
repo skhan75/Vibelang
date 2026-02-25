@@ -1,0 +1,5 @@
+pub main() -> Int {
+  @effect io
+  println("Hello world T_T!")
+  0
+}

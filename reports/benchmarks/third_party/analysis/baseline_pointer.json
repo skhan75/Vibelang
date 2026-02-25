@@ -1,0 +1,6 @@
+{
+  "format": "vibe-third-party-baseline-pointer-v1",
+  "baseline_results": "reports/benchmarks/third_party/full/results.json",
+  "baseline_summary": "reports/benchmarks/third_party/latest/summary.md",
+  "notes": "Update baseline_results after confirming a new stable full-profile benchmark run."
+}

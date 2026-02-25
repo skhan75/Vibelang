@@ -737,7 +737,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--manifest",
-        default="runtime/benchmarks/cross_lang/manifest.json",
+        default="runtime/benchmarks/_DEPRECATED_cross_lang/manifest.json",
         help="Manifest path relative to repo root.",
     )
     parser.add_argument(
@@ -748,7 +748,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--output-root",
-        default="reports/benchmarks/cross_lang",
+        default="reports/benchmarks/_DEPRECATED_cross_lang",
         help="Output root relative to repo root.",
     )
     args = parser.parse_args()

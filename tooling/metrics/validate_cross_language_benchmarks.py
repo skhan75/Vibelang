@@ -309,7 +309,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--results",
-        default="reports/benchmarks/cross_lang/latest/results.json",
+        default="reports/benchmarks/_DEPRECATED_cross_lang/latest/results.json",
         help="Results JSON path relative to repo root.",
     )
     parser.add_argument(
@@ -319,7 +319,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--budget-file",
-        default="reports/benchmarks/cross_lang/analysis/performance_budgets.json",
+        default="reports/benchmarks/_DEPRECATED_cross_lang/analysis/performance_budgets.json",
         help="Optional budget config JSON path relative to repo root.",
     )
     parser.add_argument(

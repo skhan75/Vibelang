@@ -1,3 +1,5 @@
 /target/
 **/.yb/artifacts/
 **/.vibe/artifacts/
+**/__pycache__/
+/.cache/

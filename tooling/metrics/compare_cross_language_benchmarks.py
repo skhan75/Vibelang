@@ -183,12 +183,12 @@ def main() -> None:
     )
     parser.add_argument(
         "--candidate-results",
-        default="reports/benchmarks/cross_lang/latest/results.json",
+        default="reports/benchmarks/_DEPRECATED_cross_lang/latest/results.json",
         help="Candidate results JSON path relative to repo root.",
     )
     parser.add_argument(
         "--output-root",
-        default="reports/benchmarks/cross_lang/analysis/deltas",
+        default="reports/benchmarks/_DEPRECATED_cross_lang/analysis/deltas",
         help="Output directory relative to repo root.",
     )
     args = parser.parse_args()

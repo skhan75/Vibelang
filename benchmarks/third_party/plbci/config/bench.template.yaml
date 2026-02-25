@@ -1,0 +1,25 @@
+problems:
+  - name: helloworld
+    trivial: true
+    unittests:
+      - input: T_T
+        output: T_T_out
+    tests:
+      - input: T_T
+        repeat: __HELLOWORLD_REPEAT__
+  - name: nsieve
+    unittests:
+      - input: 4
+        output: 4_out
+    tests:
+      - input: 4
+        repeat: __NSIEVE_REPEAT__
+  - name: coro-prime-sieve
+    unittests:
+      - input: 100
+        output: 100_out
+    tests:
+      - input: 100
+        repeat: __CORO_REPEAT__
+tmp_dir: _bench_vibelang
+docker_cmd: docker
