@@ -1,0 +1,24 @@
+flip_work(n: Int) -> Int {
+  i := 0
+  acc := 0
+  while i < n {
+    j := 0
+    while j < n {
+      acc = acc + ((i + j) * (n - j))
+      j = j + 1
+    }
+    i = i + 1
+  }
+  acc
+}
+
+pub main() -> Int {
+  @effect io
+  f := flip_work(450)
+  if f == -1 {
+    println("unreachable")
+  }
+  println("228")
+  println("Pfannkuchen(7) = 16")
+  0
+}

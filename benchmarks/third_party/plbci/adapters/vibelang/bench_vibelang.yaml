@@ -6,7 +6,52 @@ problems:
   - name: nsieve
     source:
       - 1.yb
+  - name: binarytrees
+    source:
+      - 1.yb
+  - name: merkletrees
+    source:
+      - 1.yb
+  - name: nbody
+    source:
+      - 1.yb
+  - name: spectral-norm
+    source:
+      - 1.yb
+  - name: pidigits
+    source:
+      - 1.yb
+  - name: edigits
+    source:
+      - 1.yb
+  - name: mandelbrot
+    source:
+      - 1.yb
+  - name: fannkuch-redux
+    source:
+      - 1.yb
+  - name: fasta
+    source:
+      - 1.yb
+  - name: knucleotide
+    source:
+      - 1.yb
+  - name: regex-redux
+    source:
+      - 1.yb
+  - name: json-serde
+    source:
+      - 1.yb
   - name: coro-prime-sieve
+    source:
+      - 1.yb
+  - name: http-server
+    source:
+      - 1.yb
+  - name: lru
+    source:
+      - 1.yb
+  - name: secp256k1
     source:
       - 1.yb
 compiler_version_command: vibe --version
@@ -16,7 +61,7 @@ environments:
   - os: linux
     compiler: vibe
     version: stable
-    build: vibe build app.yb --profile release && cp .yb/artifacts/release/x86_64-unknown-linux-gnu/main out/app
+    build: vibe build app.yb --profile release && cp .yb/artifacts/release/x86_64-unknown-linux-gnu/app out/app
     out_dir: out
     run_cmd: app
     warmup: true

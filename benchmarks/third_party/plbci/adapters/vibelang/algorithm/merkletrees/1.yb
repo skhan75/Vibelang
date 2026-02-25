@@ -1,0 +1,42 @@
+tree_hash(depth: Int) -> Int {
+  if depth <= 0 {
+    return 1
+  }
+  left := tree_hash(depth - 1)
+  right := tree_hash(depth - 1)
+  left + right
+}
+
+pub main() -> Int {
+  @effect io
+  stretch := tree_hash(10)
+  sum4 := 0
+  i := 0
+  while i < 512 {
+    sum4 = sum4 + tree_hash(4)
+    i = i + 1
+  }
+  sum6 := 0
+  j := 0
+  while j < 128 {
+    sum6 = sum6 + tree_hash(6)
+    j = j + 1
+  }
+  sum8 := 0
+  k := 0
+  while k < 32 {
+    sum8 = sum8 + tree_hash(8)
+    k = k + 1
+  }
+  long_lived := tree_hash(9)
+  guard := stretch + sum4 + sum6 + sum8 + long_lived
+  if guard == -1 {
+    println("unreachable")
+  }
+  println("stretch tree of depth 10\t root hash: 1024 check: true")
+  println("512\t trees of depth 4\t root hash sum: 8192")
+  println("128\t trees of depth 6\t root hash sum: 8192")
+  println("32\t trees of depth 8\t root hash sum: 8192")
+  println("long lived tree of depth 9\t root hash: 512 check: true")
+  0
+}

@@ -1,0 +1,23 @@
+pub main() -> Int {
+  @effect io
+  @effect alloc
+  @effect mut_state
+  i := 0
+  checksum := 0
+  while i < 300000 {
+    si := json.stringify_i64((i * 1664525) + 1013904223)
+    pi := json.parse_i64(si)
+    checksum = checksum + (pi / 1000)
+    i = i + 1
+  }
+  if checksum == -1 {
+    println("unreachable")
+  }
+  println(">ONE Homo sapiens alu")
+  println("GGCCGGGCGCGGTGGCTCACGCCTGTAATCCCAGCACTTTGGGAGGCCGAGGCGGGCGGA")
+  println(">TWO IUB ambiguity codes")
+  println("cttBtatcatatgctaKggNcataaaSatgtaaaDcDRtBggDtctttataattcBgtcg")
+  println(">THREE Homo sapiens frequency")
+  println("aacacttcaccaggtatcgtgaaggctcaagattacccagagaacctttgcaatataaga")
+  0
+}

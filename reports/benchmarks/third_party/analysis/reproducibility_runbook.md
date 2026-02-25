@@ -5,16 +5,20 @@
 Collect comparable benchmark evidence using the canonical third-party stack:
 PLB-CI + hyperfine.
 
-## Local command sequence
+## Preflight gate
 
 ```bash
-# quick profile
-python tooling/metrics/collect_third_party_benchmarks.py --profile quick
-python tooling/metrics/validate_third_party_benchmarks.py --enforcement-mode warn
+python3 tooling/metrics/collect_third_party_benchmarks.py --profile full --preflight-only
+```
 
-# full profile
-python tooling/metrics/collect_third_party_benchmarks.py --profile full
-python tooling/metrics/validate_third_party_benchmarks.py --enforcement-mode strict
+Do not proceed unless preflight reports `status: ok`.
+
+## Docker-first command sequence
+
+Run from repository root:
+
+```bash
+bash vibelang/benchmarks/third_party/docker/run_in_runner_container.sh
 ```
 
 ## Delta generation
@@ -27,7 +31,11 @@ python tooling/metrics/compare_third_party_benchmarks.py \
 
 ## Notes
 
-- `quick` is intended for change-detection speed and trend checks.
-- `full` is intended for release-level evidence and strict gating.
+- Default docker runner profile is `full`; override with:
+  - `PROFILE=quick bash vibelang/benchmarks/third_party/docker/run_in_runner_container.sh`
+- Validation mode can be overridden with:
+  - `VALIDATION_MODE=warn ...`
 - Raw outputs from PLB-CI and hyperfine are persisted under:
   - `reports/benchmarks/third_party/<profile>/raw/`
+- Cloud VM guidance is documented in:
+  - `benchmarks/third_party/CLOUD_REPRODUCIBILITY.md`

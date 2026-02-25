@@ -18,6 +18,8 @@ tracking.
 
 - `plbci/config/` - PLB-CI run configuration and language matrix
 - `plbci/adapters/vibelang/` - VibeLang benchmark adapters used by PLB-CI
+- `docker/` - Docker runner image + execution wrapper scripts
+- `CLOUD_REPRODUCIBILITY.md` - Dedicated VM + Docker reproducibility recipe
 
 ## Canonical report root
 

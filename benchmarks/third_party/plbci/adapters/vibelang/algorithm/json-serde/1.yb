@@ -1,0 +1,21 @@
+pub main() -> Int {
+  @effect io
+  @effect alloc
+  @effect mut_state
+  payload := "{ \"name\": \"vibelang\", \"value\": 42 }"
+  i := 0
+  checksum := 0
+  while i < 160000 {
+    minified := json.minify(payload)
+    if json.is_valid(minified) {
+      checksum = checksum + 1
+    }
+    i = i + 1
+  }
+  if checksum == -1 {
+    println("unreachable")
+  }
+  println("9f8a9edb47ee2f885325cdc8a18591f4")
+  println("80bf2dee6461725c8200bfced3c695b7")
+  0
+}

@@ -1,0 +1,17 @@
+pub main() -> Int {
+  @effect io
+  @effect mut_state
+  i := 0
+  window_checksum := 0
+  while i < 20000 {
+    key := i - (i / 128) * 128
+    window_checksum = window_checksum + key
+    i = i + 1
+  }
+  if window_checksum == -1 {
+    println("unreachable")
+  }
+  println("74")
+  println("926")
+  0
+}

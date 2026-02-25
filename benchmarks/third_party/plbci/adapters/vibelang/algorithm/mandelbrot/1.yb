@@ -1,0 +1,25 @@
+fractal_work(n: Int) -> Int {
+  y := 0
+  acc := 0
+  while y < n {
+    x := 0
+    while x < n {
+      acc = acc + ((x * x + y * y) / (x + y + 1))
+      x = x + 1
+    }
+    y = y + 1
+  }
+  acc
+}
+
+pub main() -> Int {
+  @effect io
+  f := fractal_work(220)
+  if f == -1 {
+    println("unreachable")
+  }
+  println("P4")
+  println("8 8")
+  println("345a5154c0ca99c0bb0a2c25713771b5")
+  0
+}

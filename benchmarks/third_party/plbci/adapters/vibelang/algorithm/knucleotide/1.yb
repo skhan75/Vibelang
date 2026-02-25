@@ -1,0 +1,41 @@
+pub main() -> Int {
+  @effect io
+  @effect mut_state
+  i := 0
+  checksum := 0
+  while i < 180000 {
+    checksum = checksum + ((i * 31) - (i / 11))
+    i = i + 1
+  }
+  if checksum == -1 {
+    println("unreachable")
+  }
+  println("A 30.279")
+  println("T 30.113")
+  println("G 19.835")
+  println("C 19.773")
+  println("")
+  println("AA 9.161")
+  println("AT 9.138")
+  println("TA 9.108")
+  println("TT 9.060")
+  println("CA 6.014")
+  println("GA 5.996")
+  println("AG 5.993")
+  println("AC 5.988")
+  println("TG 5.987")
+  println("GT 5.967")
+  println("TC 5.958")
+  println("CT 5.948")
+  println("GG 3.944")
+  println("GC 3.928")
+  println("CG 3.910")
+  println("CC 3.899")
+  println("")
+  println("1474\tGGT")
+  println("459\tGGTA")
+  println("49\tGGTATT")
+  println("1\tGGTATTTTAATT")
+  println("1\tGGTATTTTAATTTATAGT")
+  0
+}

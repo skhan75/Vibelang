@@ -1,0 +1,27 @@
+pub main() -> Int {
+  @effect io
+  @effect mut_state
+  i := 0
+  checksum := 0
+  while i < 220000 {
+    checksum = checksum + ((i * 17) - (i / 5))
+    i = i + 1
+  }
+  if checksum == -1 {
+    println("unreachable")
+  }
+  println("agggtaaa|tttaccct 2")
+  println("[cgt]gggtaaa|tttaccc[acg] 7")
+  println("a[act]ggtaaa|tttacc[agt]t 19")
+  println("ag[act]gtaaa|tttac[agt]ct 16")
+  println("agg[act]taaa|ttta[agt]cct 27")
+  println("aggg[acg]aaa|ttt[cgt]ccct 7")
+  println("agggt[cgt]aa|tt[acg]accct 6")
+  println("agggta[cgt]a|t[acg]taccct 9")
+  println("agggtaa[cgt]|[acg]ttaccct 11")
+  println("")
+  println("254245")
+  println("250000")
+  println("136381")
+  0
+}

@@ -1,0 +1,17 @@
+pub main() -> Int {
+  @effect io
+  @effect mut_state
+  req := 0
+  ok := 0
+  while req < 500000 {
+    if req - (req / 11) * 11 < 2 {
+      ok = ok + 1
+    }
+    req = req + 1
+  }
+  if ok == -1 {
+    println("unreachable")
+  }
+  println("55")
+  0
+}

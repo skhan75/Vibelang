@@ -5,21 +5,137 @@ problems:
       - input: T_T
         output: T_T_out
     tests:
-      - input: T_T
+      - input: QwQ
         repeat: __HELLOWORLD_REPEAT__
   - name: nsieve
     unittests:
       - input: 4
         output: 4_out
     tests:
-      - input: 4
+      - input: 10
         repeat: __NSIEVE_REPEAT__
+  - name: binarytrees
+    unittests:
+      - input: 6
+        output: 6_out
+    tests:
+      - input: 15
+        repeat: __BINARYTREES_REPEAT__
+  - name: merkletrees
+    unittests:
+      - input: 9
+        output: 9_out
+    tests:
+      - input: 15
+        repeat: __MERKLETREES_REPEAT__
+  - name: nbody
+    unittests:
+      - input: 1000
+        output: 1000_out
+    tests:
+      - input: 500000
+        repeat: __NBODY_REPEAT__
+  - name: spectral-norm
+    unittests:
+      - input: 100
+        output: 100_out
+    tests:
+      - input: 2000
+        repeat: __SPECTRAL_NORM_REPEAT__
+  - name: pidigits
+    unittests:
+      - input: 27
+        output: 27_out
+    tests:
+      - input: 4000
+        repeat: __PIDIGITS_REPEAT__
+  - name: edigits
+    unittests:
+      - input: 227
+        output: 227_out
+    tests:
+      - input: 100000
+        repeat: __EDIGITS_REPEAT__
+  - name: mandelbrot
+    unittests:
+      - input: 1
+        output: 1_out
+    tests:
+      - input: 1000
+        repeat: __MANDELBROT_REPEAT__
+  - name: fannkuch-redux
+    unittests:
+      - input: 7
+        output: 7_out
+    tests:
+      - input: 10
+        repeat: __FANNKUCH_REDUX_REPEAT__
+  - name: fasta
+    unittests:
+      - input: 1000
+        output: 1000_out
+    tests:
+      - input: 250000
+        repeat: __FASTA_REPEAT__
+  - name: knucleotide
+    data:
+      - in.zip
+    data_setup_cmd:
+      - unzip -u in.zip
+    unittests:
+      - input: 25000_in
+        output: 25000_out
+    tests:
+      - input: 250000_in
+        repeat: __KNUCLEOTIDE_REPEAT__
+  - name: regex-redux
+    data:
+      - ../knucleotide/in.zip
+    data_setup_cmd:
+      - unzip -u in.zip
+    unittests:
+      - input: 25000_in
+        output: 25000_out
+    tests:
+      - input: 250000_in
+        repeat: __REGEX_REDUX_REPEAT__
+  - name: json-serde
+    data:
+      - sample.json
+      - canada.json
+    unittests:
+      - input: sample 10
+        output: sample_10_out
+    tests:
+      - input: sample 5000
+        repeat: __JSON_SERDE_REPEAT__
   - name: coro-prime-sieve
     unittests:
       - input: 100
         output: 100_out
     tests:
-      - input: 100
-        repeat: __CORO_REPEAT__
+      - input: 1000
+        repeat: __CORO_PRIME_SIEVE_REPEAT__
+  - name: http-server
+    unittests:
+      - input: 10
+        output: 10_out
+    tests:
+      - input: 500
+        repeat: __HTTP_SERVER_REPEAT__
+  - name: lru
+    unittests:
+      - input: 10 1000
+        output: 10_1000_out
+    tests:
+      - input: 100 500000
+        repeat: __LRU_REPEAT__
+  - name: secp256k1
+    unittests:
+      - input: 1
+        output: 1_out
+    tests:
+      - input: 500
+        repeat: __SECP256K1_REPEAT__
 tmp_dir: _bench_vibelang
 docker_cmd: docker

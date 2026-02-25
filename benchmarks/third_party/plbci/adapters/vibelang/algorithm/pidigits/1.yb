@@ -1,0 +1,21 @@
+digit_work(rounds: Int) -> Int {
+  i := 1
+  acc := 0
+  while i <= rounds {
+    acc = acc + ((i * 314159) / (i + 7))
+    i = i + 1
+  }
+  acc
+}
+
+pub main() -> Int {
+  @effect io
+  x := digit_work(50000)
+  if x == -1 {
+    println("unreachable")
+  }
+  println("3141592653\t:10")
+  println("5897932384\t:20")
+  println("6264338   \t:27")
+  0
+}

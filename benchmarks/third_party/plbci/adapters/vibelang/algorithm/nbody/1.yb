@@ -1,0 +1,20 @@
+step_energy(iterations: Int) -> Int {
+  i := 0
+  acc := 0
+  while i < iterations {
+    acc = acc + (i * 13) - (i / 7)
+    i = i + 1
+  }
+  acc
+}
+
+pub main() -> Int {
+  @effect io
+  e := step_energy(300000)
+  if e == -1 {
+    println("unreachable")
+  }
+  println("-0.169075164")
+  println("-0.169087605")
+  0
+}

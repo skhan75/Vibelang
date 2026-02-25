@@ -4,6 +4,7 @@ import json
 import math
 import os
 import platform
+import re
 import shlex
 import shutil
 import statistics
@@ -144,6 +145,123 @@ def collect_environment(repo_root: Path) -> dict[str, Any]:
     }
 
 
+def apply_path_hints() -> None:
+    hints = [
+        Path.home() / ".dotnet",
+        Path.home() / ".local" / "bin",
+        Path.home() / ".cargo" / "bin",
+    ]
+    existing = [segment for segment in os.environ.get("PATH", "").split(":") if segment]
+    for hint in hints:
+        hint_str = str(hint)
+        if hint.exists() and hint_str not in existing:
+            existing.insert(0, hint_str)
+    os.environ["PATH"] = ":".join(existing)
+
+
+def _check_binary(binary: str) -> dict[str, Any]:
+    path = shutil.which(binary)
+    return {
+        "binary": binary,
+        "found": path is not None,
+        "path": path or "",
+    }
+
+
+def preflight_checks(
+    repo_root: Path,
+    languages: list[str],
+    no_docker: bool,
+) -> dict[str, Any]:
+    core_bins = ["git", "dotnet", "hyperfine", "vibe"]
+    core_checks = [_check_binary(binary) for binary in core_bins]
+
+    language_binaries: dict[str, list[str]] = {
+        "vibelang": ["vibe"],
+        "c": ["gcc", "g++", "clang", "clang++"],
+        "cpp": ["g++", "clang++"],
+        "rust": ["rustc", "cargo"],
+        "go": ["go"],
+        "zig": ["zig"],
+        "swift": ["swift", "swiftc"],
+        "kotlin": ["java", "kotlinc"],
+        "elixir": ["elixir", "mix"],
+        "python": ["python3", "pypy3", "pyston3"],
+        "typescript": ["deno"],
+    }
+
+    language_checks: dict[str, list[dict[str, Any]]] = {}
+    for language in languages:
+        binaries = language_binaries.get(language, [])
+        language_checks[language] = [_check_binary(binary) for binary in binaries]
+
+    docker_check: dict[str, Any] = {"required": not no_docker}
+    if not no_docker:
+        docker_check.update(_check_binary("docker"))
+        if bool(docker_check.get("found")):
+            try:
+                info = subprocess.run(
+                    ["docker", "info", "--format", "{{.ServerVersion}}"],
+                    cwd=repo_root,
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                )
+                docker_check["daemon_exit_code"] = int(info.returncode)
+                docker_check["daemon_stdout"] = str(info.stdout).strip()
+                docker_check["daemon_stderr"] = str(info.stderr).strip()
+                docker_check["daemon_ok"] = int(info.returncode) == 0
+            except subprocess.TimeoutExpired as exc:
+                docker_check["daemon_exit_code"] = 124
+                docker_check["daemon_stdout"] = str(exc.stdout or "").strip()
+                docker_check["daemon_stderr"] = "docker info timed out after 10s"
+                docker_check["daemon_ok"] = False
+        else:
+            docker_check["daemon_exit_code"] = 1
+            docker_check["daemon_stdout"] = ""
+            docker_check["daemon_stderr"] = "docker binary not found"
+            docker_check["daemon_ok"] = False
+    else:
+        docker_check.update(
+            {
+                "binary": "docker",
+                "found": bool(shutil.which("docker")),
+                "path": shutil.which("docker") or "",
+                "daemon_ok": False,
+                "daemon_stdout": "",
+                "daemon_stderr": "docker check skipped by --no-docker",
+            }
+        )
+
+    errors: list[str] = []
+    for row in core_checks:
+        if not bool(row["found"]):
+            errors.append(f"missing required binary: {row['binary']}")
+
+    if not no_docker and not bool(docker_check.get("daemon_ok")):
+        errors.append(
+            "docker daemon unavailable; enable Docker and verify `docker info` succeeds"
+        )
+
+    if no_docker:
+        for language, checks in language_checks.items():
+            for row in checks:
+                if not bool(row["found"]):
+                    errors.append(
+                        f"missing local toolchain binary `{row['binary']}` for language `{language}`"
+                    )
+
+    status = "ok" if not errors else "failed"
+    return {
+        "status": status,
+        "mode": "no-docker" if no_docker else "docker",
+        "core_checks": core_checks,
+        "docker_check": docker_check,
+        "language_checks": language_checks,
+        "errors": errors,
+    }
+
+
 def ensure_plbci_checkout(
     repo_root: Path,
     checkout_dir: Path,
@@ -194,13 +312,27 @@ def stage_config(
     stage_dir.mkdir(parents=True, exist_ok=True)
 
     template = bench_template.read_text()
-    bench_yaml = (
-        template.replace(
-            "__HELLOWORLD_REPEAT__", str(int(profile_cfg["helloworld_repeat"]))
+    bench_yaml = template
+    problems = matrix.get("problems", [])
+    if not isinstance(problems, list) or not problems:
+        fail("matrix problems list is empty; cannot map repeat placeholders")
+    for raw_problem in problems:
+        problem = str(raw_problem).strip()
+        normalized = problem.replace("-", "_")
+        profile_key = f"{normalized}_repeat"
+        if profile_key not in profile_cfg:
+            fail(
+                f"profile `{profile}` missing repeat key `{profile_key}` "
+                f"for problem `{problem}`"
+            )
+        placeholder = f"__{normalized.upper()}_REPEAT__"
+        bench_yaml = bench_yaml.replace(placeholder, str(int(profile_cfg[profile_key])))
+    unresolved = sorted(set(re.findall(r"__[A-Z0-9_]+_REPEAT__", bench_yaml)))
+    if unresolved:
+        fail(
+            "unresolved repeat placeholders after matrix expansion: "
+            + ", ".join(unresolved)
         )
-        .replace("__NSIEVE_REPEAT__", str(int(profile_cfg["nsieve_repeat"])))
-        .replace("__CORO_REPEAT__", str(int(profile_cfg["coro_repeat"])))
-    )
     (stage_dir / "bench.yaml").write_text(bench_yaml)
 
     for lang in matrix.get("languages", []):
@@ -736,6 +868,16 @@ def main() -> None:
         help="Disable docker runtime for PLB-CI tasks.",
     )
     parser.add_argument(
+        "--preflight-only",
+        action="store_true",
+        help="Run dependency/toolchain preflight checks and exit.",
+    )
+    parser.add_argument(
+        "--allow-preflight-degraded",
+        action="store_true",
+        help="Continue collection even when preflight reports missing lanes.",
+    )
+    parser.add_argument(
         "--skip-runtime",
         action="store_true",
         help="Skip PLB-CI runtime/memory/concurrency lanes.",
@@ -748,6 +890,7 @@ def main() -> None:
     args = parser.parse_args()
 
     repo_root = Path(__file__).resolve().parents[2]
+    apply_path_hints()
     matrix_path = repo_root / args.matrix_file
     bench_template = repo_root / args.bench_template
     adapter_root = repo_root / args.adapter_root
@@ -776,6 +919,30 @@ def main() -> None:
     problems = [str(problem) for problem in matrix.get("problems", [])]
     if not problems:
         fail("matrix problems list is empty")
+
+    preflight = preflight_checks(
+        repo_root=repo_root,
+        languages=languages,
+        no_docker=args.no_docker,
+    )
+    if args.preflight_only:
+        print(json.dumps(preflight, indent=2))
+        if str(preflight.get("status")) != "ok":
+            raise SystemExit(1)
+        return
+    if str(preflight.get("status")) != "ok":
+        if args.allow_preflight_degraded:
+            preflight["status"] = "degraded"
+            preflight["degraded_mode"] = True
+            preflight["degraded_reason"] = "explicit override via --allow-preflight-degraded"
+        else:
+            errors = preflight.get("errors", [])
+            error_lines = [str(item) for item in errors if str(item).strip()]
+            fail(
+                "preflight checks failed:\n- " + "\n- ".join(error_lines)
+                if error_lines
+                else "preflight checks failed"
+            )
 
     plbci_dir = ensure_plbci_checkout(
         repo_root=repo_root,
@@ -864,6 +1031,7 @@ def main() -> None:
             "docker_enabled": not args.no_docker,
         },
         "environment": collect_environment(repo_root),
+        "preflight": preflight,
         "runtime": runtime_section,
         "compile": compile_section,
         "categories": build_category_rollup(

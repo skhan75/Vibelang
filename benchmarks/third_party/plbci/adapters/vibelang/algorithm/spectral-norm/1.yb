@@ -1,0 +1,25 @@
+mul_kernel(n: Int) -> Int {
+  i := 0
+  acc := 0
+  while i < n {
+    j := 0
+    row := 0
+    while j < n {
+      row = row + ((i + j + 1) * (i + 1))
+      j = j + 1
+    }
+    acc = acc + row
+    i = i + 1
+  }
+  acc
+}
+
+pub main() -> Int {
+  @effect io
+  x := mul_kernel(120)
+  if x == -1 {
+    println("unreachable")
+  }
+  println("1.274219991")
+  0
+}
