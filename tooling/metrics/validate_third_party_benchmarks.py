@@ -438,7 +438,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--results",
-        default="reports/benchmarks/third_party/latest/results.json",
+        default="reports/benchmarks/third_party/full/results.json",
         help="Results JSON path relative to repo root.",
     )
     parser.add_argument(
@@ -454,8 +454,8 @@ def main() -> None:
     )
     parser.add_argument(
         "--detailed-report-dir",
-        default="reports/benchmarks/third_party/analysis",
-        help="Directory for timestamped detailed summaries.",
+        default="",
+        help="Optional directory for timestamped detailed summaries.",
     )
     parser.add_argument(
         "--parity-manifest",
@@ -482,7 +482,6 @@ def main() -> None:
     repo_root = Path(__file__).resolve().parents[2]
     results_path = repo_root / args.results
     budget_path = repo_root / args.budget_file
-    detailed_dir = repo_root / args.detailed_report_dir
 
     if not results_path.exists():
         fail(f"results file missing: {results_path}")
@@ -541,22 +540,14 @@ def main() -> None:
     summary_path = results_path.with_name("summary.md")
     write(summary_path, summary + "\n")
 
-    profile = str(report.get("profile", "unknown"))
-    cross_root = results_path.parents[1]
-    profile_summary = cross_root / profile / "summary.md"
-    latest_summary = cross_root / "latest" / "summary.md"
-    if results_path == cross_root / "latest" / "results.json":
-        write(profile_summary, summary + "\n")
-    else:
-        write(latest_summary, summary + "\n")
-
-    stamp = str(report.get("timestamp_id", "unknown"))
-    detailed_path = detailed_dir / f"{stamp}_detailed_summary.md"
-    write(detailed_path, summary + "\n")
-
     print("third-party benchmark validation completed")
     print(f"wrote {summary_path}")
-    print(f"wrote {detailed_path}")
+    if args.detailed_report_dir:
+        detailed_dir = repo_root / args.detailed_report_dir
+        stamp = str(report.get("timestamp_id", "unknown"))
+        detailed_path = detailed_dir / f"{stamp}_detailed_summary.md"
+        write(detailed_path, summary + "\n")
+        print(f"wrote {detailed_path}")
 
     if enforcement_mode == "strict" and budget_result["violations"]:
         fail("; ".join(str(item) for item in budget_result["violations"]))

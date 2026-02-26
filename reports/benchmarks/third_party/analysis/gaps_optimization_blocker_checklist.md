@@ -22,7 +22,7 @@ Scope: third-party benchmark stack (`PLB-CI + Hyperfine`)
 - [ ] **B2: Strict lane completeness still missing**
   - Runtime lanes unavailable: `rust`, `zig`, `swift`
   - Compile lanes unavailable: `rust`, `zig`, `swift`
-  - Evidence: `reports/benchmarks/third_party/latest/summary.md` budget violations
+  - Evidence: `reports/benchmarks/third_party/full/summary.md` budget violations
 
 - [ ] **B3: Swift toolchain not usable locally**
   - `swift`/`swiftc` still missing from preflight in local mode

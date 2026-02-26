@@ -20,7 +20,7 @@ python3 tooling/metrics/validate_third_party_benchmarks.py --enforcement-mode "$
 if [[ -f "reports/benchmarks/third_party/full/results.json" ]]; then
   python3 tooling/metrics/compare_third_party_benchmarks.py \
     --baseline-results "reports/benchmarks/third_party/full/results.json" \
-    --candidate-results "reports/benchmarks/third_party/latest/results.json"
+    --candidate-results "reports/benchmarks/third_party/full/results.json"
 fi
 
 echo "Third-party benchmark runner completed for profile=${PROFILE}"

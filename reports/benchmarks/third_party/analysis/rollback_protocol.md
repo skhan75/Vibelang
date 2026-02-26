@@ -22,7 +22,7 @@ be fixed in the current release window.
 ```bash
 python tooling/metrics/compare_third_party_benchmarks.py \
   --baseline-results reports/benchmarks/third_party/history/<last_good>.json \
-  --candidate-results reports/benchmarks/third_party/latest/results.json
+  --candidate-results reports/benchmarks/third_party/full/results.json
 ```
 
 ## Evidence required

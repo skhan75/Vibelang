@@ -188,7 +188,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--candidate-results",
-        default="reports/benchmarks/third_party/latest/results.json",
+        default="reports/benchmarks/third_party/full/results.json",
         help="Candidate results path relative to repo root.",
     )
     parser.add_argument(

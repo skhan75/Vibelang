@@ -38,11 +38,8 @@ python3 tooling/metrics/validate_third_party_benchmarks.py --publication-mode
 
 ## Evidence artifacts (newly generated)
 
-- Detailed JSON (full): `reports/benchmarks/third_party/full/results.json`
-- Detailed JSON (latest): `reports/benchmarks/third_party/latest/results.json`
-- Timestamped snapshot: `reports/benchmarks/third_party/history/20260226_072150Z_full_results.json`
-- Human-readable summary: `reports/benchmarks/third_party/latest/summary.md`
-- Timestamped detailed summary: `reports/benchmarks/third_party/analysis/20260226_072150Z_detailed_summary.md`
+- Detailed JSON (canonical): `reports/benchmarks/third_party/full/results.json`
+- Human-readable summary (canonical): `reports/benchmarks/third_party/full/summary.md`
 
 ## Coverage snapshot
 

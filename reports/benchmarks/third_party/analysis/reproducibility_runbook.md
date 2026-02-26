@@ -28,11 +28,11 @@ Use this only when all apples-to-apples blockers are closed:
 ```bash
 python3 tooling/metrics/collect_third_party_benchmarks.py --profile full --publication-mode
 python3 tooling/metrics/validate_third_party_benchmarks.py \
-  --results reports/benchmarks/third_party/latest/results.json \
+  --results reports/benchmarks/third_party/full/results.json \
   --publication-mode
 python3 tooling/metrics/compare_third_party_benchmarks.py \
   --baseline-results reports/benchmarks/third_party/history/<strict-baseline>.json \
-  --candidate-results reports/benchmarks/third_party/latest/results.json \
+  --candidate-results reports/benchmarks/third_party/full/results.json \
   --publication-mode
 ```
 
@@ -41,7 +41,7 @@ python3 tooling/metrics/compare_third_party_benchmarks.py \
 ```bash
 python tooling/metrics/compare_third_party_benchmarks.py \
   --baseline-results reports/benchmarks/third_party/history/<baseline>.json \
-  --candidate-results reports/benchmarks/third_party/latest/results.json
+  --candidate-results reports/benchmarks/third_party/full/results.json
 ```
 
 ## Notes

@@ -44,9 +44,8 @@ This builds a benchmark runner image and executes:
 ## Outputs to collect
 
 - `reports/benchmarks/third_party/full/results.json`
-- `reports/benchmarks/third_party/latest/results.json`
-- `reports/benchmarks/third_party/latest/summary.md`
-- `reports/benchmarks/third_party/history/*_full_results.json`
+- `reports/benchmarks/third_party/full/summary.md`
+- `reports/benchmarks/third_party/history/` (optional archived snapshots)
 - `reports/benchmarks/third_party/analysis/deltas/latest_delta.json`
 - `reports/benchmarks/third_party/analysis/deltas/latest_delta.md`
 

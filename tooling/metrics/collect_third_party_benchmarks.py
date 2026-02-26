@@ -1154,14 +1154,11 @@ def main() -> None:
     }
 
     profile_dir = output_root / args.profile
-    latest_dir = output_root / "latest"
     history_dir = output_root / "history"
     profile_results = profile_dir / "results.json"
-    latest_results = latest_dir / "results.json"
     history_results = history_dir / f"{stamp}_{args.profile}_results.json"
 
     write_json(profile_results, report)
-    write_json(latest_results, report)
     write_json(history_results, report)
 
     raw_dir = profile_dir / "raw"
@@ -1171,7 +1168,6 @@ def main() -> None:
     write_json(raw_dir / "matrix_snapshot.json", matrix)
 
     print(f"wrote {profile_results}")
-    print(f"wrote {latest_results}")
     print(f"wrote {history_results}")
 
 
