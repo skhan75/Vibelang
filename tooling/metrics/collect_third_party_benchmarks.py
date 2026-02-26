@@ -18,6 +18,10 @@ def fail(message: str) -> None:
     raise SystemExit(f"third-party benchmark collection failed: {message}")
 
 
+def is_commit_sha(ref: str) -> bool:
+    return bool(re.fullmatch(r"[0-9a-fA-F]{40}", ref.strip()))
+
+
 def run(
     cmd: list[str],
     cwd: Path,
@@ -64,6 +68,49 @@ def run_quick(cmd: list[str], cwd: Path) -> str:
         return lines[0]
     err_lines = [line.strip() for line in completed.stderr.splitlines() if line.strip()]
     return err_lines[0] if err_lines else "unavailable"
+
+
+def run_parity_validation(
+    repo_root: Path,
+    manifest_path: str,
+    matrix_path: str,
+    adapter_root: str,
+    publication_mode: bool,
+) -> dict[str, Any]:
+    cmd = [
+        "python3",
+        "tooling/metrics/validate_adapter_parity.py",
+        "--manifest",
+        manifest_path,
+        "--matrix-file",
+        matrix_path,
+        "--adapter-root",
+        adapter_root,
+    ]
+    if publication_mode:
+        cmd.append("--publication-mode")
+    result = run(cmd, repo_root)
+    if int(result["exit_code"]) != 0:
+        fail(
+            "adapter parity validation failed\n"
+            f"stdout:\n{result['stdout']}\n"
+            f"stderr:\n{result['stderr']}"
+        )
+    payload_raw = str(result.get("stdout", "")).strip()
+    payload: dict[str, Any] = {}
+    if payload_raw:
+        try:
+            decoded = json.loads(payload_raw)
+            if isinstance(decoded, dict):
+                payload = decoded
+        except json.JSONDecodeError:
+            payload = {
+                "status": "unknown",
+                "warning": "parity validation stdout was not JSON",
+            }
+    payload["command"] = cmd
+    payload["exit_code"] = int(result["exit_code"])
+    return payload
 
 
 def geomean(values: list[float]) -> float:
@@ -411,6 +458,7 @@ def run_plbci_suite(
     languages: list[str],
     problems: list[str],
     no_docker: bool,
+    allow_missing_lanes: bool,
 ) -> dict[str, Any]:
     build_output.mkdir(parents=True, exist_ok=True)
     logs: dict[str, Any] = {}
@@ -437,7 +485,7 @@ def run_plbci_suite(
         languages=languages,
         problems=problems,
         no_docker=no_docker,
-        ignore_missing=True,
+        ignore_missing=allow_missing_lanes,
     )
     logs["test"] = run(test_cmd, bench_tool_cwd)
 
@@ -450,7 +498,7 @@ def run_plbci_suite(
         languages=languages,
         problems=problems,
         no_docker=no_docker,
-        ignore_missing=True,
+        ignore_missing=allow_missing_lanes,
     )
     logs["bench"] = run(bench_cmd, bench_tool_cwd)
     return logs
@@ -858,6 +906,11 @@ def main() -> None:
         help="Adapter root for VibeLang PLB-CI integration.",
     )
     parser.add_argument(
+        "--parity-manifest",
+        default="benchmarks/third_party/plbci/adapters/vibelang/PARITY_MANIFEST.yaml",
+        help="Parity manifest path relative to repo root.",
+    )
+    parser.add_argument(
         "--checkout-dir",
         default=".cache/third_party/plbci",
         help="PLB-CI checkout directory relative to repo root.",
@@ -878,6 +931,11 @@ def main() -> None:
         help="Continue collection even when preflight reports missing lanes.",
     )
     parser.add_argument(
+        "--publication-mode",
+        action="store_true",
+        help="Enable strict publication gating and disallow permissive run options.",
+    )
+    parser.add_argument(
         "--skip-runtime",
         action="store_true",
         help="Skip PLB-CI runtime/memory/concurrency lanes.",
@@ -894,6 +952,7 @@ def main() -> None:
     matrix_path = repo_root / args.matrix_file
     bench_template = repo_root / args.bench_template
     adapter_root = repo_root / args.adapter_root
+    parity_manifest = repo_root / args.parity_manifest
     output_root = repo_root / args.output_root
     checkout_dir = repo_root / args.checkout_dir
 
@@ -903,6 +962,8 @@ def main() -> None:
         fail(f"benchmark template missing: {bench_template}")
     if not adapter_root.exists():
         fail(f"adapter root missing: {adapter_root}")
+    if not parity_manifest.exists():
+        fail(f"parity manifest missing: {parity_manifest}")
 
     matrix = json.loads(matrix_path.read_text())
     profile_cfg = matrix.get("profiles", {}).get(args.profile)
@@ -912,6 +973,11 @@ def main() -> None:
     plbci_ref = str(matrix.get("plbci_ref", "main")).strip()
     if not plbci_repo:
         fail("matrix must define `plbci_repo`")
+    if args.publication_mode and not is_commit_sha(plbci_ref):
+        fail(
+            "publication mode requires `plbci_ref` pinned to a 40-char commit SHA "
+            f"(found `{plbci_ref}`)"
+        )
 
     languages = [str(item["id"]) for item in matrix.get("languages", [])]
     if not languages:
@@ -925,6 +991,23 @@ def main() -> None:
         languages=languages,
         no_docker=args.no_docker,
     )
+    if args.publication_mode:
+        publication_mode_errors: list[str] = []
+        if args.no_docker:
+            publication_mode_errors.append("--no-docker is not allowed")
+        if args.allow_preflight_degraded:
+            publication_mode_errors.append("--allow-preflight-degraded is not allowed")
+        if args.skip_runtime:
+            publication_mode_errors.append("--skip-runtime is not allowed")
+        if args.skip_compile:
+            publication_mode_errors.append("--skip-compile is not allowed")
+        if str(preflight.get("status")) != "ok":
+            publication_mode_errors.append("preflight status must be `ok`")
+        if publication_mode_errors:
+            fail(
+                "publication mode requirements failed:\n- "
+                + "\n- ".join(publication_mode_errors)
+            )
     if args.preflight_only:
         print(json.dumps(preflight, indent=2))
         if str(preflight.get("status")) != "ok":
@@ -943,6 +1026,19 @@ def main() -> None:
                 if error_lines
                 else "preflight checks failed"
             )
+
+    parity_result: dict[str, Any] = {
+        "status": "not-run",
+        "publication_mode": args.publication_mode,
+    }
+    if args.publication_mode:
+        parity_result = run_parity_validation(
+            repo_root=repo_root,
+            manifest_path=args.parity_manifest,
+            matrix_path=args.matrix_file,
+            adapter_root=args.adapter_root,
+            publication_mode=True,
+        )
 
     plbci_dir = ensure_plbci_checkout(
         repo_root=repo_root,
@@ -985,6 +1081,7 @@ def main() -> None:
             languages=languages,
             problems=problems,
             no_docker=args.no_docker,
+            allow_missing_lanes=not args.publication_mode,
         )
         runtime_section = parse_plbci_runtime(build_output=build_output, languages=languages)
         runtime_section["task_logs"] = plbci_logs
@@ -1026,12 +1123,27 @@ def main() -> None:
         "tooling": {
             "plbci_repo": plbci_repo,
             "plbci_ref": plbci_ref,
+            "plbci_ref_is_pinned_sha": is_commit_sha(plbci_ref),
             "plbci_checkout": str(plbci_dir),
             "bench_yaml_used": str(bench_yaml),
+            "parity_manifest": str(parity_manifest.relative_to(repo_root)),
             "docker_enabled": not args.no_docker,
+            "publication_mode": args.publication_mode,
+        },
+        "publication": {
+            "mode": "strict" if args.publication_mode else "internal",
+            "allow_missing_lanes": not args.publication_mode,
+            "preflight_required_ok": args.publication_mode,
+            "gates": {
+                "docker_required": args.publication_mode,
+                "pinned_plbci_ref_required": args.publication_mode,
+                "degraded_mode_disallowed": args.publication_mode,
+                "skip_lanes_disallowed": args.publication_mode,
+            },
         },
         "environment": collect_environment(repo_root),
         "preflight": preflight,
+        "parity_validation": parity_result,
         "runtime": runtime_section,
         "compile": compile_section,
         "categories": build_category_rollup(

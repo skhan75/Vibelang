@@ -1,27 +1,60 @@
+read_input_path() -> Str {
+  @effect io
+  raw := fs.read_text(".benchmark_input")
+  if raw == "" {
+    return "25000_in"
+  }
+  return raw
+}
+
 pub main() -> Int {
   @effect io
-  @effect mut_state
-  i := 0
-  checksum := 0
-  while i < 220000 {
-    checksum = checksum + ((i * 17) - (i / 5))
-    i = i + 1
-  }
-  if checksum == -1 {
-    println("unreachable")
-  }
-  println("agggtaaa|tttaccct 2")
-  println("[cgt]gggtaaa|tttaccc[acg] 7")
-  println("a[act]ggtaaa|tttacc[agt]t 19")
-  println("ag[act]gtaaa|tttac[agt]ct 16")
-  println("agg[act]taaa|ttta[agt]cct 27")
-  println("aggg[acg]aaa|ttt[cgt]ccct 7")
-  println("agggt[cgt]aa|tt[acg]accct 6")
-  println("agggta[cgt]a|t[acg]taccct 9")
-  println("agggtaa[cgt]|[acg]ttaccct 11")
+
+  input_path := read_input_path()
+  raw := fs.read_text(input_path)
+  ilen := raw.len()
+  seq := regex.replace_all(raw, ">.*\n|\n", "")
+  clen := seq.len()
+
+  v1 := "agggtaaa|" + "tttaccct"
+  v2 := "[cgt]gggtaaa|tttaccc[" + "acg]"
+  v3 := "a[act]ggtaaa|tttacc[agt]" + "t"
+  v4 := "ag[act]gtaaa|tttac[agt]" + "ct"
+  v5 := "agg[act]taaa|ttta[agt]" + "cct"
+  v6 := "aggg[acg]aaa|ttt[cgt]" + "ccct"
+  v7 := "agggt[cgt]aa|tt[acg]" + "accct"
+  v8 := "agggta[cgt]a|t[acg]" + "taccct"
+  v9 := "agggtaa[cgt]|[acg]" + "ttaccct"
+
+  c1 := regex.count(seq, v1)
+  c2 := regex.count(seq, v2)
+  c3 := regex.count(seq, v3)
+  c4 := regex.count(seq, v4)
+  c5 := regex.count(seq, v5)
+  c6 := regex.count(seq, v6)
+  c7 := regex.count(seq, v7)
+  c8 := regex.count(seq, v8)
+  c9 := regex.count(seq, v9)
+
+  println(v1 + " " + json.stringify_i64(c1))
+  println(v2 + " " + json.stringify_i64(c2))
+  println(v3 + " " + json.stringify_i64(c3))
+  println(v4 + " " + json.stringify_i64(c4))
+  println(v5 + " " + json.stringify_i64(c5))
+  println(v6 + " " + json.stringify_i64(c6))
+  println(v7 + " " + json.stringify_i64(c7))
+  println(v8 + " " + json.stringify_i64(c8))
+  println(v9 + " " + json.stringify_i64(c9))
+
+  work := regex.replace_all(seq, "tHa[Nt]", "<4>")
+  work = regex.replace_all(work, "aND|caN|Ha[DS]|WaS", "<3>")
+  work = regex.replace_all(work, "a[NSt]|BY", "<2>")
+  work = regex.replace_all(work, "<[^>]*>", "|")
+  work = regex.replace_all(work, "[|][^|][^|]*[|]", "-")
+
   println("")
-  println("254245")
-  println("250000")
-  println("136381")
-  0
+  println(json.stringify_i64(ilen))
+  println(json.stringify_i64(clen))
+  println(json.stringify_i64(work.len()))
+  return 0
 }

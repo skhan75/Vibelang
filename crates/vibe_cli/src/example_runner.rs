@@ -371,26 +371,33 @@ fn eval_function_call(
         }
     }
 
-    let result = if let Some(ret) = eval_stmt_list(
+    let flow = eval_stmt_list(
         &func.body,
         &mut env,
         functions,
         depth + 1,
         enforce_contracts,
-    )? {
-        ret
-    } else if let Some(expr) = &func.tail_expr {
-        eval_expr_with_ctx(
-            expr,
-            &mut env,
-            functions,
-            depth + 1,
-            None,
-            Some(&entry_snapshot),
-            enforce_contracts,
-        )?
-    } else {
-        DeterministicValue::Void
+    )?;
+    let result = match flow {
+        EvalControl::Return(ret) => ret,
+        EvalControl::Next => {
+            if let Some(expr) = &func.tail_expr {
+                eval_expr_with_ctx(
+                    expr,
+                    &mut env,
+                    functions,
+                    depth + 1,
+                    None,
+                    Some(&entry_snapshot),
+                    enforce_contracts,
+                )?
+            } else {
+                DeterministicValue::Void
+            }
+        }
+        EvalControl::Break | EvalControl::Continue => {
+            return Err("`break`/`continue` used outside a loop".to_string());
+        }
     };
 
     if enforce_contracts {
@@ -417,19 +424,27 @@ fn eval_function_call(
     Ok(result)
 }
 
+enum EvalControl {
+    Next,
+    Return(DeterministicValue),
+    Break,
+    Continue,
+}
+
 fn eval_stmt_list(
     stmts: &[Stmt],
     env: &mut BTreeMap<String, DeterministicValue>,
     functions: &BTreeMap<String, &FunctionDecl>,
     depth: usize,
     enforce_contracts: bool,
-) -> Result<Option<DeterministicValue>, String> {
+) -> Result<EvalControl, String> {
     for stmt in stmts {
-        if let Some(ret) = eval_stmt(stmt, env, functions, depth + 1, enforce_contracts)? {
-            return Ok(Some(ret));
+        let flow = eval_stmt(stmt, env, functions, depth + 1, enforce_contracts)?;
+        if !matches!(flow, EvalControl::Next) {
+            return Ok(flow);
         }
     }
-    Ok(None)
+    Ok(EvalControl::Next)
 }
 
 fn eval_stmt(
@@ -438,7 +453,7 @@ fn eval_stmt(
     functions: &BTreeMap<String, &FunctionDecl>,
     depth: usize,
     enforce_contracts: bool,
-) -> Result<Option<DeterministicValue>, String> {
+) -> Result<EvalControl, String> {
     match stmt {
         Stmt::Binding { name, expr, .. } => {
             let value = eval_expr_with_ctx(
@@ -451,7 +466,7 @@ fn eval_stmt(
                 enforce_contracts,
             )?;
             env.insert(name.clone(), value);
-            Ok(None)
+            Ok(EvalControl::Next)
         }
         Stmt::Assignment { target, expr, .. } => match target {
             Expr::Ident { name, .. } => {
@@ -465,11 +480,11 @@ fn eval_stmt(
                     enforce_contracts,
                 )?;
                 env.insert(name.clone(), value);
-                Ok(None)
+                Ok(EvalControl::Next)
             }
             _ => Err("only identifier assignment is supported in phase 2 examples".to_string()),
         },
-        Stmt::Return { expr, .. } => Ok(Some(eval_expr_with_ctx(
+        Stmt::Return { expr, .. } => Ok(EvalControl::Return(eval_expr_with_ctx(
             expr,
             env,
             functions,
@@ -488,7 +503,7 @@ fn eval_stmt(
                 None,
                 enforce_contracts,
             )?;
-            Ok(None)
+            Ok(EvalControl::Next)
         }
         Stmt::For {
             var, iter, body, ..
@@ -505,13 +520,14 @@ fn eval_stmt(
             let items = iterable.as_list()?.to_vec();
             for item in items {
                 env.insert(var.clone(), item);
-                if let Some(ret) =
-                    eval_stmt_list(body, env, functions, depth + 1, enforce_contracts)?
-                {
-                    return Ok(Some(ret));
+                match eval_stmt_list(body, env, functions, depth + 1, enforce_contracts)? {
+                    EvalControl::Next => {}
+                    EvalControl::Continue => continue,
+                    EvalControl::Break => return Ok(EvalControl::Next),
+                    EvalControl::Return(ret) => return Ok(EvalControl::Return(ret)),
                 }
             }
-            Ok(None)
+            Ok(EvalControl::Next)
         }
         Stmt::If {
             cond,
@@ -547,12 +563,13 @@ fn eval_stmt(
                     enforce_contracts,
                 )?;
                 if !cond_value.as_bool()? {
-                    return Ok(None);
+                    return Ok(EvalControl::Next);
                 }
-                if let Some(ret) =
-                    eval_stmt_list(body, env, functions, depth + 1, enforce_contracts)?
-                {
-                    return Ok(Some(ret));
+                match eval_stmt_list(body, env, functions, depth + 1, enforce_contracts)? {
+                    EvalControl::Next => {}
+                    EvalControl::Continue => continue,
+                    EvalControl::Break => return Ok(EvalControl::Next),
+                    EvalControl::Return(ret) => return Ok(EvalControl::Return(ret)),
                 }
             }
             Err("while loop exceeded deterministic iteration budget".to_string())
@@ -570,20 +587,23 @@ fn eval_stmt(
             .as_int()?
             .max(0) as usize;
             for _ in 0..times.min(MAX_LOOP_ITERS) {
-                if let Some(ret) =
-                    eval_stmt_list(body, env, functions, depth + 1, enforce_contracts)?
-                {
-                    return Ok(Some(ret));
+                match eval_stmt_list(body, env, functions, depth + 1, enforce_contracts)? {
+                    EvalControl::Next => {}
+                    EvalControl::Continue => continue,
+                    EvalControl::Break => return Ok(EvalControl::Next),
+                    EvalControl::Return(ret) => return Ok(EvalControl::Return(ret)),
                 }
             }
             if times > MAX_LOOP_ITERS {
                 return Err("repeat loop exceeded deterministic iteration budget".to_string());
             }
-            Ok(None)
+            Ok(EvalControl::Next)
         }
         Stmt::Select { .. } | Stmt::Go { .. } | Stmt::Thread { .. } => {
             Err("select/go are not supported in phase 2 deterministic example runner".to_string())
         }
+        Stmt::Break { .. } => Ok(EvalControl::Break),
+        Stmt::Continue { .. } => Ok(EvalControl::Continue),
     }
 }
 

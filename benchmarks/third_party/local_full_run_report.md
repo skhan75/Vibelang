@@ -1,99 +1,112 @@
 # VibeLang Full Local Benchmark Report (Third-Party Stack)
 
-Date (UTC): `2026-02-25T18:19:23Z`  
+Date (UTC): `2026-02-26T07:21:50Z`  
 Run profile: `full`  
-Timestamp ID: `20260225_181923Z`  
-Execution mode: **full non-skip local run** (`runtime + compile lanes enabled`, `--no-docker`, `--allow-preflight-degraded`)
+Timestamp ID: `20260226_072150Z`  
+Execution mode: **full local degraded run** (`runtime + compile lanes enabled`, `--no-docker`, `--allow-preflight-degraded`)
 
-## What was run
+Publication classification: **internal-only** (not strict apples-to-apples publishable yet).
+
+## What changed before this run
+
+- Old generated benchmark reports were removed from `reports/benchmarks/third_party/` and regenerated from scratch.
+- Installed/added local toolchains for better lane coverage:
+  - `zig 0.15.2`
+  - `deno 2.7.1`
+  - `kotlin/kotlinc 2.3.10`
+  - `pypy3 7.3.20`
+  - `pyston3 2.3.5`
+  - `clang`/`clang++` now available via Zig's Clang frontend.
+- Remaining toolchain gap: `swift` / `swiftc` (Swiftly installation attempt did not complete in this environment).
+
+## Commands run
 
 ```bash
-# docker health probe (failed on this host)
-timeout 90 docker info --format '{{.ServerVersion}}'
+# strict attempt (expected to fail until remaining canonical blockers are fixed)
+python3 tooling/metrics/collect_third_party_benchmarks.py --profile full --publication-mode
 
-# full collection (explicit degraded override)
+# full benchmark collection (fresh, after clearing old generated reports)
 python3 tooling/metrics/collect_third_party_benchmarks.py \
   --profile full \
   --no-docker \
   --allow-preflight-degraded
 
-# summary + delta
-python3 tooling/metrics/validate_third_party_benchmarks.py \
-  --results reports/benchmarks/third_party/full/results.json \
-  --budget-file reports/benchmarks/third_party/analysis/performance_budgets.json \
-  --enforcement-mode warn
-python3 tooling/metrics/compare_third_party_benchmarks.py \
-  --baseline-results reports/benchmarks/third_party/history/20260225_180155Z_full_results.json \
-  --candidate-results reports/benchmarks/third_party/latest/results.json
+# summary validation + strict gate check
+python3 tooling/metrics/validate_third_party_benchmarks.py
+python3 tooling/metrics/validate_third_party_benchmarks.py --publication-mode
 ```
 
-## Evidence artifacts
+## Evidence artifacts (newly generated)
 
 - Detailed JSON (full): `reports/benchmarks/third_party/full/results.json`
 - Detailed JSON (latest): `reports/benchmarks/third_party/latest/results.json`
-- Timestamped snapshot: `reports/benchmarks/third_party/history/20260225_181923Z_full_results.json`
+- Timestamped snapshot: `reports/benchmarks/third_party/history/20260226_072150Z_full_results.json`
 - Human-readable summary: `reports/benchmarks/third_party/latest/summary.md`
-- Timestamped detailed summary: `reports/benchmarks/third_party/analysis/20260225_181923Z_detailed_summary.md`
-- Latest delta: `reports/benchmarks/third_party/analysis/deltas/latest_delta.md`
-- Timestamped delta: `reports/benchmarks/third_party/analysis/deltas/20260225_181951Z_delta.md`
+- Timestamped detailed summary: `reports/benchmarks/third_party/analysis/20260226_072150Z_detailed_summary.md`
 
 ## Coverage snapshot
 
 ### Runtime lane status
 
-- `ok`: `vibelang`, `c`, `cpp`, `go`, `kotlin`, `elixir`, `python`
-- `unavailable`: `rust`, `zig`, `swift`, `typescript`
+- `ok`: `vibelang`, `c`, `cpp`, `go`, `kotlin`, `elixir`, `python`, `typescript`
+- `unavailable`: `rust`, `zig`, `swift`
 
 ### Compile lane status
 
-- `ok`: `vibelang`, `go`, `kotlin`, `elixir`
-- `unavailable`: `c`, `cpp`, `rust`, `zig`, `swift`, `python`, `typescript`
+- `ok`: `vibelang`, `c`, `cpp`, `go`, `kotlin`, `elixir`, `python`, `typescript`
+- `unavailable`: `rust`, `zig`, `swift`
 
 ### Preflight state
 
-- `status`: `degraded` (explicit override enabled)
+- `status`: `degraded`
 - `mode`: `no-docker`
-- Missing binaries reported: `clang`, `clang++`, `zig`, `swift`, `swiftc`, `kotlinc`, `pypy3`, `pyston3`, `deno`
+- Remaining preflight gaps: `swift`, `swiftc`
 
-## VibeLang wins (from this run)
+## Easy-to-read result summary
 
-- **Runtime geomean vs C**: `0.102` (faster).
-- **Runtime geomean vs C++**: `0.112` (faster).
-- **Runtime geomean vs Go**: `0.037` (faster).
-- **Runtime geomean vs Python**: `0.005` (faster).
-- **Runtime geomean vs Elixir**: `0.004` (faster).
-- **Compile cold vs Kotlin**: `0.318` (faster).
-- **Compile cold vs Elixir**: `0.357` (faster).
-- **Compile near-parity vs Go**: `1.004` (much closer to parity than previous run).
-- **Expanded VibeLang runtime coverage**: all configured problems now produced VibeLang datapoints, including `binarytrees`, `merkletrees`, and `lru`.
-- **Concurrency proxy (`coro-prime-sieve`)**: `vibelang=1.643ms`, `go=12.490ms`, `python=377.597ms`, `elixir=314.664ms`.
+### Key wins
 
-## Gaps and risks
+- Runtime geomean is faster than:
+  - `c` (`0.093x`)
+  - `cpp` (`0.095x`)
+  - `go` (`0.037x`)
+  - `elixir` (`0.003x`)
+  - `python` (`0.010x`)
+  - `typescript` (`0.014x`)
+- Compile cold is faster than:
+  - `kotlin` (`0.305x`)
+  - `elixir` (`0.317x`)
+  - `python` (`0.542x`)
+  - `typescript` (`0.784x`)
 
-- **Runtime vs Kotlin**: VibeLang is still slower on shared workloads (geomean `1.876`), with the biggest hotspot in `json-serde`.
-- **Compile vs Go**: VibeLang remains marginally slower on cold compile (`1.004` ratio).
-- **Matrix completeness risk**: runtime lanes missing for `rust`, `zig`, `swift`, `typescript`; compile lanes missing for `c`, `cpp`, `rust`, `zig`, `swift`, `python`, `typescript`.
-- **Docker reproducibility blocker on this host**: `docker info` could not reach a healthy daemon; canonical docker-backed run was not possible here.
-- **Coverage caveat**: several newly added VibeLang adapter implementations are currently workload-proxy implementations. Results are useful for directional tracking, but should not be used as final release-gate claims until adapter parity hardening is complete.
+### Main performance gaps
 
-## Drift vs previous full run (`20260225_180155Z`)
+- Runtime slower than `kotlin` (`1.943x`)
+- Compile cold slower than:
+  - `cpp` (`1.123x`)
+  - `c` (`1.112x`)
+  - `go` (`1.041x`)
 
-- Runtime geomean improved vs `go` (`-22.08%`), `kotlin` (`-30.43%`), and `python` (`-8.34%`).
-- Runtime geomean regressed slightly vs `c` (`+13.53%`), `cpp` (`+12.03%`), and `elixir` (`+11.84%`), but remains < `1.0` against those baselines.
-- Compile cold improved vs `go` (`-3.79%`), with minor regressions vs `elixir` (`+0.75%`) and `kotlin` (`+1.90%`).
-- Interpretation: adapter fixes increased problem coverage and improved key gaps (`kotlin`, `go`), while leaving some runtime ratios to tune.
+### Concurrency proxy snapshot (`coro-prime-sieve`, lower is better)
 
-## Prioritized optimization plan (impact -> effort)
+- `vibelang`: `1.643 ms`
+- `kotlin`: `1.285 ms`
+- `go`: `12.341 ms`
+- `typescript`: `155.549 ms`
+- `python`: `316.813 ms`
+- `elixir`: `329.597 ms`
 
-1. Restore Docker daemon access and run canonical docker-backed full profile (highest impact on reproducibility/coverage credibility).
-2. Close missing lane toolchains (`rust`, `zig`, `swift`, `typescript`, compile lanes for `c/cpp/python`) to remove `n/a` blind spots.
-3. Harden full adapter parity for `fasta`, `json-serde`, `secp256k1`, and `http-server` so benchmarks reflect full real semantics.
-4. Optimize Kotlin hotspot workloads (`json-serde`, `secp256k1`, `http-server`) and rerun deltas.
-5. Improve compile cold path against Go (front-end + codegen startup overhead).
+## Why this is still not publishable
 
-## Reproducibility notes
+- Strict publication mode still fails immediately on parity gating because 4 adapters are still noncanonical:
+  - `edigits`
+  - `http-server`
+  - `json-serde`
+  - `secp256k1`
+- In this local no-docker run, additional strict gate failures remain for missing language lanes:
+  - runtime/compile unavailable: `rust`, `zig`, `swift`
+- Docker daemon connectivity was unstable during this session, so strict Docker-backed collection could not be completed end-to-end.
 
-- Docker-first and cloud recipe: `benchmarks/third_party/CLOUD_REPRODUCIBILITY.md`
-- Operational runbook: `reports/benchmarks/third_party/analysis/reproducibility_runbook.md`
-- When Docker is healthy, use:
-  - `bash vibelang/benchmarks/third_party/docker/run_in_runner_container.sh`
+## Action checklist
+
+- Canonical checklist for remaining work: `reports/benchmarks/third_party/analysis/gaps_optimization_blocker_checklist.md`

@@ -1,17 +1,135 @@
-pub main() -> Int {
-  @effect io
+parse_two_ints(raw: Str) -> List<Int> {
+  @effect alloc
   @effect mut_state
+  values := []
+  first_end := raw.len()
   i := 0
-  window_checksum := 0
-  while i < 20000 {
-    key := i - (i / 128) * 128
-    window_checksum = window_checksum + key
+  found_space := 0
+  while i < raw.len() {
+    if found_space == 0 {
+      if raw[i] == 32 {
+        first_end = i
+        found_space = 1
+      }
+    }
     i = i + 1
   }
-  if window_checksum == -1 {
-    println("unreachable")
+
+  values.append(json.parse_i64(raw[0:first_end]))
+
+  second_start := first_end
+  done := 0
+  while done == 0 {
+    if second_start < raw.len() {
+      if raw[second_start] == 32 {
+        second_start = second_start + 1
+      } else {
+        done = 1
+      }
+    } else {
+      done = 1
+    }
   }
-  println("74")
-  println("926")
-  0
+
+  if second_start < raw.len() {
+    values.append(json.parse_i64(raw[second_start:]))
+  } else {
+    values.append(1000)
+  }
+  return values
+}
+
+mod_int(value: Int, m: Int) -> Int {
+  return value - (value / m) * m
+}
+
+next_lcg(seed: Int) -> Int {
+  return mod_int(seed * 1103515245 + 12345, 2147483648)
+}
+
+evict_oldest(cache: Map<Int, Int>, mod: Int) -> Void {
+  @effect mut_state
+  oldest_key := -1
+  oldest_time := 0
+  k := 0
+  while k < mod {
+    if cache.contains(k) {
+      ts := cache.get(k)
+      if oldest_key == -1 {
+        oldest_key = k
+        oldest_time = ts
+      } else {
+        if ts < oldest_time {
+          oldest_key = k
+          oldest_time = ts
+        }
+      }
+    }
+    k = k + 1
+  }
+  if oldest_key != -1 {
+    cache.remove(oldest_key)
+  }
+}
+
+put_lru(cache: Map<Int, Int>, key: Int, tick: Int, size: Int, mod: Int) -> Void {
+  @effect mut_state
+  if cache.contains(key) {
+    cache.set(key, tick)
+  } else {
+    if cache.len() == size {
+      evict_oldest(cache, mod)
+    }
+    cache.set(key, tick)
+  }
+}
+
+get_lru(cache: Map<Int, Int>, key: Int, tick: Int) -> Int {
+  @effect mut_state
+  if cache.contains(key) {
+    cache.set(key, tick)
+    return 1
+  }
+  return 0
+}
+
+pub main() -> Int {
+  @effect io
+  @effect alloc
+  @effect mut_state
+
+  raw := fs.read_text(".benchmark_input")
+  args := parse_two_ints(raw)
+  size := args.get(0)
+  n := args.get(1)
+  mod := size * 10
+
+  cache := {0: 0}
+  cache.remove(0)
+  seed0 := 0
+  seed1 := 1
+  tick := 0
+  hit := 0
+  missed := 0
+  i := 0
+  while i < n {
+    seed0 = next_lcg(seed0)
+    key0 := mod_int(seed0, mod)
+    put_lru(cache, key0, tick, size, mod)
+    tick = tick + 1
+
+    seed1 = next_lcg(seed1)
+    key1 := mod_int(seed1, mod)
+    if get_lru(cache, key1, tick) == 1 {
+      hit = hit + 1
+    } else {
+      missed = missed + 1
+    }
+    tick = tick + 1
+    i = i + 1
+  }
+
+  println(json.stringify_i64(hit))
+  println(json.stringify_i64(missed))
+  return 0
 }

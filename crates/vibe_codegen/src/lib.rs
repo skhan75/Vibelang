@@ -91,9 +91,17 @@ struct RuntimeFunctions {
     json_parse_i64_fn: FuncId,
     json_stringify_i64_fn: FuncId,
     json_minify_fn: FuncId,
+    regex_count_fn: FuncId,
+    regex_replace_all_fn: FuncId,
     http_status_text_fn: FuncId,
     http_default_port_fn: FuncId,
     http_build_request_line_fn: FuncId,
+}
+
+#[derive(Clone, Copy)]
+struct LoopContext {
+    break_block: ir::Block,
+    continue_block: ir::Block,
 }
 
 pub fn emit_object(program: &MirProgram, options: &CodegenOptions) -> Result<Vec<u8>, String> {
@@ -331,7 +339,9 @@ fn declare_runtime_functions(
         .map_err(|e| format!("failed to declare runtime container_set_i64 symbol: {e}"))?;
 
     let mut container_get_auto_i64_sig = module.make_signature();
-    container_get_auto_i64_sig.params.push(AbiParam::new(ptr_ty));
+    container_get_auto_i64_sig
+        .params
+        .push(AbiParam::new(ptr_ty));
     container_get_auto_i64_sig
         .params
         .push(AbiParam::new(ir::types::I64));
@@ -347,7 +357,9 @@ fn declare_runtime_functions(
         .map_err(|e| format!("failed to declare runtime container_get_auto_i64 symbol: {e}"))?;
 
     let mut container_set_auto_i64_sig = module.make_signature();
-    container_set_auto_i64_sig.params.push(AbiParam::new(ptr_ty));
+    container_set_auto_i64_sig
+        .params
+        .push(AbiParam::new(ptr_ty));
     container_set_auto_i64_sig
         .params
         .push(AbiParam::new(ir::types::I64));
@@ -487,7 +499,9 @@ fn declare_runtime_functions(
         })?;
 
     let mut container_remove_auto_i64_sig = module.make_signature();
-    container_remove_auto_i64_sig.params.push(AbiParam::new(ptr_ty));
+    container_remove_auto_i64_sig
+        .params
+        .push(AbiParam::new(ptr_ty));
     container_remove_auto_i64_sig
         .params
         .push(AbiParam::new(ir::types::I64));
@@ -783,6 +797,27 @@ fn declare_runtime_functions(
         .declare_function("vibe_json_minify", Linkage::Import, &json_minify_sig)
         .map_err(|e| format!("failed to declare runtime json_minify symbol: {e}"))?;
 
+    let mut regex_count_sig = module.make_signature();
+    regex_count_sig.params.push(AbiParam::new(ptr_ty));
+    regex_count_sig.params.push(AbiParam::new(ptr_ty));
+    regex_count_sig.returns.push(AbiParam::new(ir::types::I64));
+    let regex_count_fn = module
+        .declare_function("vibe_regex_count", Linkage::Import, &regex_count_sig)
+        .map_err(|e| format!("failed to declare runtime regex_count symbol: {e}"))?;
+
+    let mut regex_replace_all_sig = module.make_signature();
+    regex_replace_all_sig.params.push(AbiParam::new(ptr_ty));
+    regex_replace_all_sig.params.push(AbiParam::new(ptr_ty));
+    regex_replace_all_sig.params.push(AbiParam::new(ptr_ty));
+    regex_replace_all_sig.returns.push(AbiParam::new(ptr_ty));
+    let regex_replace_all_fn = module
+        .declare_function(
+            "vibe_regex_replace_all",
+            Linkage::Import,
+            &regex_replace_all_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime regex_replace_all symbol: {e}"))?;
+
     let mut http_status_text_sig = module.make_signature();
     http_status_text_sig
         .params
@@ -884,6 +919,8 @@ fn declare_runtime_functions(
         json_parse_i64_fn,
         json_stringify_i64_fn,
         json_minify_fn,
+        regex_count_fn,
+        regex_replace_all_fn,
         http_status_text_fn,
         http_default_port_fn,
         http_build_request_line_fn,
@@ -940,6 +977,7 @@ fn define_function(
             ptr_ty,
             &mut str_data_counter,
             function,
+            None,
         )?;
     }
 
@@ -972,6 +1010,7 @@ fn emit_stmt(
     ptr_ty: ir::Type,
     str_data_counter: &mut usize,
     owner: &MirFunction,
+    loop_ctx: Option<LoopContext>,
 ) -> Result<bool, String> {
     match stmt {
         MirStmt::Let { name, expr } => {
@@ -1069,6 +1108,26 @@ fn emit_stmt(
             }
             Ok(true)
         }
+        MirStmt::Break => {
+            let Some(loop_ctx) = loop_ctx else {
+                return Err(
+                    "E3410: `break` cannot be emitted outside `for`, `while`, or `repeat`"
+                        .to_string(),
+                );
+            };
+            builder.ins().jump(loop_ctx.break_block, &[]);
+            Ok(true)
+        }
+        MirStmt::Continue => {
+            let Some(loop_ctx) = loop_ctx else {
+                return Err(
+                    "E3411: `continue` cannot be emitted outside `for`, `while`, or `repeat`"
+                        .to_string(),
+                );
+            };
+            builder.ins().jump(loop_ctx.continue_block, &[]);
+            Ok(true)
+        }
         MirStmt::For {
             var,
             iter,
@@ -1153,6 +1212,7 @@ fn emit_stmt(
                     ptr_ty,
                     str_data_counter,
                     owner,
+                    loop_ctx,
                 )?;
             }
             if !then_terminated {
@@ -1178,6 +1238,7 @@ fn emit_stmt(
                     ptr_ty,
                     str_data_counter,
                     owner,
+                    loop_ctx,
                 )?;
             }
             if !else_terminated {
@@ -1453,6 +1514,7 @@ fn emit_for_stmt(
     let header_block = builder.create_block();
     let bind_block = builder.create_block();
     let body_block = builder.create_block();
+    let continue_block = builder.create_block();
     let exit_block = builder.create_block();
     builder.ins().jump(header_block, &[]);
 
@@ -1534,18 +1596,26 @@ fn emit_for_stmt(
             ptr_ty,
             str_data_counter,
             owner,
+            Some(LoopContext {
+                break_block: exit_block,
+                continue_block,
+            }),
         )?;
     }
     if !body_terminated {
-        let current_idx = builder.use_var(idx_var);
-        let one = builder.ins().iconst(ir::types::I64, 1);
-        let next_idx = builder.ins().iadd(current_idx, one);
-        builder.def_var(idx_var, next_idx);
-        builder.ins().jump(header_block, &[]);
+        builder.ins().jump(continue_block, &[]);
     }
+
+    builder.switch_to_block(continue_block);
+    let current_idx = builder.use_var(idx_var);
+    let one = builder.ins().iconst(ir::types::I64, 1);
+    let next_idx = builder.ins().iadd(current_idx, one);
+    builder.def_var(idx_var, next_idx);
+    builder.ins().jump(header_block, &[]);
 
     builder.seal_block(bind_block);
     builder.seal_block(body_block);
+    builder.seal_block(continue_block);
     builder.seal_block(header_block);
 
     builder.switch_to_block(exit_block);
@@ -1609,6 +1679,10 @@ fn emit_while_stmt(
             ptr_ty,
             str_data_counter,
             owner,
+            Some(LoopContext {
+                break_block: exit_block,
+                continue_block: header_block,
+            }),
         )?;
     }
     if !body_terminated {
@@ -1657,6 +1731,7 @@ fn emit_repeat_stmt(
 
     let header_block = builder.create_block();
     let body_block = builder.create_block();
+    let continue_block = builder.create_block();
     let exit_block = builder.create_block();
     builder.ins().jump(header_block, &[]);
 
@@ -1691,16 +1766,25 @@ fn emit_repeat_stmt(
             ptr_ty,
             str_data_counter,
             owner,
+            Some(LoopContext {
+                break_block: exit_block,
+                continue_block,
+            }),
         )?;
     }
     if !body_terminated {
-        let one = builder.ins().iconst(ir::types::I64, 1);
-        let current_idx = builder.use_var(idx_var);
-        let next_idx = builder.ins().iadd(current_idx, one);
-        builder.def_var(idx_var, next_idx);
-        builder.ins().jump(header_block, &[]);
+        builder.ins().jump(continue_block, &[]);
     }
+
+    builder.switch_to_block(continue_block);
+    let one = builder.ins().iconst(ir::types::I64, 1);
+    let current_idx = builder.use_var(idx_var);
+    let next_idx = builder.ins().iadd(current_idx, one);
+    builder.def_var(idx_var, next_idx);
+    builder.ins().jump(header_block, &[]);
+
     builder.seal_block(body_block);
+    builder.seal_block(continue_block);
     builder.seal_block(header_block);
 
     builder.switch_to_block(exit_block);
@@ -2208,8 +2292,15 @@ fn emit_expr(
                 owner,
             )?;
             if field == "len" {
-                let local_len =
-                    module.declare_func_in_func(runtime_fns.container_len_fn, builder.func);
+                let use_str_len = is_known_string_expr_with_owner(object, owner)
+                    || matches!(&**object, MirExpr::Var(name)
+                        if var_has_add_assignment(owner, name)
+                        || var_has_str_call_assignment(owner, name, function_returns));
+                let local_len = if use_str_len {
+                    module.declare_func_in_func(runtime_fns.str_len_bytes_fn, builder.func)
+                } else {
+                    module.declare_func_in_func(runtime_fns.container_len_fn, builder.func)
+                };
                 let call = builder.ins().call(local_len, &[container]);
                 return Ok(builder
                     .inst_results(call)
@@ -2505,8 +2596,15 @@ fn emit_expr(
                         if !lowered_args.is_empty() {
                             return Err("`.len()` expects no arguments".to_string());
                         }
-                        let local_len =
-                            module.declare_func_in_func(runtime_fns.container_len_fn, builder.func);
+                        let use_str_len = is_known_string_expr_with_owner(object, owner)
+                            || matches!(&**object, MirExpr::Var(name)
+                                if var_has_add_assignment(owner, name)
+                                || var_has_str_call_assignment(owner, name, function_returns));
+                        let local_len = if use_str_len {
+                            module.declare_func_in_func(runtime_fns.str_len_bytes_fn, builder.func)
+                        } else {
+                            module.declare_func_in_func(runtime_fns.container_len_fn, builder.func)
+                        };
                         let call = builder.ins().call(local_len, &[object_value]);
                         return Ok(builder
                             .inst_results(call)
@@ -2519,8 +2617,10 @@ fn emit_expr(
                             return Err("`.get()` expects one key/index argument".to_string());
                         }
                         let key = lowered_args[0];
-                        let local_get = module
-                            .declare_func_in_func(runtime_fns.container_get_auto_i64_fn, builder.func);
+                        let local_get = module.declare_func_in_func(
+                            runtime_fns.container_get_auto_i64_fn,
+                            builder.func,
+                        );
                         let call = builder.ins().call(local_get, &[object_value, key]);
                         return Ok(builder
                             .inst_results(call)
@@ -2541,8 +2641,10 @@ fn emit_expr(
                                 "E3404: `.set()` currently supports Int values only".to_string()
                             );
                         }
-                        let local_set = module
-                            .declare_func_in_func(runtime_fns.container_set_auto_i64_fn, builder.func);
+                        let local_set = module.declare_func_in_func(
+                            runtime_fns.container_set_auto_i64_fn,
+                            builder.func,
+                        );
                         let call = builder.ins().call(local_set, &[object_value, key, value]);
                         return Ok(builder
                             .inst_results(call)
@@ -2571,8 +2673,10 @@ fn emit_expr(
                             return Err("`.remove()` expects one key argument".to_string());
                         }
                         let key = lowered_args[0];
-                        let local_remove = module
-                            .declare_func_in_func(runtime_fns.container_remove_auto_i64_fn, builder.func);
+                        let local_remove = module.declare_func_in_func(
+                            runtime_fns.container_remove_auto_i64_fn,
+                            builder.func,
+                        );
                         let call = builder.ins().call(local_remove, &[object_value, key]);
                         return Ok(builder
                             .inst_results(call)
@@ -2618,7 +2722,9 @@ fn emit_expr(
             )?;
             match op.as_str() {
                 "Add" => {
-                    if is_known_string_expr(left) && is_known_string_expr(right) {
+                    if is_known_string_expr_with_owner(left, owner)
+                        || is_known_string_expr_with_owner(right, owner)
+                    {
                         let local_concat =
                             module.declare_func_in_func(runtime_fns.str_concat_fn, builder.func);
                         let call = builder.ins().call(local_concat, &[l, r]);
@@ -2634,7 +2740,9 @@ fn emit_expr(
                 "Div" => builder.ins().sdiv(l, r),
                 "Eq" | "Ne" => {
                     let is_ne = op == "Ne";
-                    if is_known_string_expr(left) && is_known_string_expr(right) {
+                    if is_known_string_expr_with_owner(left, owner)
+                        && is_known_string_expr_with_owner(right, owner)
+                    {
                         let local_eq =
                             module.declare_func_in_func(runtime_fns.str_eq_fn, builder.func);
                         let call = builder.ins().call(local_eq, &[l, r]);
@@ -2844,6 +2952,17 @@ fn emit_stdlib_namespace_call(
         let call = builder.ins().call(local, &[arg0, arg1]);
         call_result_or_zero(builder, call)
     };
+    let call_three_args = |func: FuncId,
+                           arg0: ir::Value,
+                           arg1: ir::Value,
+                           arg2: ir::Value,
+                           module: &mut ObjectModule,
+                           builder: &mut FunctionBuilder<'_>|
+     -> ir::Value {
+        let local = module.declare_func_in_func(func, builder.func);
+        let call = builder.ins().call(local, &[arg0, arg1, arg2]);
+        call_result_or_zero(builder, call)
+    };
 
     let expect_arity = |expected: usize| -> Result<(), String> {
         if lowered_args.len() != expected {
@@ -2974,6 +3093,27 @@ fn emit_stdlib_namespace_call(
             expect_arity(1)?;
             call_one_arg(runtime_fns.json_minify_fn, lowered_args[0], module, builder)
         }
+        ("regex", "count") => {
+            expect_arity(2)?;
+            call_two_args(
+                runtime_fns.regex_count_fn,
+                lowered_args[0],
+                lowered_args[1],
+                module,
+                builder,
+            )
+        }
+        ("regex", "replace_all") => {
+            expect_arity(3)?;
+            call_three_args(
+                runtime_fns.regex_replace_all_fn,
+                lowered_args[0],
+                lowered_args[1],
+                lowered_args[2],
+                module,
+                builder,
+            )
+        }
         ("http", "status_text") => {
             expect_arity(1)?;
             call_one_arg(
@@ -3021,7 +3161,7 @@ fn is_known_string_expr(expr: &MirExpr) -> bool {
     match expr {
         MirExpr::Str(_) => true,
         MirExpr::Binary { left, op, right } if op == "Add" => {
-            is_known_string_expr(left) && is_known_string_expr(right)
+            is_known_string_expr(left) || is_known_string_expr(right)
         }
         MirExpr::Call { callee, .. }
             if matches!(
@@ -3031,6 +3171,7 @@ fn is_known_string_expr(expr: &MirExpr) -> bool {
                     if (namespace == "path" && (field == "join" || field == "parent" || field == "basename"))
                     || (namespace == "fs" && field == "read_text")
                     || (namespace == "json" && (field == "stringify_i64" || field == "minify"))
+                    || (namespace == "regex" && field == "replace_all")
                     || (namespace == "http" && (field == "status_text" || field == "build_request_line"))
                 )
             ) =>
@@ -3076,6 +3217,92 @@ fn collect_var_string_assignments(
     }
 }
 
+fn var_has_add_assignment_in_stmts(stmts: &[MirStmt], target: &str) -> bool {
+    for stmt in stmts {
+        match stmt {
+            MirStmt::Let { name, expr } | MirStmt::Assign { name, expr } => {
+                if name == target && matches!(expr, MirExpr::Binary { op, .. } if op == "Add") {
+                    return true;
+                }
+            }
+            MirStmt::If {
+                then_body,
+                else_body,
+                ..
+            } => {
+                if var_has_add_assignment_in_stmts(then_body, target)
+                    || var_has_add_assignment_in_stmts(else_body, target)
+                {
+                    return true;
+                }
+            }
+            MirStmt::For { body, .. }
+            | MirStmt::While { body, .. }
+            | MirStmt::Repeat { body, .. } => {
+                if var_has_add_assignment_in_stmts(body, target) {
+                    return true;
+                }
+            }
+            _ => {}
+        }
+    }
+    false
+}
+
+fn var_has_add_assignment(owner: &MirFunction, name: &str) -> bool {
+    var_has_add_assignment_in_stmts(&owner.body, name)
+}
+
+fn var_has_str_call_assignment_in_stmts(
+    stmts: &[MirStmt],
+    target: &str,
+    function_returns: &BTreeMap<String, MirType>,
+) -> bool {
+    for stmt in stmts {
+        match stmt {
+            MirStmt::Let { name, expr } | MirStmt::Assign { name, expr } => {
+                if name == target {
+                    if let MirExpr::Call { callee, .. } = expr {
+                        if let MirExpr::Var(fn_name) = &**callee {
+                            if matches!(function_returns.get(fn_name), Some(MirType::Str)) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+            MirStmt::If {
+                then_body,
+                else_body,
+                ..
+            } => {
+                if var_has_str_call_assignment_in_stmts(then_body, target, function_returns)
+                    || var_has_str_call_assignment_in_stmts(else_body, target, function_returns)
+                {
+                    return true;
+                }
+            }
+            MirStmt::For { body, .. }
+            | MirStmt::While { body, .. }
+            | MirStmt::Repeat { body, .. } => {
+                if var_has_str_call_assignment_in_stmts(body, target, function_returns) {
+                    return true;
+                }
+            }
+            _ => {}
+        }
+    }
+    false
+}
+
+fn var_has_str_call_assignment(
+    owner: &MirFunction,
+    name: &str,
+    function_returns: &BTreeMap<String, MirType>,
+) -> bool {
+    var_has_str_call_assignment_in_stmts(&owner.body, name, function_returns)
+}
+
 fn is_var_known_string_in_owner(owner: &MirFunction, name: &str) -> bool {
     for param in &owner.params {
         if param.name == name {
@@ -3084,12 +3311,7 @@ fn is_var_known_string_in_owner(owner: &MirFunction, name: &str) -> bool {
     }
     let mut saw_assignment = false;
     let mut all_string = true;
-    collect_var_string_assignments(
-        &owner.body,
-        name,
-        &mut saw_assignment,
-        &mut all_string,
-    );
+    collect_var_string_assignments(&owner.body, name, &mut saw_assignment, &mut all_string);
     saw_assignment && all_string
 }
 
@@ -3101,7 +3323,7 @@ fn is_known_string_expr_with_owner(expr: &MirExpr, owner: &MirFunction) -> bool 
         MirExpr::Var(name) => is_var_known_string_in_owner(owner, name),
         MirExpr::Binary { left, op, right } if op == "Add" => {
             is_known_string_expr_with_owner(left, owner)
-                && is_known_string_expr_with_owner(right, owner)
+                || is_known_string_expr_with_owner(right, owner)
         }
         _ => false,
     }
@@ -3117,7 +3339,7 @@ fn value_type_for_expr(expr: &MirExpr, ptr_ty: ir::Type) -> ir::Type {
         MirExpr::Bool(_) => ir::types::I8,
         MirExpr::Str(_) => ptr_ty,
         MirExpr::Binary { left, op, right } if op == "Add" => {
-            if is_known_string_expr(left) && is_known_string_expr(right) {
+            if is_known_string_expr(left) || is_known_string_expr(right) {
                 ptr_ty
             } else {
                 ir::types::I64
@@ -3152,6 +3374,7 @@ fn value_type_for_expr(expr: &MirExpr, ptr_ty: ir::Type) -> ir::Type {
                     if (namespace == "path" && (field == "join" || field == "parent" || field == "basename"))
                     || (namespace == "fs" && field == "read_text")
                     || (namespace == "json" && (field == "stringify_i64" || field == "minify"))
+                    || (namespace == "regex" && field == "replace_all")
                     || (namespace == "http" && (field == "status_text" || field == "build_request_line"))
                 )
             ) =>

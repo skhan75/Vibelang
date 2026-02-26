@@ -650,6 +650,66 @@ fn repeat_loop_fixture_runs() {
 }
 
 #[test]
+fn while_loop_supports_break_and_continue() {
+    let source = temp_source_file(
+        "while_break_continue",
+        r#"
+pub main() -> Int {
+  @effect io
+  i := 0
+  sum := 0
+  while i < 6 {
+    i = i + 1
+    if i == 2 {
+      continue
+    }
+    if i == 5 {
+      break
+    }
+    sum = sum + i
+  }
+  println(json.stringify_i64(sum))
+  return 0
+}
+"#,
+    );
+    let run = run_vibe(&["run", source.to_str().expect("source path str")]);
+    assert!(
+        run.status.success(),
+        "run failed:\nstdout:\n{}\nstderr:\n{}",
+        run.stdout,
+        run.stderr
+    );
+    assert_eq!(run.stdout, "8\n");
+}
+
+#[test]
+fn runtime_regex_namespace_supports_count_and_replace_all() {
+    let source = temp_source_file(
+        "runtime_regex_namespace",
+        r#"
+pub main() -> Int {
+  @effect io
+  raw := ">ONE\nagggtaaa\n>TWO\ntttaccct\n"
+  seq := regex.replace_all(raw, ">.*\n|\n", "")
+  println(seq)
+  println(json.stringify_i64(regex.count(seq, "agggtaaa|tttaccct")))
+  println(regex.replace_all("aNDWaS", "aND|caN|Ha[DS]|WaS", "<3>"))
+  return 0
+}
+"#,
+    );
+    let run = run_vibe(&["run", source.to_str().expect("source path str")]);
+    assert!(
+        run.status.success(),
+        "run failed:\nstdout:\n{}\nstderr:\n{}",
+        run.stdout,
+        run.stderr
+    );
+    assert_eq!(run.stdout, "agggtaaatttaccct\n2\n<3><3>\n");
+}
+
+#[test]
 fn phase11_for_iteration_fixture_is_deterministic() {
     let source = temp_fixture_copy("build/phase11_for_iter_deterministic.vibe");
     let first = run_vibe(&["run", source.to_str().expect("source path str")]);

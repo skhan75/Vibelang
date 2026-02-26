@@ -218,6 +218,7 @@ pub fn check_and_lower(ast: &FileAst) -> CheckOutput {
                 &mut inferred_returns,
                 &mut hir_body,
                 &ensure_contract_exprs,
+                0,
             );
         }
         let mut hir_tail_expr = None;
@@ -324,6 +325,7 @@ fn check_stmt(
     inferred_returns: &mut Vec<TypeKind>,
     hir_out: &mut Vec<HirStmt>,
     ensure_contract_exprs: &[Expr],
+    loop_depth: usize,
 ) {
     match stmt {
         Stmt::Binding { name, expr, .. } => {
@@ -446,6 +448,7 @@ fn check_stmt(
                     inferred_returns,
                     &mut child_hir,
                     ensure_contract_exprs,
+                    loop_depth + 1,
                 );
             }
             hir_out.push(HirStmt::For {
@@ -487,6 +490,7 @@ fn check_stmt(
                     inferred_returns,
                     &mut then_hir,
                     ensure_contract_exprs,
+                    loop_depth,
                 );
             }
             let mut else_hir = Vec::new();
@@ -500,6 +504,7 @@ fn check_stmt(
                     inferred_returns,
                     &mut else_hir,
                     ensure_contract_exprs,
+                    loop_depth,
                 );
             }
             hir_out.push(HirStmt::If {
@@ -536,6 +541,7 @@ fn check_stmt(
                     inferred_returns,
                     &mut child_hir,
                     ensure_contract_exprs,
+                    loop_depth + 1,
                 );
             }
             hir_out.push(HirStmt::While {
@@ -571,12 +577,35 @@ fn check_stmt(
                     inferred_returns,
                     &mut child_hir,
                     ensure_contract_exprs,
+                    loop_depth + 1,
                 );
             }
             hir_out.push(HirStmt::Repeat {
                 count: lower_expr(count, env),
                 body: child_hir,
             });
+        }
+        Stmt::Break { span } => {
+            if loop_depth == 0 {
+                diagnostics.push(Diagnostic::new(
+                    "E2107",
+                    Severity::Error,
+                    "`break` is only valid inside `for`, `while`, or `repeat` loops",
+                    *span,
+                ));
+            }
+            hir_out.push(HirStmt::Break);
+        }
+        Stmt::Continue { span } => {
+            if loop_depth == 0 {
+                diagnostics.push(Diagnostic::new(
+                    "E2108",
+                    Severity::Error,
+                    "`continue` is only valid inside `for`, `while`, or `repeat` loops",
+                    *span,
+                ));
+            }
+            hir_out.push(HirStmt::Continue);
         }
         Stmt::Select { cases, .. } => {
             observed_effects.insert("concurrency".to_string());
@@ -1905,6 +1934,8 @@ fn stdlib_namespace_return_hint(namespace: &str, field: &str) -> Option<TypeKind
         ("json", "is_valid") => Some(TypeKind::Bool),
         ("json", "parse_i64") => Some(TypeKind::Int),
         ("json", "stringify_i64") | ("json", "minify") => Some(TypeKind::Str),
+        ("regex", "count") => Some(TypeKind::Int),
+        ("regex", "replace_all") => Some(TypeKind::Str),
         ("http", "status_text") | ("http", "build_request_line") => Some(TypeKind::Str),
         ("http", "default_port") => Some(TypeKind::Int),
         _ => None,
@@ -1935,6 +1966,8 @@ fn infer_stdlib_namespace_call(
             Some((&["Str"][..], ""))
         }
         ("json", "stringify_i64") => Some((&["Int"][..], "")),
+        ("regex", "count") => Some((&["Str", "Str"][..], "")),
+        ("regex", "replace_all") => Some((&["Str", "Str", "Str"][..], "")),
         ("http", "status_text") => Some((&["Int"][..], "")),
         ("http", "default_port") => Some((&["Str"][..], "")),
         ("http", "build_request_line") => Some((&["Str", "Str"][..], "")),
@@ -2008,6 +2041,7 @@ fn is_builtin_ident(name: &str) -> bool {
             | "path"
             | "fs"
             | "json"
+            | "regex"
             | "http"
             | "true"
             | "false"

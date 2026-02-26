@@ -1,0 +1,187 @@
+{
+  "format": "vibe-plbci-parity-manifest-v1",
+  "version": 1,
+  "problems": [
+    {
+      "name": "helloworld",
+      "status": "canonical",
+      "owner": "benchmarking",
+      "evidence": "benchmarks/third_party/plbci/adapters/vibelang/algorithm/helloworld/1.yb",
+      "exit_criteria": [
+        "implementation consumes canonical PLB-CI input contract",
+        "implementation performs expected workload semantics"
+      ],
+      "notes": "Trivial benchmark; canonical output-only behavior is expected."
+    },
+    {
+      "name": "nsieve",
+      "status": "canonical",
+      "owner": "benchmarking",
+      "evidence": "benchmarks/third_party/plbci/adapters/vibelang/algorithm/nsieve/1.yb",
+      "exit_criteria": [
+        "sieve implementation consumes benchmark input and computes prime counts canonically"
+      ],
+      "notes": "Canonical sieve implementation; hardcoded outputs removed."
+    },
+    {
+      "name": "binarytrees",
+      "status": "canonical",
+      "owner": "benchmarking",
+      "evidence": "benchmarks/third_party/plbci/adapters/vibelang/algorithm/binarytrees/1.yb",
+      "exit_criteria": [
+        "tree construction and checks remain workload-equivalent"
+      ],
+      "notes": ""
+    },
+    {
+      "name": "merkletrees",
+      "status": "canonical",
+      "owner": "benchmarking",
+      "evidence": "benchmarks/third_party/plbci/adapters/vibelang/algorithm/merkletrees/1.yb",
+      "exit_criteria": [
+        "tree construction and hashing remain workload-equivalent"
+      ],
+      "notes": ""
+    },
+    {
+      "name": "nbody",
+      "status": "canonical",
+      "owner": "benchmarking",
+      "evidence": "benchmarks/third_party/plbci/adapters/vibelang/algorithm/nbody/1.yb",
+      "exit_criteria": [
+        "body-step simulation logic remains workload-equivalent"
+      ],
+      "notes": ""
+    },
+    {
+      "name": "spectral-norm",
+      "status": "canonical",
+      "owner": "benchmarking",
+      "evidence": "benchmarks/third_party/plbci/adapters/vibelang/algorithm/spectral-norm/1.yb",
+      "exit_criteria": [
+        "matrix-vector kernel remains workload-equivalent"
+      ],
+      "notes": ""
+    },
+    {
+      "name": "pidigits",
+      "status": "canonical",
+      "owner": "benchmarking",
+      "evidence": "benchmarks/third_party/plbci/adapters/vibelang/algorithm/pidigits/1.yb",
+      "exit_criteria": [
+        "digit-generation algorithm computes benchmark output groups from input digits count"
+      ],
+      "notes": "Canonical spigot-style digit generation implemented."
+    },
+    {
+      "name": "edigits",
+      "status": "blocked",
+      "owner": "benchmarking",
+      "evidence": "benchmarks/third_party/plbci/adapters/vibelang/algorithm/edigits/1.yb",
+      "exit_criteria": [
+        "replace output constants with canonical digit-generation algorithm"
+      ],
+      "notes": "Uncertain parity; blocked until algorithmic implementation is verified."
+    },
+    {
+      "name": "mandelbrot",
+      "status": "canonical",
+      "owner": "benchmarking",
+      "evidence": "benchmarks/third_party/plbci/adapters/vibelang/algorithm/mandelbrot/1.yb",
+      "exit_criteria": [
+        "fractal kernel remains workload-equivalent"
+      ],
+      "notes": ""
+    },
+    {
+      "name": "fannkuch-redux",
+      "status": "canonical",
+      "owner": "benchmarking",
+      "evidence": "benchmarks/third_party/plbci/adapters/vibelang/algorithm/fannkuch-redux/1.yb",
+      "exit_criteria": [
+        "flip/count kernel remains workload-equivalent"
+      ],
+      "notes": ""
+    },
+    {
+      "name": "fasta",
+      "status": "canonical",
+      "owner": "benchmarking",
+      "evidence": "benchmarks/third_party/plbci/adapters/vibelang/algorithm/fasta/1.yb",
+      "exit_criteria": [
+        "FASTA repeat + random sequence generation uses benchmark RNG/probability model"
+      ],
+      "notes": "Canonical sequence generator implemented from benchmark workload."
+    },
+    {
+      "name": "knucleotide",
+      "status": "canonical",
+      "owner": "benchmarking",
+      "evidence": "benchmarks/third_party/plbci/adapters/vibelang/algorithm/knucleotide/1.yb",
+      "exit_criteria": [
+        "k-mer frequency counting and fixed probe counts are computed from input corpus"
+      ],
+      "notes": "Algorithmic counting implementation replaces fixed output blocks."
+    },
+    {
+      "name": "regex-redux",
+      "status": "canonical",
+      "owner": "benchmarking",
+      "evidence": "benchmarks/third_party/plbci/adapters/vibelang/algorithm/regex-redux/1.yb",
+      "exit_criteria": [
+        "regex count and substitution pipeline is computed from input DNA corpus using runtime regex APIs"
+      ],
+      "notes": "Canonical regex-redux implementation powered by runtime regex.count/regex.replace_all."
+    },
+    {
+      "name": "json-serde",
+      "status": "proxy",
+      "owner": "benchmarking",
+      "evidence": "benchmarks/third_party/plbci/adapters/vibelang/algorithm/json-serde/1.yb",
+      "exit_criteria": [
+        "replace fixed checksum output with canonical serde workload"
+      ],
+      "notes": "Known blocker B1."
+    },
+    {
+      "name": "coro-prime-sieve",
+      "status": "canonical",
+      "owner": "benchmarking",
+      "evidence": "benchmarks/third_party/plbci/adapters/vibelang/algorithm/coro-prime-sieve/1.yb",
+      "exit_criteria": [
+        "prime generation logic remains workload-equivalent"
+      ],
+      "notes": ""
+    },
+    {
+      "name": "http-server",
+      "status": "proxy",
+      "owner": "benchmarking",
+      "evidence": "benchmarks/third_party/plbci/adapters/vibelang/algorithm/http-server/1.yb",
+      "exit_criteria": [
+        "replace synthetic counter workload with canonical HTTP server benchmark behavior"
+      ],
+      "notes": "Known blocker B1."
+    },
+    {
+      "name": "lru",
+      "status": "canonical",
+      "owner": "benchmarking",
+      "evidence": "benchmarks/third_party/plbci/adapters/vibelang/algorithm/lru/1.yb",
+      "exit_criteria": [
+        "LRU workload executes cache hit/miss behavior based on benchmark input parameters"
+      ],
+      "notes": "Canonical LRU access/update loop implemented; fixed outputs removed."
+    },
+    {
+      "name": "secp256k1",
+      "status": "proxy",
+      "owner": "benchmarking",
+      "evidence": "benchmarks/third_party/plbci/adapters/vibelang/algorithm/secp256k1/1.yb",
+      "exit_criteria": [
+        "replace fixed output hashes with canonical secp256k1 workload"
+      ],
+      "notes": "Known blocker B1."
+    }
+  ]
+}

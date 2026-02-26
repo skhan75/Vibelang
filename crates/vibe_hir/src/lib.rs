@@ -60,6 +60,8 @@ pub enum HirStmt {
         count: HirExpr,
         body: Vec<HirStmt>,
     },
+    Break,
+    Continue,
     Select {
         cases: Vec<HirSelectCase>,
     },
@@ -239,6 +241,7 @@ fn verify_stmt_list(stmts: &[HirStmt], scope: &mut BTreeMap<String, String>) -> 
                 let mut child = scope.clone();
                 verify_stmt_list(body, &mut child)?;
             }
+            HirStmt::Break | HirStmt::Continue => {}
             HirStmt::Select { cases } => {
                 for case in cases {
                     match &case.pattern {

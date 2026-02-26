@@ -93,6 +93,12 @@ pub enum Stmt {
         body: Vec<Stmt>,
         span: Span,
     },
+    Break {
+        span: Span,
+    },
+    Continue {
+        span: Span,
+    },
     Select {
         cases: Vec<SelectCase>,
         span: Span,

@@ -134,6 +134,7 @@ fn collect_calls_from_stmt(stmt: &Stmt, out: &mut BTreeSet<String>) {
                 collect_calls_from_expr(&case.action, out);
             }
         }
+        Stmt::Break { .. } | Stmt::Continue { .. } => {}
     }
 }
 

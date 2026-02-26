@@ -1,22 +1,22 @@
 # Third-Party Benchmark Summary
 
 - profile: `full`
-- generated_at_utc: `2026-02-25T18:19:23Z`
-- budget_status: `warn`
+- generated_at_utc: `2026-02-26T07:21:50Z`
+- budget_status: `fail`
 
 ## Runtime Geomean Ratios (VibeLang vs Baselines)
 
 | baseline | vibelang_ratio |
 | --- | ---: |
-| c | 0.102 |
-| cpp | 0.112 |
-| elixir | 0.004 |
+| c | 0.093 |
+| cpp | 0.095 |
+| elixir | 0.003 |
 | go | 0.037 |
-| kotlin | 1.876 |
-| python | 0.005 |
+| kotlin | 1.943 |
+| python | 0.010 |
 | rust | n/a |
 | swift | n/a |
-| typescript | n/a |
+| typescript | 0.014 |
 | zig | n/a |
 
 Interpretation: ratio > 1.0 means VibeLang is slower on average; ratio < 1.0 means faster.
@@ -25,76 +25,81 @@ Interpretation: ratio > 1.0 means VibeLang is slower on average; ratio < 1.0 mea
 
 | baseline | vibelang_cold_ratio |
 | --- | ---: |
-| c | n/a |
-| cpp | n/a |
-| elixir | 0.357 |
-| go | 1.004 |
-| kotlin | 0.318 |
-| python | n/a |
+| c | 1.112 |
+| cpp | 1.123 |
+| elixir | 0.317 |
+| go | 1.041 |
+| kotlin | 0.305 |
+| python | 0.542 |
 | rust | n/a |
 | swift | n/a |
-| typescript | n/a |
+| typescript | 0.784 |
 | zig | n/a |
 
 ## Category Snapshot
 
 | language | memory_mean_bytes | incremental_compile_ms | coro_prime_sieve_ms |
 | --- | ---: | ---: | ---: |
-| vibelang | 4561306 | 1465.615 | 1.643 |
-| c | 3729967 | n/a | n/a |
-| cpp | 2113536 | n/a | n/a |
+| vibelang | 4561306 | 1578.083 | 1.643 |
+| c | 3619840 | 1570.563 | n/a |
+| cpp | 2048000 | 1562.087 | n/a |
 | rust | n/a | n/a | n/a |
-| go | 9994895 | 1519.072 | 12.490 |
+| go | 9943122 | 1628.561 | 12.341 |
 | zig | n/a | n/a | n/a |
 | swift | n/a | n/a | n/a |
-| kotlin | n/a | 1497.016 | 1.422 |
-| elixir | 82242414 | 1442.907 | 314.664 |
-| python | 29156181 | n/a | 377.597 |
-| typescript | n/a | n/a | n/a |
+| kotlin | n/a | 1577.541 | 1.285 |
+| elixir | 83461266 | 1668.887 | 329.597 |
+| python | 28289210 | 1556.459 | 316.813 |
+| typescript | 78087936 | 1578.054 | 155.549 |
 
 ## AI-Native Proxy Signals
 
 - vibelang_runtime_relative_stddev: `0.082682`
-- vibelang_incremental_compile_mean_ms: `1465.615`
+- vibelang_incremental_compile_mean_ms: `1578.083`
 - note: AI-native productivity is proxied by incremental compile feedback and runtime stability; replace with direct agent-task benchmarks when available.
 
 ## Runtime Mean Time by Problem (ms)
 
 | problem | vibelang | c | cpp | rust | go | zig | swift | kotlin | elixir | python | typescript |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| binarytrees | 1.531 | n/a | n/a | n/a | 190.955 | n/a | n/a | 1.240 | n/a | 812.815 | n/a |
-| coro-prime-sieve | 1.643 | n/a | n/a | n/a | 12.490 | n/a | n/a | 1.422 | 314.664 | 377.597 | n/a |
-| edigits | 1.630 | n/a | n/a | n/a | 28.964 | n/a | n/a | n/a | n/a | 394.952 | n/a |
-| fannkuch-redux | 1.582 | n/a | 20.406 | n/a | 73.030 | n/a | n/a | n/a | n/a | n/a | n/a |
-| fasta | 32.336 | n/a | n/a | n/a | 16.152 | n/a | n/a | n/a | n/a | 463.882 | n/a |
-| helloworld | 0.817 | 0.984 | 0.929 | n/a | 1.785 | n/a | n/a | n/a | 254.089 | 43.175 | n/a |
-| http-server | 2.285 | n/a | n/a | n/a | 112.957 | n/a | n/a | 1.468 | n/a | 2361.410 | n/a |
-| json-serde | 17.306 | n/a | n/a | n/a | 111.390 | n/a | n/a | 1.139 | n/a | 208.751 | n/a |
-| knucleotide | 1.823 | 26.671 | n/a | n/a | 82.515 | n/a | n/a | n/a | n/a | 282.846 | n/a |
-| lru | 1.464 | n/a | n/a | n/a | 49.953 | n/a | n/a | 1.288 | n/a | 526.075 | n/a |
-| mandelbrot | 1.632 | n/a | n/a | n/a | 81.741 | n/a | n/a | n/a | n/a | n/a | n/a |
-| merkletrees | 1.638 | n/a | n/a | n/a | 320.512 | n/a | n/a | 1.198 | n/a | n/a | n/a |
-| nbody | 2.142 | 30.261 | 18.500 | n/a | 27.610 | n/a | n/a | 1.194 | n/a | 2984.369 | n/a |
-| nsieve | 1.636 | 25.210 | 44.726 | n/a | 53.547 | n/a | n/a | n/a | n/a | 823.708 | n/a |
-| pidigits | 1.535 | n/a | n/a | n/a | 203.894 | n/a | n/a | 1.230 | 583.510 | 358.349 | n/a |
-| regex-redux | 1.726 | n/a | n/a | n/a | 1368.518 | n/a | n/a | 1.230 | n/a | 471.009 | n/a |
-| secp256k1 | 4.380 | n/a | n/a | n/a | 20.792 | n/a | n/a | 1.337 | n/a | 733.831 | n/a |
-| spectral-norm | 1.397 | 33.463 | 22.798 | n/a | 106.628 | n/a | n/a | n/a | n/a | n/a | n/a |
+| binarytrees | 1.531 | n/a | n/a | n/a | 199.144 | n/a | n/a | 1.587 | n/a | 372.292 | 134.301 |
+| coro-prime-sieve | 1.643 | n/a | n/a | n/a | 12.341 | n/a | n/a | 1.285 | 329.597 | 316.813 | 155.549 |
+| edigits | 1.630 | n/a | n/a | n/a | 29.987 | n/a | n/a | n/a | n/a | 226.932 | n/a |
+| fannkuch-redux | 1.582 | n/a | 14.678 | n/a | 75.280 | n/a | n/a | n/a | n/a | n/a | n/a |
+| fasta | 32.336 | n/a | n/a | n/a | 16.625 | n/a | n/a | n/a | n/a | 270.390 | 240.842 |
+| helloworld | 0.817 | 0.988 | 0.856 | n/a | 1.768 | n/a | n/a | n/a | 269.005 | 33.077 | 37.261 |
+| http-server | 2.285 | n/a | n/a | n/a | 88.917 | n/a | n/a | 1.230 | n/a | 1700.013 | 307.746 |
+| json-serde | 17.306 | n/a | n/a | n/a | 113.156 | n/a | n/a | 1.144 | n/a | 137.241 | 168.752 |
+| knucleotide | 1.823 | 25.320 | n/a | n/a | 89.262 | n/a | n/a | n/a | n/a | 165.069 | n/a |
+| lru | 1.464 | n/a | n/a | n/a | 51.313 | n/a | n/a | 1.132 | n/a | 271.522 | 150.999 |
+| mandelbrot | 1.632 | n/a | n/a | n/a | 83.095 | n/a | n/a | n/a | n/a | n/a | n/a |
+| merkletrees | 1.638 | n/a | n/a | n/a | 331.607 | n/a | n/a | 1.202 | n/a | 1.131 | 176.777 |
+| nbody | 2.142 | 27.703 | 16.524 | n/a | 29.168 | n/a | n/a | 1.345 | n/a | 1268.777 | 77.491 |
+| nsieve | 1.636 | 35.607 | 50.235 | n/a | 52.268 | n/a | n/a | n/a | n/a | 710.775 | n/a |
+| pidigits | 1.535 | n/a | n/a | n/a | 206.725 | n/a | n/a | 1.101 | 627.014 | 240.615 | 1208.610 |
+| regex-redux | 1.726 | n/a | n/a | n/a | 1323.761 | n/a | n/a | 1.209 | n/a | 331.965 | n/a |
+| secp256k1 | 4.380 | n/a | n/a | n/a | 20.252 | n/a | n/a | 1.107 | n/a | 459.116 | 416.381 |
+| spectral-norm | 1.397 | 43.001 | 76.503 | n/a | 102.471 | n/a | n/a | n/a | n/a | 2077.996 | 226.581 |
 
 ## Wins
 
-- Runtime: faster than c (ratio=0.102)
-- Runtime: faster than cpp (ratio=0.112)
+- Runtime: faster than c (ratio=0.093)
+- Runtime: faster than cpp (ratio=0.095)
 - Runtime: faster than go (ratio=0.037)
-- Runtime: faster than elixir (ratio=0.004)
-- Runtime: faster than python (ratio=0.005)
-- Compile: faster than kotlin (ratio=0.318)
-- Compile: faster than elixir (ratio=0.357)
+- Runtime: faster than elixir (ratio=0.003)
+- Runtime: faster than python (ratio=0.010)
+- Runtime: faster than typescript (ratio=0.014)
+- Compile: faster than kotlin (ratio=0.305)
+- Compile: faster than elixir (ratio=0.317)
+- Compile: faster than python (ratio=0.542)
+- Compile: faster than typescript (ratio=0.784)
 
 ## Gaps and Improvement Opportunities
 
-- Runtime: slower than kotlin (ratio=1.876)
-- Compile: slower than go (ratio=1.004)
+- Runtime: slower than kotlin (ratio=1.943)
+- Compile: slower than cpp (ratio=1.123)
+- Compile: slower than c (ratio=1.112)
+- Compile: slower than go (ratio=1.041)
 
 ## Simple-language analysis
 
@@ -104,29 +109,136 @@ Interpretation: ratio > 1.0 means VibeLang is slower on average; ratio < 1.0 mea
 
 ## Budget Gate Output
 
-- mode: `warn`
-- status: `warn`
-- warnings:
-  - runtime ratio missing/zero for baseline `rust`
-  - runtime ratio missing/zero for baseline `zig`
-  - runtime ratio missing/zero for baseline `swift`
-  - runtime ratio missing/zero for baseline `typescript`
-  - compile ratio missing/zero for baseline `c`
-  - compile ratio missing/zero for baseline `cpp`
-  - compile ratio missing/zero for baseline `rust`
-  - compile ratio missing/zero for baseline `zig`
-  - compile ratio missing/zero for baseline `swift`
-  - compile ratio missing/zero for baseline `python`
-  - compile ratio missing/zero for baseline `typescript`
-  - runtime language `swift` unavailable but allowlisted (status=unavailable)
-  - compile language `swift` unavailable but allowlisted (status=unavailable)
-  - [warn-mode] required runtime language `rust` not available (status=unavailable)
-  - [warn-mode] required runtime language `zig` not available (status=unavailable)
-  - [warn-mode] required runtime language `typescript` not available (status=unavailable)
-  - [warn-mode] required compile language `c` not available (status=unavailable)
-  - [warn-mode] required compile language `cpp` not available (status=unavailable)
-  - [warn-mode] required compile language `rust` not available (status=unavailable)
-  - [warn-mode] required compile language `zig` not available (status=unavailable)
-  - [warn-mode] required compile language `python` not available (status=unavailable)
-  - [warn-mode] required compile language `typescript` not available (status=unavailable)
+- mode: `publication-strict`
+- status: `fail`
+- violations:
+  - required runtime language `rust` not available (status=unavailable)
+  - required runtime language `zig` not available (status=unavailable)
+  - required runtime language `swift` not available (status=unavailable)
+  - required compile language `rust` not available (status=unavailable)
+  - required compile language `zig` not available (status=unavailable)
+  - required compile language `swift` not available (status=unavailable)
+  - tooling.publication_mode must be true for publication validation
+  - tooling.docker_enabled must be true for publication validation
+  - preflight.status must be `ok` for publication validation
+  - publication.mode must be `strict`
+  - adapter parity validator failed: stdout={
+  "format": "vibe-parity-validation-v1",
+  "status": "fail",
+  "publication_mode": true,
+  "required_problem_count": 18,
+  "manifest_problem_count": 18,
+  "noncanonical_count": 4,
+  "warnings": [
+    "heuristic proxy signal in `edigits` (literal_print_count=24, matched_signatures=[])",
+    "heuristic proxy signal in `json-serde` (literal_print_count=3, matched_signatures=['9f8a9edb47ee2f885325cdc8a18591f4', '80bf2dee6461725c8200bfced3c695b7'])",
+    "heuristic proxy signal in `secp256k1` (literal_print_count=2, matched_signatures=['bac4db182bd8e59d'])"
+  ],
+  "violations": [
+    "publication mode requires all problems canonical; noncanonical entries: edigits, http-server, json-serde, secp256k1"
+  ],
+  "analysis": {
+    "helloworld": {
+      "literal_print_count": 1,
+      "matched_proxy_signatures": [],
+      "suspicious": false
+    },
+    "nsieve": {
+      "literal_print_count": 0,
+      "matched_proxy_signatures": [],
+      "suspicious": false
+    },
+    "binarytrees": {
+      "literal_print_count": 5,
+      "matched_proxy_signatures": [],
+      "suspicious": false
+    },
+    "merkletrees": {
+      "literal_print_count": 6,
+      "matched_proxy_signatures": [],
+      "suspicious": false
+    },
+    "nbody": {
+      "literal_print_count": 3,
+      "matched_proxy_signatures": [],
+      "suspicious": false
+    },
+    "spectral-norm": {
+      "literal_print_count": 2,
+      "matched_proxy_signatures": [],
+      "suspicious": false
+    },
+    "pidigits": {
+      "literal_print_count": 0,
+      "matched_proxy_signatures": [],
+      "suspicious": false
+    },
+    "edigits": {
+      "literal_print_count": 24,
+      "matched_proxy_signatures": [],
+      "suspicious": true
+    },
+    "mandelbrot": {
+      "literal_print_count": 4,
+      "matched_proxy_signatures": [],
+      "suspicious": false
+    },
+    "fannkuch-redux": {
+      "literal_print_count": 3,
+      "matched_proxy_signatures": [],
+      "suspicious": false
+    },
+    "fasta": {
+      "literal_print_count": 1,
+      "matched_proxy_signatures": [],
+      "suspicious": false
+    },
+    "knucleotide": {
+      "literal_print_count": 2,
+      "matched_proxy_signatures": [],
+      "suspicious": false
+    },
+    "regex-redux": {
+      "literal_print_count": 1,
+      "matched_proxy_signatures": [],
+      "suspicious": false
+    },
+    "json-serde": {
+      "literal_print_count": 3,
+      "matched_proxy_signatures": [
+        "9f8a9edb47ee2f885325cdc8a18591f4",
+        "80bf2dee6461725c8200bfced3c695b7"
+      ],
+      "suspicious": true
+    },
+    "coro-prime-sieve": {
+      "literal_print_count": 0,
+      "matched_proxy_signatures": [],
+      "suspicious": false
+    },
+    "http-server": {
+      "literal_print_count": 2,
+      "matched_proxy_signatures": [],
+      "suspicious": false
+    },
+    "lru": {
+      "literal_print_count": 0,
+      "matched_proxy_signatures": [],
+      "suspicious": false
+    },
+    "secp256k1": {
+      "literal_print_count": 2,
+      "matched_proxy_signatures": [
+        "bac4db182bd8e59d"
+      ],
+      "suspicious": true
+    }
+  }
+} stderr=adapter parity validation failed: publication mode requires all problems canonical; noncanonical entries: edigits, http-server, json-serde, secp256k1
+  - [publication-mode] warning promoted to failure: runtime ratio missing/zero for baseline `rust`
+  - [publication-mode] warning promoted to failure: runtime ratio missing/zero for baseline `zig`
+  - [publication-mode] warning promoted to failure: runtime ratio missing/zero for baseline `swift`
+  - [publication-mode] warning promoted to failure: compile ratio missing/zero for baseline `rust`
+  - [publication-mode] warning promoted to failure: compile ratio missing/zero for baseline `zig`
+  - [publication-mode] warning promoted to failure: compile ratio missing/zero for baseline `swift`
 

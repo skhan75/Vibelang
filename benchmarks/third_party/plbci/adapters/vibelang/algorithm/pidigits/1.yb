@@ -1,21 +1,110 @@
-digit_work(rounds: Int) -> Int {
-  i := 1
-  acc := 0
-  while i <= rounds {
-    acc = acc + ((i * 314159) / (i + 7))
-    i = i + 1
+read_digits_requested() -> Int {
+  @effect io
+  raw := fs.read_text(".benchmark_input")
+  if raw == "" {
+    return 27
   }
-  acc
+  return json.parse_i64(raw)
+}
+
+emit_groups(digits: Str, n: Int) -> Void {
+  @effect io
+  i := 0
+  while i < n {
+    end := i + 10
+    if end <= n {
+      println(digits[i:end] + "\t:" + json.stringify_i64(end))
+    } else {
+      chunk := digits[i:n]
+      pad := ""
+      p := 0
+      while p < (10 - (n - i)) {
+        pad = pad + " "
+        p = p + 1
+      }
+      println(chunk + pad + "\t:" + json.stringify_i64(n))
+    }
+    i = i + 10
+  }
 }
 
 pub main() -> Int {
   @effect io
-  x := digit_work(50000)
-  if x == -1 {
-    println("unreachable")
+  @effect alloc
+  @effect mut_state
+
+  n := read_digits_requested()
+  if n <= 0 {
+    return 0
   }
-  println("3141592653\t:10")
-  println("5897932384\t:20")
-  println("6264338   \t:27")
-  0
+
+  boxes := (n * 10) / 3 + 1
+  coeff := []
+  i := 0
+  while i < boxes {
+    coeff.append(2)
+    i = i + 1
+  }
+
+  nines := 0
+  predigit := 0
+  started := 0
+  digits := ""
+
+  iter := 0
+  while iter < n {
+    q := 0
+    idx := boxes - 1
+    while idx >= 0 {
+      x := coeff.get(idx) * 10 + q * (idx + 1)
+      denom := idx + idx + 1
+      coeff.set(idx, x - (x / denom) * denom)
+      q = x / denom
+      idx = idx - 1
+    }
+
+    coeff.set(0, q - (q / 10) * 10)
+    q = q / 10
+
+    if q == 9 {
+      nines = nines + 1
+    } else {
+      if q == 10 {
+        if started == 1 {
+          digits = digits + json.stringify_i64(predigit + 1)
+        } else {
+          started = 1
+          digits = digits + "1"
+        }
+        while nines > 0 {
+          digits = digits + "0"
+          nines = nines - 1
+        }
+        predigit = 0
+      } else {
+        if started == 1 {
+          digits = digits + json.stringify_i64(predigit)
+          while nines > 0 {
+            digits = digits + "9"
+            nines = nines - 1
+          }
+        } else {
+          started = 1
+        }
+        predigit = q
+      }
+    }
+    iter = iter + 1
+  }
+
+  if started == 1 {
+    digits = digits + json.stringify_i64(predigit)
+    while nines > 0 {
+      digits = digits + "9"
+      nines = nines - 1
+    }
+  }
+
+  emit_groups(digits, n)
+  return 0
 }

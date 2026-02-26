@@ -64,6 +64,8 @@ pub enum MirStmt {
         count: MirExpr,
         body: Vec<MirStmt>,
     },
+    Break,
+    Continue,
     Select {
         cases: Vec<MirSelectCase>,
     },
@@ -236,6 +238,8 @@ fn lower_stmt_list(stmts: &[HirStmt]) -> Result<Vec<MirStmt>, String> {
                 count: lower_expr(count)?,
                 body: lower_stmt_list(body)?,
             }),
+            HirStmt::Break => out.push(MirStmt::Break),
+            HirStmt::Continue => out.push(MirStmt::Continue),
             HirStmt::Select { cases } => out.push(MirStmt::Select {
                 cases: cases
                     .iter()
@@ -428,6 +432,7 @@ fn verify_stmt_list(
                 let mut child = locals.clone();
                 verify_stmt_list(body, &mut child)?;
             }
+            MirStmt::Break | MirStmt::Continue => {}
             MirStmt::Select { cases } => {
                 for case in cases {
                     match &case.pattern {

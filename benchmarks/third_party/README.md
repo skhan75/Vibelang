@@ -20,7 +20,16 @@ tracking.
 - `plbci/adapters/vibelang/` - VibeLang benchmark adapters used by PLB-CI
 - `docker/` - Docker runner image + execution wrapper scripts
 - `CLOUD_REPRODUCIBILITY.md` - Dedicated VM + Docker reproducibility recipe
+- `APPLE_TO_APPLE_BENCHMARK_POLICY.md` - strict publication standard and blocker checklist
+- `plbci/adapters/vibelang/PARITY_MANIFEST.yaml` - canonical/proxy parity ledger per problem
 
 ## Canonical report root
 
 - `reports/benchmarks/third_party/`
+
+## Publication note
+
+Do not publish performance claims externally unless
+`APPLE_TO_APPLE_BENCHMARK_POLICY.md` publication checklist is fully satisfied.
+Current strict publication attempt report:
+`reports/benchmarks/third_party/analysis/apples_to_apples_public_report.md`.

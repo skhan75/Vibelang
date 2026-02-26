@@ -1,7 +1,7 @@
 {
   "format": "vibe-third-party-language-matrix-v1",
   "plbci_repo": "https://github.com/hanabi1224/Programming-Language-Benchmarks.git",
-  "plbci_ref": "main",
+  "plbci_ref": "ad18b203dd1769724f4eea94fc3ac1e99f6593e0",
   "problems": [
     "helloworld",
     "nsieve",

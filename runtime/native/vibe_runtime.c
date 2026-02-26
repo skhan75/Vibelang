@@ -11,6 +11,8 @@
 #include <unistd.h>
 #ifdef _WIN32
 #include <direct.h>
+#else
+#include <regex.h>
 #endif
 
 typedef struct vibe_chan_i64 {
@@ -142,6 +144,62 @@ static char *vibe_strdup_or_panic(const char *src) {
     memcpy(copy, src, len);
     copy[len] = '\0';
     return copy;
+}
+
+typedef struct vibe_string_builder {
+    char *data;
+    size_t len;
+    size_t cap;
+} vibe_string_builder;
+
+static void vibe_builder_init(vibe_string_builder *builder, size_t initial_cap) {
+    if (builder == NULL) {
+        vibe_panic("string builder is null");
+    }
+    size_t cap = initial_cap < 64 ? 64 : initial_cap;
+    builder->data = (char *)calloc(cap, sizeof(char));
+    if (builder->data == NULL) {
+        vibe_panic("failed to allocate string builder");
+    }
+    builder->len = 0;
+    builder->cap = cap;
+    builder->data[0] = '\0';
+}
+
+static void vibe_builder_reserve(vibe_string_builder *builder, size_t extra_len) {
+    if (builder == NULL) {
+        vibe_panic("string builder is null");
+    }
+    size_t needed = builder->len + extra_len + 1;
+    if (needed <= builder->cap) {
+        return;
+    }
+    size_t next_cap = builder->cap;
+    while (next_cap < needed) {
+        next_cap *= 2;
+    }
+    char *next = (char *)realloc(builder->data, next_cap * sizeof(char));
+    if (next == NULL) {
+        vibe_panic("failed to grow string builder");
+    }
+    builder->data = next;
+    builder->cap = next_cap;
+}
+
+static void vibe_builder_append_bytes(vibe_string_builder *builder, const char *bytes, size_t len) {
+    if (builder == NULL) {
+        vibe_panic("string builder is null");
+    }
+    if (len == 0) {
+        return;
+    }
+    if (bytes == NULL) {
+        vibe_panic("attempted to append null bytes into string builder");
+    }
+    vibe_builder_reserve(builder, len);
+    memcpy(builder->data + builder->len, bytes, len);
+    builder->len += len;
+    builder->data[builder->len] = '\0';
 }
 
 static int64_t vibe_utf8_is_boundary(const char *text, int64_t index, int64_t len) {
@@ -1240,6 +1298,126 @@ void *vibe_str_concat(const char *left, const char *right) {
     memcpy(out + left_len, safe_right, right_len);
     out[out_len] = '\0';
     return (void *)out;
+}
+
+int64_t vibe_regex_count(const char *text, const char *pattern) {
+#ifdef _WIN32
+    (void)text;
+    (void)pattern;
+    vibe_panic("regex.count is not supported on windows runtime");
+    return 0;
+#else
+    const char *safe_text = text == NULL ? "" : text;
+    const char *safe_pattern = pattern == NULL ? "" : pattern;
+    if (safe_pattern[0] == '\0') {
+        return 0;
+    }
+    regex_t compiled;
+    int compile_rc = regcomp(&compiled, safe_pattern, REG_EXTENDED | REG_NEWLINE);
+    if (compile_rc != 0) {
+        vibe_panic("regex.count failed to compile pattern");
+    }
+
+    int64_t count = 0;
+    const char *cursor = safe_text;
+    size_t remaining = strlen(safe_text);
+    while (remaining > 0) {
+        regmatch_t match;
+        int exec_rc = regexec(&compiled, cursor, 1, &match, 0);
+        if (exec_rc == REG_NOMATCH) {
+            break;
+        }
+        if (exec_rc != 0) {
+            regfree(&compiled);
+            vibe_panic("regex.count execution failed");
+        }
+        if (match.rm_so < 0 || match.rm_eo < 0) {
+            break;
+        }
+        size_t start = (size_t)match.rm_so;
+        size_t end = (size_t)match.rm_eo;
+        if (end < start || end > remaining) {
+            regfree(&compiled);
+            vibe_panic("regex.count produced invalid match bounds");
+        }
+        count += 1;
+        size_t advance = end > start ? end : start + 1;
+        if (advance > remaining) {
+            break;
+        }
+        cursor += advance;
+        remaining -= advance;
+    }
+    regfree(&compiled);
+    return count;
+#endif
+}
+
+char *vibe_regex_replace_all(const char *text, const char *pattern, const char *replacement) {
+#ifdef _WIN32
+    (void)text;
+    (void)pattern;
+    (void)replacement;
+    vibe_panic("regex.replace_all is not supported on windows runtime");
+    return vibe_strdup_or_panic("");
+#else
+    const char *safe_text = text == NULL ? "" : text;
+    const char *safe_pattern = pattern == NULL ? "" : pattern;
+    const char *safe_replacement = replacement == NULL ? "" : replacement;
+    if (safe_pattern[0] == '\0') {
+        return vibe_strdup_or_panic(safe_text);
+    }
+
+    regex_t compiled;
+    int compile_rc = regcomp(&compiled, safe_pattern, REG_EXTENDED | REG_NEWLINE);
+    if (compile_rc != 0) {
+        vibe_panic("regex.replace_all failed to compile pattern");
+    }
+
+    size_t text_len = strlen(safe_text);
+    vibe_string_builder builder;
+    vibe_builder_init(&builder, text_len + 1);
+
+    const char *cursor = safe_text;
+    size_t remaining = text_len;
+    while (remaining > 0) {
+        regmatch_t match;
+        int exec_rc = regexec(&compiled, cursor, 1, &match, 0);
+        if (exec_rc == REG_NOMATCH) {
+            break;
+        }
+        if (exec_rc != 0) {
+            regfree(&compiled);
+            free(builder.data);
+            vibe_panic("regex.replace_all execution failed");
+        }
+        if (match.rm_so < 0 || match.rm_eo < 0) {
+            break;
+        }
+        size_t start = (size_t)match.rm_so;
+        size_t end = (size_t)match.rm_eo;
+        if (end < start || end > remaining) {
+            regfree(&compiled);
+            free(builder.data);
+            vibe_panic("regex.replace_all produced invalid match bounds");
+        }
+        if (start > 0) {
+            vibe_builder_append_bytes(&builder, cursor, start);
+        }
+        vibe_builder_append_bytes(&builder, safe_replacement, strlen(safe_replacement));
+        size_t advance = end > start ? end : start + 1;
+        if (advance > remaining) {
+            break;
+        }
+        cursor += advance;
+        remaining -= advance;
+    }
+    if (remaining > 0) {
+        vibe_builder_append_bytes(&builder, cursor, remaining);
+    }
+    regfree(&compiled);
+    return builder.data;
+#endif
 }
 
 void *vibe_chan_new_i64(int64_t capacity) {

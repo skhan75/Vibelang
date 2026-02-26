@@ -138,7 +138,9 @@ fn contains_member_assignment(stmts: &[Stmt]) -> bool {
             | Stmt::Thread { .. }
             | Stmt::Binding { .. }
             | Stmt::Return { .. }
-            | Stmt::ExprStmt { .. } => {}
+            | Stmt::ExprStmt { .. }
+            | Stmt::Break { .. }
+            | Stmt::Continue { .. } => {}
         }
     }
     false

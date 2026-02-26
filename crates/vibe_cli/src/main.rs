@@ -2393,7 +2393,10 @@ fn build_source(args: &BuildArgs) -> Result<BuildArtifacts, String> {
             total_ms
         );
         fs::write(&path, report_json).map_err(|e| {
-            format!("failed to write compile phase report `{}`: {e}", path.display())
+            format!(
+                "failed to write compile phase report `{}`: {e}",
+                path.display()
+            )
         })?;
         Some(path)
     } else {

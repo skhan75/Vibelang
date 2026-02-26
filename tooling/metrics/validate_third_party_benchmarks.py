@@ -1,12 +1,63 @@
 #!/usr/bin/env python3
 import argparse
 import json
+import re
+import subprocess
 from pathlib import Path
 from typing import Any
 
 
 def fail(message: str) -> None:
     raise SystemExit(f"third-party benchmark validation failed: {message}")
+
+
+def is_commit_sha(ref: str) -> bool:
+    return bool(re.fullmatch(r"[0-9a-fA-F]{40}", ref.strip()))
+
+
+def run_parity_validation(
+    repo_root: Path,
+    manifest_path: str,
+    matrix_path: str,
+    adapter_root: str,
+    publication_mode: bool,
+) -> tuple[dict[str, Any] | None, str | None]:
+    cmd = [
+        "python3",
+        "tooling/metrics/validate_adapter_parity.py",
+        "--manifest",
+        manifest_path,
+        "--matrix-file",
+        matrix_path,
+        "--adapter-root",
+        adapter_root,
+    ]
+    if publication_mode:
+        cmd.append("--publication-mode")
+    completed = subprocess.run(
+        cmd,
+        cwd=repo_root,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        check=False,
+    )
+    if completed.returncode != 0:
+        return (
+            None,
+            "adapter parity validator failed: "
+            f"stdout={completed.stdout.strip()} stderr={completed.stderr.strip()}",
+        )
+    payload_raw = completed.stdout.strip()
+    if not payload_raw:
+        return None, "adapter parity validator returned empty stdout"
+    try:
+        decoded = json.loads(payload_raw)
+    except json.JSONDecodeError as exc:
+        return None, f"adapter parity validator returned non-JSON stdout: {exc}"
+    if not isinstance(decoded, dict):
+        return None, "adapter parity validator returned non-object JSON payload"
+    return decoded, None
 
 
 def expect_dict(value: Any, name: str) -> dict[str, Any]:
@@ -25,6 +76,7 @@ def evaluate_budget(
     report: dict[str, Any],
     budgets: dict[str, Any],
     mode: str,
+    ignore_allowlists: bool = False,
 ) -> dict[str, Any]:
     violations: list[str] = []
     warnings: list[str] = []
@@ -78,8 +130,10 @@ def evaluate_budget(
     if isinstance(required_runtime, list):
         runtime_langs_raw = runtime.get("languages", {})
         runtime_langs = runtime_langs_raw if isinstance(runtime_langs_raw, dict) else {}
-        allow_missing = set(
-            str(item) for item in budgets.get("allow_unavailable_runtime_languages", [])
+        allow_missing = (
+            set()
+            if ignore_allowlists
+            else set(str(item) for item in budgets.get("allow_unavailable_runtime_languages", []))
         )
         for lang in required_runtime:
             lang_id = str(lang)
@@ -98,8 +152,10 @@ def evaluate_budget(
     if isinstance(required_compile, list):
         compile_langs_raw = compile_section.get("languages", {})
         compile_langs = compile_langs_raw if isinstance(compile_langs_raw, dict) else {}
-        allow_missing = set(
-            str(item) for item in budgets.get("allow_unavailable_compile_languages", [])
+        allow_missing = (
+            set()
+            if ignore_allowlists
+            else set(str(item) for item in budgets.get("allow_unavailable_compile_languages", []))
         )
         for lang in required_compile:
             lang_id = str(lang)
@@ -134,6 +190,30 @@ def evaluate_budget(
         "violations": violations,
         "warnings": warnings,
     }
+
+
+def evaluate_publication_metadata(report: dict[str, Any]) -> list[str]:
+    violations: list[str] = []
+    tooling_raw = report.get("tooling", {})
+    tooling = tooling_raw if isinstance(tooling_raw, dict) else {}
+    publication_raw = report.get("publication", {})
+    publication = publication_raw if isinstance(publication_raw, dict) else {}
+    preflight_raw = report.get("preflight", {})
+    preflight = preflight_raw if isinstance(preflight_raw, dict) else {}
+
+    if not bool(tooling.get("publication_mode", False)):
+        violations.append("tooling.publication_mode must be true for publication validation")
+    if not bool(tooling.get("docker_enabled", False)):
+        violations.append("tooling.docker_enabled must be true for publication validation")
+    if str(preflight.get("status", "")).strip() != "ok":
+        violations.append("preflight.status must be `ok` for publication validation")
+    plbci_ref = str(tooling.get("plbci_ref", "")).strip()
+    if not is_commit_sha(plbci_ref):
+        violations.append("tooling.plbci_ref must be a pinned 40-char commit SHA")
+    if str(publication.get("mode", "")).strip() != "strict":
+        violations.append("publication.mode must be `strict`")
+
+    return violations
 
 
 def to_md_ratio(value: float) -> str:
@@ -377,6 +457,26 @@ def main() -> None:
         default="reports/benchmarks/third_party/analysis",
         help="Directory for timestamped detailed summaries.",
     )
+    parser.add_argument(
+        "--parity-manifest",
+        default="benchmarks/third_party/plbci/adapters/vibelang/PARITY_MANIFEST.yaml",
+        help="Parity manifest path relative to repo root.",
+    )
+    parser.add_argument(
+        "--matrix-file",
+        default="benchmarks/third_party/plbci/config/language_matrix.json",
+        help="Language matrix path relative to repo root.",
+    )
+    parser.add_argument(
+        "--adapter-root",
+        default="benchmarks/third_party/plbci/adapters/vibelang",
+        help="VibeLang adapter root path relative to repo root.",
+    )
+    parser.add_argument(
+        "--publication-mode",
+        action="store_true",
+        help="Enable strict publication validation gates.",
+    )
     args = parser.parse_args()
 
     repo_root = Path(__file__).resolve().parents[2]
@@ -396,7 +496,46 @@ def main() -> None:
     if budgets.get("format") != "vibe-third-party-performance-budget-v1":
         fail("budget file format mismatch")
 
-    budget_result = evaluate_budget(report, budgets, args.enforcement_mode)
+    enforcement_mode = "strict" if args.publication_mode else args.enforcement_mode
+    budget_result = evaluate_budget(
+        report=report,
+        budgets=budgets,
+        mode=enforcement_mode,
+        ignore_allowlists=args.publication_mode,
+    )
+    if args.publication_mode:
+        publication_violations = evaluate_publication_metadata(report)
+        budget_result["violations"].extend(publication_violations)
+        parity_payload, parity_error = run_parity_validation(
+            repo_root=repo_root,
+            manifest_path=args.parity_manifest,
+            matrix_path=args.matrix_file,
+            adapter_root=args.adapter_root,
+            publication_mode=True,
+        )
+        if parity_error:
+            budget_result["violations"].append(parity_error)
+        else:
+            parity_status = str(
+                (parity_payload or {}).get("status", "unknown")
+            ).strip()
+            if parity_status != "pass":
+                budget_result["violations"].append(
+                    f"adapter parity status must be `pass` (found `{parity_status}`)"
+                )
+        warnings = budget_result.get("warnings", [])
+        if isinstance(warnings, list) and warnings:
+            promoted = [
+                f"[publication-mode] warning promoted to failure: {str(item)}"
+                for item in warnings
+            ]
+            budget_result["violations"].extend(promoted)
+            budget_result["warnings"] = []
+        if budget_result["violations"]:
+            budget_result["status"] = "fail"
+        else:
+            budget_result["status"] = "pass"
+        budget_result["mode"] = "publication-strict"
     summary = build_summary(report, budget_result)
 
     summary_path = results_path.with_name("summary.md")
@@ -419,7 +558,7 @@ def main() -> None:
     print(f"wrote {summary_path}")
     print(f"wrote {detailed_path}")
 
-    if args.enforcement_mode == "strict" and budget_result["violations"]:
+    if enforcement_mode == "strict" and budget_result["violations"]:
         fail("; ".join(str(item) for item in budget_result["violations"]))
 
 

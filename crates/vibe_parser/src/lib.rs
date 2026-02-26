@@ -367,6 +367,14 @@ impl Parser {
             let expr = self.parse_expr_until(&[StopToken::Newline, StopToken::RBrace]);
             return Some(Stmt::Return { expr, span: start });
         }
+        if self.at_keyword(Keyword::Break) {
+            self.bump();
+            return Some(Stmt::Break { span: start });
+        }
+        if self.at_keyword(Keyword::Continue) {
+            self.bump();
+            return Some(Stmt::Continue { span: start });
+        }
         if self.at_keyword(Keyword::For) {
             return Some(self.parse_for_stmt(start));
         }
@@ -1175,6 +1183,32 @@ topK(xs, k) {
 "#;
         let out = parse_source(src);
         assert!(!out.ast.declarations.is_empty());
+        assert!(
+            !out.diagnostics.has_errors(),
+            "{}",
+            out.diagnostics.to_golden()
+        );
+    }
+
+    #[test]
+    fn parses_break_and_continue_statements() {
+        let src = r#"
+main() -> Int {
+  i := 0
+  while i < 10 {
+    i = i + 1
+    if i == 3 {
+      continue
+    } else {
+      if i == 8 {
+        break
+      }
+    }
+  }
+  return i
+}
+"#;
+        let out = parse_source(src);
         assert!(
             !out.diagnostics.has_errors(),
             "{}",

@@ -538,6 +538,7 @@ fn collect_stmt_refs(
                 );
             }
         }
+        Stmt::Break { .. } | Stmt::Continue { .. } => {}
     }
 }
 

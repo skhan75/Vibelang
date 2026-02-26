@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import json
+import re
 import time
 from pathlib import Path
 from typing import Any
@@ -10,9 +11,34 @@ def fail(message: str) -> None:
     raise SystemExit(f"third-party benchmark delta generation failed: {message}")
 
 
+def is_commit_sha(ref: str) -> bool:
+    return bool(re.fullmatch(r"[0-9a-fA-F]{40}", ref.strip()))
+
+
 def expect_format(report: dict[str, Any], label: str) -> None:
     if report.get("format") != "vibe-third-party-benchmarks-v1":
         fail(f"{label} format mismatch")
+
+
+def validate_publication_report(report: dict[str, Any], label: str) -> None:
+    tooling_raw = report.get("tooling", {})
+    tooling = tooling_raw if isinstance(tooling_raw, dict) else {}
+    publication_raw = report.get("publication", {})
+    publication = publication_raw if isinstance(publication_raw, dict) else {}
+    preflight_raw = report.get("preflight", {})
+    preflight = preflight_raw if isinstance(preflight_raw, dict) else {}
+
+    if not bool(tooling.get("publication_mode", False)):
+        fail(f"{label} is not marked as publication_mode")
+    if not bool(tooling.get("docker_enabled", False)):
+        fail(f"{label} docker_enabled must be true")
+    plbci_ref = str(tooling.get("plbci_ref", "")).strip()
+    if not is_commit_sha(plbci_ref):
+        fail(f"{label} plbci_ref must be a pinned 40-char commit SHA")
+    if str(preflight.get("status", "")).strip() != "ok":
+        fail(f"{label} preflight.status must be `ok`")
+    if str(publication.get("mode", "")).strip() != "strict":
+        fail(f"{label} publication.mode must be `strict`")
 
 
 def collect_runtime_ratio_map(report: dict[str, Any]) -> dict[str, float]:
@@ -170,6 +196,11 @@ def main() -> None:
         default="reports/benchmarks/third_party/analysis/deltas",
         help="Output directory for delta artifacts.",
     )
+    parser.add_argument(
+        "--publication-mode",
+        action="store_true",
+        help="Require baseline/candidate to be strict publication reports.",
+    )
     args = parser.parse_args()
 
     repo_root = Path(__file__).resolve().parents[2]
@@ -186,6 +217,24 @@ def main() -> None:
     candidate = json.loads(candidate_path.read_text())
     expect_format(baseline, "baseline")
     expect_format(candidate, "candidate")
+    if args.publication_mode:
+        validate_publication_report(baseline, "baseline")
+        validate_publication_report(candidate, "candidate")
+        baseline_ref = str(
+            (baseline.get("tooling", {}) if isinstance(baseline.get("tooling", {}), dict) else {}).get(
+                "plbci_ref", ""
+            )
+        ).strip()
+        candidate_ref = str(
+            (candidate.get("tooling", {}) if isinstance(candidate.get("tooling", {}), dict) else {}).get(
+                "plbci_ref", ""
+            )
+        ).strip()
+        if baseline_ref != candidate_ref:
+            fail(
+                "publication-mode requires baseline and candidate to use identical "
+                f"plbci_ref values (baseline={baseline_ref}, candidate={candidate_ref})"
+            )
 
     delta = build_delta(
         baseline=baseline,

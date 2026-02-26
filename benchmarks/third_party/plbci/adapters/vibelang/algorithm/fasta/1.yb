@@ -1,23 +1,178 @@
+read_n() -> Int {
+  @effect io
+  raw := fs.read_text(".benchmark_input")
+  if raw == "" {
+    return 1000
+  }
+  return json.parse_i64(raw)
+}
+
+mod_int(value: Int, m: Int) -> Int {
+  return value - (value / m) * m
+}
+
+next_seed(seed: Int) -> Int {
+  return mod_int(seed * 3877 + 29573, 139968)
+}
+
+emit_repeat_fasta(src: Str, n: Int) -> Void {
+  @effect io
+  width := 60
+  r := src.len()
+  i := 0
+  while i < n {
+    line_len := width
+    remaining := n - i
+    if remaining < width {
+      line_len = remaining
+    }
+    line := ""
+    j := 0
+    while j < line_len {
+      idx_abs := i + j
+      idx := mod_int(idx_abs, r)
+      line = line + src[idx:idx + 1]
+      j = j + 1
+    }
+    println(line)
+    i = i + line_len
+  }
+}
+
+emit_random_fasta_iub(n: Int, seed_start: Int) -> Int {
+  @effect io
+  width := 60
+  seed := seed_start
+  i := 0
+  while i < n {
+    line_len := width
+    remaining := n - i
+    if remaining < width {
+      line_len = remaining
+    }
+    line := ""
+    j := 0
+    while j < line_len {
+      seed = next_seed(seed)
+      r := seed
+      ch := "Y"
+      if r <= 37791 {
+        ch = "a"
+      } else {
+        if r <= 54587 {
+          ch = "c"
+        } else {
+          if r <= 71383 {
+            ch = "g"
+          } else {
+            if r <= 109175 {
+              ch = "t"
+            } else {
+              if r <= 111974 {
+                ch = "B"
+              } else {
+                if r <= 114773 {
+                  ch = "D"
+                } else {
+                  if r <= 117573 {
+                    ch = "H"
+                  } else {
+                    if r <= 120372 {
+                      ch = "K"
+                    } else {
+                      if r <= 123171 {
+                        ch = "M"
+                      } else {
+                        if r <= 125971 {
+                          ch = "N"
+                        } else {
+                          if r <= 128770 {
+                            ch = "R"
+                          } else {
+                            if r <= 131569 {
+                              ch = "S"
+                            } else {
+                              if r <= 134369 {
+                                ch = "V"
+                              } else {
+                                if r <= 137168 {
+                                  ch = "W"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      line = line + ch
+      j = j + 1
+    }
+    println(line)
+    i = i + line_len
+  }
+  return seed
+}
+
+emit_random_fasta_hs(n: Int, seed_start: Int) -> Int {
+  @effect io
+  width := 60
+  seed := seed_start
+  i := 0
+  while i < n {
+    line_len := width
+    remaining := n - i
+    if remaining < width {
+      line_len = remaining
+    }
+    line := ""
+    j := 0
+    while j < line_len {
+      seed = next_seed(seed)
+      r := seed
+      ch := "t"
+      if r <= 42403 {
+        ch = "a"
+      } else {
+        if r <= 70115 {
+          ch = "c"
+        } else {
+          if r <= 97765 {
+            ch = "g"
+          }
+        }
+      }
+      line = line + ch
+      j = j + 1
+    }
+    println(line)
+    i = i + line_len
+  }
+  return seed
+}
+
 pub main() -> Int {
   @effect io
-  @effect alloc
-  @effect mut_state
-  i := 0
-  checksum := 0
-  while i < 300000 {
-    si := json.stringify_i64((i * 1664525) + 1013904223)
-    pi := json.parse_i64(si)
-    checksum = checksum + (pi / 1000)
-    i = i + 1
-  }
-  if checksum == -1 {
+
+  n := read_n()
+  alu := "GGCCGGGCGCGGTGGCTCACGCCTGTAATCCCAGCACTTTGGGAGGCCGAGGCGGGCGGATCACCTGAGGTCAGGAGTTCGAGACCAGCCTGGCCAACATGGTGAAACCCCGTCTCTACTAAAAATACAAAAATTAGCCGGGCGTGGTGGCGCGCGCCTGTAATCCCAGCTACTCGGGAGGCTGAGGCAGGAGAATCGCTTGAACCCGGGAGGCGGAGGTTGCAGTGAGCCGAGATCGCGCCACTGCACTCCAGCCTGGGCGACAGAGCGAGACTCCGTCTCAAAAA"
+
+  println(">" + "ONE Homo sapiens " + "alu")
+  emit_repeat_fasta(alu, n * 2)
+
+  println(">" + "TWO IUB ambiguity " + "codes")
+  seed := emit_random_fasta_iub(n * 3, 42)
+
+  println(">" + "THREE Homo sapiens " + "frequency")
+  seed = emit_random_fasta_hs(n * 5, seed)
+  if seed == -1 {
     println("unreachable")
   }
-  println(">ONE Homo sapiens alu")
-  println("GGCCGGGCGCGGTGGCTCACGCCTGTAATCCCAGCACTTTGGGAGGCCGAGGCGGGCGGA")
-  println(">TWO IUB ambiguity codes")
-  println("cttBtatcatatgctaKggNcataaaSatgtaaaDcDRtBggDtctttataattcBgtcg")
-  println(">THREE Homo sapiens frequency")
-  println("aacacttcaccaggtatcgtgaaggctcaagattacccagagaacctttgcaatataaga")
-  0
+  return 0
 }

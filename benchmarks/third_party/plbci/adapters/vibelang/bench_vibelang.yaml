@@ -61,7 +61,7 @@ environments:
   - os: linux
     compiler: vibe
     version: stable
-    build: vibe build app.yb --profile release && cp .yb/artifacts/release/x86_64-unknown-linux-gnu/app out/app
+    build: vibe build app.yb --profile release && cp .yb/artifacts/release/x86_64-unknown-linux-gnu/app out/app && printf '%s\n' '#!/usr/bin/env sh' 'set -eu' 'input="${1-}"' 'printf "%s" "$input" > .benchmark_input' 'exec ./app' > out/run_vibelang.sh && chmod +x out/run_vibelang.sh
     out_dir: out
-    run_cmd: app
+    run_cmd: sh run_vibelang.sh
     warmup: true
