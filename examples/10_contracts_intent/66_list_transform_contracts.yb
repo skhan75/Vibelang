@@ -1,0 +1,22 @@
+normalize_scores(xs: List<Int>) -> List<Int> {
+  @intent "sort scores descending for deterministic ranking"
+  @examples {
+    normalize_scores([3, 1, 2]) => [3, 2, 1]
+    normalize_scores([]) => []
+  }
+  @ensure len(.) == len(xs)
+  @effect alloc
+  xs.sort_desc()
+}
+
+pub main() -> Int {
+  @effect io
+  @effect alloc
+  out := normalize_scores([11, 5, 9])
+  if out.get(0) == 11 {
+    println("list-transform-contract-ok")
+  } else {
+    println("list-transform-contract-bad")
+  }
+  0
+}

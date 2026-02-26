@@ -1,0 +1,25 @@
+log_step(msg: Str) -> Int {
+  @intent "emit a pipeline step log line"
+  @effect io
+  println(msg)
+  0
+}
+
+run_pipeline() -> Int {
+  @intent "run two deterministic pipeline steps with visible logs"
+  @ensure . == 2
+  @effect io
+  log_step("step-a")
+  log_step("step-b")
+  2
+}
+
+pub main() -> Int {
+  @effect io
+  if run_pipeline() == 2 {
+    println("transitive-effect-ok")
+  } else {
+    println("transitive-effect-bad")
+  }
+  0
+}

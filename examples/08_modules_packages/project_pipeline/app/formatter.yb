@@ -1,0 +1,8 @@
+module app.formatter
+
+pub format_status(token_count: Int) -> Str {
+  if token_count == 3 {
+    return "pipeline-ok"
+  }
+  "pipeline-bad"
+}

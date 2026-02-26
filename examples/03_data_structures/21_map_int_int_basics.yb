@@ -1,0 +1,14 @@
+pub main() -> Int {
+  @effect io
+  @effect alloc
+  @effect mut_state
+  squares := {1: 1, 2: 4}
+  squares.set(3, 9)
+  squares.set(4, 16)
+  if squares.get(4) == 16 {
+    println("map-int-int-ok")
+  } else {
+    println("map-int-int-bad")
+  }
+  0
+}

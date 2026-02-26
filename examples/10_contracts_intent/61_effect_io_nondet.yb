@@ -1,0 +1,15 @@
+timestamp_bucket() -> Int {
+  @intent "capture current time and derive a small deterministic bucket"
+  @ensure . >= 0
+  @effect nondet
+  now := time.now_ms()
+  now / 1000
+}
+
+pub main() -> Int {
+  @effect io
+  @effect nondet
+  bucket := timestamp_bucket()
+  println(json.stringify_i64(bucket))
+  0
+}

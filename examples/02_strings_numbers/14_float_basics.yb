@@ -1,0 +1,14 @@
+pub main() -> Int {
+  @effect io
+  ratio := 7.5 / 2.5
+  if ratio > 2.9 {
+    if ratio < 3.1 {
+      println("float-ok")
+    } else {
+      println("float-bad-high")
+    }
+  } else {
+    println("float-bad-low")
+  }
+  0
+}

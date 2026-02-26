@@ -1,0 +1,11 @@
+pub main() -> Int {
+  @effect io
+  x := 1.25
+  y := 1.50
+  if y > x {
+    println("float-compare-ok")
+  } else {
+    println("float-compare-bad")
+  }
+  0
+}

@@ -1,0 +1,27 @@
+worker_a(done) -> Int {
+  @effect concurrency
+  done.send(6)
+  0
+}
+
+worker_b(done) -> Int {
+  @effect concurrency
+  done.send(8)
+  0
+}
+
+pub main() -> Int {
+  @effect io
+  @effect alloc
+  @effect concurrency
+  done := chan(4)
+  go worker_a(done)
+  go worker_b(done)
+  total := done.recv() + done.recv()
+  if total == 14 {
+    println("fan-out-ok")
+  } else {
+    println("fan-out-bad")
+  }
+  0
+}

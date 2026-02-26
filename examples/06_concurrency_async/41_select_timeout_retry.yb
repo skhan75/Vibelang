@@ -1,0 +1,17 @@
+pub main() -> Int {
+  @effect io
+  @effect alloc
+  @effect concurrency
+  @effect nondet
+  signal := chan(1)
+  select {
+    case value := signal.recv() => println("retry-data")
+    case after 1 => println("retry-attempt-1")
+  }
+  signal.send(1)
+  select {
+    case value := signal.recv() => println("retry-ok")
+    case after 1 => println("retry-failed")
+  }
+  0
+}

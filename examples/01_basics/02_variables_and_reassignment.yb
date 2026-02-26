@@ -1,0 +1,11 @@
+pub main() -> Int {
+  @effect io
+  count := 1
+  count = count + 4
+  if count == 5 {
+    println("vars-ok")
+  } else {
+    println("vars-bad")
+  }
+  0
+}

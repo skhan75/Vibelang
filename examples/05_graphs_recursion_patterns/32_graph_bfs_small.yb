@@ -1,0 +1,49 @@
+neighbors(node: Int, from_nodes: List<Int>, to_nodes: List<Int>) -> List<Int> {
+  @effect alloc
+  @effect mut_state
+  out := []
+  i := 0
+  while i < from_nodes.len() {
+    if from_nodes.get(i) == node {
+      out.append(to_nodes.get(i))
+    }
+    i = i + 1
+  }
+  out
+}
+
+pub main() -> Int {
+  @effect io
+  @effect alloc
+  @effect mut_state
+  from_nodes := [0, 0, 1, 2, 2]
+  to_nodes := [1, 2, 3, 3, 4]
+
+  visited := {0: 1}
+  order := [0]
+  queue := [0]
+  head := 0
+
+  while head < queue.len() {
+    node := queue.get(head)
+    head = head + 1
+    ns := neighbors(node, from_nodes, to_nodes)
+    i := 0
+    while i < ns.len() {
+      n := ns.get(i)
+      if !visited.contains(n) {
+        visited.set(n, 1)
+        queue.append(n)
+        order.append(n)
+      }
+      i = i + 1
+    }
+  }
+
+  if order.len() == 5 {
+    println("bfs-ok")
+  } else {
+    println("bfs-bad")
+  }
+  0
+}

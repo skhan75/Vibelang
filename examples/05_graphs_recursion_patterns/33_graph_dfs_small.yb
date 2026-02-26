@@ -1,0 +1,53 @@
+neighbors(node: Int, from_nodes: List<Int>, to_nodes: List<Int>) -> List<Int> {
+  @effect alloc
+  @effect mut_state
+  out := []
+  i := 0
+  while i < from_nodes.len() {
+    if from_nodes.get(i) == node {
+      out.append(to_nodes.get(i))
+    }
+    i = i + 1
+  }
+  out
+}
+
+pub main() -> Int {
+  @effect io
+  @effect alloc
+  @effect mut_state
+  from_nodes := [0, 0, 1, 2, 2]
+  to_nodes := [1, 2, 3, 3, 4]
+
+  visited := {0: 0}
+  visited.remove(0)
+  order := []
+  stack := [0]
+  top := 1
+
+  while top > 0 {
+    top = top - 1
+    node := stack.get(top)
+    if !visited.contains(node) {
+      visited.set(node, 1)
+      order.append(node)
+      ns := neighbors(node, from_nodes, to_nodes)
+      i := ns.len() - 1
+      while i >= 0 {
+        n := ns.get(i)
+        if !visited.contains(n) {
+          stack.append(n)
+          top = top + 1
+        }
+        i = i - 1
+      }
+    }
+  }
+
+  if order.len() == 5 {
+    println("dfs-ok")
+  } else {
+    println("dfs-bad")
+  }
+  0
+}

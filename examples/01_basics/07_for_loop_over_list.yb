@@ -1,0 +1,15 @@
+pub main() -> Int {
+  @effect io
+  @effect alloc
+  values := [2, 4, 6]
+  sum := 0
+  for v in values {
+    sum = sum + v
+  }
+  if sum == 12 {
+    println("for-ok")
+  } else {
+    println("for-bad")
+  }
+  0
+}

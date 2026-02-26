@@ -1,0 +1,30 @@
+binary_search(xs: List<Int>, target: Int) -> Int {
+  lo := 0
+  hi := xs.len() - 1
+  while lo <= hi {
+    mid := (lo + hi) / 2
+    value := xs.get(mid)
+    if value == target {
+      return mid
+    }
+    if value < target {
+      lo = mid + 1
+    } else {
+      hi = mid - 1
+    }
+  }
+  -1
+}
+
+pub main() -> Int {
+  @effect io
+  @effect alloc
+  xs := [1, 3, 5, 7, 9, 11]
+  idx := binary_search(xs, 7)
+  if idx == 3 {
+    println("binary-search-ok")
+  } else {
+    println("binary-search-bad")
+  }
+  0
+}

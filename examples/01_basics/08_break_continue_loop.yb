@@ -1,0 +1,25 @@
+pub main() -> Int {
+  @effect io
+  // Current runtime build may not expose break/continue yet.
+  // This demonstrates equivalent flow using explicit state checks.
+  i := 0
+  total := 0
+  while i < 10 {
+    i = i + 1
+    skip := i < 3
+    stop := i > 6
+    if !skip {
+      if !stop {
+        total = total + i
+      } else {
+        i = 10
+      }
+    }
+  }
+  if total == 18 {
+    println("break-continue-ok")
+  } else {
+    println("break-continue-bad")
+  }
+  0
+}

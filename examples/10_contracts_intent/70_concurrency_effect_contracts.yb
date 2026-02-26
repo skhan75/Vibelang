@@ -1,0 +1,21 @@
+send_once(signal) -> Int {
+  @intent "send a single ready signal"
+  @effect concurrency
+  signal.send(1)
+  0
+}
+
+pub main() -> Int {
+  @effect io
+  @effect alloc
+  @effect concurrency
+  signal := chan(2)
+  go send_once(signal)
+  done := signal.recv()
+  if done == 1 {
+    println("concurrency-contract-ok")
+  } else {
+    println("concurrency-contract-bad")
+  }
+  0
+}

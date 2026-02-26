@@ -1,0 +1,24 @@
+score_up(x: Int) -> Int {
+  @intent "apply a one-step score increase with explicit contracts"
+  @examples {
+    score_up(0) => 1
+    score_up(5) => 6
+  }
+  @require x >= 0
+  @ensure . == old(x) + 1
+  @effect alloc
+  box := [x]
+  x + 1
+}
+
+pub main() -> Int {
+  @effect io
+  @effect alloc
+  out := score_up(9)
+  if out == 10 {
+    println("all-annotations-ok")
+  } else {
+    println("all-annotations-bad")
+  }
+  0
+}

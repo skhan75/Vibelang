@@ -1,0 +1,23 @@
+find(xs: List<Int>, target: Int) -> Int {
+  i := 0
+  while i < xs.len() {
+    if xs.get(i) == target {
+      return i
+    }
+    i = i + 1
+  }
+  -1
+}
+
+pub main() -> Int {
+  @effect io
+  @effect alloc
+  xs := [4, 8, 15, 16]
+  idx := find(xs, 15)
+  if idx == 2 {
+    println("linear-search-ok")
+  } else {
+    println("linear-search-bad")
+  }
+  0
+}

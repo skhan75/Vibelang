@@ -1,0 +1,18 @@
+pub main() -> Int {
+  @effect io
+  if fs.write_text("examples_fs_demo.txt", "ok") {
+    if fs.exists("examples_fs_demo.txt") {
+      text := fs.read_text("examples_fs_demo.txt")
+      if text == "ok" {
+        println("fs-ok")
+      } else {
+        println("fs-bad-read")
+      }
+    } else {
+      println("fs-bad-missing")
+    }
+  } else {
+    println("fs-bad-write")
+  }
+  0
+}

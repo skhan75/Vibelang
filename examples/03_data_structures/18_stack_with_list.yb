@@ -1,0 +1,17 @@
+pub main() -> Int {
+  @effect io
+  @effect alloc
+  @effect mut_state
+  stack := []
+  stack.append(7)
+  stack.append(9)
+  stack.append(11)
+  top_index := stack.len() - 1
+  top := stack[top_index]
+  if top == 11 {
+    println("stack-ok")
+  } else {
+    println("stack-bad")
+  }
+  0
+}

@@ -1,0 +1,13 @@
+module demo.main
+import demo.math
+
+pub main() -> Int {
+  @effect io
+  sum := add(4, 5)
+  if sum == 9 {
+    println("module-math-ok")
+  } else {
+    println("module-math-bad")
+  }
+  0
+}

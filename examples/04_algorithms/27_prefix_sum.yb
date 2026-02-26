@@ -1,0 +1,26 @@
+prefix_sums(xs: List<Int>) -> List<Int> {
+  @effect alloc
+  @effect mut_state
+  out := []
+  running := 0
+  i := 0
+  while i < xs.len() {
+    running = running + xs.get(i)
+    out.append(running)
+    i = i + 1
+  }
+  out
+}
+
+pub main() -> Int {
+  @effect io
+  @effect alloc
+  @effect mut_state
+  p := prefix_sums([1, 2, 3, 4])
+  if p.get(3) == 10 {
+    println("prefix-sum-ok")
+  } else {
+    println("prefix-sum-bad")
+  }
+  0
+}

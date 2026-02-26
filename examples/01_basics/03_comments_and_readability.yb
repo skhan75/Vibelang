@@ -1,0 +1,12 @@
+pub main() -> Int {
+  @effect io
+  // Line comments use // and are ignored by the lexer.
+  // Use comments to describe intent, not obvious syntax.
+  value := 10
+  if value > 0 {
+    println("comments-ok")
+  } else {
+    println("comments-bad")
+  }
+  0
+}

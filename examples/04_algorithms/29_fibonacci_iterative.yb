@@ -1,0 +1,25 @@
+fib_iter(n: Int) -> Int {
+  if n <= 1 {
+    return n
+  }
+  a := 0
+  b := 1
+  i := 2
+  while i <= n {
+    next := a + b
+    a = b
+    b = next
+    i = i + 1
+  }
+  b
+}
+
+pub main() -> Int {
+  @effect io
+  if fib_iter(10) == 55 {
+    println("fib-iter-ok")
+  } else {
+    println("fib-iter-bad")
+  }
+  0
+}

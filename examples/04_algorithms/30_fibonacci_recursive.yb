@@ -1,0 +1,16 @@
+fib(n: Int) -> Int {
+  if n <= 1 {
+    return n
+  }
+  fib(n - 1) + fib(n - 2)
+}
+
+pub main() -> Int {
+  @effect io
+  if fib(8) == 21 {
+    println("fib-rec-ok")
+  } else {
+    println("fib-rec-bad")
+  }
+  0
+}

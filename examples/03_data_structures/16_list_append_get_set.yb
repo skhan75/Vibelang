@@ -1,0 +1,22 @@
+pub main() -> Int {
+  @effect io
+  @effect alloc
+  @effect mut_state
+  xs := [10, 20]
+  xs.append(30)
+  xs.set(1, 99)
+  if xs.get(0) == 10 {
+    if xs.get(1) == 99 {
+      if xs.get(2) == 30 {
+        println("list-basic-ok")
+      } else {
+        println("list-basic-bad-2")
+      }
+    } else {
+      println("list-basic-bad-1")
+    }
+  } else {
+    println("list-basic-bad-0")
+  }
+  0
+}

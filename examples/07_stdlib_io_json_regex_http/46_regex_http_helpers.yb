@@ -1,0 +1,13 @@
+pub main() -> Int {
+  @effect io
+  line := http.build_request_line("GET", "/health")
+  port := http.default_port("https")
+  status := http.status_text(200)
+  // NOTE: regex namespace can be unavailable on some released binaries.
+  // See FEATURE_GAPS_CHECKLIST.md for upgrade checklist.
+  println("regex-surface-see-checklist")
+  println(line)
+  println(json.stringify_i64(port))
+  println(status)
+  0
+}

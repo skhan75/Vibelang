@@ -1,0 +1,12 @@
+module app.main
+import app.parser
+import app.formatter
+
+pub main() -> Int {
+  @effect io
+  raw := "agent:run:ok"
+  tokens := parse_count(raw)
+  msg := format_status(tokens)
+  println(msg)
+  0
+}

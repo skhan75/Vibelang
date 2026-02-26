@@ -1,0 +1,40 @@
+selection_sort(xs: List<Int>) -> List<Int> {
+  @effect mut_state
+  out := xs
+  i := 0
+  while i < out.len() {
+    min_idx := i
+    j := i + 1
+    while j < out.len() {
+      if out.get(j) < out.get(min_idx) {
+        min_idx = j
+      }
+      j = j + 1
+    }
+    if min_idx != i {
+      a := out.get(i)
+      b := out.get(min_idx)
+      out.set(i, b)
+      out.set(min_idx, a)
+    }
+    i = i + 1
+  }
+  out
+}
+
+pub main() -> Int {
+  @effect io
+  @effect alloc
+  @effect mut_state
+  sorted := selection_sort([10, 2, 8, 4])
+  if sorted.get(0) == 2 {
+    if sorted.get(3) == 10 {
+      println("selection-sort-ok")
+    } else {
+      println("selection-sort-bad-last")
+    }
+  } else {
+    println("selection-sort-bad-first")
+  }
+  0
+}

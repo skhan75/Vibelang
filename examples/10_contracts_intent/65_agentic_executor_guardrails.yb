@@ -1,0 +1,25 @@
+can_execute(step_cost: Int, remaining_budget: Int) -> Int {
+  @intent "gate execution on remaining budget"
+  @examples {
+    can_execute(2, 5) => 1
+    can_execute(8, 3) => 0
+  }
+  @require step_cost >= 0
+  @require remaining_budget >= 0
+  @ensure . >= 0
+  @ensure . <= 1
+  if step_cost <= remaining_budget {
+    return 1
+  }
+  0
+}
+
+pub main() -> Int {
+  @effect io
+  if can_execute(4, 7) == 1 {
+    println("agentic-executor-ok")
+  } else {
+    println("agentic-executor-bad")
+  }
+  0
+}

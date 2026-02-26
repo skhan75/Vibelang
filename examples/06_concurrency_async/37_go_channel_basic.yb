@@ -1,0 +1,20 @@
+producer(ch) -> Int {
+  @effect concurrency
+  ch.send(42)
+  0
+}
+
+pub main() -> Int {
+  @effect io
+  @effect alloc
+  @effect concurrency
+  ch := chan(2)
+  go producer(ch)
+  value := ch.recv()
+  if value == 42 {
+    println("go-chan-ok")
+  } else {
+    println("go-chan-bad")
+  }
+  0
+}

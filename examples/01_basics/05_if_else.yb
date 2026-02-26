@@ -1,0 +1,10 @@
+pub main() -> Int {
+  @effect io
+  x := 7
+  if x > 5 {
+    println("if-else-ok")
+  } else {
+    println("if-else-bad")
+  }
+  0
+}

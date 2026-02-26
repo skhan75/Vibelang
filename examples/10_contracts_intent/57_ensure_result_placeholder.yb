@@ -1,0 +1,22 @@
+clamp_non_negative(x: Int) -> Int {
+  @intent "clamp negative inputs to zero"
+  @examples {
+    clamp_non_negative(-4) => 0
+    clamp_non_negative(5) => 5
+  }
+  @ensure . >= 0
+  if x < 0 {
+    return 0
+  }
+  x
+}
+
+pub main() -> Int {
+  @effect io
+  if clamp_non_negative(-9) == 0 {
+    println("ensure-result-ok")
+  } else {
+    println("ensure-result-bad")
+  }
+  0
+}

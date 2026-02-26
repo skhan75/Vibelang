@@ -1,0 +1,19 @@
+pub main() -> Int {
+  @effect io
+  @effect alloc
+  queue := [3, 5, 8]
+  head := 0
+  first := queue.get(head)
+  head = head + 1
+  second := queue.get(head)
+  if first == 3 {
+    if second == 5 {
+      println("queue-ok")
+    } else {
+      println("queue-bad-second")
+    }
+  } else {
+    println("queue-bad-first")
+  }
+  0
+}

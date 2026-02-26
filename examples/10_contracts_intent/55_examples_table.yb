@@ -1,0 +1,19 @@
+double(x: Int) -> Int {
+  @intent "double the input value"
+  @examples {
+    double(1) => 2
+    double(3) => 6
+    double(0) => 0
+  }
+  x + x
+}
+
+pub main() -> Int {
+  @effect io
+  if double(7) == 14 {
+    println("examples-table-ok")
+  } else {
+    println("examples-table-bad")
+  }
+  0
+}

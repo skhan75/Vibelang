@@ -1,0 +1,19 @@
+safe_div(numer: Int, denom: Int) -> Int {
+  @intent "divide integers only when denominator is non-zero"
+  @examples {
+    safe_div(10, 2) => 5
+  }
+  @require denom != 0
+  @ensure denom != 0
+  numer / denom
+}
+
+pub main() -> Int {
+  @effect io
+  if safe_div(21, 3) == 7 {
+    println("require-guard-ok")
+  } else {
+    println("require-guard-bad")
+  }
+  0
+}

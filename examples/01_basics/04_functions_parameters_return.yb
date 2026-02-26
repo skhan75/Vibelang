@@ -1,0 +1,14 @@
+add(a: Int, b: Int) -> Int {
+  a + b
+}
+
+pub main() -> Int {
+  @effect io
+  total := add(2, 3)
+  if total == 5 {
+    println("fn-ok")
+  } else {
+    println("fn-bad")
+  }
+  0
+}

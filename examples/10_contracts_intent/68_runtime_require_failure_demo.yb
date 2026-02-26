@@ -1,0 +1,17 @@
+must_be_positive(x: Int) -> Int {
+  @intent "demonstrate runtime @require enforcement"
+  @examples {
+    must_be_positive(1) => 1
+  }
+  @require x > 0
+  @ensure . > 0
+  x
+}
+
+pub main() -> Int {
+  @effect io
+  // This intentionally violates @require at runtime.
+  value := must_be_positive(0)
+  println(json.stringify_i64(value))
+  0
+}

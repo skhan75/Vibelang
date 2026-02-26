@@ -1,0 +1,18 @@
+increment(x: Int) -> Int {
+  @intent "return input plus one"
+  @examples {
+    increment(10) => 11
+  }
+  @ensure . == old(x) + 1
+  x + 1
+}
+
+pub main() -> Int {
+  @effect io
+  if increment(8) == 9 {
+    println("ensure-old-ok")
+  } else {
+    println("ensure-old-bad")
+  }
+  0
+}

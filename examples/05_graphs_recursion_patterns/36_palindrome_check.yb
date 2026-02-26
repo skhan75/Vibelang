@@ -1,0 +1,24 @@
+is_palindrome(s: Str) -> Bool {
+  i := 0
+  j := s.len() - 1
+  while i < j {
+    left := s[i:i + 1]
+    right := s[j:j + 1]
+    if left != right {
+      return false
+    }
+    i = i + 1
+    j = j - 1
+  }
+  true
+}
+
+pub main() -> Int {
+  @effect io
+  if is_palindrome("level") {
+    println("palindrome-ok")
+  } else {
+    println("palindrome-bad")
+  }
+  0
+}

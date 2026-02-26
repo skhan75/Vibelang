@@ -1,0 +1,12 @@
+pub main() -> Int {
+  @effect io
+  first := "vibe"
+  second := "lang"
+  joined := first + "-" + second
+  if joined == "vibe-lang" {
+    println("str-concat-ok")
+  } else {
+    println("str-concat-bad")
+  }
+  0
+}

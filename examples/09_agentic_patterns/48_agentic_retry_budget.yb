@@ -1,0 +1,28 @@
+attempt_action(attempt: Int) -> Int {
+  if attempt >= 3 {
+    return 1
+  }
+  0
+}
+
+pub main() -> Int {
+  @effect io
+  tries := 0
+  max_tries := 5
+  success := 0
+
+  while tries < max_tries {
+    tries = tries + 1
+    if attempt_action(tries) == 1 {
+      success = 1
+      tries = max_tries
+    }
+  }
+
+  if success == 1 {
+    println("retry-budget-ok")
+  } else {
+    println("retry-budget-exhausted")
+  }
+  0
+}

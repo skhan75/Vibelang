@@ -1,0 +1,16 @@
+pub main() -> Int {
+  @effect io
+  @effect alloc
+  xs := [5, 2, 9, 1]
+  top := xs.sort_desc().take(2)
+  if top.get(0) == 9 {
+    if top.get(1) == 5 {
+      println("list-sort-ok")
+    } else {
+      println("list-sort-bad-1")
+    }
+  } else {
+    println("list-sort-bad-0")
+  }
+  0
+}

@@ -1,0 +1,16 @@
+pub main() -> Int {
+  @effect io
+  word := "compiler"
+  left := word[0:4]
+  right := word[4:8]
+  if left == "comp" {
+    if right == "iler" {
+      println("str-slice-ok")
+    } else {
+      println("str-slice-bad-right")
+    }
+  } else {
+    println("str-slice-bad-left")
+  }
+  0
+}

@@ -1,0 +1,30 @@
+build_series(n: Int) -> List<Int> {
+  @intent "build a sequence from zero to n-1"
+  @examples {
+    len(build_series(0)) => 0
+    len(build_series(4)) => 4
+  }
+  @require n >= 0
+  @ensure len(.) == n
+  @effect alloc
+  @effect mut_state
+  out := []
+  i := 0
+  while i < n {
+    out.append(i)
+    i = i + 1
+  }
+  out
+}
+
+pub main() -> Int {
+  @effect io
+  @effect alloc
+  @effect mut_state
+  if len(build_series(5)) == 5 {
+    println("effect-alloc-mut-ok")
+  } else {
+    println("effect-alloc-mut-bad")
+  }
+  0
+}

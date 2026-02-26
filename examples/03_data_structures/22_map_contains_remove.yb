@@ -1,0 +1,23 @@
+pub main() -> Int {
+  @effect io
+  @effect alloc
+  @effect mut_state
+  active := {"x": 1, "y": 1}
+  had_x := active.contains("x")
+  removed_y := active.remove("y")
+  has_y := active.contains("y")
+  if had_x {
+    if removed_y {
+      if !has_y {
+        println("map-contains-remove-ok")
+      } else {
+        println("map-contains-remove-bad-has-y")
+      }
+    } else {
+      println("map-contains-remove-bad-remove")
+    }
+  } else {
+    println("map-contains-remove-bad-had-x")
+  }
+  0
+}

@@ -1,0 +1,32 @@
+evaluate_step(score: Int) -> Int {
+  if score > 3 {
+    return 0
+  }
+  1
+}
+
+pub main() -> Int {
+  @effect io
+  @effect alloc
+  steps := ["ingest", "plan", "act", "report"]
+  risk := {"ingest": 1, "plan": 2, "act": 4, "report": 1}
+  allowed := 1
+  i := 0
+  while i < steps.len() {
+    step := steps.get(i)
+    ok := evaluate_step(risk.get(step))
+    if ok == 0 {
+      allowed = 0
+      i = steps.len()
+    } else {
+      i = i + 1
+    }
+  }
+
+  if allowed == 0 {
+    println("guardrail-blocked")
+  } else {
+    println("guardrail-allowed")
+  }
+  0
+}

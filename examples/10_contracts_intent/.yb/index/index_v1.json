@@ -1,0 +1,3790 @@
+{
+  "schema_version": 1,
+  "files": {
+    "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/54_intent_minimal.yb": {
+      "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/54_intent_minimal.yb",
+      "file_hash": "80a4519f45ecc3ca8f2beec862959bfd452193cfcef78a43eed636018d30c230",
+      "symbols": [
+        {
+          "id": 1861233846013509721,
+          "name": "score",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/54_intent_minimal.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 4,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 4299856798683020011,
+          "name": "x",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/54_intent_minimal.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 4,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 6011376459181749516,
+          "name": "increase score deterministically",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/54_intent_minimal.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 11,
+            "line_end": 2,
+            "col_end": 44
+          }
+        },
+        {
+          "id": 2747032917942041730,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/54_intent_minimal.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 5,
+            "line_end": 14,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 3402706921570970387,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/54_intent_minimal.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 3,
+            "line_end": 7,
+            "col_end": 3
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 4299856798683020011,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/54_intent_minimal.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 3
+          }
+        },
+        {
+          "symbol_id": 1861233846013509721,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/54_intent_minimal.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 6,
+            "line_end": 8,
+            "col_end": 10
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 2747032917942041730,
+          "function_name": "main",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/54_intent_minimal.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "io"
+          ],
+          "effects_observed": [
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        },
+        {
+          "symbol_id": 1861233846013509721,
+          "function_name": "score",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/54_intent_minimal.yb",
+          "signature_hash": "185072bce48551a2b8e6064f933ec25b83759073f509ffeaf747a00270bd445d",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": "increase score deterministically",
+          "has_examples": false,
+          "is_public": false
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/55_examples_table.yb": {
+      "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/55_examples_table.yb",
+      "file_hash": "e351f871992a0b213a9983e2dc08b556d9db715b66ed6f095649ae3a27703ae3",
+      "symbols": [
+        {
+          "id": 17796543453206655654,
+          "name": "double",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/55_examples_table.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 9,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 1850685783907768345,
+          "name": "x",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/55_examples_table.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 9,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 18200906528876776207,
+          "name": "double the input value",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/55_examples_table.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 11,
+            "line_end": 2,
+            "col_end": 34
+          }
+        },
+        {
+          "id": 2705238882555906437,
+          "name": "@examples",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/55_examples_table.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 3484338816959685127,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/55_examples_table.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 5,
+            "line_end": 19,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 6390113736725770505,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/55_examples_table.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 3,
+            "line_end": 12,
+            "col_end": 3
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 17796543453206655654,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/55_examples_table.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 5,
+            "line_end": 4,
+            "col_end": 10
+          }
+        },
+        {
+          "symbol_id": 17796543453206655654,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/55_examples_table.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 5,
+            "line_end": 5,
+            "col_end": 10
+          }
+        },
+        {
+          "symbol_id": 17796543453206655654,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/55_examples_table.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 5,
+            "line_end": 6,
+            "col_end": 10
+          }
+        },
+        {
+          "symbol_id": 1850685783907768345,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/55_examples_table.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 3,
+            "line_end": 8,
+            "col_end": 3
+          }
+        },
+        {
+          "symbol_id": 1850685783907768345,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/55_examples_table.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 7,
+            "line_end": 8,
+            "col_end": 7
+          }
+        },
+        {
+          "symbol_id": 17796543453206655654,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/55_examples_table.yb",
+          "span": {
+            "line_start": 13,
+            "col_start": 6,
+            "line_end": 13,
+            "col_end": 11
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 17796543453206655654,
+          "function_name": "double",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/55_examples_table.yb",
+          "signature_hash": "ad839855ef7ba323fff7ed230f5321cae3d9b427e9e2cab115bd046016864704",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": "double the input value",
+          "has_examples": true,
+          "is_public": false
+        },
+        {
+          "symbol_id": 3484338816959685127,
+          "function_name": "main",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/55_examples_table.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "io"
+          ],
+          "effects_observed": [
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/56_require_precondition_guard.yb": {
+      "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/56_require_precondition_guard.yb",
+      "file_hash": "e7fb929fd3ecc76e1fcc51c8823f4b900b3bade366dbb64b809f2cd295f20d45",
+      "symbols": [
+        {
+          "id": 8234525990063969617,
+          "name": "safe_div",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/56_require_precondition_guard.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 9,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 4914526173227046655,
+          "name": "denom",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/56_require_precondition_guard.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 9,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 11989637764405697096,
+          "name": "numer",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/56_require_precondition_guard.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 9,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 1995360450600797207,
+          "name": "divide integers only when denominator is non-zero",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/56_require_precondition_guard.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 11,
+            "line_end": 2,
+            "col_end": 61
+          }
+        },
+        {
+          "id": 7438637872838293607,
+          "name": "@examples",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/56_require_precondition_guard.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 3619210464614323312,
+          "name": "@contract",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/56_require_precondition_guard.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 3,
+            "line_end": 6,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 11844940802777579860,
+          "name": "@contract",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/56_require_precondition_guard.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 3,
+            "line_end": 7,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 3794626736339434397,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/56_require_precondition_guard.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 5,
+            "line_end": 19,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 5172103761541039774,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/56_require_precondition_guard.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 3,
+            "line_end": 12,
+            "col_end": 3
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 8234525990063969617,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/56_require_precondition_guard.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 5,
+            "line_end": 4,
+            "col_end": 12
+          }
+        },
+        {
+          "symbol_id": 4914526173227046655,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/56_require_precondition_guard.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 12,
+            "line_end": 6,
+            "col_end": 16
+          }
+        },
+        {
+          "symbol_id": 4914526173227046655,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/56_require_precondition_guard.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 11,
+            "line_end": 7,
+            "col_end": 15
+          }
+        },
+        {
+          "symbol_id": 11989637764405697096,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/56_require_precondition_guard.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 3,
+            "line_end": 8,
+            "col_end": 7
+          }
+        },
+        {
+          "symbol_id": 4914526173227046655,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/56_require_precondition_guard.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 11,
+            "line_end": 8,
+            "col_end": 15
+          }
+        },
+        {
+          "symbol_id": 8234525990063969617,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/56_require_precondition_guard.yb",
+          "span": {
+            "line_start": 13,
+            "col_start": 6,
+            "line_end": 13,
+            "col_end": 13
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 3794626736339434397,
+          "function_name": "main",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/56_require_precondition_guard.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "io"
+          ],
+          "effects_observed": [
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        },
+        {
+          "symbol_id": 8234525990063969617,
+          "function_name": "safe_div",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/56_require_precondition_guard.yb",
+          "signature_hash": "aa12e7b1c3796381ac010d99ac7d8b0c6343bf7bc411a849f907b2aa8a8b104f",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": "divide integers only when denominator is non-zero",
+          "has_examples": true,
+          "is_public": false
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/57_ensure_result_placeholder.yb": {
+      "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/57_ensure_result_placeholder.yb",
+      "file_hash": "36ad0f022feb1f6abb9e340c95506b03943b34eab71e417cc0d69a8786b9a133",
+      "symbols": [
+        {
+          "id": 6935403231202515144,
+          "name": "clamp_non_negative",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/57_ensure_result_placeholder.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 12,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 10758615936054381979,
+          "name": "x",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/57_ensure_result_placeholder.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 12,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 15963473041558008249,
+          "name": "clamp negative inputs to zero",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/57_ensure_result_placeholder.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 11,
+            "line_end": 2,
+            "col_end": 41
+          }
+        },
+        {
+          "id": 14768981316709643569,
+          "name": "@examples",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/57_ensure_result_placeholder.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 4358728924521383367,
+          "name": "@contract",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/57_ensure_result_placeholder.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 3,
+            "line_end": 7,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 17749325389387251346,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/57_ensure_result_placeholder.yb",
+          "span": {
+            "line_start": 14,
+            "col_start": 5,
+            "line_end": 22,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 11162782690638601432,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/57_ensure_result_placeholder.yb",
+          "span": {
+            "line_start": 15,
+            "col_start": 3,
+            "line_end": 15,
+            "col_end": 3
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 6935403231202515144,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/57_ensure_result_placeholder.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 5,
+            "line_end": 4,
+            "col_end": 22
+          }
+        },
+        {
+          "symbol_id": 6935403231202515144,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/57_ensure_result_placeholder.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 5,
+            "line_end": 5,
+            "col_end": 22
+          }
+        },
+        {
+          "symbol_id": 10758615936054381979,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/57_ensure_result_placeholder.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 6,
+            "line_end": 8,
+            "col_end": 6
+          }
+        },
+        {
+          "symbol_id": 10758615936054381979,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/57_ensure_result_placeholder.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 3,
+            "line_end": 11,
+            "col_end": 3
+          }
+        },
+        {
+          "symbol_id": 6935403231202515144,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/57_ensure_result_placeholder.yb",
+          "span": {
+            "line_start": 16,
+            "col_start": 6,
+            "line_end": 16,
+            "col_end": 23
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 6935403231202515144,
+          "function_name": "clamp_non_negative",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/57_ensure_result_placeholder.yb",
+          "signature_hash": "9dd7605ab21b22a629fca8ceaf888bb5728e13f4d7b934dba3744641e4bb184c",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": "clamp negative inputs to zero",
+          "has_examples": true,
+          "is_public": false
+        },
+        {
+          "symbol_id": 17749325389387251346,
+          "function_name": "main",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/57_ensure_result_placeholder.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "io"
+          ],
+          "effects_observed": [
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/58_ensure_old_snapshot.yb": {
+      "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/58_ensure_old_snapshot.yb",
+      "file_hash": "1214e34f271244075ec3d1fc88b69c692bc33abc7a819409db59c0b7079d2e7a",
+      "symbols": [
+        {
+          "id": 63917713295218243,
+          "name": "increment",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/58_ensure_old_snapshot.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 8,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 10480131558923122193,
+          "name": "x",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/58_ensure_old_snapshot.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 8,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 780923143739149535,
+          "name": "return input plus one",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/58_ensure_old_snapshot.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 11,
+            "line_end": 2,
+            "col_end": 33
+          }
+        },
+        {
+          "id": 7477672808973269481,
+          "name": "@examples",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/58_ensure_old_snapshot.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 5050907843577915551,
+          "name": "@contract",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/58_ensure_old_snapshot.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 3,
+            "line_end": 6,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 7786085408865647554,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/58_ensure_old_snapshot.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 5,
+            "line_end": 18,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 16932999016368686711,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/58_ensure_old_snapshot.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 3,
+            "line_end": 11,
+            "col_end": 3
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 63917713295218243,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/58_ensure_old_snapshot.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 5,
+            "line_end": 4,
+            "col_end": 13
+          }
+        },
+        {
+          "symbol_id": 10480131558923122193,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/58_ensure_old_snapshot.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 20,
+            "line_end": 6,
+            "col_end": 20
+          }
+        },
+        {
+          "symbol_id": 10480131558923122193,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/58_ensure_old_snapshot.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 3,
+            "line_end": 7,
+            "col_end": 3
+          }
+        },
+        {
+          "symbol_id": 63917713295218243,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/58_ensure_old_snapshot.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 6,
+            "line_end": 12,
+            "col_end": 14
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 63917713295218243,
+          "function_name": "increment",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/58_ensure_old_snapshot.yb",
+          "signature_hash": "41f05d1a39c3b456e8a093ca8dcf9b7fc6864be5672a6542527f3db4d82fd306",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": "return input plus one",
+          "has_examples": true,
+          "is_public": false
+        },
+        {
+          "symbol_id": 7786085408865647554,
+          "function_name": "main",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/58_ensure_old_snapshot.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "io"
+          ],
+          "effects_observed": [
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/59_multiple_ensures.yb": {
+      "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/59_multiple_ensures.yb",
+      "file_hash": "1ac4605e21e9ae33a224067581379352179ee54d66e1eb3a23a80a1554ae2372",
+      "symbols": [
+        {
+          "id": 17467256225691959040,
+          "name": "abs_value",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/59_multiple_ensures.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 13,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 10367872619244037280,
+          "name": "x",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/59_multiple_ensures.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 13,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 17927452584058260040,
+          "name": "compute absolute value",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/59_multiple_ensures.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 11,
+            "line_end": 2,
+            "col_end": 34
+          }
+        },
+        {
+          "id": 16860897812759953534,
+          "name": "@examples",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/59_multiple_ensures.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 15560160428265256116,
+          "name": "@contract",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/59_multiple_ensures.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 3,
+            "line_end": 7,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 14485460212364113239,
+          "name": "@contract",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/59_multiple_ensures.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 3,
+            "line_end": 8,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 7887682910042564196,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/59_multiple_ensures.yb",
+          "span": {
+            "line_start": 15,
+            "col_start": 5,
+            "line_end": 23,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 15290871777275377047,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/59_multiple_ensures.yb",
+          "span": {
+            "line_start": 16,
+            "col_start": 3,
+            "line_end": 16,
+            "col_end": 3
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 17467256225691959040,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/59_multiple_ensures.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 5,
+            "line_end": 4,
+            "col_end": 13
+          }
+        },
+        {
+          "symbol_id": 17467256225691959040,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/59_multiple_ensures.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 5,
+            "line_end": 5,
+            "col_end": 13
+          }
+        },
+        {
+          "symbol_id": 10367872619244037280,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/59_multiple_ensures.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 20,
+            "line_end": 8,
+            "col_end": 20
+          }
+        },
+        {
+          "symbol_id": 10367872619244037280,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/59_multiple_ensures.yb",
+          "span": {
+            "line_start": 9,
+            "col_start": 6,
+            "line_end": 9,
+            "col_end": 6
+          }
+        },
+        {
+          "symbol_id": 10367872619244037280,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/59_multiple_ensures.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 16,
+            "line_end": 10,
+            "col_end": 16
+          }
+        },
+        {
+          "symbol_id": 10367872619244037280,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/59_multiple_ensures.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 3,
+            "line_end": 12,
+            "col_end": 3
+          }
+        },
+        {
+          "symbol_id": 17467256225691959040,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/59_multiple_ensures.yb",
+          "span": {
+            "line_start": 17,
+            "col_start": 6,
+            "line_end": 17,
+            "col_end": 14
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 17467256225691959040,
+          "function_name": "abs_value",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/59_multiple_ensures.yb",
+          "signature_hash": "c02ffc382fe4da6f4778f8cd92416b15cc6453161e14ea45b589b73ddf4a530f",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": "compute absolute value",
+          "has_examples": true,
+          "is_public": false
+        },
+        {
+          "symbol_id": 7887682910042564196,
+          "function_name": "main",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/59_multiple_ensures.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "io"
+          ],
+          "effects_observed": [
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/60_effect_alloc_mut_state.yb": {
+      "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/60_effect_alloc_mut_state.yb",
+      "file_hash": "135dec590417d0f11eddb475ac326e703a50bc0f6c95cb40f8ef8142b750867c",
+      "symbols": [
+        {
+          "id": 10137186275104656557,
+          "name": "build_series",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/60_effect_alloc_mut_state.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 18,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 8822792005572541305,
+          "name": "n",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/60_effect_alloc_mut_state.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 18,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 12808674759017960749,
+          "name": "build a sequence from zero to n-1",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/60_effect_alloc_mut_state.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 11,
+            "line_end": 2,
+            "col_end": 45
+          }
+        },
+        {
+          "id": 10415868284514029028,
+          "name": "@examples",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/60_effect_alloc_mut_state.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 4480752522578243915,
+          "name": "@contract",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/60_effect_alloc_mut_state.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 3,
+            "line_end": 7,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 2853261840557730338,
+          "name": "@contract",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/60_effect_alloc_mut_state.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 3,
+            "line_end": 8,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 783503467204370140,
+          "name": "alloc",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/60_effect_alloc_mut_state.yb",
+          "span": {
+            "line_start": 9,
+            "col_start": 3,
+            "line_end": 9,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 11131961418030052002,
+          "name": "mut_state",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/60_effect_alloc_mut_state.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 3,
+            "line_end": 10,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 10994863107875558748,
+          "name": "out",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/60_effect_alloc_mut_state.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 3,
+            "line_end": 11,
+            "col_end": 5
+          }
+        },
+        {
+          "id": 14362325266752572888,
+          "name": "i",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/60_effect_alloc_mut_state.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 3,
+            "line_end": 12,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 12058160000005652781,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/60_effect_alloc_mut_state.yb",
+          "span": {
+            "line_start": 20,
+            "col_start": 5,
+            "line_end": 30,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 6022074875671950789,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/60_effect_alloc_mut_state.yb",
+          "span": {
+            "line_start": 21,
+            "col_start": 3,
+            "line_end": 21,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 11373498201859446538,
+          "name": "alloc",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/60_effect_alloc_mut_state.yb",
+          "span": {
+            "line_start": 22,
+            "col_start": 3,
+            "line_end": 22,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 13239973576749945300,
+          "name": "mut_state",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/60_effect_alloc_mut_state.yb",
+          "span": {
+            "line_start": 23,
+            "col_start": 3,
+            "line_end": 23,
+            "col_end": 3
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 10137186275104656557,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/60_effect_alloc_mut_state.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 9,
+            "line_end": 4,
+            "col_end": 20
+          }
+        },
+        {
+          "symbol_id": 10137186275104656557,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/60_effect_alloc_mut_state.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 9,
+            "line_end": 5,
+            "col_end": 20
+          }
+        },
+        {
+          "symbol_id": 8822792005572541305,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/60_effect_alloc_mut_state.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 12,
+            "line_end": 7,
+            "col_end": 12
+          }
+        },
+        {
+          "symbol_id": 8822792005572541305,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/60_effect_alloc_mut_state.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 21,
+            "line_end": 8,
+            "col_end": 21
+          }
+        },
+        {
+          "symbol_id": 14362325266752572888,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/60_effect_alloc_mut_state.yb",
+          "span": {
+            "line_start": 13,
+            "col_start": 9,
+            "line_end": 13,
+            "col_end": 9
+          }
+        },
+        {
+          "symbol_id": 8822792005572541305,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/60_effect_alloc_mut_state.yb",
+          "span": {
+            "line_start": 13,
+            "col_start": 13,
+            "line_end": 13,
+            "col_end": 13
+          }
+        },
+        {
+          "symbol_id": 10994863107875558748,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/60_effect_alloc_mut_state.yb",
+          "span": {
+            "line_start": 14,
+            "col_start": 5,
+            "line_end": 14,
+            "col_end": 7
+          }
+        },
+        {
+          "symbol_id": 14362325266752572888,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/60_effect_alloc_mut_state.yb",
+          "span": {
+            "line_start": 14,
+            "col_start": 16,
+            "line_end": 14,
+            "col_end": 16
+          }
+        },
+        {
+          "symbol_id": 14362325266752572888,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/60_effect_alloc_mut_state.yb",
+          "span": {
+            "line_start": 15,
+            "col_start": 5,
+            "line_end": 15,
+            "col_end": 5
+          }
+        },
+        {
+          "symbol_id": 14362325266752572888,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/60_effect_alloc_mut_state.yb",
+          "span": {
+            "line_start": 15,
+            "col_start": 9,
+            "line_end": 15,
+            "col_end": 9
+          }
+        },
+        {
+          "symbol_id": 10994863107875558748,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/60_effect_alloc_mut_state.yb",
+          "span": {
+            "line_start": 17,
+            "col_start": 3,
+            "line_end": 17,
+            "col_end": 5
+          }
+        },
+        {
+          "symbol_id": 10137186275104656557,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/60_effect_alloc_mut_state.yb",
+          "span": {
+            "line_start": 24,
+            "col_start": 10,
+            "line_end": 24,
+            "col_end": 21
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 10137186275104656557,
+          "function_name": "build_series",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/60_effect_alloc_mut_state.yb",
+          "signature_hash": "47a1335dbca930edb58654750f05d9ae1f8e6487b2d2d9714e3c33f0145cd25c",
+          "effects_declared": [
+            "alloc",
+            "mut_state"
+          ],
+          "effects_observed": [
+            "alloc",
+            "mut_state"
+          ],
+          "intent_text": "build a sequence from zero to n-1",
+          "has_examples": true,
+          "is_public": false
+        },
+        {
+          "symbol_id": 12058160000005652781,
+          "function_name": "main",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/60_effect_alloc_mut_state.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "alloc",
+            "io",
+            "mut_state"
+          ],
+          "effects_observed": [
+            "alloc",
+            "io",
+            "mut_state"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/61_effect_io_nondet.yb": {
+      "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/61_effect_io_nondet.yb",
+      "file_hash": "f7a42fbf7f05c5846b5d0a7556017cf20adf2ed3c7f9ad01aff1f5aa50260adf",
+      "symbols": [
+        {
+          "id": 8394363544935936740,
+          "name": "timestamp_bucket",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/61_effect_io_nondet.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 7,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 18226640269094484088,
+          "name": "capture current time and derive a small deterministic bucket",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/61_effect_io_nondet.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 11,
+            "line_end": 2,
+            "col_end": 72
+          }
+        },
+        {
+          "id": 4914909560970050169,
+          "name": "@contract",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/61_effect_io_nondet.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 13307334887504090211,
+          "name": "nondet",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/61_effect_io_nondet.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 3,
+            "line_end": 4,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 17618544262446560359,
+          "name": "now",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/61_effect_io_nondet.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 3,
+            "line_end": 5,
+            "col_end": 5
+          }
+        },
+        {
+          "id": 4703548013774434018,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/61_effect_io_nondet.yb",
+          "span": {
+            "line_start": 9,
+            "col_start": 5,
+            "line_end": 15,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 8286819005286898130,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/61_effect_io_nondet.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 3,
+            "line_end": 10,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 1263562035419293203,
+          "name": "nondet",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/61_effect_io_nondet.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 3,
+            "line_end": 11,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 13769034801850168189,
+          "name": "bucket",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/61_effect_io_nondet.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 3,
+            "line_end": 12,
+            "col_end": 8
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 17618544262446560359,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/61_effect_io_nondet.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 3,
+            "line_end": 6,
+            "col_end": 5
+          }
+        },
+        {
+          "symbol_id": 8394363544935936740,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/61_effect_io_nondet.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 13,
+            "line_end": 12,
+            "col_end": 28
+          }
+        },
+        {
+          "symbol_id": 13769034801850168189,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/61_effect_io_nondet.yb",
+          "span": {
+            "line_start": 13,
+            "col_start": 30,
+            "line_end": 13,
+            "col_end": 35
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 4703548013774434018,
+          "function_name": "main",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/61_effect_io_nondet.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "io",
+            "nondet"
+          ],
+          "effects_observed": [
+            "io",
+            "nondet"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        },
+        {
+          "symbol_id": 8394363544935936740,
+          "function_name": "timestamp_bucket",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/61_effect_io_nondet.yb",
+          "signature_hash": "46440ee35d931e3179ec0bde75b6352b78d490ba3555584d43f9c2339192f51e",
+          "effects_declared": [
+            "nondet"
+          ],
+          "effects_observed": [
+            "nondet"
+          ],
+          "intent_text": "capture current time and derive a small deterministic bucket",
+          "has_examples": false,
+          "is_public": false
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": [
+        "json",
+        "time"
+      ]
+    },
+    "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/62_transitive_effects_io.yb": {
+      "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/62_transitive_effects_io.yb",
+      "file_hash": "59e0a24110a63151e2a3f5aee941f7fa44c14bebe27567b8ced3524f5c045683",
+      "symbols": [
+        {
+          "id": 6926804160414071700,
+          "name": "log_step",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/62_transitive_effects_io.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 6,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 14408642866317080899,
+          "name": "msg",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/62_transitive_effects_io.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 6,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 4796197025520763724,
+          "name": "emit a pipeline step log line",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/62_transitive_effects_io.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 11,
+            "line_end": 2,
+            "col_end": 41
+          }
+        },
+        {
+          "id": 5013010798064565431,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/62_transitive_effects_io.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 8944287691304670681,
+          "name": "run_pipeline",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/62_transitive_effects_io.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 1,
+            "line_end": 15,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 15809430262290829377,
+          "name": "run two deterministic pipeline steps with visible logs",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/62_transitive_effects_io.yb",
+          "span": {
+            "line_start": 9,
+            "col_start": 11,
+            "line_end": 9,
+            "col_end": 66
+          }
+        },
+        {
+          "id": 14713817181934658540,
+          "name": "@contract",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/62_transitive_effects_io.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 3,
+            "line_end": 10,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 1652141392652243331,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/62_transitive_effects_io.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 3,
+            "line_end": 11,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 17753496664682176641,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/62_transitive_effects_io.yb",
+          "span": {
+            "line_start": 17,
+            "col_start": 5,
+            "line_end": 25,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 2354517723020015341,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/62_transitive_effects_io.yb",
+          "span": {
+            "line_start": 18,
+            "col_start": 3,
+            "line_end": 18,
+            "col_end": 3
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 14408642866317080899,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/62_transitive_effects_io.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 11,
+            "line_end": 4,
+            "col_end": 13
+          }
+        },
+        {
+          "symbol_id": 6926804160414071700,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/62_transitive_effects_io.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 3,
+            "line_end": 12,
+            "col_end": 10
+          }
+        },
+        {
+          "symbol_id": 6926804160414071700,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/62_transitive_effects_io.yb",
+          "span": {
+            "line_start": 13,
+            "col_start": 3,
+            "line_end": 13,
+            "col_end": 10
+          }
+        },
+        {
+          "symbol_id": 8944287691304670681,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/62_transitive_effects_io.yb",
+          "span": {
+            "line_start": 19,
+            "col_start": 6,
+            "line_end": 19,
+            "col_end": 17
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 6926804160414071700,
+          "function_name": "log_step",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/62_transitive_effects_io.yb",
+          "signature_hash": "7580054084ef1ab00847d4abe4d19e377c8275cc6aadc257f2d910ba95c14c75",
+          "effects_declared": [
+            "io"
+          ],
+          "effects_observed": [
+            "io"
+          ],
+          "intent_text": "emit a pipeline step log line",
+          "has_examples": false,
+          "is_public": false
+        },
+        {
+          "symbol_id": 17753496664682176641,
+          "function_name": "main",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/62_transitive_effects_io.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "io"
+          ],
+          "effects_observed": [
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        },
+        {
+          "symbol_id": 8944287691304670681,
+          "function_name": "run_pipeline",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/62_transitive_effects_io.yb",
+          "signature_hash": "8b1ffb73d2a4eb5cf4d011f14932b78efac198d63fa9239d0886d22dfc816451",
+          "effects_declared": [
+            "io"
+          ],
+          "effects_observed": [
+            "io"
+          ],
+          "intent_text": "run two deterministic pipeline steps with visible logs",
+          "has_examples": false,
+          "is_public": false
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/63_all_annotations_combo.yb": {
+      "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/63_all_annotations_combo.yb",
+      "file_hash": "bd70ba4a74d3c1e314f48d70e9d7ef990f2a60eeac571574e988550580b2ac7c",
+      "symbols": [
+        {
+          "id": 3124782048269267598,
+          "name": "score_up",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/63_all_annotations_combo.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 12,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 16290912371140698731,
+          "name": "x",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/63_all_annotations_combo.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 12,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 10726745820425600517,
+          "name": "apply a one-step score increase with explicit contracts",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/63_all_annotations_combo.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 11,
+            "line_end": 2,
+            "col_end": 67
+          }
+        },
+        {
+          "id": 16989405258741398367,
+          "name": "@examples",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/63_all_annotations_combo.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 11989655393088656527,
+          "name": "@contract",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/63_all_annotations_combo.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 3,
+            "line_end": 7,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 11107417154459384734,
+          "name": "@contract",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/63_all_annotations_combo.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 3,
+            "line_end": 8,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 14419957896395715081,
+          "name": "alloc",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/63_all_annotations_combo.yb",
+          "span": {
+            "line_start": 9,
+            "col_start": 3,
+            "line_end": 9,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 5134149476294554636,
+          "name": "box",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/63_all_annotations_combo.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 3,
+            "line_end": 10,
+            "col_end": 5
+          }
+        },
+        {
+          "id": 14823531960089040672,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/63_all_annotations_combo.yb",
+          "span": {
+            "line_start": 14,
+            "col_start": 5,
+            "line_end": 24,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 10342133482298085977,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/63_all_annotations_combo.yb",
+          "span": {
+            "line_start": 15,
+            "col_start": 3,
+            "line_end": 15,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 2982508972239605018,
+          "name": "alloc",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/63_all_annotations_combo.yb",
+          "span": {
+            "line_start": 16,
+            "col_start": 3,
+            "line_end": 16,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 11646656904105555380,
+          "name": "out",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/63_all_annotations_combo.yb",
+          "span": {
+            "line_start": 17,
+            "col_start": 3,
+            "line_end": 17,
+            "col_end": 5
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 3124782048269267598,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/63_all_annotations_combo.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 5,
+            "line_end": 4,
+            "col_end": 12
+          }
+        },
+        {
+          "symbol_id": 3124782048269267598,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/63_all_annotations_combo.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 5,
+            "line_end": 5,
+            "col_end": 12
+          }
+        },
+        {
+          "symbol_id": 16290912371140698731,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/63_all_annotations_combo.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 12,
+            "line_end": 7,
+            "col_end": 12
+          }
+        },
+        {
+          "symbol_id": 16290912371140698731,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/63_all_annotations_combo.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 20,
+            "line_end": 8,
+            "col_end": 20
+          }
+        },
+        {
+          "symbol_id": 16290912371140698731,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/63_all_annotations_combo.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 11,
+            "line_end": 10,
+            "col_end": 11
+          }
+        },
+        {
+          "symbol_id": 16290912371140698731,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/63_all_annotations_combo.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 3,
+            "line_end": 11,
+            "col_end": 3
+          }
+        },
+        {
+          "symbol_id": 3124782048269267598,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/63_all_annotations_combo.yb",
+          "span": {
+            "line_start": 17,
+            "col_start": 10,
+            "line_end": 17,
+            "col_end": 17
+          }
+        },
+        {
+          "symbol_id": 11646656904105555380,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/63_all_annotations_combo.yb",
+          "span": {
+            "line_start": 18,
+            "col_start": 6,
+            "line_end": 18,
+            "col_end": 8
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 14823531960089040672,
+          "function_name": "main",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/63_all_annotations_combo.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "alloc",
+            "io"
+          ],
+          "effects_observed": [
+            "alloc",
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        },
+        {
+          "symbol_id": 3124782048269267598,
+          "function_name": "score_up",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/63_all_annotations_combo.yb",
+          "signature_hash": "74ceddd8495bcca941a58726c1f9172023e2deeb35a23e4162dcd71a20d5768b",
+          "effects_declared": [
+            "alloc"
+          ],
+          "effects_observed": [
+            "alloc"
+          ],
+          "intent_text": "apply a one-step score increase with explicit contracts",
+          "has_examples": true,
+          "is_public": false
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/64_agentic_planner_contract.yb": {
+      "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/64_agentic_planner_contract.yb",
+      "file_hash": "ff4e1dce7058f954bc85840f3df2f3c7ba5e5c9a35935e4ec3cc811c694c3f6e",
+      "symbols": [
+        {
+          "id": 7126182210331924747,
+          "name": "choose_next_action",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/64_agentic_planner_contract.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 14,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 7615160837362856129,
+          "name": "budget",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/64_agentic_planner_contract.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 14,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 17723025638197921692,
+          "name": "risk",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/64_agentic_planner_contract.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 14,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 18110200260643231822,
+          "name": "allow action only when risk is within budget",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/64_agentic_planner_contract.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 11,
+            "line_end": 2,
+            "col_end": 56
+          }
+        },
+        {
+          "id": 11451911071186633871,
+          "name": "@examples",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/64_agentic_planner_contract.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 4271034103526981827,
+          "name": "@contract",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/64_agentic_planner_contract.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 3,
+            "line_end": 7,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 8600009611766933637,
+          "name": "@contract",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/64_agentic_planner_contract.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 3,
+            "line_end": 8,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 9074449102081226522,
+          "name": "@contract",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/64_agentic_planner_contract.yb",
+          "span": {
+            "line_start": 9,
+            "col_start": 3,
+            "line_end": 9,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 6182560625682962462,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/64_agentic_planner_contract.yb",
+          "span": {
+            "line_start": 16,
+            "col_start": 5,
+            "line_end": 25,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 2847267377933992012,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/64_agentic_planner_contract.yb",
+          "span": {
+            "line_start": 17,
+            "col_start": 3,
+            "line_end": 17,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 14271076037869812162,
+          "name": "result",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/64_agentic_planner_contract.yb",
+          "span": {
+            "line_start": 18,
+            "col_start": 3,
+            "line_end": 18,
+            "col_end": 8
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 7126182210331924747,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/64_agentic_planner_contract.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 5,
+            "line_end": 4,
+            "col_end": 22
+          }
+        },
+        {
+          "symbol_id": 7126182210331924747,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/64_agentic_planner_contract.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 5,
+            "line_end": 5,
+            "col_end": 22
+          }
+        },
+        {
+          "symbol_id": 7615160837362856129,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/64_agentic_planner_contract.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 12,
+            "line_end": 7,
+            "col_end": 17
+          }
+        },
+        {
+          "symbol_id": 17723025638197921692,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/64_agentic_planner_contract.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 6,
+            "line_end": 10,
+            "col_end": 9
+          }
+        },
+        {
+          "symbol_id": 7615160837362856129,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/64_agentic_planner_contract.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 14,
+            "line_end": 10,
+            "col_end": 19
+          }
+        },
+        {
+          "symbol_id": 7126182210331924747,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/64_agentic_planner_contract.yb",
+          "span": {
+            "line_start": 18,
+            "col_start": 13,
+            "line_end": 18,
+            "col_end": 30
+          }
+        },
+        {
+          "symbol_id": 14271076037869812162,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/64_agentic_planner_contract.yb",
+          "span": {
+            "line_start": 19,
+            "col_start": 6,
+            "line_end": 19,
+            "col_end": 11
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 7126182210331924747,
+          "function_name": "choose_next_action",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/64_agentic_planner_contract.yb",
+          "signature_hash": "dbec0eab46a9271440a52377694a1a704f7763bb9f7eb1f6a5779c9fcfaa4158",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": "allow action only when risk is within budget",
+          "has_examples": true,
+          "is_public": false
+        },
+        {
+          "symbol_id": 6182560625682962462,
+          "function_name": "main",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/64_agentic_planner_contract.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "io"
+          ],
+          "effects_observed": [
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/65_agentic_executor_guardrails.yb": {
+      "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/65_agentic_executor_guardrails.yb",
+      "file_hash": "9cd56d9af86d906a9cc2b6e7d63ed2167f639f5b9cfeae699d75802697595fb3",
+      "symbols": [
+        {
+          "id": 9510021898633228135,
+          "name": "can_execute",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/65_agentic_executor_guardrails.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 15,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 3061655232284789863,
+          "name": "remaining_budget",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/65_agentic_executor_guardrails.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 15,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 7313588381010509106,
+          "name": "step_cost",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/65_agentic_executor_guardrails.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 15,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 4053815306732234541,
+          "name": "gate execution on remaining budget",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/65_agentic_executor_guardrails.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 11,
+            "line_end": 2,
+            "col_end": 46
+          }
+        },
+        {
+          "id": 10738735604061074691,
+          "name": "@examples",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/65_agentic_executor_guardrails.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 8476460236337344902,
+          "name": "@contract",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/65_agentic_executor_guardrails.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 3,
+            "line_end": 7,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 10320299200243390105,
+          "name": "@contract",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/65_agentic_executor_guardrails.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 3,
+            "line_end": 8,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 10170778401675289739,
+          "name": "@contract",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/65_agentic_executor_guardrails.yb",
+          "span": {
+            "line_start": 9,
+            "col_start": 3,
+            "line_end": 9,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 6015005921848778273,
+          "name": "@contract",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/65_agentic_executor_guardrails.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 3,
+            "line_end": 10,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 17484434740237607288,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/65_agentic_executor_guardrails.yb",
+          "span": {
+            "line_start": 17,
+            "col_start": 5,
+            "line_end": 25,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 13442187859435095538,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/65_agentic_executor_guardrails.yb",
+          "span": {
+            "line_start": 18,
+            "col_start": 3,
+            "line_end": 18,
+            "col_end": 3
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 9510021898633228135,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/65_agentic_executor_guardrails.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 5,
+            "line_end": 4,
+            "col_end": 15
+          }
+        },
+        {
+          "symbol_id": 9510021898633228135,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/65_agentic_executor_guardrails.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 5,
+            "line_end": 5,
+            "col_end": 15
+          }
+        },
+        {
+          "symbol_id": 7313588381010509106,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/65_agentic_executor_guardrails.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 12,
+            "line_end": 7,
+            "col_end": 20
+          }
+        },
+        {
+          "symbol_id": 3061655232284789863,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/65_agentic_executor_guardrails.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 12,
+            "line_end": 8,
+            "col_end": 27
+          }
+        },
+        {
+          "symbol_id": 7313588381010509106,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/65_agentic_executor_guardrails.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 6,
+            "line_end": 11,
+            "col_end": 14
+          }
+        },
+        {
+          "symbol_id": 3061655232284789863,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/65_agentic_executor_guardrails.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 19,
+            "line_end": 11,
+            "col_end": 34
+          }
+        },
+        {
+          "symbol_id": 9510021898633228135,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/65_agentic_executor_guardrails.yb",
+          "span": {
+            "line_start": 19,
+            "col_start": 6,
+            "line_end": 19,
+            "col_end": 16
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 9510021898633228135,
+          "function_name": "can_execute",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/65_agentic_executor_guardrails.yb",
+          "signature_hash": "2ae1033c0e2bb4b43770829b0df98ec3f656ebf6c545384ef1b22819b519e9f5",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": "gate execution on remaining budget",
+          "has_examples": true,
+          "is_public": false
+        },
+        {
+          "symbol_id": 17484434740237607288,
+          "function_name": "main",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/65_agentic_executor_guardrails.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "io"
+          ],
+          "effects_observed": [
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/66_list_transform_contracts.yb": {
+      "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/66_list_transform_contracts.yb",
+      "file_hash": "5dfd20e7477f23f22f9a5e8b8bd9dbc04231c14c0c4621fd011ebb41de417dc0",
+      "symbols": [
+        {
+          "id": 5802804432198995417,
+          "name": "normalize_scores",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/66_list_transform_contracts.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 10,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 5726040945613573332,
+          "name": "xs",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/66_list_transform_contracts.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 10,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 9057538992371620648,
+          "name": "sort scores descending for deterministic ranking",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/66_list_transform_contracts.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 11,
+            "line_end": 2,
+            "col_end": 60
+          }
+        },
+        {
+          "id": 18086929143347453166,
+          "name": "@examples",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/66_list_transform_contracts.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 16270594488545073376,
+          "name": "@contract",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/66_list_transform_contracts.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 3,
+            "line_end": 7,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 14630134273391384779,
+          "name": "alloc",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/66_list_transform_contracts.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 3,
+            "line_end": 8,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 18366157870231574987,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/66_list_transform_contracts.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 5,
+            "line_end": 22,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 8705783953680506467,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/66_list_transform_contracts.yb",
+          "span": {
+            "line_start": 13,
+            "col_start": 3,
+            "line_end": 13,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 14943336340315461988,
+          "name": "alloc",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/66_list_transform_contracts.yb",
+          "span": {
+            "line_start": 14,
+            "col_start": 3,
+            "line_end": 14,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 6600608524488765325,
+          "name": "out",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/66_list_transform_contracts.yb",
+          "span": {
+            "line_start": 15,
+            "col_start": 3,
+            "line_end": 15,
+            "col_end": 5
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 5802804432198995417,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/66_list_transform_contracts.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 5,
+            "line_end": 4,
+            "col_end": 20
+          }
+        },
+        {
+          "symbol_id": 5802804432198995417,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/66_list_transform_contracts.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 5,
+            "line_end": 5,
+            "col_end": 20
+          }
+        },
+        {
+          "symbol_id": 5726040945613573332,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/66_list_transform_contracts.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 25,
+            "line_end": 7,
+            "col_end": 26
+          }
+        },
+        {
+          "symbol_id": 5726040945613573332,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/66_list_transform_contracts.yb",
+          "span": {
+            "line_start": 9,
+            "col_start": 3,
+            "line_end": 9,
+            "col_end": 4
+          }
+        },
+        {
+          "symbol_id": 5802804432198995417,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/66_list_transform_contracts.yb",
+          "span": {
+            "line_start": 15,
+            "col_start": 10,
+            "line_end": 15,
+            "col_end": 25
+          }
+        },
+        {
+          "symbol_id": 6600608524488765325,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/66_list_transform_contracts.yb",
+          "span": {
+            "line_start": 16,
+            "col_start": 6,
+            "line_end": 16,
+            "col_end": 8
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 18366157870231574987,
+          "function_name": "main",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/66_list_transform_contracts.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "alloc",
+            "io"
+          ],
+          "effects_observed": [
+            "alloc",
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        },
+        {
+          "symbol_id": 5802804432198995417,
+          "function_name": "normalize_scores",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/66_list_transform_contracts.yb",
+          "signature_hash": "f90b48f9e0765c3bdedf035344a886be7c220085a7753a7abffa70219a6e3d6b",
+          "effects_declared": [
+            "alloc"
+          ],
+          "effects_observed": [
+            "alloc"
+          ],
+          "intent_text": "sort scores descending for deterministic ranking",
+          "has_examples": true,
+          "is_public": false
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/67_public_api_style_contracts.yb": {
+      "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/67_public_api_style_contracts.yb",
+      "file_hash": "f3b0488906ecc3ffb62da5936ec195f2e0f752369bd044161315b49c0ec3fdda",
+      "symbols": [
+        {
+          "id": 2190285627133983946,
+          "name": "top_k_desc",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/67_public_api_style_contracts.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 5,
+            "line_end": 11,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 2953818681384299390,
+          "name": "k",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/67_public_api_style_contracts.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 5,
+            "line_end": 11,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 12786392653966932641,
+          "name": "xs",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/67_public_api_style_contracts.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 5,
+            "line_end": 11,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 5979437444198926667,
+          "name": "return k largest values in descending order",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/67_public_api_style_contracts.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 11,
+            "line_end": 2,
+            "col_end": 55
+          }
+        },
+        {
+          "id": 18263237348178536619,
+          "name": "@examples",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/67_public_api_style_contracts.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 5704245530858452633,
+          "name": "@contract",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/67_public_api_style_contracts.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 3,
+            "line_end": 7,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 12661057265025822163,
+          "name": "@contract",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/67_public_api_style_contracts.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 3,
+            "line_end": 8,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 10533548841380979883,
+          "name": "alloc",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/67_public_api_style_contracts.yb",
+          "span": {
+            "line_start": 9,
+            "col_start": 3,
+            "line_end": 9,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 4362041344771027023,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/67_public_api_style_contracts.yb",
+          "span": {
+            "line_start": 13,
+            "col_start": 5,
+            "line_end": 23,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 11545087587140921376,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/67_public_api_style_contracts.yb",
+          "span": {
+            "line_start": 14,
+            "col_start": 3,
+            "line_end": 14,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 11662165778138028351,
+          "name": "alloc",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/67_public_api_style_contracts.yb",
+          "span": {
+            "line_start": 15,
+            "col_start": 3,
+            "line_end": 15,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 7260025288998102124,
+          "name": "result",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/67_public_api_style_contracts.yb",
+          "span": {
+            "line_start": 16,
+            "col_start": 3,
+            "line_end": 16,
+            "col_end": 8
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 2190285627133983946,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/67_public_api_style_contracts.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 5,
+            "line_end": 4,
+            "col_end": 14
+          }
+        },
+        {
+          "symbol_id": 2190285627133983946,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/67_public_api_style_contracts.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 5,
+            "line_end": 5,
+            "col_end": 14
+          }
+        },
+        {
+          "symbol_id": 2953818681384299390,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/67_public_api_style_contracts.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 12,
+            "line_end": 7,
+            "col_end": 12
+          }
+        },
+        {
+          "symbol_id": 12786392653966932641,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/67_public_api_style_contracts.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 25,
+            "line_end": 8,
+            "col_end": 26
+          }
+        },
+        {
+          "symbol_id": 12786392653966932641,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/67_public_api_style_contracts.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 3,
+            "line_end": 10,
+            "col_end": 4
+          }
+        },
+        {
+          "symbol_id": 2953818681384299390,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/67_public_api_style_contracts.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 23,
+            "line_end": 10,
+            "col_end": 23
+          }
+        },
+        {
+          "symbol_id": 2190285627133983946,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/67_public_api_style_contracts.yb",
+          "span": {
+            "line_start": 16,
+            "col_start": 13,
+            "line_end": 16,
+            "col_end": 22
+          }
+        },
+        {
+          "symbol_id": 7260025288998102124,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/67_public_api_style_contracts.yb",
+          "span": {
+            "line_start": 17,
+            "col_start": 10,
+            "line_end": 17,
+            "col_end": 15
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 4362041344771027023,
+          "function_name": "main",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/67_public_api_style_contracts.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "alloc",
+            "io"
+          ],
+          "effects_observed": [
+            "alloc",
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        },
+        {
+          "symbol_id": 2190285627133983946,
+          "function_name": "top_k_desc",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/67_public_api_style_contracts.yb",
+          "signature_hash": "a78b0a95fb7cc79ff04aa0cfe250e40967d85b6ac66a145258f044fda1451f11",
+          "effects_declared": [
+            "alloc"
+          ],
+          "effects_observed": [
+            "alloc"
+          ],
+          "intent_text": "return k largest values in descending order",
+          "has_examples": true,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/68_runtime_require_failure_demo.yb": {
+      "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/68_runtime_require_failure_demo.yb",
+      "file_hash": "dbb3724c69b6916225d20e44a9b24216437164b820df076a0fd667d217819b78",
+      "symbols": [
+        {
+          "id": 13993772353811035490,
+          "name": "must_be_positive",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/68_runtime_require_failure_demo.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 9,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 7858843374170046641,
+          "name": "x",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/68_runtime_require_failure_demo.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 9,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 599396071634058886,
+          "name": "demonstrate runtime @require enforcement",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/68_runtime_require_failure_demo.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 11,
+            "line_end": 2,
+            "col_end": 52
+          }
+        },
+        {
+          "id": 7864314492297222713,
+          "name": "@examples",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/68_runtime_require_failure_demo.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 288307862599213414,
+          "name": "@contract",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/68_runtime_require_failure_demo.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 3,
+            "line_end": 6,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 4448038520866566182,
+          "name": "@contract",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/68_runtime_require_failure_demo.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 3,
+            "line_end": 7,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 17870860639726755148,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/68_runtime_require_failure_demo.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 5,
+            "line_end": 17,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 9801773578129438925,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/68_runtime_require_failure_demo.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 3,
+            "line_end": 12,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 13395654686021001419,
+          "name": "value",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/68_runtime_require_failure_demo.yb",
+          "span": {
+            "line_start": 14,
+            "col_start": 3,
+            "line_end": 14,
+            "col_end": 7
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 13993772353811035490,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/68_runtime_require_failure_demo.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 5,
+            "line_end": 4,
+            "col_end": 20
+          }
+        },
+        {
+          "symbol_id": 7858843374170046641,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/68_runtime_require_failure_demo.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 12,
+            "line_end": 6,
+            "col_end": 12
+          }
+        },
+        {
+          "symbol_id": 7858843374170046641,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/68_runtime_require_failure_demo.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 3,
+            "line_end": 8,
+            "col_end": 3
+          }
+        },
+        {
+          "symbol_id": 13993772353811035490,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/68_runtime_require_failure_demo.yb",
+          "span": {
+            "line_start": 14,
+            "col_start": 12,
+            "line_end": 14,
+            "col_end": 27
+          }
+        },
+        {
+          "symbol_id": 13395654686021001419,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/68_runtime_require_failure_demo.yb",
+          "span": {
+            "line_start": 15,
+            "col_start": 30,
+            "line_end": 15,
+            "col_end": 34
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 17870860639726755148,
+          "function_name": "main",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/68_runtime_require_failure_demo.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "io"
+          ],
+          "effects_observed": [
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        },
+        {
+          "symbol_id": 13993772353811035490,
+          "function_name": "must_be_positive",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/68_runtime_require_failure_demo.yb",
+          "signature_hash": "ebfc3e89b48f9b621b35fa7cfd2ce52701f02613cff8639c225b399a2b7f9408",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": "demonstrate runtime @require enforcement",
+          "has_examples": true,
+          "is_public": false
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": [
+        "json"
+      ]
+    },
+    "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/69_runtime_ensure_failure_demo.yb": {
+      "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/69_runtime_ensure_failure_demo.yb",
+      "file_hash": "e36e142997bdf9118e4e6e8b7419347fc195903e3043cfb582e5e01535f0f14b",
+      "symbols": [
+        {
+          "id": 6411220055210153872,
+          "name": "broken_increment",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/69_runtime_ensure_failure_demo.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 8,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 17398043454800923588,
+          "name": "x",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/69_runtime_ensure_failure_demo.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 8,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 15012870373614875849,
+          "name": "demonstrate runtime @ensure enforcement",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/69_runtime_ensure_failure_demo.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 11,
+            "line_end": 2,
+            "col_end": 51
+          }
+        },
+        {
+          "id": 13258295955404752473,
+          "name": "@examples",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/69_runtime_ensure_failure_demo.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 1165914138559595680,
+          "name": "@contract",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/69_runtime_ensure_failure_demo.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 3,
+            "line_end": 6,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 1826755596834413447,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/69_runtime_ensure_failure_demo.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 5,
+            "line_end": 16,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 4514375913940073436,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/69_runtime_ensure_failure_demo.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 3,
+            "line_end": 11,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 11366274528520380097,
+          "name": "value",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/69_runtime_ensure_failure_demo.yb",
+          "span": {
+            "line_start": 13,
+            "col_start": 3,
+            "line_end": 13,
+            "col_end": 7
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 6411220055210153872,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/69_runtime_ensure_failure_demo.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 5,
+            "line_end": 4,
+            "col_end": 20
+          }
+        },
+        {
+          "symbol_id": 17398043454800923588,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/69_runtime_ensure_failure_demo.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 15,
+            "line_end": 6,
+            "col_end": 15
+          }
+        },
+        {
+          "symbol_id": 17398043454800923588,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/69_runtime_ensure_failure_demo.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 3,
+            "line_end": 7,
+            "col_end": 3
+          }
+        },
+        {
+          "symbol_id": 6411220055210153872,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/69_runtime_ensure_failure_demo.yb",
+          "span": {
+            "line_start": 13,
+            "col_start": 12,
+            "line_end": 13,
+            "col_end": 27
+          }
+        },
+        {
+          "symbol_id": 11366274528520380097,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/69_runtime_ensure_failure_demo.yb",
+          "span": {
+            "line_start": 14,
+            "col_start": 30,
+            "line_end": 14,
+            "col_end": 34
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 6411220055210153872,
+          "function_name": "broken_increment",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/69_runtime_ensure_failure_demo.yb",
+          "signature_hash": "7fc27a04cdff14c119a8701633f77cb38221d4e814ab287999b701c5924ba3c7",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": "demonstrate runtime @ensure enforcement",
+          "has_examples": true,
+          "is_public": false
+        },
+        {
+          "symbol_id": 1826755596834413447,
+          "function_name": "main",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/69_runtime_ensure_failure_demo.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "io"
+          ],
+          "effects_observed": [
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": [
+        "json"
+      ]
+    },
+    "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/70_concurrency_effect_contracts.yb": {
+      "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/70_concurrency_effect_contracts.yb",
+      "file_hash": "cdd98b3e21f5b56c3654beadfe7da7a86e824b8fb8659c6c43dd10e577b309d3",
+      "symbols": [
+        {
+          "id": 12363650502228058966,
+          "name": "send_once",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/70_concurrency_effect_contracts.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 6,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 13781591452319437904,
+          "name": "signal",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/70_concurrency_effect_contracts.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 6,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 10174902464805825933,
+          "name": "send a single ready signal",
+          "kind": "Contract",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/70_concurrency_effect_contracts.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 11,
+            "line_end": 2,
+            "col_end": 38
+          }
+        },
+        {
+          "id": 10320830036517144998,
+          "name": "concurrency",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/70_concurrency_effect_contracts.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 17082350260175946647,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/70_concurrency_effect_contracts.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 5,
+            "line_end": 21,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 16946770155495477488,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/70_concurrency_effect_contracts.yb",
+          "span": {
+            "line_start": 9,
+            "col_start": 3,
+            "line_end": 9,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 8021786272011065854,
+          "name": "alloc",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/70_concurrency_effect_contracts.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 3,
+            "line_end": 10,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 16855762018983188646,
+          "name": "concurrency",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/70_concurrency_effect_contracts.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 3,
+            "line_end": 11,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 9748421543978222458,
+          "name": "signal",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/70_concurrency_effect_contracts.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 3,
+            "line_end": 12,
+            "col_end": 8
+          }
+        },
+        {
+          "id": 17706727930914183449,
+          "name": "done",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/70_concurrency_effect_contracts.yb",
+          "span": {
+            "line_start": 14,
+            "col_start": 3,
+            "line_end": 14,
+            "col_end": 6
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 13781591452319437904,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/70_concurrency_effect_contracts.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 3,
+            "line_end": 4,
+            "col_end": 8
+          }
+        },
+        {
+          "symbol_id": 12363650502228058966,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/70_concurrency_effect_contracts.yb",
+          "span": {
+            "line_start": 13,
+            "col_start": 6,
+            "line_end": 13,
+            "col_end": 14
+          }
+        },
+        {
+          "symbol_id": 9748421543978222458,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/70_concurrency_effect_contracts.yb",
+          "span": {
+            "line_start": 13,
+            "col_start": 16,
+            "line_end": 13,
+            "col_end": 21
+          }
+        },
+        {
+          "symbol_id": 9748421543978222458,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/70_concurrency_effect_contracts.yb",
+          "span": {
+            "line_start": 14,
+            "col_start": 11,
+            "line_end": 14,
+            "col_end": 16
+          }
+        },
+        {
+          "symbol_id": 17706727930914183449,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/70_concurrency_effect_contracts.yb",
+          "span": {
+            "line_start": 15,
+            "col_start": 6,
+            "line_end": 15,
+            "col_end": 9
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 17082350260175946647,
+          "function_name": "main",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/70_concurrency_effect_contracts.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "alloc",
+            "concurrency",
+            "io"
+          ],
+          "effects_observed": [
+            "alloc",
+            "concurrency",
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        },
+        {
+          "symbol_id": 12363650502228058966,
+          "function_name": "send_once",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/10_contracts_intent/70_concurrency_effect_contracts.yb",
+          "signature_hash": "48e9f99df0b50974cb104a266ea0896092ad0c997911a0ef634208abbfc19b8b",
+          "effects_declared": [
+            "concurrency"
+          ],
+          "effects_observed": [
+            "concurrency"
+          ],
+          "intent_text": "send a single ready signal",
+          "has_examples": false,
+          "is_public": false
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    }
+  }
+}

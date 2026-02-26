@@ -1,0 +1,27 @@
+source_10(out) -> Int {
+  @effect concurrency
+  out.send(10)
+  0
+}
+
+source_20(out) -> Int {
+  @effect concurrency
+  out.send(20)
+  0
+}
+
+pub main() -> Int {
+  @effect io
+  @effect alloc
+  @effect concurrency
+  out := chan(4)
+  go source_10(out)
+  go source_20(out)
+  sum := out.recv() + out.recv()
+  if sum == 30 {
+    println("fan-in-ok")
+  } else {
+    println("fan-in-bad")
+  }
+  0
+}

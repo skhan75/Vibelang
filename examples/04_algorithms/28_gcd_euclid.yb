@@ -1,0 +1,22 @@
+gcd(a: Int, b: Int) -> Int {
+  x := a
+  y := b
+  while y != 0 {
+    q := x / y
+    r := x - (q * y)
+    x = y
+    y = r
+  }
+  x
+}
+
+pub main() -> Int {
+  @effect io
+  value := gcd(84, 18)
+  if value == 6 {
+    println("gcd-ok")
+  } else {
+    println("gcd-bad")
+  }
+  0
+}

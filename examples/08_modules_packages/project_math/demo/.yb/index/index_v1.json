@@ -1,0 +1,293 @@
+{
+  "schema_version": 1,
+  "files": {
+    "/home/azskdev/workspace/VibeStack/vibelang/examples/08_modules_packages/project_math/demo/main.yb": {
+      "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/08_modules_packages/project_math/demo/main.yb",
+      "file_hash": "cdf083500f8396a4931aeb7e50c9ebded032ea6a1c132938e9172e025031a726",
+      "symbols": [
+        {
+          "id": 12529836900165760439,
+          "name": "add",
+          "kind": "Function",
+          "module": "demo.main",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/08_modules_packages/project_math/demo/main.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 5,
+            "line_end": 5,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 9230724214140578156,
+          "name": "a",
+          "kind": "Param",
+          "module": "demo.main",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/08_modules_packages/project_math/demo/main.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 5,
+            "line_end": 5,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 9050208060356910491,
+          "name": "b",
+          "kind": "Param",
+          "module": "demo.main",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/08_modules_packages/project_math/demo/main.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 5,
+            "line_end": 5,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 15570697991765486508,
+          "name": "main",
+          "kind": "Function",
+          "module": "demo.main",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/08_modules_packages/project_math/demo/main.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 5,
+            "line_end": 13,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 617142017271159270,
+          "name": "io",
+          "kind": "Effect",
+          "module": "demo.main",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/08_modules_packages/project_math/demo/main.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 3,
+            "line_end": 5,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 10817797844673053425,
+          "name": "sum",
+          "kind": "Local",
+          "module": "demo.main",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/08_modules_packages/project_math/demo/main.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 3,
+            "line_end": 6,
+            "col_end": 5
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 9230724214140578156,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/08_modules_packages/project_math/demo/main.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 3,
+            "line_end": 4,
+            "col_end": 3
+          }
+        },
+        {
+          "symbol_id": 9050208060356910491,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/08_modules_packages/project_math/demo/main.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 7,
+            "line_end": 4,
+            "col_end": 7
+          }
+        },
+        {
+          "symbol_id": 12529836900165760439,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/08_modules_packages/project_math/demo/main.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 10,
+            "line_end": 6,
+            "col_end": 12
+          }
+        },
+        {
+          "symbol_id": 10817797844673053425,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/08_modules_packages/project_math/demo/main.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 6,
+            "line_end": 7,
+            "col_end": 8
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 12529836900165760439,
+          "function_name": "add",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/08_modules_packages/project_math/demo/main.yb",
+          "signature_hash": "30a2a6e0a0d8102acbc3d2353f7fc177fffd970083bc8e8988530b190eed1ebe",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        },
+        {
+          "symbol_id": 15570697991765486508,
+          "function_name": "main",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/08_modules_packages/project_math/demo/main.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "io"
+          ],
+          "effects_observed": [
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [
+        {
+          "code": "E2316",
+          "severity": "Error",
+          "message": "module declaration `demo.math` does not match file layout `math` for `/home/azskdev/workspace/VibeStack/vibelang/examples/08_modules_packages/project_math/demo/math.yb`",
+          "span": {
+            "line_start": 3,
+            "col_start": 5,
+            "line_end": 5,
+            "col_end": 1
+          }
+        },
+        {
+          "code": "E2316",
+          "severity": "Error",
+          "message": "module declaration `demo.main` does not match file layout `main` for `/home/azskdev/workspace/VibeStack/vibelang/examples/08_modules_packages/project_math/demo/main.yb`",
+          "span": {
+            "line_start": 4,
+            "col_start": 5,
+            "line_end": 13,
+            "col_end": 1
+          }
+        }
+      ],
+      "dependencies": [
+        "demo.math"
+      ]
+    },
+    "/home/azskdev/workspace/VibeStack/vibelang/examples/08_modules_packages/project_math/demo/math.yb": {
+      "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/08_modules_packages/project_math/demo/math.yb",
+      "file_hash": "f6c18db950d3c7e65973b2ac6f8b1a8065825f1aa06c1bd73414412207a15c1f",
+      "symbols": [
+        {
+          "id": 2832183177702921994,
+          "name": "add",
+          "kind": "Function",
+          "module": "demo.math",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/08_modules_packages/project_math/demo/math.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 5,
+            "line_end": 5,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 4527541910628678668,
+          "name": "a",
+          "kind": "Param",
+          "module": "demo.math",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/08_modules_packages/project_math/demo/math.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 5,
+            "line_end": 5,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 18225578272341996738,
+          "name": "b",
+          "kind": "Param",
+          "module": "demo.math",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/08_modules_packages/project_math/demo/math.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 5,
+            "line_end": 5,
+            "col_end": 1
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 4527541910628678668,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/08_modules_packages/project_math/demo/math.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 3,
+            "line_end": 4,
+            "col_end": 3
+          }
+        },
+        {
+          "symbol_id": 18225578272341996738,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/08_modules_packages/project_math/demo/math.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 7,
+            "line_end": 4,
+            "col_end": 7
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 2832183177702921994,
+          "function_name": "add",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/08_modules_packages/project_math/demo/math.yb",
+          "signature_hash": "30a2a6e0a0d8102acbc3d2353f7fc177fffd970083bc8e8988530b190eed1ebe",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [
+        {
+          "code": "E2316",
+          "severity": "Error",
+          "message": "module declaration `demo.math` does not match file layout `math` for `/home/azskdev/workspace/VibeStack/vibelang/examples/08_modules_packages/project_math/demo/math.yb`",
+          "span": {
+            "line_start": 3,
+            "col_start": 5,
+            "line_end": 5,
+            "col_end": 1
+          }
+        },
+        {
+          "code": "E2316",
+          "severity": "Error",
+          "message": "module declaration `demo.main` does not match file layout `main` for `/home/azskdev/workspace/VibeStack/vibelang/examples/08_modules_packages/project_math/demo/main.yb`",
+          "span": {
+            "line_start": 4,
+            "col_start": 5,
+            "line_end": 13,
+            "col_end": 1
+          }
+        }
+      ],
+      "dependencies": []
+    }
+  }
+}

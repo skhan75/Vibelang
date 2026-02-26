@@ -1,0 +1,14 @@
+pub main() -> Int {
+  @effect io
+  text := "runtime"
+  if text.len() == 7 {
+    if text[0:1] == "r" {
+      println("str-len-ok")
+    } else {
+      println("str-len-bad-first-char")
+    }
+  } else {
+    println("str-len-bad")
+  }
+  0
+}

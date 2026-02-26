@@ -1,0 +1,20 @@
+pub main() -> Int {
+  @effect io
+  a := 9
+  b := 4
+  sum := a + b
+  diff := a - b
+  prod := a * b
+  hi := max(sum, prod)
+  lo := min(diff, b)
+  if hi == 36 {
+    if lo == 4 {
+      println("int-math-ok")
+    } else {
+      println("int-math-bad-lo")
+    }
+  } else {
+    println("int-math-bad-hi")
+  }
+  0
+}

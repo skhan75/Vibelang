@@ -1,0 +1,18 @@
+pub main() -> Int {
+  @effect io
+  @effect nondet
+  now := time.now_ms()
+  duration := time.duration_ms(5)
+  joined := path.join("/srv", "api")
+  parent := path.parent("/srv/api/main.yb")
+  base := path.basename("/srv/api/main.yb")
+
+  if now >= 0 {
+    println("time-ok")
+  }
+  println(json.stringify_i64(duration))
+  println(joined)
+  println(parent)
+  println(base)
+  0
+}

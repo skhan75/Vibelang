@@ -1,0 +1,16 @@
+broken_increment(x: Int) -> Int {
+  @intent "demonstrate runtime @ensure enforcement"
+  @examples {
+    broken_increment(1) => 2
+  }
+  @ensure . > x
+  x
+}
+
+pub main() -> Int {
+  @effect io
+  // This intentionally violates @ensure at runtime.
+  value := broken_increment(3)
+  println(json.stringify_i64(value))
+  0
+}

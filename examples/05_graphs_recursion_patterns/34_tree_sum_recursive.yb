@@ -1,0 +1,28 @@
+tree_sum(
+  node: Int,
+  values: List<Int>,
+  left: List<Int>,
+  right: List<Int>,
+) -> Int {
+  if node < 0 {
+    return 0
+  }
+  left_total := tree_sum(left.get(node), values, left, right)
+  right_total := tree_sum(right.get(node), values, left, right)
+  values.get(node) + left_total + right_total
+}
+
+pub main() -> Int {
+  @effect io
+  @effect alloc
+  values := [5, 3, 8, 2, 4]
+  left := [1, 3, -1, -1, -1]
+  right := [2, 4, -1, -1, -1]
+  total := tree_sum(0, values, left, right)
+  if total == 22 {
+    println("tree-sum-ok")
+  } else {
+    println("tree-sum-bad")
+  }
+  0
+}

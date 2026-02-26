@@ -1,0 +1,23 @@
+abs_value(x: Int) -> Int {
+  @intent "compute absolute value"
+  @examples {
+    abs_value(-2) => 2
+    abs_value(7) => 7
+  }
+  @ensure . >= 0
+  @ensure . >= old(x)
+  if x < 0 {
+    return 0 - x
+  }
+  x
+}
+
+pub main() -> Int {
+  @effect io
+  if abs_value(-11) == 11 {
+    println("multiple-ensure-ok")
+  } else {
+    println("multiple-ensure-bad")
+  }
+  0
+}

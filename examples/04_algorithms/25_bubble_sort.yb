@@ -1,0 +1,37 @@
+bubble_sort(xs: List<Int>) -> List<Int> {
+  @effect mut_state
+  out := xs
+  n := out.len()
+  i := 0
+  while i < n {
+    j := 0
+    while j + 1 < n {
+      a := out.get(j)
+      b := out.get(j + 1)
+      if a > b {
+        out.set(j, b)
+        out.set(j + 1, a)
+      }
+      j = j + 1
+    }
+    i = i + 1
+  }
+  out
+}
+
+pub main() -> Int {
+  @effect io
+  @effect alloc
+  @effect mut_state
+  sorted := bubble_sort([7, 3, 9, 1])
+  if sorted.get(0) == 1 {
+    if sorted.get(3) == 9 {
+      println("bubble-sort-ok")
+    } else {
+      println("bubble-sort-bad-last")
+    }
+  } else {
+    println("bubble-sort-bad-first")
+  }
+  0
+}

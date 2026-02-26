@@ -1,0 +1,21 @@
+add(a: Int, b: Int) -> Int {
+  a + b
+}
+
+worker(x: Int) -> Int {
+  x
+}
+
+pub main() -> Int {
+  @effect io
+  @effect concurrency
+  task := async add(1, 2)
+  value := await task
+  thread worker(value)
+  if value == 3 {
+    println("async-thread-ok")
+  } else {
+    println("async-thread-bad")
+  }
+  0
+}

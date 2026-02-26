@@ -1,0 +1,2548 @@
+{
+  "schema_version": 1,
+  "files": {
+    "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb": {
+      "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+      "file_hash": "2a72200febbc6a01ae4052e0d5a66051963648e514d688fd064c0f9a043fff79",
+      "symbols": [
+        {
+          "id": 10064578941020776701,
+          "name": "neighbors",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 13,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 16423283082196644181,
+          "name": "from_nodes",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 13,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 4741836722907054225,
+          "name": "node",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 13,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 7069670858969142549,
+          "name": "to_nodes",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 13,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 8920153315128835333,
+          "name": "alloc",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 18246464027450517819,
+          "name": "mut_state",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 8729166816017885815,
+          "name": "out",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 3,
+            "line_end": 4,
+            "col_end": 5
+          }
+        },
+        {
+          "id": 5073535098277728271,
+          "name": "i",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 3,
+            "line_end": 5,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 11740093044263369529,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 15,
+            "col_start": 5,
+            "line_end": 49,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 3285595725121237076,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 16,
+            "col_start": 3,
+            "line_end": 16,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 3276464703934167349,
+          "name": "alloc",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 17,
+            "col_start": 3,
+            "line_end": 17,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 1909101170688272062,
+          "name": "mut_state",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 18,
+            "col_start": 3,
+            "line_end": 18,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 11800758406775250448,
+          "name": "from_nodes",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 19,
+            "col_start": 3,
+            "line_end": 19,
+            "col_end": 12
+          }
+        },
+        {
+          "id": 17957519258325195110,
+          "name": "to_nodes",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 20,
+            "col_start": 3,
+            "line_end": 20,
+            "col_end": 10
+          }
+        },
+        {
+          "id": 12214455808072226684,
+          "name": "visited",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 22,
+            "col_start": 3,
+            "line_end": 22,
+            "col_end": 9
+          }
+        },
+        {
+          "id": 6949497471057055501,
+          "name": "order",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 23,
+            "col_start": 3,
+            "line_end": 23,
+            "col_end": 7
+          }
+        },
+        {
+          "id": 8257526648910809391,
+          "name": "queue",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 24,
+            "col_start": 3,
+            "line_end": 24,
+            "col_end": 7
+          }
+        },
+        {
+          "id": 5328885616122729127,
+          "name": "head",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 25,
+            "col_start": 3,
+            "line_end": 25,
+            "col_end": 6
+          }
+        },
+        {
+          "id": 17597526788646278213,
+          "name": "node",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 28,
+            "col_start": 5,
+            "line_end": 28,
+            "col_end": 8
+          }
+        },
+        {
+          "id": 12570317853408343865,
+          "name": "ns",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 30,
+            "col_start": 5,
+            "line_end": 30,
+            "col_end": 6
+          }
+        },
+        {
+          "id": 17327288791790158978,
+          "name": "i",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 31,
+            "col_start": 5,
+            "line_end": 31,
+            "col_end": 5
+          }
+        },
+        {
+          "id": 934736424540228161,
+          "name": "n",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 33,
+            "col_start": 7,
+            "line_end": 33,
+            "col_end": 7
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 5073535098277728271,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 9,
+            "line_end": 6,
+            "col_end": 9
+          }
+        },
+        {
+          "symbol_id": 16423283082196644181,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 13,
+            "line_end": 6,
+            "col_end": 22
+          }
+        },
+        {
+          "symbol_id": 16423283082196644181,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 8,
+            "line_end": 7,
+            "col_end": 17
+          }
+        },
+        {
+          "symbol_id": 5073535098277728271,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 23,
+            "line_end": 7,
+            "col_end": 23
+          }
+        },
+        {
+          "symbol_id": 4741836722907054225,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 29,
+            "line_end": 7,
+            "col_end": 32
+          }
+        },
+        {
+          "symbol_id": 8729166816017885815,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 7,
+            "line_end": 8,
+            "col_end": 9
+          }
+        },
+        {
+          "symbol_id": 7069670858969142549,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 18,
+            "line_end": 8,
+            "col_end": 25
+          }
+        },
+        {
+          "symbol_id": 5073535098277728271,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 31,
+            "line_end": 8,
+            "col_end": 31
+          }
+        },
+        {
+          "symbol_id": 5073535098277728271,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 5,
+            "line_end": 10,
+            "col_end": 5
+          }
+        },
+        {
+          "symbol_id": 5073535098277728271,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 9,
+            "line_end": 10,
+            "col_end": 9
+          }
+        },
+        {
+          "symbol_id": 8729166816017885815,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 3,
+            "line_end": 12,
+            "col_end": 5
+          }
+        },
+        {
+          "symbol_id": 5328885616122729127,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 27,
+            "col_start": 9,
+            "line_end": 27,
+            "col_end": 12
+          }
+        },
+        {
+          "symbol_id": 8257526648910809391,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 27,
+            "col_start": 16,
+            "line_end": 27,
+            "col_end": 20
+          }
+        },
+        {
+          "symbol_id": 8257526648910809391,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 28,
+            "col_start": 13,
+            "line_end": 28,
+            "col_end": 17
+          }
+        },
+        {
+          "symbol_id": 5328885616122729127,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 28,
+            "col_start": 23,
+            "line_end": 28,
+            "col_end": 26
+          }
+        },
+        {
+          "symbol_id": 5328885616122729127,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 29,
+            "col_start": 5,
+            "line_end": 29,
+            "col_end": 8
+          }
+        },
+        {
+          "symbol_id": 5328885616122729127,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 29,
+            "col_start": 12,
+            "line_end": 29,
+            "col_end": 15
+          }
+        },
+        {
+          "symbol_id": 10064578941020776701,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 30,
+            "col_start": 11,
+            "line_end": 30,
+            "col_end": 19
+          }
+        },
+        {
+          "symbol_id": 17597526788646278213,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 30,
+            "col_start": 21,
+            "line_end": 30,
+            "col_end": 24
+          }
+        },
+        {
+          "symbol_id": 11800758406775250448,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 30,
+            "col_start": 27,
+            "line_end": 30,
+            "col_end": 36
+          }
+        },
+        {
+          "symbol_id": 17957519258325195110,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 30,
+            "col_start": 39,
+            "line_end": 30,
+            "col_end": 46
+          }
+        },
+        {
+          "symbol_id": 17327288791790158978,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 32,
+            "col_start": 11,
+            "line_end": 32,
+            "col_end": 11
+          }
+        },
+        {
+          "symbol_id": 12570317853408343865,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 32,
+            "col_start": 15,
+            "line_end": 32,
+            "col_end": 16
+          }
+        },
+        {
+          "symbol_id": 12570317853408343865,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 33,
+            "col_start": 12,
+            "line_end": 33,
+            "col_end": 13
+          }
+        },
+        {
+          "symbol_id": 17327288791790158978,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 33,
+            "col_start": 19,
+            "line_end": 33,
+            "col_end": 19
+          }
+        },
+        {
+          "symbol_id": 12214455808072226684,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 34,
+            "col_start": 11,
+            "line_end": 34,
+            "col_end": 17
+          }
+        },
+        {
+          "symbol_id": 934736424540228161,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 34,
+            "col_start": 28,
+            "line_end": 34,
+            "col_end": 28
+          }
+        },
+        {
+          "symbol_id": 12214455808072226684,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 35,
+            "col_start": 9,
+            "line_end": 35,
+            "col_end": 15
+          }
+        },
+        {
+          "symbol_id": 934736424540228161,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 35,
+            "col_start": 21,
+            "line_end": 35,
+            "col_end": 21
+          }
+        },
+        {
+          "symbol_id": 8257526648910809391,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 36,
+            "col_start": 9,
+            "line_end": 36,
+            "col_end": 13
+          }
+        },
+        {
+          "symbol_id": 934736424540228161,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 36,
+            "col_start": 22,
+            "line_end": 36,
+            "col_end": 22
+          }
+        },
+        {
+          "symbol_id": 6949497471057055501,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 37,
+            "col_start": 9,
+            "line_end": 37,
+            "col_end": 13
+          }
+        },
+        {
+          "symbol_id": 934736424540228161,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 37,
+            "col_start": 22,
+            "line_end": 37,
+            "col_end": 22
+          }
+        },
+        {
+          "symbol_id": 17327288791790158978,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 39,
+            "col_start": 7,
+            "line_end": 39,
+            "col_end": 7
+          }
+        },
+        {
+          "symbol_id": 17327288791790158978,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 39,
+            "col_start": 11,
+            "line_end": 39,
+            "col_end": 11
+          }
+        },
+        {
+          "symbol_id": 6949497471057055501,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 43,
+            "col_start": 6,
+            "line_end": 43,
+            "col_end": 10
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 11740093044263369529,
+          "function_name": "main",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "alloc",
+            "io",
+            "mut_state"
+          ],
+          "effects_observed": [
+            "alloc",
+            "io",
+            "mut_state"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        },
+        {
+          "symbol_id": 10064578941020776701,
+          "function_name": "neighbors",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "signature_hash": "0ae5c75fdcb4895a6b0bf19a9ca1483eba7ade123f26b9efd4066c714e81cbdc",
+          "effects_declared": [
+            "alloc",
+            "mut_state"
+          ],
+          "effects_observed": [
+            "alloc",
+            "mut_state"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb": {
+      "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+      "file_hash": "ed5885671097e1546576742b5f3b900c2e4e745a8afdaaebfb08731240376346",
+      "symbols": [
+        {
+          "id": 1874451480747503919,
+          "name": "neighbors",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 13,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 2990792665718941197,
+          "name": "from_nodes",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 13,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 3640950249213292750,
+          "name": "node",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 13,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 7386466853018418301,
+          "name": "to_nodes",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 13,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 2186613302405203276,
+          "name": "alloc",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 3270234868495570526,
+          "name": "mut_state",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 1833166979980397531,
+          "name": "out",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 3,
+            "line_end": 4,
+            "col_end": 5
+          }
+        },
+        {
+          "id": 9553245380562746914,
+          "name": "i",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 3,
+            "line_end": 5,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 8725840948376419087,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 15,
+            "col_start": 5,
+            "line_end": 53,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 15839985584682557810,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 16,
+            "col_start": 3,
+            "line_end": 16,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 2978998724403840026,
+          "name": "alloc",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 17,
+            "col_start": 3,
+            "line_end": 17,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 1180071680241949551,
+          "name": "mut_state",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 18,
+            "col_start": 3,
+            "line_end": 18,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 4153468728259833269,
+          "name": "from_nodes",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 19,
+            "col_start": 3,
+            "line_end": 19,
+            "col_end": 12
+          }
+        },
+        {
+          "id": 2276041993967940628,
+          "name": "to_nodes",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 20,
+            "col_start": 3,
+            "line_end": 20,
+            "col_end": 10
+          }
+        },
+        {
+          "id": 13256983216873706449,
+          "name": "visited",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 22,
+            "col_start": 3,
+            "line_end": 22,
+            "col_end": 9
+          }
+        },
+        {
+          "id": 6612043288777118255,
+          "name": "order",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 24,
+            "col_start": 3,
+            "line_end": 24,
+            "col_end": 7
+          }
+        },
+        {
+          "id": 2376860528193299693,
+          "name": "stack",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 25,
+            "col_start": 3,
+            "line_end": 25,
+            "col_end": 7
+          }
+        },
+        {
+          "id": 17382681440878585094,
+          "name": "top",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 26,
+            "col_start": 3,
+            "line_end": 26,
+            "col_end": 5
+          }
+        },
+        {
+          "id": 18002713230861118785,
+          "name": "node",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 30,
+            "col_start": 5,
+            "line_end": 30,
+            "col_end": 8
+          }
+        },
+        {
+          "id": 1440986572565451595,
+          "name": "ns",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 34,
+            "col_start": 7,
+            "line_end": 34,
+            "col_end": 8
+          }
+        },
+        {
+          "id": 11579596478497885819,
+          "name": "i",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 35,
+            "col_start": 7,
+            "line_end": 35,
+            "col_end": 7
+          }
+        },
+        {
+          "id": 11272527169040536163,
+          "name": "n",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 37,
+            "col_start": 9,
+            "line_end": 37,
+            "col_end": 9
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 9553245380562746914,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 9,
+            "line_end": 6,
+            "col_end": 9
+          }
+        },
+        {
+          "symbol_id": 2990792665718941197,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 13,
+            "line_end": 6,
+            "col_end": 22
+          }
+        },
+        {
+          "symbol_id": 2990792665718941197,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 8,
+            "line_end": 7,
+            "col_end": 17
+          }
+        },
+        {
+          "symbol_id": 9553245380562746914,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 23,
+            "line_end": 7,
+            "col_end": 23
+          }
+        },
+        {
+          "symbol_id": 3640950249213292750,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 29,
+            "line_end": 7,
+            "col_end": 32
+          }
+        },
+        {
+          "symbol_id": 1833166979980397531,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 7,
+            "line_end": 8,
+            "col_end": 9
+          }
+        },
+        {
+          "symbol_id": 7386466853018418301,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 18,
+            "line_end": 8,
+            "col_end": 25
+          }
+        },
+        {
+          "symbol_id": 9553245380562746914,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 31,
+            "line_end": 8,
+            "col_end": 31
+          }
+        },
+        {
+          "symbol_id": 9553245380562746914,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 5,
+            "line_end": 10,
+            "col_end": 5
+          }
+        },
+        {
+          "symbol_id": 9553245380562746914,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 9,
+            "line_end": 10,
+            "col_end": 9
+          }
+        },
+        {
+          "symbol_id": 1833166979980397531,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 3,
+            "line_end": 12,
+            "col_end": 5
+          }
+        },
+        {
+          "symbol_id": 13256983216873706449,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 23,
+            "col_start": 3,
+            "line_end": 23,
+            "col_end": 9
+          }
+        },
+        {
+          "symbol_id": 17382681440878585094,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 28,
+            "col_start": 9,
+            "line_end": 28,
+            "col_end": 11
+          }
+        },
+        {
+          "symbol_id": 17382681440878585094,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 29,
+            "col_start": 5,
+            "line_end": 29,
+            "col_end": 7
+          }
+        },
+        {
+          "symbol_id": 17382681440878585094,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 29,
+            "col_start": 11,
+            "line_end": 29,
+            "col_end": 13
+          }
+        },
+        {
+          "symbol_id": 2376860528193299693,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 30,
+            "col_start": 13,
+            "line_end": 30,
+            "col_end": 17
+          }
+        },
+        {
+          "symbol_id": 17382681440878585094,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 30,
+            "col_start": 23,
+            "line_end": 30,
+            "col_end": 25
+          }
+        },
+        {
+          "symbol_id": 13256983216873706449,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 31,
+            "col_start": 9,
+            "line_end": 31,
+            "col_end": 15
+          }
+        },
+        {
+          "symbol_id": 18002713230861118785,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 31,
+            "col_start": 26,
+            "line_end": 31,
+            "col_end": 29
+          }
+        },
+        {
+          "symbol_id": 13256983216873706449,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 32,
+            "col_start": 7,
+            "line_end": 32,
+            "col_end": 13
+          }
+        },
+        {
+          "symbol_id": 18002713230861118785,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 32,
+            "col_start": 19,
+            "line_end": 32,
+            "col_end": 22
+          }
+        },
+        {
+          "symbol_id": 6612043288777118255,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 33,
+            "col_start": 7,
+            "line_end": 33,
+            "col_end": 11
+          }
+        },
+        {
+          "symbol_id": 18002713230861118785,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 33,
+            "col_start": 20,
+            "line_end": 33,
+            "col_end": 23
+          }
+        },
+        {
+          "symbol_id": 1874451480747503919,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 34,
+            "col_start": 13,
+            "line_end": 34,
+            "col_end": 21
+          }
+        },
+        {
+          "symbol_id": 18002713230861118785,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 34,
+            "col_start": 23,
+            "line_end": 34,
+            "col_end": 26
+          }
+        },
+        {
+          "symbol_id": 4153468728259833269,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 34,
+            "col_start": 29,
+            "line_end": 34,
+            "col_end": 38
+          }
+        },
+        {
+          "symbol_id": 2276041993967940628,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 34,
+            "col_start": 41,
+            "line_end": 34,
+            "col_end": 48
+          }
+        },
+        {
+          "symbol_id": 1440986572565451595,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 35,
+            "col_start": 12,
+            "line_end": 35,
+            "col_end": 13
+          }
+        },
+        {
+          "symbol_id": 11579596478497885819,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 36,
+            "col_start": 13,
+            "line_end": 36,
+            "col_end": 13
+          }
+        },
+        {
+          "symbol_id": 1440986572565451595,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 37,
+            "col_start": 14,
+            "line_end": 37,
+            "col_end": 15
+          }
+        },
+        {
+          "symbol_id": 11579596478497885819,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 37,
+            "col_start": 21,
+            "line_end": 37,
+            "col_end": 21
+          }
+        },
+        {
+          "symbol_id": 13256983216873706449,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 38,
+            "col_start": 13,
+            "line_end": 38,
+            "col_end": 19
+          }
+        },
+        {
+          "symbol_id": 11272527169040536163,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 38,
+            "col_start": 30,
+            "line_end": 38,
+            "col_end": 30
+          }
+        },
+        {
+          "symbol_id": 2376860528193299693,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 39,
+            "col_start": 11,
+            "line_end": 39,
+            "col_end": 15
+          }
+        },
+        {
+          "symbol_id": 11272527169040536163,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 39,
+            "col_start": 24,
+            "line_end": 39,
+            "col_end": 24
+          }
+        },
+        {
+          "symbol_id": 17382681440878585094,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 40,
+            "col_start": 11,
+            "line_end": 40,
+            "col_end": 13
+          }
+        },
+        {
+          "symbol_id": 17382681440878585094,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 40,
+            "col_start": 17,
+            "line_end": 40,
+            "col_end": 19
+          }
+        },
+        {
+          "symbol_id": 11579596478497885819,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 42,
+            "col_start": 9,
+            "line_end": 42,
+            "col_end": 9
+          }
+        },
+        {
+          "symbol_id": 11579596478497885819,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 42,
+            "col_start": 13,
+            "line_end": 42,
+            "col_end": 13
+          }
+        },
+        {
+          "symbol_id": 6612043288777118255,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 47,
+            "col_start": 6,
+            "line_end": 47,
+            "col_end": 10
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 8725840948376419087,
+          "function_name": "main",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "alloc",
+            "io",
+            "mut_state"
+          ],
+          "effects_observed": [
+            "alloc",
+            "io",
+            "mut_state"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        },
+        {
+          "symbol_id": 1874451480747503919,
+          "function_name": "neighbors",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "signature_hash": "0ae5c75fdcb4895a6b0bf19a9ca1483eba7ade123f26b9efd4066c714e81cbdc",
+          "effects_declared": [
+            "alloc",
+            "mut_state"
+          ],
+          "effects_observed": [
+            "alloc",
+            "mut_state"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb": {
+      "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+      "file_hash": "ae21677303459f6bdca7ff6d6511fb34e8b61ee0bd6c1fa094095b8f746932af",
+      "symbols": [
+        {
+          "id": 6180119763287139165,
+          "name": "tree_sum",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 13,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 8050489320927753510,
+          "name": "left",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 13,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 7222183392875988711,
+          "name": "node",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 13,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 15456895220416471817,
+          "name": "right",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 13,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 18275011462833056234,
+          "name": "values",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 13,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 6785806601326546225,
+          "name": "left_total",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 3,
+            "line_end": 10,
+            "col_end": 12
+          }
+        },
+        {
+          "id": 16680798608977003666,
+          "name": "right_total",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 3,
+            "line_end": 11,
+            "col_end": 13
+          }
+        },
+        {
+          "id": 2008275695169051760,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 15,
+            "col_start": 5,
+            "line_end": 28,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 7763429394010376519,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 16,
+            "col_start": 3,
+            "line_end": 16,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 12483611218601823488,
+          "name": "alloc",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 17,
+            "col_start": 3,
+            "line_end": 17,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 3593798926118883652,
+          "name": "values",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 18,
+            "col_start": 3,
+            "line_end": 18,
+            "col_end": 8
+          }
+        },
+        {
+          "id": 10609090904560300812,
+          "name": "left",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 19,
+            "col_start": 3,
+            "line_end": 19,
+            "col_end": 6
+          }
+        },
+        {
+          "id": 695854405950991024,
+          "name": "right",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 20,
+            "col_start": 3,
+            "line_end": 20,
+            "col_end": 7
+          }
+        },
+        {
+          "id": 16353622193979602547,
+          "name": "total",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 21,
+            "col_start": 3,
+            "line_end": 21,
+            "col_end": 7
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 7222183392875988711,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 6,
+            "line_end": 7,
+            "col_end": 9
+          }
+        },
+        {
+          "symbol_id": 6180119763287139165,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 17,
+            "line_end": 10,
+            "col_end": 24
+          }
+        },
+        {
+          "symbol_id": 8050489320927753510,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 26,
+            "line_end": 10,
+            "col_end": 29
+          }
+        },
+        {
+          "symbol_id": 7222183392875988711,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 35,
+            "line_end": 10,
+            "col_end": 38
+          }
+        },
+        {
+          "symbol_id": 18275011462833056234,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 42,
+            "line_end": 10,
+            "col_end": 47
+          }
+        },
+        {
+          "symbol_id": 8050489320927753510,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 50,
+            "line_end": 10,
+            "col_end": 53
+          }
+        },
+        {
+          "symbol_id": 15456895220416471817,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 56,
+            "line_end": 10,
+            "col_end": 60
+          }
+        },
+        {
+          "symbol_id": 6180119763287139165,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 18,
+            "line_end": 11,
+            "col_end": 25
+          }
+        },
+        {
+          "symbol_id": 15456895220416471817,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 27,
+            "line_end": 11,
+            "col_end": 31
+          }
+        },
+        {
+          "symbol_id": 7222183392875988711,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 37,
+            "line_end": 11,
+            "col_end": 40
+          }
+        },
+        {
+          "symbol_id": 18275011462833056234,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 44,
+            "line_end": 11,
+            "col_end": 49
+          }
+        },
+        {
+          "symbol_id": 8050489320927753510,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 52,
+            "line_end": 11,
+            "col_end": 55
+          }
+        },
+        {
+          "symbol_id": 15456895220416471817,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 58,
+            "line_end": 11,
+            "col_end": 62
+          }
+        },
+        {
+          "symbol_id": 18275011462833056234,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 3,
+            "line_end": 12,
+            "col_end": 8
+          }
+        },
+        {
+          "symbol_id": 7222183392875988711,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 14,
+            "line_end": 12,
+            "col_end": 17
+          }
+        },
+        {
+          "symbol_id": 6785806601326546225,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 22,
+            "line_end": 12,
+            "col_end": 31
+          }
+        },
+        {
+          "symbol_id": 16680798608977003666,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 35,
+            "line_end": 12,
+            "col_end": 45
+          }
+        },
+        {
+          "symbol_id": 6180119763287139165,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 21,
+            "col_start": 12,
+            "line_end": 21,
+            "col_end": 19
+          }
+        },
+        {
+          "symbol_id": 3593798926118883652,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 21,
+            "col_start": 24,
+            "line_end": 21,
+            "col_end": 29
+          }
+        },
+        {
+          "symbol_id": 10609090904560300812,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 21,
+            "col_start": 32,
+            "line_end": 21,
+            "col_end": 35
+          }
+        },
+        {
+          "symbol_id": 695854405950991024,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 21,
+            "col_start": 38,
+            "line_end": 21,
+            "col_end": 42
+          }
+        },
+        {
+          "symbol_id": 16353622193979602547,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 22,
+            "col_start": 6,
+            "line_end": 22,
+            "col_end": 10
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 2008275695169051760,
+          "function_name": "main",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "alloc",
+            "io"
+          ],
+          "effects_observed": [
+            "alloc",
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        },
+        {
+          "symbol_id": 6180119763287139165,
+          "function_name": "tree_sum",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "signature_hash": "50ebc4b4669ede71f1d0840680d3c43c7db2db2ea763137b8a3570ece1e02d56",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb": {
+      "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+      "file_hash": "85b2b6d5963a2b9fc01eb5042a390f9707d39476f2678999ae237cceddbc071e",
+      "symbols": [
+        {
+          "id": 7779720320004689303,
+          "name": "tree_depth",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 8,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 8656559892306642091,
+          "name": "left",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 8,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 13650601540290818030,
+          "name": "node",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 8,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 14381200826959685704,
+          "name": "right",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 8,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 6035504626434763841,
+          "name": "left_depth",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 3,
+            "line_end": 5,
+            "col_end": 12
+          }
+        },
+        {
+          "id": 7434735463392357660,
+          "name": "right_depth",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 3,
+            "line_end": 6,
+            "col_end": 13
+          }
+        },
+        {
+          "id": 4054915374996682341,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 5,
+            "line_end": 22,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 12117628021896786167,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 3,
+            "line_end": 11,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 14107094628813974043,
+          "name": "alloc",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 3,
+            "line_end": 12,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 12999575623155258119,
+          "name": "left",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 13,
+            "col_start": 3,
+            "line_end": 13,
+            "col_end": 6
+          }
+        },
+        {
+          "id": 11258233575599756837,
+          "name": "right",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 14,
+            "col_start": 3,
+            "line_end": 14,
+            "col_end": 7
+          }
+        },
+        {
+          "id": 1247752052131478482,
+          "name": "depth",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 15,
+            "col_start": 3,
+            "line_end": 15,
+            "col_end": 7
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 13650601540290818030,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 6,
+            "line_end": 2,
+            "col_end": 9
+          }
+        },
+        {
+          "symbol_id": 7779720320004689303,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 17,
+            "line_end": 5,
+            "col_end": 26
+          }
+        },
+        {
+          "symbol_id": 8656559892306642091,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 28,
+            "line_end": 5,
+            "col_end": 31
+          }
+        },
+        {
+          "symbol_id": 13650601540290818030,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 37,
+            "line_end": 5,
+            "col_end": 40
+          }
+        },
+        {
+          "symbol_id": 8656559892306642091,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 44,
+            "line_end": 5,
+            "col_end": 47
+          }
+        },
+        {
+          "symbol_id": 14381200826959685704,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 50,
+            "line_end": 5,
+            "col_end": 54
+          }
+        },
+        {
+          "symbol_id": 7779720320004689303,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 18,
+            "line_end": 6,
+            "col_end": 27
+          }
+        },
+        {
+          "symbol_id": 14381200826959685704,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 29,
+            "line_end": 6,
+            "col_end": 33
+          }
+        },
+        {
+          "symbol_id": 13650601540290818030,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 39,
+            "line_end": 6,
+            "col_end": 42
+          }
+        },
+        {
+          "symbol_id": 8656559892306642091,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 46,
+            "line_end": 6,
+            "col_end": 49
+          }
+        },
+        {
+          "symbol_id": 14381200826959685704,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 52,
+            "line_end": 6,
+            "col_end": 56
+          }
+        },
+        {
+          "symbol_id": 6035504626434763841,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 7,
+            "line_end": 7,
+            "col_end": 16
+          }
+        },
+        {
+          "symbol_id": 7434735463392357660,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 19,
+            "line_end": 7,
+            "col_end": 29
+          }
+        },
+        {
+          "symbol_id": 7779720320004689303,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 15,
+            "col_start": 12,
+            "line_end": 15,
+            "col_end": 21
+          }
+        },
+        {
+          "symbol_id": 12999575623155258119,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 15,
+            "col_start": 26,
+            "line_end": 15,
+            "col_end": 29
+          }
+        },
+        {
+          "symbol_id": 11258233575599756837,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 15,
+            "col_start": 32,
+            "line_end": 15,
+            "col_end": 36
+          }
+        },
+        {
+          "symbol_id": 1247752052131478482,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 16,
+            "col_start": 6,
+            "line_end": 16,
+            "col_end": 10
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 4054915374996682341,
+          "function_name": "main",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "alloc",
+            "io"
+          ],
+          "effects_observed": [
+            "alloc",
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        },
+        {
+          "symbol_id": 7779720320004689303,
+          "function_name": "tree_depth",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "signature_hash": "13ddc590907d10387a2aa1ae90d448eeb2570ae9853a2a7a3914125b0de58945",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb": {
+      "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+      "file_hash": "ecceffea29b625ca656f0d463123778124ca9b227f4b45874e2335869fde82b2",
+      "symbols": [
+        {
+          "id": 18117923868361046510,
+          "name": "is_palindrome",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 14,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 5428467644765355390,
+          "name": "s",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 14,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 5047247682779895495,
+          "name": "i",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 950317501396056202,
+          "name": "j",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 10218148649909249794,
+          "name": "left",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 5,
+            "line_end": 5,
+            "col_end": 8
+          }
+        },
+        {
+          "id": 7113131720863375102,
+          "name": "right",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 5,
+            "line_end": 6,
+            "col_end": 9
+          }
+        },
+        {
+          "id": 3123033644769003233,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 16,
+            "col_start": 5,
+            "line_end": 24,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 5222214999719239546,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 17,
+            "col_start": 3,
+            "line_end": 17,
+            "col_end": 3
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 5428467644765355390,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 8,
+            "line_end": 3,
+            "col_end": 8
+          }
+        },
+        {
+          "symbol_id": 5047247682779895495,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 9,
+            "line_end": 4,
+            "col_end": 9
+          }
+        },
+        {
+          "symbol_id": 950317501396056202,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 13,
+            "line_end": 4,
+            "col_end": 13
+          }
+        },
+        {
+          "symbol_id": 5428467644765355390,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 13,
+            "line_end": 5,
+            "col_end": 13
+          }
+        },
+        {
+          "symbol_id": 5047247682779895495,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 15,
+            "line_end": 5,
+            "col_end": 15
+          }
+        },
+        {
+          "symbol_id": 5047247682779895495,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 17,
+            "line_end": 5,
+            "col_end": 17
+          }
+        },
+        {
+          "symbol_id": 5428467644765355390,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 14,
+            "line_end": 6,
+            "col_end": 14
+          }
+        },
+        {
+          "symbol_id": 950317501396056202,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 16,
+            "line_end": 6,
+            "col_end": 16
+          }
+        },
+        {
+          "symbol_id": 950317501396056202,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 18,
+            "line_end": 6,
+            "col_end": 18
+          }
+        },
+        {
+          "symbol_id": 10218148649909249794,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 8,
+            "line_end": 7,
+            "col_end": 11
+          }
+        },
+        {
+          "symbol_id": 7113131720863375102,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 16,
+            "line_end": 7,
+            "col_end": 20
+          }
+        },
+        {
+          "symbol_id": 5047247682779895495,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 5,
+            "line_end": 10,
+            "col_end": 5
+          }
+        },
+        {
+          "symbol_id": 5047247682779895495,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 9,
+            "line_end": 10,
+            "col_end": 9
+          }
+        },
+        {
+          "symbol_id": 950317501396056202,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 5,
+            "line_end": 11,
+            "col_end": 5
+          }
+        },
+        {
+          "symbol_id": 950317501396056202,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 9,
+            "line_end": 11,
+            "col_end": 9
+          }
+        },
+        {
+          "symbol_id": 18117923868361046510,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 18,
+            "col_start": 6,
+            "line_end": 18,
+            "col_end": 18
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 18117923868361046510,
+          "function_name": "is_palindrome",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "signature_hash": "18771996595e193e1234458117d225ba9a5986a4c86b6d9eaf34374674dd7a94",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        },
+        {
+          "symbol_id": 3123033644769003233,
+          "function_name": "main",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "io"
+          ],
+          "effects_observed": [
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    }
+  }
+}

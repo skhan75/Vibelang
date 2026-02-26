@@ -1,0 +1,523 @@
+{
+  "schema_version": 1,
+  "files": {
+    "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/43_fs_read_write_exists.yb": {
+      "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/43_fs_read_write_exists.yb",
+      "file_hash": "23e1daf10798d5fa241382f21672823036e5de7d65e592b9dbf78d180a5dd02c",
+      "symbols": [
+        {
+          "id": 3634645323218451051,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/43_fs_read_write_exists.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 5,
+            "line_end": 18,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 7272313572915170147,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/43_fs_read_write_exists.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 11254083267554569675,
+          "name": "text",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/43_fs_read_write_exists.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 7,
+            "line_end": 5,
+            "col_end": 10
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 11254083267554569675,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/43_fs_read_write_exists.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 10,
+            "line_end": 6,
+            "col_end": 13
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 3634645323218451051,
+          "function_name": "main",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/43_fs_read_write_exists.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "io"
+          ],
+          "effects_observed": [
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": [
+        "fs"
+      ]
+    },
+    "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/44_path_and_time_helpers.yb": {
+      "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/44_path_and_time_helpers.yb",
+      "file_hash": "082ee3d023358efcb5cb05392d9e4e79b23d665c8e9813989696e8494527d875",
+      "symbols": [
+        {
+          "id": 11076336934178134298,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/44_path_and_time_helpers.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 5,
+            "line_end": 18,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 4643047933206330259,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/44_path_and_time_helpers.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 7452043764309989134,
+          "name": "nondet",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/44_path_and_time_helpers.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 9837292900710727946,
+          "name": "now",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/44_path_and_time_helpers.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 3,
+            "line_end": 4,
+            "col_end": 5
+          }
+        },
+        {
+          "id": 5230461126442958262,
+          "name": "duration",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/44_path_and_time_helpers.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 3,
+            "line_end": 5,
+            "col_end": 10
+          }
+        },
+        {
+          "id": 724485217683452160,
+          "name": "joined",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/44_path_and_time_helpers.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 3,
+            "line_end": 6,
+            "col_end": 8
+          }
+        },
+        {
+          "id": 3143283802517072691,
+          "name": "parent",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/44_path_and_time_helpers.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 3,
+            "line_end": 7,
+            "col_end": 8
+          }
+        },
+        {
+          "id": 11539363073571134730,
+          "name": "base",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/44_path_and_time_helpers.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 3,
+            "line_end": 8,
+            "col_end": 6
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 9837292900710727946,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/44_path_and_time_helpers.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 6,
+            "line_end": 10,
+            "col_end": 8
+          }
+        },
+        {
+          "symbol_id": 5230461126442958262,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/44_path_and_time_helpers.yb",
+          "span": {
+            "line_start": 13,
+            "col_start": 30,
+            "line_end": 13,
+            "col_end": 37
+          }
+        },
+        {
+          "symbol_id": 724485217683452160,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/44_path_and_time_helpers.yb",
+          "span": {
+            "line_start": 14,
+            "col_start": 11,
+            "line_end": 14,
+            "col_end": 16
+          }
+        },
+        {
+          "symbol_id": 3143283802517072691,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/44_path_and_time_helpers.yb",
+          "span": {
+            "line_start": 15,
+            "col_start": 11,
+            "line_end": 15,
+            "col_end": 16
+          }
+        },
+        {
+          "symbol_id": 11539363073571134730,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/44_path_and_time_helpers.yb",
+          "span": {
+            "line_start": 16,
+            "col_start": 11,
+            "line_end": 16,
+            "col_end": 14
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 11076336934178134298,
+          "function_name": "main",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/44_path_and_time_helpers.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "io",
+            "nondet"
+          ],
+          "effects_observed": [
+            "io",
+            "nondet"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": [
+        "json",
+        "path",
+        "time"
+      ]
+    },
+    "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/45_json_basics.yb": {
+      "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/45_json_basics.yb",
+      "file_hash": "0836a9d69717a7180e0bbfe55c73acbef12eaf7d7bb3c24e33a47ac0217f731b",
+      "symbols": [
+        {
+          "id": 10143860860797333018,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/45_json_basics.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 5,
+            "line_end": 14,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 4220798990580484925,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/45_json_basics.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 6920761069668853469,
+          "name": "parsed",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/45_json_basics.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 8
+          }
+        },
+        {
+          "id": 16501960338314562632,
+          "name": "minified",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/45_json_basics.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 3,
+            "line_end": 4,
+            "col_end": 10
+          }
+        },
+        {
+          "id": 3796459858604259727,
+          "name": "valid",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/45_json_basics.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 3,
+            "line_end": 5,
+            "col_end": 7
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 6920761069668853469,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/45_json_basics.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 30,
+            "line_end": 6,
+            "col_end": 35
+          }
+        },
+        {
+          "symbol_id": 16501960338314562632,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/45_json_basics.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 11,
+            "line_end": 7,
+            "col_end": 18
+          }
+        },
+        {
+          "symbol_id": 3796459858604259727,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/45_json_basics.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 6,
+            "line_end": 8,
+            "col_end": 10
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 10143860860797333018,
+          "function_name": "main",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/45_json_basics.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "io"
+          ],
+          "effects_observed": [
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": [
+        "json"
+      ]
+    },
+    "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/46_regex_http_helpers.yb": {
+      "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/46_regex_http_helpers.yb",
+      "file_hash": "75e5e8c795770cdcb5dd838433e25f7183856cccc585f739c5b4148b445e6b0d",
+      "symbols": [
+        {
+          "id": 3610916495221511183,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/46_regex_http_helpers.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 5,
+            "line_end": 13,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 10659171029481613660,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/46_regex_http_helpers.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 10892450546701563587,
+          "name": "line",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/46_regex_http_helpers.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 6
+          }
+        },
+        {
+          "id": 2819421909474179689,
+          "name": "port",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/46_regex_http_helpers.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 3,
+            "line_end": 4,
+            "col_end": 6
+          }
+        },
+        {
+          "id": 15156233265277381428,
+          "name": "status",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/46_regex_http_helpers.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 3,
+            "line_end": 5,
+            "col_end": 8
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 10892450546701563587,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/46_regex_http_helpers.yb",
+          "span": {
+            "line_start": 9,
+            "col_start": 11,
+            "line_end": 9,
+            "col_end": 14
+          }
+        },
+        {
+          "symbol_id": 2819421909474179689,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/46_regex_http_helpers.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 30,
+            "line_end": 10,
+            "col_end": 33
+          }
+        },
+        {
+          "symbol_id": 15156233265277381428,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/46_regex_http_helpers.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 11,
+            "line_end": 11,
+            "col_end": 16
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 3610916495221511183,
+          "function_name": "main",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/07_stdlib_io_json_regex_http/46_regex_http_helpers.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "io"
+          ],
+          "effects_observed": [
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": [
+        "http",
+        "json"
+      ]
+    }
+  }
+}

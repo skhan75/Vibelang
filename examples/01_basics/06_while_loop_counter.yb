@@ -1,0 +1,15 @@
+pub main() -> Int {
+  @effect io
+  i := 0
+  total := 0
+  while i < 5 {
+    total = total + i
+    i = i + 1
+  }
+  if total == 10 {
+    println("while-ok")
+  } else {
+    println("while-bad")
+  }
+  0
+}
