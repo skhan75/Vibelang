@@ -264,8 +264,12 @@ fn eval_expr_with_ctx(
                 enforce_contracts,
             )
         }
-        Expr::Constructor { .. } => Err("type constructors are not supported in phase 2 examples".to_string()),
-        Expr::EnumVariant { .. } => Err("enum variants are not supported in phase 2 examples".to_string()),
+        Expr::Constructor { .. } => {
+            Err("type constructors are not supported in phase 2 examples".to_string())
+        }
+        Expr::EnumVariant { .. } => {
+            Err("enum variants are not supported in phase 2 examples".to_string())
+        }
     }
 }
 
@@ -526,7 +530,9 @@ fn try_eval_mutating_member_stmt(
             match target {
                 DeterministicValue::List(items) => {
                     if index < 0 || index as usize >= items.len() {
-                        return Err("list.set index out of bounds in example evaluation".to_string());
+                        return Err(
+                            "list.set index out of bounds in example evaluation".to_string()
+                        );
                     }
                     items[index as usize] = value;
                     Ok(true)

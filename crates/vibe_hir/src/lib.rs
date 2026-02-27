@@ -366,7 +366,10 @@ fn verify_expr(expr: &HirExpr) -> Result<(), String> {
         HirExprKind::Old { expr } => {
             verify_expr(expr)?;
         }
-        HirExprKind::Constructor { type_name: _, fields } => {
+        HirExprKind::Constructor {
+            type_name: _,
+            fields,
+        } => {
             for (_, e) in fields {
                 verify_expr(e)?;
             }

@@ -1,6 +1,6 @@
 use vibe_ast::{
-    BinaryOp, Contract, Declaration, EnumDecl, ExampleCase, Expr, FileAst, FunctionDecl,
-    MatchArm, Param, SelectCase, SelectPattern, Stmt, TypeDecl, TypeField, TypeRef, UnaryOp,
+    BinaryOp, Contract, Declaration, EnumDecl, ExampleCase, Expr, FileAst, FunctionDecl, MatchArm,
+    Param, SelectCase, SelectPattern, Stmt, TypeDecl, TypeField, TypeRef, UnaryOp,
 };
 use vibe_diagnostics::{Diagnostic, Diagnostics, Severity, Span};
 use vibe_lexer::{lex, Keyword, Token, TokenKind};
@@ -118,11 +118,7 @@ impl Parser {
         self.consume_newlines();
         while !self.at(&TokenKind::RBrace) && !self.is_eof() {
             let field_name = self.expect_ident("E1140", "expected field name");
-            self.expect(
-                TokenKind::Colon,
-                "E1141",
-                "expected `:` after field name",
-            );
+            self.expect(TokenKind::Colon, "E1141", "expected `:` after field name");
             let ty = self.parse_type_ref_until(&[TokenKind::Comma, TokenKind::RBrace]);
             fields.push(TypeField {
                 name: field_name,
@@ -652,7 +648,11 @@ impl Parser {
     fn parse_match_stmt(&mut self, span: Span) -> Stmt {
         self.bump(); // match
         let scrutinee = self.parse_expr_until(&[StopToken::LBrace]);
-        self.expect(TokenKind::LBrace, "E1203", "expected `{` after `match` scrutinee");
+        self.expect(
+            TokenKind::LBrace,
+            "E1203",
+            "expected `{` after `match` scrutinee",
+        );
         let mut arms = Vec::new();
         let mut default_action = None;
         self.consume_newlines();
@@ -668,7 +668,8 @@ impl Parser {
                     "E1205",
                     "expected `=>` after `default`",
                 );
-                default_action = Some(self.parse_expr_until(&[StopToken::Newline, StopToken::RBrace]));
+                default_action =
+                    Some(self.parse_expr_until(&[StopToken::Newline, StopToken::RBrace]));
                 self.consume_newlines();
                 break;
             }
@@ -684,8 +685,7 @@ impl Parser {
                     "E1205",
                     "expected `=>` in `match` case",
                 );
-                let action =
-                    self.parse_expr_until(&[StopToken::Newline, StopToken::RBrace]);
+                let action = self.parse_expr_until(&[StopToken::Newline, StopToken::RBrace]);
                 let arm_span = Span::new(
                     pattern.span().line_start,
                     pattern.span().col_start,
@@ -908,7 +908,8 @@ impl Parser {
                 let mut fields = Vec::new();
                 self.consume_newlines();
                 while !self.at(&TokenKind::RBrace) && !self.is_eof() {
-                    let field_name = self.expect_ident("E1140", "expected field name in constructor");
+                    let field_name =
+                        self.expect_ident("E1140", "expected field name in constructor");
                     self.expect(
                         TokenKind::Colon,
                         "E1141",

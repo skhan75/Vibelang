@@ -300,7 +300,8 @@ pub main() -> Int {
         out.stderr
     );
     assert!(
-        out.stderr.contains("field assignment type mismatch `Point.x`"),
+        out.stderr
+            .contains("field assignment type mismatch `Point.x`"),
         "expected field assignment type mismatch diagnostic:\n{}",
         out.stderr
     );
@@ -400,7 +401,8 @@ pub add(a: Int, b: Int) -> Int {
         out.stderr
     );
     assert!(
-        out.stderr.contains("requires an entry source file that defines `main`"),
+        out.stderr
+            .contains("requires an entry source file that defines `main`"),
         "missing friendly non-entry diagnostic:\n{}",
         out.stderr
     );

@@ -542,9 +542,19 @@ fn collect_stmt_refs(
         }
         Stmt::Break { .. } | Stmt::Continue { .. } => {}
         Stmt::Match {
-            scrutinee, arms, default_action, ..
+            scrutinee,
+            arms,
+            default_action,
+            ..
         } => {
-            collect_expr_refs(scrutinee, file, locals, function_symbol_ids, references, dependencies);
+            collect_expr_refs(
+                scrutinee,
+                file,
+                locals,
+                function_symbol_ids,
+                references,
+                dependencies,
+            );
             for arm in arms {
                 collect_expr_refs(
                     &arm.pattern,

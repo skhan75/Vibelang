@@ -800,8 +800,14 @@ fn check_stmt(
             default_action,
             span,
         } => {
-            let scrutinee_ty =
-                infer_expr(scrutinee, env, ctx, ContractContext::Other, diagnostics, observed_effects);
+            let scrutinee_ty = infer_expr(
+                scrutinee,
+                env,
+                ctx,
+                ContractContext::Other,
+                diagnostics,
+                observed_effects,
+            );
             if let TypeKind::Enum(enum_name) = &scrutinee_ty {
                 if default_action.is_none() {
                     if let Some(variants) = ctx.enum_defs.get(enum_name) {
@@ -809,7 +815,9 @@ fn check_stmt(
                         for arm in arms {
                             match &arm.pattern {
                                 Expr::EnumVariant {
-                                    enum_name: en, variant, ..
+                                    enum_name: en,
+                                    variant,
+                                    ..
                                 } if en == enum_name => {
                                     covered.insert(variant.clone());
                                 }
@@ -847,9 +855,7 @@ fn check_stmt(
                     action: lower_expr(&a.action, env, ctx),
                 })
                 .collect();
-            let default_hir = default_action
-                .as_ref()
-                .map(|e| lower_expr(e, env, ctx));
+            let default_hir = default_action.as_ref().map(|e| lower_expr(e, env, ctx));
             hir_out.push(HirStmt::Match {
                 scrutinee: scrutinee_hir,
                 arms: hir_arms,
@@ -915,7 +921,10 @@ fn lower_contract_expr(
                 .collect(),
         ),
         Expr::Member { object, field, .. } => {
-            if let Expr::Ident { name: enum_name, .. } = &**object {
+            if let Expr::Ident {
+                name: enum_name, ..
+            } = &**object
+            {
                 if ctx.enum_defs.contains_key(enum_name) {
                     return HirExpr::new(
                         HirExprKind::EnumVariant {
@@ -977,14 +986,18 @@ fn lower_contract_expr(
         Expr::Old { expr, .. } => HirExprKind::Old {
             expr: Box::new(lower_contract_expr(expr, env, dot_result, ctx)),
         },
-        Expr::Constructor { type_name, fields, .. } => HirExprKind::Constructor {
+        Expr::Constructor {
+            type_name, fields, ..
+        } => HirExprKind::Constructor {
             type_name: type_name.clone(),
             fields: fields
                 .iter()
                 .map(|(n, e)| (n.clone(), lower_contract_expr(e, env, dot_result, ctx)))
                 .collect(),
         },
-        Expr::EnumVariant { enum_name, variant, .. } => HirExprKind::EnumVariant {
+        Expr::EnumVariant {
+            enum_name, variant, ..
+        } => HirExprKind::EnumVariant {
             enum_name: enum_name.clone(),
             variant: variant.clone(),
         },
@@ -1010,7 +1023,10 @@ fn lower_expr(expr: &Expr, env: &BTreeMap<String, TypeKind>, ctx: &TypeContext) 
                 .collect(),
         ),
         Expr::Member { object, field, .. } => {
-            if let Expr::Ident { name: enum_name, .. } = &**object {
+            if let Expr::Ident {
+                name: enum_name, ..
+            } = &**object
+            {
                 if ctx.enum_defs.contains_key(enum_name) {
                     return HirExpr::new(
                         HirExprKind::EnumVariant {
@@ -1037,7 +1053,9 @@ fn lower_expr(expr: &Expr, env: &BTreeMap<String, TypeKind>, ctx: &TypeContext) 
             start: start.as_ref().map(|e| Box::new(lower_expr(e, env, ctx))),
             end: end.as_ref().map(|e| Box::new(lower_expr(e, env, ctx))),
         },
-        Expr::Constructor { type_name, fields, .. } => HirExprKind::Constructor {
+        Expr::Constructor {
+            type_name, fields, ..
+        } => HirExprKind::Constructor {
             type_name: type_name.clone(),
             fields: fields
                 .iter()
@@ -1072,7 +1090,9 @@ fn lower_expr(expr: &Expr, env: &BTreeMap<String, TypeKind>, ctx: &TypeContext) 
         Expr::Old { expr, .. } => HirExprKind::Old {
             expr: Box::new(lower_expr(expr, env, ctx)),
         },
-        Expr::EnumVariant { enum_name, variant, .. } => HirExprKind::EnumVariant {
+        Expr::EnumVariant {
+            enum_name, variant, ..
+        } => HirExprKind::EnumVariant {
             enum_name: enum_name.clone(),
             variant: variant.clone(),
         },
@@ -1250,7 +1270,14 @@ fn infer_expr(
         Expr::List { items, .. } => {
             observed_effects.insert("alloc".to_string());
             if let Some(first) = items.first() {
-                TypeKind::List(Box::new(infer_expr(first, env, ctx, context, diagnostics, observed_effects)))
+                TypeKind::List(Box::new(infer_expr(
+                    first,
+                    env,
+                    ctx,
+                    context,
+                    diagnostics,
+                    observed_effects,
+                )))
             } else {
                 TypeKind::List(Box::new(TypeKind::Unknown))
             }
@@ -1337,8 +1364,10 @@ fn infer_expr(
                             *span,
                         ));
                     } else {
-                        let expected_ty =
-                            type_fields.iter().find(|(f, _)| f == field_name).map(|(_, t)| t);
+                        let expected_ty = type_fields
+                            .iter()
+                            .find(|(f, _)| f == field_name)
+                            .map(|(_, t)| t);
                         let actual = infer_expr(
                             field_expr,
                             env,
@@ -1386,7 +1415,11 @@ fn infer_expr(
             }
             TypeKind::UserType(ctor_type_name.clone())
         }
-        Expr::EnumVariant { enum_name, variant, span } => {
+        Expr::EnumVariant {
+            enum_name,
+            variant,
+            span,
+        } => {
             if let Some(variants) = ctx.enum_defs.get(enum_name) {
                 if !variants.contains(variant) {
                     diagnostics.push(Diagnostic::new(
@@ -1406,17 +1439,22 @@ fn infer_expr(
             }
             TypeKind::Enum(enum_name.clone())
         }
-        Expr::Member { object, field, span } => {
-            if let Expr::Ident { name: enum_name, .. } = &**object {
+        Expr::Member {
+            object,
+            field,
+            span,
+        } => {
+            if let Expr::Ident {
+                name: enum_name, ..
+            } = &**object
+            {
                 if ctx.enum_defs.contains_key(enum_name) {
                     if let Some(variants) = ctx.enum_defs.get(enum_name) {
                         if !variants.contains(field) {
                             diagnostics.push(Diagnostic::new(
                                 "E2250",
                                 Severity::Error,
-                                format!(
-                                    "enum `{enum_name}` has no variant `{field}`",
-                                ),
+                                format!("enum `{enum_name}` has no variant `{field}`",),
                                 *span,
                             ));
                         }
@@ -1437,9 +1475,7 @@ fn infer_expr(
                             diagnostics.push(Diagnostic::new(
                                 "E2251",
                                 Severity::Error,
-                                format!(
-                                    "type `{type_name}` has no field `{field}`",
-                                ),
+                                format!("type `{type_name}` has no field `{field}`",),
                                 *span,
                             ));
                             TypeKind::Unknown
@@ -2145,11 +2181,7 @@ fn resolve_type_ref(
     }
     if let Some((ok, err)) = split_generic_pair(&raw, "Result") {
         return TypeKind::Result(
-            Box::new(resolve_type_ref(
-                &TypeRef { raw: ok },
-                type_defs,
-                enum_defs,
-            )),
+            Box::new(resolve_type_ref(&TypeRef { raw: ok }, type_defs, enum_defs)),
             Box::new(resolve_type_ref(
                 &TypeRef { raw: err },
                 type_defs,

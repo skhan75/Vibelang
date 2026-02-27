@@ -304,15 +304,14 @@ fn lower_stmt_list(stmts: &[HirStmt]) -> Result<Vec<MirStmt>, String> {
                 scrutinee: lower_expr(scrutinee)?,
                 arms: arms
                     .iter()
-                    .map(|a| Ok(MirMatchArm {
-                        pattern: lower_expr(&a.pattern)?,
-                        action: lower_expr(&a.action)?,
-                    }))
+                    .map(|a| {
+                        Ok(MirMatchArm {
+                            pattern: lower_expr(&a.pattern)?,
+                            action: lower_expr(&a.action)?,
+                        })
+                    })
                     .collect::<Result<Vec<_>, String>>()?,
-                default_action: default_action
-                    .as_ref()
-                    .map(|e| lower_expr(e))
-                    .transpose()?,
+                default_action: default_action.as_ref().map(lower_expr).transpose()?,
             }),
         }
     }
@@ -346,7 +345,7 @@ fn lower_expr(expr: &HirExpr) -> Result<MirExpr, String> {
                 && object.ty != "Str"
                 && !object.ty.starts_with("List")
                 && !object.ty.starts_with("Map"))
-                .then(|| object.ty.clone());
+            .then(|| object.ty.clone());
             MirExpr::Member {
                 object: Box::new(lower_expr(object)?),
                 field: field.clone(),
@@ -554,7 +553,11 @@ fn verify_expr(expr: &MirExpr) -> Result<(), String> {
                 verify_expr(v)?;
             }
         }
-        MirExpr::Member { object, field, object_type: _ } => {
+        MirExpr::Member {
+            object,
+            field,
+            object_type: _,
+        } => {
             verify_expr(object)?;
             if field.trim().is_empty() {
                 return Err("empty member field in MIR".to_string());
@@ -594,7 +597,10 @@ fn verify_expr(expr: &MirExpr) -> Result<(), String> {
         MirExpr::Question { expr } | MirExpr::Old { expr } => {
             verify_expr(expr)?;
         }
-        MirExpr::Constructor { type_name: _, fields } => {
+        MirExpr::Constructor {
+            type_name: _,
+            fields,
+        } => {
             for (_, e) in fields {
                 verify_expr(e)?;
             }

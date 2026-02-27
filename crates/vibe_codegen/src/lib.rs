@@ -252,7 +252,11 @@ fn declare_runtime_functions(
     list_sort_desc_sig.params.push(AbiParam::new(ptr_ty));
     list_sort_desc_sig.returns.push(AbiParam::new(ptr_ty));
     let list_sort_desc_i64_fn = module
-        .declare_function("vibe_list_sort_desc_i64", Linkage::Import, &list_sort_desc_sig)
+        .declare_function(
+            "vibe_list_sort_desc_i64",
+            Linkage::Import,
+            &list_sort_desc_sig,
+        )
         .map_err(|e| format!("failed to declare runtime list_sort_desc symbol: {e}"))?;
 
     let mut list_take_sig = module.make_signature();
@@ -968,6 +972,7 @@ fn declare_runtime_functions(
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 fn define_function(
     module: &mut ObjectModule,
     function: &MirFunction,
@@ -1077,7 +1082,10 @@ fn emit_stmt(
             )?;
             let var = Variable::from_u32(*next_var as u32);
             *next_var += 1;
-            builder.declare_var(var, value_type_for_expr(expr, owner, function_returns, ptr_ty));
+            builder.declare_var(
+                var,
+                value_type_for_expr(expr, owner, function_returns, ptr_ty),
+            );
             builder.def_var(var, value);
             locals.insert(name.clone(), var);
             Ok(false)
@@ -1102,7 +1110,10 @@ fn emit_stmt(
             } else {
                 let v = Variable::from_u32(*next_var as u32);
                 *next_var += 1;
-                builder.declare_var(v, value_type_for_expr(expr, owner, function_returns, ptr_ty));
+                builder.declare_var(
+                    v,
+                    value_type_for_expr(expr, owner, function_returns, ptr_ty),
+                );
                 locals.insert(name.clone(), v);
                 v
             };
@@ -1429,14 +1440,16 @@ fn emit_stmt(
                 let MirExpr::EnumVariant { enum_name, variant } = &arm.pattern else {
                     return Err("E3499: match arm pattern must be enum variant".to_string());
                 };
-                let variants = enum_defs.get(enum_name).ok_or_else(|| {
-                    format!("E3499: unknown enum in match arm `{enum_name}`")
-                })?;
+                let variants = enum_defs
+                    .get(enum_name)
+                    .ok_or_else(|| format!("E3499: unknown enum in match arm `{enum_name}`"))?;
                 let tag = variants.iter().position(|v| v == variant).unwrap_or(0) as i64;
                 let tag_const = builder.ins().iconst(ir::types::I64, tag);
                 let cond = builder.ins().icmp(IntCC::Equal, scrut_v, tag_const);
                 let next_check = check_blocks[i + 1];
-                builder.ins().brif(cond, arm_blocks[i], &[], next_check, &[]);
+                builder
+                    .ins()
+                    .brif(cond, arm_blocks[i], &[], next_check, &[]);
             }
             builder.switch_to_block(check_blocks[arms.len()]);
             builder.ins().jump(default_block, &[]);
@@ -2496,7 +2509,11 @@ fn emit_expr(
                 map_handle
             }
         }
-        MirExpr::Member { object, field, object_type: type_hint } => {
+        MirExpr::Member {
+            object,
+            field,
+            object_type: type_hint,
+        } => {
             let container = emit_expr(
                 object,
                 module,
@@ -2530,10 +2547,10 @@ fn emit_expr(
             }
             if let Some(type_name) = type_hint {
                 if let Some(fields) = type_defs.get(type_name) {
-                    let slot_index = fields
-                        .iter()
-                        .position(|(f, _)| f == field)
-                        .ok_or_else(|| format!("E3402: unknown field `{field}` on type `{type_name}`"))?;
+                    let slot_index =
+                        fields.iter().position(|(f, _)| f == field).ok_or_else(|| {
+                            format!("E3402: unknown field `{field}` on type `{type_name}`")
+                        })?;
                     let (_, field_ty) = &fields[slot_index];
                     let offset_bytes = (slot_index as i64 * 8) as i32;
                     let load_ty = match field_ty.as_str() {
@@ -2677,56 +2694,59 @@ fn emit_expr(
                     if args.len() != 2 {
                         return Err("__assign expects two arguments".to_string());
                     }
-                    if let MirExpr::Member { object, field, object_type: type_hint } = &args[0] {
-                        if let Some(type_name) = type_hint {
-                            if let Some(fields) = type_defs.get(type_name) {
-                                let slot_index = fields
-                                    .iter()
-                                    .position(|(f, _)| f == field)
-                                    .ok_or_else(|| format!("E3402: unknown field `{field}`"))?;
-                                let ptr = emit_expr(
-                                    object,
-                                    module,
-                                    builder,
-                                    locals,
-                                    function_ids,
-                                    function_returns,
-                                    runtime_fns,
-                                    ptr_ty,
-                                    str_data_counter,
-                                    owner,
-                                    type_defs,
-                                    enum_defs,
-                                )?;
-                                let value = emit_expr(
-                                    &args[1],
-                                    module,
-                                    builder,
-                                    locals,
-                                    function_ids,
-                                    function_returns,
-                                    runtime_fns,
-                                    ptr_ty,
-                                    str_data_counter,
-                                    owner,
-                                    type_defs,
-                                    enum_defs,
-                                )?;
-                                let offset_bytes = (slot_index as i64 * 8) as i32;
-                                let store_ty = builder.func.dfg.value_type(value);
-                                let to_store = if store_ty == ir::types::I8 {
-                                    builder.ins().sextend(ir::types::I64, value)
-                                } else {
-                                    value
-                                };
-                                builder.ins().store(
-                                    MemFlags::new(),
-                                    to_store,
-                                    ptr,
-                                    Offset32::new(offset_bytes),
-                                );
-                                return Ok(builder.ins().iconst(ir::types::I64, 0));
-                            }
+                    if let MirExpr::Member {
+                        object,
+                        field,
+                        object_type: Some(type_name),
+                    } = &args[0]
+                    {
+                        if let Some(fields) = type_defs.get(type_name) {
+                            let slot_index = fields
+                                .iter()
+                                .position(|(f, _)| f == field)
+                                .ok_or_else(|| format!("E3402: unknown field `{field}`"))?;
+                            let ptr = emit_expr(
+                                object,
+                                module,
+                                builder,
+                                locals,
+                                function_ids,
+                                function_returns,
+                                runtime_fns,
+                                ptr_ty,
+                                str_data_counter,
+                                owner,
+                                type_defs,
+                                enum_defs,
+                            )?;
+                            let value = emit_expr(
+                                &args[1],
+                                module,
+                                builder,
+                                locals,
+                                function_ids,
+                                function_returns,
+                                runtime_fns,
+                                ptr_ty,
+                                str_data_counter,
+                                owner,
+                                type_defs,
+                                enum_defs,
+                            )?;
+                            let offset_bytes = (slot_index as i64 * 8) as i32;
+                            let store_ty = builder.func.dfg.value_type(value);
+                            let to_store = if store_ty == ir::types::I8 {
+                                builder.ins().sextend(ir::types::I64, value)
+                            } else {
+                                value
+                            };
+                            builder.ins().store(
+                                MemFlags::new(),
+                                to_store,
+                                ptr,
+                                Offset32::new(offset_bytes),
+                            );
+                            return Ok(builder.ins().iconst(ir::types::I64, 0));
                         }
                     }
                     return Err("E3499: __assign requires record field Member target".to_string());
@@ -2884,8 +2904,8 @@ fn emit_expr(
                         type_defs,
                         enum_defs,
                     )?;
-                    let local_sort =
-                        module.declare_func_in_func(runtime_fns.list_sort_desc_i64_fn, builder.func);
+                    let local_sort = module
+                        .declare_func_in_func(runtime_fns.list_sort_desc_i64_fn, builder.func);
                     let sorted_call = builder.ins().call(local_sort, &[input]);
                     let sorted_handle = call_result_or_zero(builder, sorted_call);
                     let local_eq =
@@ -3416,9 +3436,9 @@ fn emit_expr(
         )?,
         MirExpr::DotResult => builder.ins().iconst(ir::types::I64, 0),
         MirExpr::Constructor { type_name, fields } => {
-            let field_list = type_defs.get(type_name).ok_or_else(|| {
-                format!("E3499: unknown type `{type_name}` in constructor")
-            })?;
+            let field_list = type_defs
+                .get(type_name)
+                .ok_or_else(|| format!("E3499: unknown type `{type_name}` in constructor"))?;
             let slot_count = field_list.len() as i64;
             let local_alloc =
                 module.declare_func_in_func(runtime_fns.record_alloc_fn, builder.func);
@@ -3457,19 +3477,16 @@ fn emit_expr(
                 } else {
                     value
                 };
-                builder.ins().store(
-                    MemFlags::new(),
-                    to_store,
-                    ptr,
-                    Offset32::new(offset_bytes),
-                );
+                builder
+                    .ins()
+                    .store(MemFlags::new(), to_store, ptr, Offset32::new(offset_bytes));
             }
             ptr
         }
         MirExpr::EnumVariant { enum_name, variant } => {
-            let variants = enum_defs.get(enum_name).ok_or_else(|| {
-                format!("E3499: unknown enum `{enum_name}`")
-            })?;
+            let variants = enum_defs
+                .get(enum_name)
+                .ok_or_else(|| format!("E3499: unknown enum `{enum_name}`"))?;
             let tag = variants
                 .iter()
                 .position(|v| v == variant)
@@ -3992,8 +4009,13 @@ fn value_type_for_expr(
             }
         }
         MirExpr::Binary { left, op, right }
-            if op == "Sub" || op == "Mul" || op == "Div" || op == "Lt" || op == "Le"
-                || op == "Gt" || op == "Ge" =>
+            if op == "Sub"
+                || op == "Mul"
+                || op == "Div"
+                || op == "Lt"
+                || op == "Le"
+                || op == "Gt"
+                || op == "Ge" =>
         {
             let left_ty = value_type_for_expr(left, owner, function_returns, ptr_ty);
             let right_ty = value_type_for_expr(right, owner, function_returns, ptr_ty);
@@ -4023,13 +4045,10 @@ fn value_type_for_expr(
         {
             ir::types::I64
         }
-        MirExpr::Call { callee, args }
-            if matches!(&**callee, MirExpr::Var(name) if name == "min" || name == "max") =>
-        {
-            if args
-                .iter()
-                .any(|arg| value_type_for_expr(arg, owner, function_returns, ptr_ty) == ir::types::F64)
-            {
+        MirExpr::Call { callee, args } if matches!(&**callee, MirExpr::Var(name) if name == "min" || name == "max") => {
+            if args.iter().any(|arg| {
+                value_type_for_expr(arg, owner, function_returns, ptr_ty) == ir::types::F64
+            }) {
                 ir::types::F64
             } else {
                 ir::types::I64
@@ -4066,9 +4085,7 @@ fn value_type_for_expr(
         {
             ir::types::I64
         }
-        MirExpr::Call { callee, .. }
-            if matches!(&**callee, MirExpr::Member { field, .. } if field == "sort_desc" || field == "take") =>
-        {
+        MirExpr::Call { callee, .. } if matches!(&**callee, MirExpr::Member { field, .. } if field == "sort_desc" || field == "take") => {
             ptr_ty
         }
         MirExpr::Call { callee, .. }

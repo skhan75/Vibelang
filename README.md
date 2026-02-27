@@ -39,7 +39,7 @@ compiles to native binaries via Cranelift with zero runtime dependencies.
 The core idea: you write code *and* intent together. The compiler verifies both.
 
 | | |
-|---|---|
+| --- | --- |
 | **Compilation** | Deterministic AOT via Cranelift — no VM, no JIT, no interpreter |
 | **Type system** | Static with inference, generics (`List<T>`, `Map<K,V>`), effect tracking |
 | **Contracts** | `@intent`, `@require`, `@ensure`, `@examples`, `@effect` — all first-class |
@@ -55,7 +55,7 @@ The core idea: you write code *and* intent together. The compiler verifies both.
 Download the latest release for your platform:
 
 | Platform | Package |
-|---|---|
+| --- | --- |
 | Linux x86_64 | `vibe-x86_64-unknown-linux-gnu.tar.gz` |
 | macOS x86_64 | `vibe-x86_64-apple-darwin.tar.gz` |
 | Windows x86_64 | `vibe-x86_64-pc-windows-msvc.zip` |
@@ -97,7 +97,7 @@ EOF
 vibe run hello.yb
 ```
 
-```
+```text
 hello from vibelang
 ```
 
@@ -115,13 +115,13 @@ vibe lint . --intent      # AI drift detection (optional)
 ## Performance
 
 Benchmarked with [Hyperfine](https://github.com/sharkdp/hyperfine) on the
-[PLB-CI](https://github.com/nicholasgasior/plbci) suite — 18 programs covering
+[PLB-CI](benchmarks/third_party/plbci/) suite — 18 programs covering
 tree construction, matrix operations, concurrency, HTTP, JSON, and cryptography.
 
 ### Runtime (geometric mean speedup)
 
 | Baseline | Speedup | Shared benchmarks |
-|---|---|---|
+| --- | --- | --- |
 | **Python** | **100x** faster | 16 |
 | **TypeScript** | **71x** faster | 12 |
 | **Elixir** | **333x** faster | 3 |
@@ -132,7 +132,7 @@ tree construction, matrix operations, concurrency, HTTP, JSON, and cryptography.
 ### Memory footprint (average across all benchmarks)
 
 | Language | Avg memory |
-|---|---|
+| --- | --- |
 | **VibeLang** | **4.3 MB** |
 | C | 3.5 MB |
 | C++ | 2.0 MB |
@@ -144,7 +144,7 @@ tree construction, matrix operations, concurrency, HTTP, JSON, and cryptography.
 ### Spotlight results
 
 | Benchmark | VibeLang | Go | Python | What it tests |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | binarytrees | **1.53ms** | 199ms | 372ms | Tree construction, GC pressure |
 | spectral-norm | **1.40ms** | 102ms | 2078ms | Dense matrix operations |
 | http-server | **2.29ms** | 89ms | 1700ms | HTTP request handling |
@@ -158,7 +158,7 @@ tree construction, matrix operations, concurrency, HTTP, JSON, and cryptography.
 
 VibeLang introduces five annotation primitives that make intent executable:
 
-```
+```vibe
 pub clamp_percent(done: Int, total: Int) -> Int {
   @intent "return completion percentage clamped to [0, 100]"
   @examples {
@@ -179,7 +179,7 @@ pub clamp_percent(done: Int, total: Int) -> Int {
 ```
 
 | Annotation | Purpose | Compile behavior |
-|---|---|---|
+| --- | --- | --- |
 | `@intent` | Natural-language description of function purpose | Checked by AI sidecar for drift detection |
 | `@examples` | Input/output pairs | Lowered to executable test cases via `vibe test` |
 | `@require` | Preconditions | Inserted as entry-check blocks; verified at function entry |
@@ -196,7 +196,7 @@ vibe lint . --intent --changed
 
 ### Structured concurrency
 
-```
+```vibe
 worker(id: Int, done: Chan) -> Int {
   @effect concurrency
   done.send(id * id)
@@ -221,7 +221,7 @@ pub main() -> Int {
 
 ### Select with timeout
 
-```
+```vibe
 pub main() -> Int {
   @effect io
   @effect alloc
@@ -238,7 +238,7 @@ pub main() -> Int {
 
 ### Modules and imports
 
-```
+```vibe
 // math.yb
 module demo.math
 
@@ -247,7 +247,7 @@ pub add(a: Int, b: Int) -> Int {
 }
 ```
 
-```
+```vibe
 // main.yb
 module demo.main
 import demo.math
@@ -261,7 +261,7 @@ pub main() -> Int {
 
 ### Agentic guardrail pipeline
 
-```
+```vibe
 evaluate_step(score: Int) -> Int {
   if score > 3 { return 0 }
   1
@@ -313,7 +313,7 @@ flowchart LR
 ### Crate structure (17 crates)
 
 | Crate | Role |
-|---|---|
+| --- | --- |
 | `vibe_lexer` | Tokenization |
 | `vibe_parser` | Recursive descent parsing with error recovery |
 | `vibe_ast` | Abstract syntax tree definitions |
@@ -334,7 +334,7 @@ flowchart LR
 ### Toolchain commands
 
 | Command | Description |
-|---|---|
+| --- | --- |
 | `vibe check <file>` | Type-check and validate contracts |
 | `vibe build <file>` | Compile to native binary |
 | `vibe run <file>` | Build and execute |
@@ -350,7 +350,7 @@ flowchart LR
 ### Types
 
 | Type | Description |
-|---|---|
+| --- | --- |
 | `Int` | 64-bit integer |
 | `Float` | 64-bit floating point |
 | `Bool` | Boolean |
@@ -361,7 +361,7 @@ flowchart LR
 
 ### Syntax at a glance
 
-```
+```vibe
 x := 42                    // variable binding
 x = x + 1                  // reassignment
 if x > 0 { ... }           // conditionals
@@ -373,7 +373,7 @@ return value               // explicit return (optional — last expr is returne
 ### Standard library
 
 | Module | Stability | Surface |
-|---|---|---|
+| --- | --- | --- |
 | `io` | stable | `print`, `println` |
 | `core` | stable | `len`, `min`, `max`, `sorted_desc`, `take` |
 | `path` | stable | `join`, `parent`, `basename`, `is_absolute` |
@@ -400,7 +400,7 @@ vibe lsp --transport jsonrpc
 ## Roadmap
 
 | Area | Status |
-|---|---|
+| --- | --- |
 | Core compiler (lex → parse → type → codegen → link) | Shipped |
 | Contract system (@intent, @require, @ensure, @examples, @effect) | Shipped |
 | Structured concurrency (go, chan, select) | Shipped |
@@ -417,7 +417,7 @@ Full tracker: [`docs/development_checklist.md`](docs/development_checklist.md)
 ## Troubleshooting
 
 | Problem | Fix |
-|---|---|
+| --- | --- |
 | `cargo` not found | Install [rustup](https://rustup.rs/), then `cargo --version` |
 | Linker errors on Linux | `sudo apt install build-essential` or `clang` |
 | Mixed `.yb` / `.vibe` in same directory | Use `.yb` only — `.vibe` is legacy |
@@ -449,9 +449,9 @@ vibe run examples/01_basics/01_hello_world.yb
 
 ### What to work on
 
-- Issues labeled [`good first issue`](https://github.com/skhan75/VibeLang/labels/good%20first%20issue)
+- Issues labeled `good first issue` in the repository issue tracker
 - The [development checklist](docs/development_checklist.md) tracks all open work
-- The [feature gaps checklist](examples/FEATURE_GAPS_CHECKLIST.md) lists language surface gaps
+- The [feature gaps checklist](docs/checklists/features_and_optimizations.md) lists language surface gaps
 
 ### Principles
 
@@ -464,7 +464,7 @@ vibe run examples/01_basics/01_hello_world.yb
 
 Licensed under the [Apache License, Version 2.0](LICENSE).
 
-```
+```text
 Copyright 2025-2026 VibeLang Contributors
 
 Licensed under the Apache License, Version 2.0 (the "License");

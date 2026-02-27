@@ -359,7 +359,10 @@ fn collect_calls_from_stmt(stmt: &Stmt, out: &mut BTreeSet<String>) {
         }
         Stmt::Break { .. } | Stmt::Continue { .. } => {}
         Stmt::Match {
-            scrutinee, arms, default_action, ..
+            scrutinee,
+            arms,
+            default_action,
+            ..
         } => {
             collect_calls_from_expr(scrutinee, out);
             for arm in arms {

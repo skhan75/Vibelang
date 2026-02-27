@@ -49,7 +49,7 @@ Packaged install documentation is platform-specific under:
 
 ## 1.3 Your First Program
 
-```txt
+```vibe
 pub main() -> Int {
   @effect io
   println("hello from vibelang")
