@@ -5,14 +5,17 @@ that block full example execution parity.
 
 ## Current status snapshot
 
-- Total examples: `70`
+- Total examples: `78`
 - `vibe check` status: all examples clean
-- `vibe run` status: `41` pass, `29` fail
+- `vibe run` status (source-built CLI): `73` pass, `5` fail
 - Goal: all non-demo entry examples compile and run successfully with expected output
+- Remaining failures are expected and categorized:
+  - intentional contract-failure demos (`68`, `69`)
+  - helper-module files invoked directly with no `main` entrypoint (`math.yb`, `parser.yb`, `formatter.yb`)
 
 ## Execution blockers discovered from full run sweep
 
-- [ ] **R1: String length runtime parity (`Str.len`)**
+- [x] **R1: String length runtime parity (`Str.len`)**
   - Symptom: `panic: container len called on unsupported container`.
   - Affects:
     - `examples/02_strings_numbers/11_string_len_compare.yb`
@@ -23,7 +26,7 @@ that block full example execution parity.
     - Ensure member `.len()` dispatch for `Str` always lowers to string runtime len path.
     - Add regression tests for both `s.len()` and nested string-len usage in loops.
 
-- [ ] **R2: List method dispatch parity (`.get` / `.set`)**
+- [x] **R2: List method dispatch parity (`.get` / `.set`)**
   - Symptom: `panic: container get(Str)...` and `panic: container set(Str, Int)...` from list usage.
   - Affects:
     - `examples/03_data_structures/16_list_append_get_set.yb`
@@ -40,7 +43,7 @@ that block full example execution parity.
     - Correct receiver-type dispatch for list container methods in runtime/codegen.
     - Add list get/set roundtrip tests across loops and recursion.
 
-- [ ] **R3: `Map<Int, Int>` runtime method parity**
+- [x] **R3: `Map<Int, Int>` runtime method parity**
   - Symptom: map int-key ops route through str-key path and panic.
   - Affects:
     - `examples/03_data_structures/21_map_int_int_basics.yb`
@@ -49,7 +52,7 @@ that block full example execution parity.
     - Separate int-key and str-key runtime entry points for `set/get/contains/remove`.
     - Add explicit `Map<Int,Int>` conformance tests for all methods.
 
-- [ ] **R4: Builtin/codegen surface gaps (`max`, global `len`)**
+- [x] **R4: Builtin/codegen surface gaps (`max`, global `len`)**
   - Symptom: `E3403: unknown call target`.
   - Affects:
     - `examples/02_strings_numbers/13_int_arithmetic_min_max.yb` (`max`)
@@ -60,7 +63,7 @@ that block full example execution parity.
     - Implement or re-enable codegen lowering for missing global builtins.
     - Add `vibe run` tests for `min/max/len` call targets.
 
-- [ ] **R5: List sorting codegen parity (`.sort_desc`)**
+- [x] **R5: List sorting codegen parity (`.sort_desc`)**
   - Symptom: `E3404: member call .sort_desc() is not supported in v0.1 native backend`.
   - Affects:
     - `examples/03_data_structures/17_list_sort_take.yb`
@@ -68,7 +71,7 @@ that block full example execution parity.
     - Implement native backend lowering for `.sort_desc()` on supported list shapes.
     - Add deterministic ordering tests for sorted output.
 
-- [ ] **R6: Float execution/codegen stability**
+- [x] **R6: Float execution/codegen stability**
   - Symptom: verifier errors / backend panic on float examples.
   - Affects:
     - `examples/02_strings_numbers/14_float_basics.yb`
@@ -77,7 +80,7 @@ that block full example execution parity.
     - Fix float variable typing and arithmetic lowering in backend.
     - Add float comparison/arithmetic run tests in CLI integration suite.
 
-- [ ] **R7: Contract example-runner surface mismatch**
+- [x] **R7: Contract example-runner surface mismatch**
   - Symptom: contract/example preflight rejects method usage in examples (`.append()` not supported in phase2 examples).
   - Affects:
     - `examples/10_contracts_intent/60_effect_alloc_mut_state.yb`
@@ -85,7 +88,7 @@ that block full example execution parity.
     - Align `vibe test` example evaluator with language surface used by examples.
     - Or document/enforce restricted `@examples` subset with compiler diagnostics.
 
-- [ ] **R8: Module helper file run ergonomics**
+- [x] **R8: Module helper file run ergonomics**
   - Symptom: running non-entry helper modules fails at link (`undefined reference to main`).
   - Affects:
     - `examples/08_modules_packages/project_math/demo/math.yb`

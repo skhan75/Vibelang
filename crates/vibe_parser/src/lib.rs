@@ -1,6 +1,6 @@
 use vibe_ast::{
-    BinaryOp, Contract, Declaration, ExampleCase, Expr, FileAst, FunctionDecl, Param, SelectCase,
-    SelectPattern, Stmt, TypeRef, UnaryOp,
+    BinaryOp, Contract, Declaration, EnumDecl, ExampleCase, Expr, FileAst, FunctionDecl,
+    MatchArm, Param, SelectCase, SelectPattern, Stmt, TypeDecl, TypeField, TypeRef, UnaryOp,
 };
 use vibe_diagnostics::{Diagnostic, Diagnostics, Severity, Span};
 use vibe_lexer::{lex, Keyword, Token, TokenKind};
@@ -82,7 +82,15 @@ impl Parser {
             is_public = true;
             self.bump();
         }
-        if self.at_ident() {
+        if self.at_keyword(Keyword::Type) {
+            let mut decl = self.parse_type_decl();
+            decl.is_public = is_public;
+            Some(Declaration::Type(decl))
+        } else if self.at_keyword(Keyword::Enum) {
+            let mut decl = self.parse_enum_decl();
+            decl.is_public = is_public;
+            Some(Declaration::Enum(decl))
+        } else if self.at_ident() {
             let mut func = self.parse_function();
             func.is_public = is_public;
             Some(Declaration::Function(func))
@@ -95,6 +103,81 @@ impl Parser {
                 span,
             ));
             None
+        }
+    }
+
+    fn parse_type_decl(&mut self) -> TypeDecl {
+        let start = self.bump().span;
+        let name = self.expect_ident("E1102", "expected type name after `type`");
+        self.expect(
+            TokenKind::LBrace,
+            "E1105",
+            "expected `{` to start type body",
+        );
+        let mut fields = Vec::new();
+        self.consume_newlines();
+        while !self.at(&TokenKind::RBrace) && !self.is_eof() {
+            let field_name = self.expect_ident("E1140", "expected field name");
+            self.expect(
+                TokenKind::Colon,
+                "E1141",
+                "expected `:` after field name",
+            );
+            let ty = self.parse_type_ref_until(&[TokenKind::Comma, TokenKind::RBrace]);
+            fields.push(TypeField {
+                name: field_name,
+                ty,
+            });
+            if self.match_kind(&TokenKind::Comma) {
+                self.consume_newlines();
+            } else {
+                break;
+            }
+        }
+        self.consume_newlines();
+        let end = self.expect(
+            TokenKind::RBrace,
+            "E1106",
+            "expected `}` to close type body",
+        );
+        TypeDecl {
+            is_public: false,
+            name,
+            fields,
+            span: Span::new(start.line_start, start.col_start, end.line_end, end.col_end),
+        }
+    }
+
+    fn parse_enum_decl(&mut self) -> EnumDecl {
+        let start = self.bump().span;
+        let name = self.expect_ident("E1102", "expected enum name after `enum`");
+        self.expect(
+            TokenKind::LBrace,
+            "E1105",
+            "expected `{` to start enum body",
+        );
+        let mut variants = Vec::new();
+        self.consume_newlines();
+        while !self.at(&TokenKind::RBrace) && !self.is_eof() {
+            let variant = self.expect_ident("E1142", "expected variant name");
+            variants.push(variant);
+            if self.match_kind(&TokenKind::Comma) {
+                self.consume_newlines();
+            } else {
+                break;
+            }
+        }
+        self.consume_newlines();
+        let end = self.expect(
+            TokenKind::RBrace,
+            "E1106",
+            "expected `}` to close enum body",
+        );
+        EnumDecl {
+            is_public: false,
+            name,
+            variants,
+            span: Span::new(start.line_start, start.col_start, end.line_end, end.col_end),
         }
     }
 
@@ -390,6 +473,9 @@ impl Parser {
         if self.at_keyword(Keyword::Select) {
             return Some(self.parse_select_stmt(start));
         }
+        if self.at_keyword(Keyword::Match) {
+            return Some(self.parse_match_stmt(start));
+        }
         if self.at_keyword(Keyword::Go) {
             self.bump();
             let expr = self.parse_expr_until(&[StopToken::Newline, StopToken::RBrace]);
@@ -561,6 +647,68 @@ impl Parser {
         }
         self.expect(TokenKind::RBrace, "E1206", "expected `}` to close `select`");
         Stmt::Select { cases, span }
+    }
+
+    fn parse_match_stmt(&mut self, span: Span) -> Stmt {
+        self.bump(); // match
+        let scrutinee = self.parse_expr_until(&[StopToken::LBrace]);
+        self.expect(TokenKind::LBrace, "E1203", "expected `{` after `match` scrutinee");
+        let mut arms = Vec::new();
+        let mut default_action = None;
+        self.consume_newlines();
+        while !self.at(&TokenKind::RBrace) && !self.is_eof() {
+            self.consume_newlines();
+            if self.at(&TokenKind::RBrace) {
+                break;
+            }
+            if self.at_keyword(Keyword::Default) {
+                self.bump();
+                self.expect(
+                    TokenKind::FatArrow,
+                    "E1205",
+                    "expected `=>` after `default`",
+                );
+                default_action = Some(self.parse_expr_until(&[StopToken::Newline, StopToken::RBrace]));
+                self.consume_newlines();
+                break;
+            }
+            if self.at_keyword(Keyword::Case) {
+                self.bump();
+                let pattern = self.parse_expr_until(&[
+                    StopToken::FatArrow,
+                    StopToken::Newline,
+                    StopToken::RBrace,
+                ]);
+                self.expect(
+                    TokenKind::FatArrow,
+                    "E1205",
+                    "expected `=>` in `match` case",
+                );
+                let action =
+                    self.parse_expr_until(&[StopToken::Newline, StopToken::RBrace]);
+                let arm_span = Span::new(
+                    pattern.span().line_start,
+                    pattern.span().col_start,
+                    action.span().line_end,
+                    action.span().col_end,
+                );
+                arms.push(MatchArm {
+                    pattern,
+                    action,
+                    span: arm_span,
+                });
+            } else {
+                self.sync_to_stmt_boundary();
+            }
+            self.consume_newlines();
+        }
+        self.expect(TokenKind::RBrace, "E1206", "expected `}` to close `match`");
+        Stmt::Match {
+            scrutinee,
+            arms,
+            default_action,
+            span,
+        }
     }
 
     fn parse_select_pattern(&mut self) -> SelectPattern {
@@ -749,6 +897,47 @@ impl Parser {
             }
             if self.is_stop(stop) {
                 break;
+            }
+            let is_constructor = matches!(&expr, Expr::Ident { .. }) && self.at(&TokenKind::LBrace);
+            if is_constructor {
+                let (type_name, ident_span) = match &expr {
+                    Expr::Ident { name, span } => (name.clone(), *span),
+                    _ => unreachable!(),
+                };
+                self.bump(); // consume {
+                let mut fields = Vec::new();
+                self.consume_newlines();
+                while !self.at(&TokenKind::RBrace) && !self.is_eof() {
+                    let field_name = self.expect_ident("E1140", "expected field name in constructor");
+                    self.expect(
+                        TokenKind::Colon,
+                        "E1141",
+                        "expected `:` after field name in constructor",
+                    );
+                    let value = self.parse_expr_until(&[StopToken::Comma, StopToken::RBrace]);
+                    fields.push((field_name, value));
+                    if self.match_kind(&TokenKind::Comma) {
+                        self.consume_newlines();
+                    } else {
+                        break;
+                    }
+                }
+                let end = self.expect(
+                    TokenKind::RBrace,
+                    "E1412",
+                    "expected `}` to close constructor",
+                );
+                expr = Expr::Constructor {
+                    type_name,
+                    fields,
+                    span: Span::new(
+                        ident_span.line_start,
+                        ident_span.col_start,
+                        end.line_end,
+                        end.col_end,
+                    ),
+                };
+                continue;
             }
             if self.match_kind(&TokenKind::Dot) {
                 if !self.at_ident() {

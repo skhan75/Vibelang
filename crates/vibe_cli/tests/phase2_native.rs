@@ -151,6 +151,303 @@ fn select_after_timeout_fixture_runs() {
 }
 
 #[test]
+fn builtin_len_and_max_lowering_runs() {
+    let source = temp_source_file(
+        "vibe_builtin_len_max",
+        r#"
+pub main() -> Int {
+  @effect io
+  xs := [2, 5, 1]
+  best := max(xs.get(0), xs.get(1))
+  if best == 5 {
+    if len("abc") == 3 {
+      println("builtin-len-max-ok")
+    } else {
+      println("builtin-len-max-bad-len")
+    }
+  } else {
+    println("builtin-len-max-bad-max")
+  }
+  0
+}
+"#,
+    );
+    let run = run_vibe(&["run", source.to_str().expect("source path str")]);
+    assert!(
+        run.status.success(),
+        "run failed:\nstdout:\n{}\nstderr:\n{}",
+        run.stdout,
+        run.stderr
+    );
+    assert_eq!(run.stdout, "builtin-len-max-ok\n");
+}
+
+#[test]
+fn float_arithmetic_and_comparison_runs() {
+    let source = temp_source_file(
+        "vibe_float_stability",
+        r#"
+pub main() -> Int {
+  @effect io
+  ratio := 7.5 / 2.5
+  if ratio > 2.9 {
+    if ratio < 3.1 {
+      println("float-stability-ok")
+    } else {
+      println("float-stability-bad-high")
+    }
+  } else {
+    println("float-stability-bad-low")
+  }
+  0
+}
+"#,
+    );
+    let run = run_vibe(&["run", source.to_str().expect("source path str")]);
+    assert!(
+        run.status.success(),
+        "run failed:\nstdout:\n{}\nstderr:\n{}",
+        run.stdout,
+        run.stderr
+    );
+    assert_eq!(run.stdout, "float-stability-ok\n");
+}
+
+#[test]
+fn type_point_construction_and_field_access_runs() {
+    let source = temp_source_file(
+        "type_point_basics",
+        r#"
+type Point {
+  x: Int,
+  y: Int
+}
+
+pub main() -> Int {
+  @effect alloc
+  @effect io
+  p := Point { x: 3, y: 4 }
+  sum := p.x + p.y
+  if sum == 7 {
+    println("point-sum")
+  }
+  0
+}
+"#,
+    );
+    let run = run_vibe(&["run", source.to_str().expect("source path str")]);
+    assert!(
+        run.status.success(),
+        "run failed:\nstdout:\n{}\nstderr:\n{}",
+        run.stdout,
+        run.stderr
+    );
+    assert_eq!(run.stdout, "point-sum\n");
+}
+
+#[test]
+fn enum_match_runs() {
+    let source = temp_source_file(
+        "enum_match_basics",
+        r#"
+enum Color { Red, Green, Blue }
+
+pub main() -> Int {
+  @effect io
+  c := Color.Red
+  match c {
+    case Color.Red => println("red")
+    case Color.Green => println("green")
+    case Color.Blue => println("blue")
+  }
+  0
+}
+"#,
+    );
+    let run = run_vibe(&["run", source.to_str().expect("source path str")]);
+    assert!(
+        run.status.success(),
+        "run failed:\nstdout:\n{}\nstderr:\n{}",
+        run.stdout,
+        run.stderr
+    );
+    assert_eq!(run.stdout, "red\n");
+}
+
+#[test]
+fn type_field_assignment_mismatch_reports_diagnostic() {
+    let source = temp_source_file(
+        "type_field_assignment_mismatch",
+        r#"
+type Point {
+  x: Int,
+  y: Int
+}
+
+pub main() -> Int {
+  @effect alloc
+  p := Point { x: 1, y: 2 }
+  p.x = "oops"
+  0
+}
+"#,
+    );
+    let out = run_vibe(&["build", source.to_str().expect("source path str")]);
+    assert!(
+        !out.status.success(),
+        "build unexpectedly succeeded:\nstdout:\n{}\nstderr:\n{}",
+        out.stdout,
+        out.stderr
+    );
+    assert!(
+        out.stderr.contains("field assignment type mismatch `Point.x`"),
+        "expected field assignment type mismatch diagnostic:\n{}",
+        out.stderr
+    );
+}
+
+#[test]
+fn list_sort_desc_and_take_runs() {
+    let source = temp_source_file(
+        "vibe_sort_take",
+        r#"
+pub main() -> Int {
+  @effect io
+  xs := [5, 2, 9, 1]
+  top := xs.sort_desc().take(2)
+  if top.get(0) == 9 {
+    if top.get(1) == 5 {
+      println("sort-take-ok")
+    } else {
+      println("sort-take-bad-1")
+    }
+  } else {
+    println("sort-take-bad-0")
+  }
+  0
+}
+"#,
+    );
+    let run = run_vibe(&["run", source.to_str().expect("source path str")]);
+    assert!(
+        run.status.success(),
+        "run failed:\nstdout:\n{}\nstderr:\n{}",
+        run.stdout,
+        run.stderr
+    );
+    assert_eq!(run.stdout, "sort-take-ok\n");
+}
+
+#[test]
+fn vibe_test_supports_append_inside_contract_examples() {
+    let source = temp_source_file(
+        "vibe_contract_append",
+        r#"
+build_series(n: Int) -> List<Int> {
+  @examples {
+    len(build_series(0)) => 0
+    len(build_series(3)) => 3
+  }
+  @effect alloc
+  @effect mut_state
+  out := []
+  i := 0
+  while i < n {
+    out.append(i)
+    i = i + 1
+  }
+  out
+}
+
+pub main() -> Int {
+  @effect io
+  println("contract-append-main")
+  0
+}
+"#,
+    );
+    let out = run_vibe(&["test", source.to_str().expect("source path str")]);
+    assert!(
+        out.status.success(),
+        "vibe test failed:\nstdout:\n{}\nstderr:\n{}",
+        out.stdout,
+        out.stderr
+    );
+    assert!(
+        out.stdout.contains("examples=2 passed=2 failed=0"),
+        "unexpected test summary:\n{}",
+        out.stdout
+    );
+}
+
+#[test]
+fn run_reports_entrypoint_diagnostic_for_non_main_file() {
+    let source = temp_source_file(
+        "vibe_module_helper",
+        r#"
+module demo.math
+
+pub add(a: Int, b: Int) -> Int {
+  a + b
+}
+"#,
+    );
+    let out = run_vibe(&["run", source.to_str().expect("source path str")]);
+    assert!(
+        !out.status.success(),
+        "run unexpectedly succeeded:\nstdout:\n{}\nstderr:\n{}",
+        out.stdout,
+        out.stderr
+    );
+    assert!(
+        out.stderr.contains("requires an entry source file that defines `main`"),
+        "missing friendly non-entry diagnostic:\n{}",
+        out.stderr
+    );
+}
+
+#[test]
+fn string_len_list_dispatch_and_map_int_int_dispatch_work() {
+    let source = temp_source_file(
+        "vibe_dispatch_parity",
+        r#"
+pub main() -> Int {
+  @effect io
+  @effect alloc
+  @effect mut_state
+  s := "abcd"
+  xs := [10, 20, 30]
+  xs.set(1, 99)
+  m := {1: 10, 2: 20}
+  m.set(3, 30)
+  if s.len() == 4 {
+    if xs.get(1) == 99 {
+      if m.get(3) == 30 {
+        println("dispatch-parity-ok")
+      } else {
+        println("dispatch-parity-bad-map")
+      }
+    } else {
+      println("dispatch-parity-bad-list")
+    }
+  } else {
+    println("dispatch-parity-bad-str")
+  }
+  0
+}
+"#,
+    );
+    let run = run_vibe(&["run", source.to_str().expect("source path str")]);
+    assert!(
+        run.status.success(),
+        "run failed:\nstdout:\n{}\nstderr:\n{}",
+        run.stdout,
+        run.stderr
+    );
+    assert_eq!(run.stdout, "dispatch-parity-ok\n");
+}
+
+#[test]
 fn deterministic_build_binary_and_metadata() {
     let source = temp_fixture_copy("build/hello_world.vibe");
     let source_str = source.to_str().expect("source path str");

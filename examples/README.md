@@ -1,4 +1,4 @@
-# VibeLang Examples (75 programs)
+# VibeLang Examples (78 programs)
 
 This directory contains runnable sample programs that cover VibeLang from basic syntax to advanced concurrency and modular projects.
 
@@ -11,6 +11,7 @@ This directory contains runnable sample programs that cover VibeLang from basic 
 - For module-import projects, run the entry file:
   - `vibe run examples/08_modules_packages/project_math/demo/main.yb`
   - `vibe run examples/08_modules_packages/project_pipeline/app/main.yb`
+- Running helper module files directly (for example `math.yb`, `parser.yb`, `formatter.yb`) is expected to fail with an entrypoint diagnostic because those files do not define `main`.
 - For contract/example execution:
   - `vibe test examples/10_contracts_intent/63_all_annotations_combo.yb`
 - If a released binary is behind current language/runtime surface, use `vibe check` first and consult `examples/FEATURE_GAPS_CHECKLIST.md`.
@@ -73,39 +74,42 @@ This directory contains runnable sample programs that cover VibeLang from basic 
 40. `06_concurrency_async/40_fan_out_pattern.yb`
 41. `06_concurrency_async/41_select_timeout_retry.yb`
 42. `06_concurrency_async/42_async_thread_bridge.yb`
-43. `07_stdlib_io_json_regex_http/43_fs_read_write_exists.yb`
-44. `07_stdlib_io_json_regex_http/44_path_and_time_helpers.yb`
-45. `07_stdlib_io_json_regex_http/45_json_basics.yb`
-46. `07_stdlib_io_json_regex_http/46_regex_http_helpers.yb`
-47. `09_agentic_patterns/47_agentic_guardrail_pipeline.yb`
-48. `09_agentic_patterns/48_agentic_retry_budget.yb`
+43. `06_concurrency_async/43_async_await_pipeline.yb`
+44. `06_concurrency_async/44_async_await_parallel_join.yb`
+45. `07_stdlib_io_json_regex_http/43_fs_read_write_exists.yb`
+46. `07_stdlib_io_json_regex_http/44_path_and_time_helpers.yb`
+47. `07_stdlib_io_json_regex_http/45_json_basics.yb`
+48. `07_stdlib_io_json_regex_http/46_regex_http_helpers.yb`
 49. `08_modules_packages/project_math/demo/main.yb`
 50. `08_modules_packages/project_math/demo/math.yb`
-51. `08_modules_packages/project_pipeline/app/main.yb`
-52. `08_modules_packages/project_pipeline/app/parser.yb`
-53. `08_modules_packages/project_pipeline/app/formatter.yb`
-54. `10_contracts_intent/54_intent_minimal.yb`
-55. `10_contracts_intent/55_examples_table.yb`
-56. `10_contracts_intent/56_require_precondition_guard.yb`
-57. `10_contracts_intent/57_ensure_result_placeholder.yb`
-58. `10_contracts_intent/58_ensure_old_snapshot.yb`
-59. `10_contracts_intent/59_multiple_ensures.yb`
-60. `10_contracts_intent/60_effect_alloc_mut_state.yb`
-61. `10_contracts_intent/61_effect_io_nondet.yb`
-62. `10_contracts_intent/62_transitive_effects_io.yb`
-63. `10_contracts_intent/63_all_annotations_combo.yb`
-64. `10_contracts_intent/64_agentic_planner_contract.yb`
-65. `10_contracts_intent/65_agentic_executor_guardrails.yb`
-66. `10_contracts_intent/66_list_transform_contracts.yb`
-67. `10_contracts_intent/67_public_api_style_contracts.yb`
-68. `10_contracts_intent/68_runtime_require_failure_demo.yb`
-69. `10_contracts_intent/69_runtime_ensure_failure_demo.yb`
-70. `10_contracts_intent/70_concurrency_effect_contracts.yb`
-71. `11_modeling_shapes/71_shape_with_map_record.yb`
-72. `11_modeling_shapes/72_shape_contracts_and_validation.yb`
-73. `11_modeling_shapes/73_composition_over_inheritance.yb`
-74. `06_concurrency_async/43_async_await_pipeline.yb`
-75. `06_concurrency_async/44_async_await_parallel_join.yb`
+51. `08_modules_packages/project_pipeline/app/formatter.yb`
+52. `08_modules_packages/project_pipeline/app/main.yb`
+53. `08_modules_packages/project_pipeline/app/parser.yb`
+54. `09_agentic_patterns/47_agentic_guardrail_pipeline.yb`
+55. `09_agentic_patterns/48_agentic_retry_budget.yb`
+56. `10_contracts_intent/54_intent_minimal.yb`
+57. `10_contracts_intent/55_examples_table.yb`
+58. `10_contracts_intent/56_require_precondition_guard.yb`
+59. `10_contracts_intent/57_ensure_result_placeholder.yb`
+60. `10_contracts_intent/58_ensure_old_snapshot.yb`
+61. `10_contracts_intent/59_multiple_ensures.yb`
+62. `10_contracts_intent/60_effect_alloc_mut_state.yb`
+63. `10_contracts_intent/61_effect_io_nondet.yb`
+64. `10_contracts_intent/62_transitive_effects_io.yb`
+65. `10_contracts_intent/63_all_annotations_combo.yb`
+66. `10_contracts_intent/64_agentic_planner_contract.yb`
+67. `10_contracts_intent/65_agentic_executor_guardrails.yb`
+68. `10_contracts_intent/66_list_transform_contracts.yb`
+69. `10_contracts_intent/67_public_api_style_contracts.yb`
+70. `10_contracts_intent/68_runtime_require_failure_demo.yb`
+71. `10_contracts_intent/69_runtime_ensure_failure_demo.yb`
+72. `10_contracts_intent/70_concurrency_effect_contracts.yb`
+73. `11_modeling_shapes/71_shape_with_map_record.yb`
+74. `11_modeling_shapes/72_shape_contracts_and_validation.yb`
+75. `11_modeling_shapes/73_composition_over_inheritance.yb`
+76. `11_modeling_shapes/74_type_point_basics.yb`
+77. `11_modeling_shapes/75_enum_match_basics.yb`
+78. `11_modeling_shapes/76_type_mixed_fields.yb`
 
 ## Feature gap tracker
 

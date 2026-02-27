@@ -12,6 +12,7 @@ pub fn is_sendable_type(ty: &TypeKind) -> bool {
         TypeKind::Map(key, value) => is_sendable_type(key) && is_sendable_type(value),
         TypeKind::Result(ok, err) => is_sendable_type(ok) && is_sendable_type(err),
         TypeKind::Chan(_) => true,
+        TypeKind::UserType(_) | TypeKind::Enum(_) => true,
         // Unknown types are treated as non-sendable so unresolved values do not silently cross
         // concurrency boundaries.
         TypeKind::Unknown => false,
@@ -53,7 +54,9 @@ pub fn expr_contains_member_access(expr: &Expr) -> bool {
         | Expr::Float { .. }
         | Expr::Bool { .. }
         | Expr::String { .. }
-        | Expr::DotResult { .. } => false,
+        | Expr::DotResult { .. }
+        | Expr::Constructor { .. }
+        | Expr::EnumVariant { .. } => false,
     }
 }
 
@@ -140,7 +143,8 @@ fn contains_member_assignment(stmts: &[Stmt]) -> bool {
             | Stmt::Return { .. }
             | Stmt::ExprStmt { .. }
             | Stmt::Break { .. }
-            | Stmt::Continue { .. } => {}
+            | Stmt::Continue { .. }
+            | Stmt::Match { .. } => {}
         }
     }
     false
@@ -156,6 +160,8 @@ fn type_name(t: &TypeKind) -> String {
         TypeKind::Map(key, value) => format!("Map<{}, {}>", type_name(key), type_name(value)),
         TypeKind::Result(ok, err) => format!("Result<{}, {}>", type_name(ok), type_name(err)),
         TypeKind::Chan(inner) => format!("Chan<{}>", type_name(inner)),
+        TypeKind::UserType(name) => name.clone(),
+        TypeKind::Enum(name) => name.clone(),
         TypeKind::Void => "Void".to_string(),
         TypeKind::Unknown => "Unknown".to_string(),
     }

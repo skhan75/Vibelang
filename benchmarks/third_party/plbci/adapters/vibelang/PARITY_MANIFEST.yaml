@@ -135,13 +135,13 @@
     },
     {
       "name": "json-serde",
-      "status": "proxy",
+      "status": "blocked",
       "owner": "benchmarking",
       "evidence": "benchmarks/third_party/plbci/adapters/vibelang/algorithm/json-serde/1.yb",
       "exit_criteria": [
         "replace fixed checksum output with canonical serde workload"
       ],
-      "notes": "Known blocker B1."
+      "notes": "Blocked pending canonical checksum/hash path for serde workload output verification."
     },
     {
       "name": "coro-prime-sieve",
@@ -155,13 +155,13 @@
     },
     {
       "name": "http-server",
-      "status": "proxy",
+      "status": "blocked",
       "owner": "benchmarking",
       "evidence": "benchmarks/third_party/plbci/adapters/vibelang/algorithm/http-server/1.yb",
       "exit_criteria": [
         "replace synthetic counter workload with canonical HTTP server benchmark behavior"
       ],
-      "notes": "Known blocker B1."
+      "notes": "Blocked pending stable networking/socket APIs required for canonical HTTP server behavior."
     },
     {
       "name": "lru",
@@ -175,13 +175,13 @@
     },
     {
       "name": "secp256k1",
-      "status": "proxy",
+      "status": "blocked",
       "owner": "benchmarking",
       "evidence": "benchmarks/third_party/plbci/adapters/vibelang/algorithm/secp256k1/1.yb",
       "exit_criteria": [
         "replace fixed output hashes with canonical secp256k1 workload"
       ],
-      "notes": "Known blocker B1."
+      "notes": "Blocked pending cryptographic and big-integer primitives needed for canonical secp256k1 workload."
     }
   ]
 }

@@ -1,6 +1,6 @@
 # VibeLang Features and Optimizations Checklist
 
-Last updated: 2026-02-22
+Last updated: 2026-02-27
 
 ## Purpose
 
@@ -15,9 +15,13 @@ This is the canonical implementation checklist for feature gaps, limitations, an
 
 ## Current Snapshot
 
-- Example corpus: `75` programs under `examples/`
+- Example corpus: `78` programs under `examples/`
 - Static status: all examples pass `vibe check`
-- Runtime status: `46` pass / `29` fail (`vibe run` sweep)
+- Runtime status (source-built CLI sweep): `73` pass / `5` fail
+- Non-entry helper module files now fail with explicit entrypoint diagnostics (expected):
+  - `examples/08_modules_packages/project_math/demo/math.yb`
+  - `examples/08_modules_packages/project_pipeline/app/parser.yb`
+  - `examples/08_modules_packages/project_pipeline/app/formatter.yb`
 - Intentional failure demos (keep failing): `examples/10_contracts_intent/68_runtime_require_failure_demo.yb`, `examples/10_contracts_intent/69_runtime_ensure_failure_demo.yb`
 - Release gate status: GA gates closed in `reports/v1/readiness_dashboard.md`
 - Benchmark strict-publication status: blocked by items in section **B**
@@ -27,7 +31,7 @@ This is the canonical implementation checklist for feature gaps, limitations, an
 ## A) Runtime and Codegen Parity Gaps (Examples Execution)
 
 ### A-01 (P0) `Str.len()` runtime parity
-- [ ] Implement stable lowering/runtime dispatch for string length.
+- [x] Implement stable lowering/runtime dispatch for string length.
 - **Symptoms**: `panic: container len called on unsupported container`
 - **Impacted examples**:
   - `examples/02_strings_numbers/11_string_len_compare.yb`
@@ -40,7 +44,7 @@ This is the canonical implementation checklist for feature gaps, limitations, an
   - Add integration tests for `s.len()` in loops and helper functions
 
 ### A-02 (P0) List method dispatch parity (`.get` / `.set`)
-- [ ] Fix list receiver dispatch so list methods never route to map/string-key paths.
+- [x] Fix list receiver dispatch so list methods never route to map/string-key paths.
 - **Symptoms**: `panic: container get(Str)...`, `panic: container set(Str, Int)...`
 - **Impacted examples**:
   - `examples/03_data_structures/16_list_append_get_set.yb`
@@ -59,7 +63,7 @@ This is the canonical implementation checklist for feature gaps, limitations, an
   - Add list method conformance tests (index patterns, loops, recursion)
 
 ### A-03 (P0) `Map<Int, Int>` method parity
-- [ ] Implement correct key-type dispatch for integer-key maps (`get/set/contains/remove`).
+- [x] Implement correct key-type dispatch for integer-key maps (`get/set/contains/remove`).
 - **Symptoms**: int-key map calls route through str-key runtime and panic.
 - **Impacted examples**:
   - `examples/03_data_structures/21_map_int_int_basics.yb`
@@ -69,7 +73,7 @@ This is the canonical implementation checklist for feature gaps, limitations, an
   - Add explicit `Map<Int, Int>` runtime conformance tests for all methods
 
 ### A-04 (P0) Missing builtin lowering (`max`, global `len`)
-- [ ] Implement/restore codegen lowering for builtins referenced in language surface.
+- [x] Implement/restore codegen lowering for builtins referenced in language surface.
 - **Symptoms**: `E3403: unknown call target`
 - **Impacted examples**:
   - `examples/02_strings_numbers/13_int_arithmetic_min_max.yb` (`max`)
@@ -81,7 +85,7 @@ This is the canonical implementation checklist for feature gaps, limitations, an
   - Add builtins smoke tests for `min/max/len` under `vibe run` and `vibe test`
 
 ### A-05 (P0) `.sort_desc()` native backend support
-- [ ] Implement list sort lowering in native backend for supported list types.
+- [x] Implement list sort lowering in native backend for supported list types.
 - **Symptoms**: `E3404: member call .sort_desc() is not supported in v0.1 native backend`
 - **Impacted examples**:
   - `examples/03_data_structures/17_list_sort_take.yb`
@@ -92,7 +96,7 @@ This is the canonical implementation checklist for feature gaps, limitations, an
   - Deterministic ordering tests added for sorted output
 
 ### A-06 (P0) Float codegen/runtime stability
-- [ ] Fix float value typing/lowering and verifier failures.
+- [x] Fix float value typing/lowering and verifier failures.
 - **Symptoms**: verifier errors / backend panic on float examples.
 - **Impacted examples**:
   - `examples/02_strings_numbers/14_float_basics.yb`
@@ -102,7 +106,7 @@ This is the canonical implementation checklist for feature gaps, limitations, an
   - Add float arithmetic/comparison integration tests
 
 ### A-07 (P0) Contract example-runner parity
-- [ ] Align `vibe test` example evaluator with executable language surface.
+- [x] Align `vibe test` example evaluator with executable language surface.
 - **Symptoms**: contract/example preflight rejects methods used in regular code.
 - **Impacted examples**:
   - `examples/10_contracts_intent/60_effect_alloc_mut_state.yb`
@@ -111,7 +115,7 @@ This is the canonical implementation checklist for feature gaps, limitations, an
   - If a subset is intentionally restricted, enforce with explicit diagnostics and docs
 
 ### A-08 (P1) Module helper-file run ergonomics
-- [ ] Improve CLI error for non-entry module execution.
+- [x] Improve CLI error for non-entry module execution.
 - **Symptoms**: link error `undefined reference to main` when running helper module files.
 - **Impacted examples**:
   - `examples/08_modules_packages/project_math/demo/math.yb`
@@ -137,19 +141,20 @@ This is the canonical implementation checklist for feature gaps, limitations, an
 - **Acceptance**:
   - Parity validator passes in publication mode
 
-### B-02 (P1) Missing strict lanes (`rust`, `zig`, `swift`)
-- [ ] Restore required runtime/compile lanes for strict benchmark mode.
+### B-02 (P1) Missing strict lane (`zig`)
+- [ ] Restore required runtime/compile lane availability for `zig` in strict benchmark mode.
+- Runtime/compile lanes for `rust` and `swift` are available in current source-driven no-docker sweeps.
 - **Evidence**: `reports/benchmarks/third_party/full/summary.md`
 - **Acceptance**:
   - No missing required lanes in strict publication report
 
-### B-03 (P1) Swift toolchain readiness
-- [ ] Complete usable local Swift toolchain setup.
+### B-03 (P1) Zig local compatibility readiness
+- [ ] Ensure local Zig toolchain/version is compatible with PLB-CI source set used in strict checks.
 - **Evidence**:
   - `reports/benchmarks/third_party/full/results.json`
   - `reports/benchmarks/third_party/analysis/gaps_optimization_blocker_checklist.md`
 - **Acceptance**:
-  - Preflight reports `swift`/`swiftc` available
+  - Local `zig` lane builds and produces runtime/compile artifacts without compatibility failures
 
 ### B-04 (P1) Docker strict run stability
 - [ ] Stabilize Docker-backed strict run path.
@@ -168,7 +173,7 @@ This is the canonical implementation checklist for feature gaps, limitations, an
 ## C) Core Language Surface Gaps (Spec vs Executable Surface)
 
 ### C-00 (P0) Data-modeling direction lock (types-first)
-- [ ] Lock and publish the canonical data-modeling direction:
+- [x] Lock and publish the canonical data-modeling direction:
   - first-class nominal `type` declarations are the primary model for related mixed-type data
   - composition-first behavior reuse is the default
   - inheritance/class model remains explicitly gated by C-03 decision
@@ -179,7 +184,7 @@ This is the canonical implementation checklist for feature gaps, limitations, an
   - `examples/11_modeling_shapes/` notes are aligned to this direction
 
 ### C-01 (P0) User-defined type declarations (struct-like shapes)
-- [ ] Implement end-to-end executable support for `type` declarations with mixed field types.
+- [x] Implement end-to-end executable support for `type` declarations with mixed field types (MVP: heap records, 8-byte slots).
 - **Why**: Required for real struct/shape modeling parity (C++/Rust-like workflows).
 - **Evidence**:
   - Spec syntax exists: `docs/spec/syntax.md` (`type` declaration section)
@@ -192,7 +197,7 @@ This is the canonical implementation checklist for feature gaps, limitations, an
   - Add runnable examples replacing map-record stand-ins in `examples/11_modeling_shapes/`
 
 ### C-01a (P0) Type construction and update ergonomics
-- [ ] Define and implement canonical construction/update ergonomics for `type` values.
+- [x] Define and implement canonical construction/update ergonomics for `type` values (MVP: `Type { field: expr }`, `obj.field`, `obj.field = expr`).
 - **Why**: production use needs concise, safe creation/update patterns (not map-style emulation).
 - **Acceptance**:
   - One canonical constructor model documented (literal-style and/or constructor function)
@@ -200,7 +205,7 @@ This is the canonical implementation checklist for feature gaps, limitations, an
   - At least two end-to-end runnable examples (simple domain model + nested model)
 
 ### C-02 (P0) Enum and executable `match` support
-- [ ] Add enum syntax + value model + type checking + match lowering + exhaustiveness.
+- [x] Add enum syntax + value model + type checking + match lowering + exhaustiveness (MVP: no-payload enums, tag-based match).
 - **Why**: Pattern matching parity and algebraic data modeling.
 - **Evidence**:
   - `docs/spec/control_flow.md` and `docs/spec/type_system.md` reference match/exhaustiveness
@@ -250,11 +255,20 @@ This is the canonical implementation checklist for feature gaps, limitations, an
 
 ## D) Example Program Quality Gates (Required Before “Production-Ready Examples” Claim)
 
-- [ ] Add CI job: run `vibe check` on all examples.
-- [ ] Add CI job: run `vibe run` on all non-demo examples.
-- [ ] Maintain explicit allowlist of intentional-failure demo examples.
-- [ ] Require every failing example to reference a checklist ID from this file.
-- [ ] Publish periodic example parity report (pass/fail trend).
+### D-01 (P1) CI static check sweep
+- [x] Add CI job: run `vibe check` on all examples.
+
+### D-02 (P1) CI runtime sweep for runnable entries
+- [x] Add CI job: run `vibe run` on all non-demo entry examples.
+
+### D-03 (P1) Intentional-failure allowlist governance
+- [x] Maintain explicit allowlist of intentional-failure demo examples.
+
+### D-04 (P1) Checklist-ID linkage for failures
+- [x] Require every failing example to reference a checklist ID from this file.
+
+### D-05 (P1) Parity trend reporting
+- [x] Publish periodic example parity report (pass/fail trend).
 
 ---
 

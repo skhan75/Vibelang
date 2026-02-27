@@ -7,7 +7,9 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, ExitCode};
 use std::{env, fs};
 
-use vibe_codegen::{emit_object, CodegenOptions};
+use std::collections::BTreeMap;
+
+use vibe_codegen::{emit_object_with_types, CodegenOptions};
 use vibe_diagnostics::Diagnostic;
 use vibe_diagnostics::Diagnostics;
 use vibe_doc::{extract_docs, render_markdown};
@@ -30,7 +32,7 @@ use vibe_runtime::{compile_runtime_object, link_executable, RuntimeBuildOptions}
 use vibe_sidecar::models::FindingSeverity;
 use vibe_sidecar::SidecarMode;
 use vibe_sidecar::{BudgetPolicy, IntentLintRequest, SidecarService};
-use vibe_types::check_and_lower;
+use vibe_types::{check_and_lower, type_kind_to_codegen_str};
 
 use crate::example_runner::{run_examples_with_policy, ExampleRunSummary};
 use crate::module_resolver::resolve_compilation_unit;
@@ -128,6 +130,7 @@ fn run() -> Result<ExitCode, String> {
             if build_args.emit_obj_only {
                 return Err("`--emit-obj-only` is not valid for `vibe run`".to_string());
             }
+            ensure_runnable_entry_has_main(&build_args.source_path)?;
             let artifacts = build_source(&build_args)?;
             let status = Command::new(&artifacts.binary_path)
                 .args(&build_args.exec_args)
@@ -2194,13 +2197,27 @@ fn build_source(args: &BuildArgs) -> Result<BuildArtifacts, String> {
     } else {
         None
     };
-    let object_bytes = emit_object(
+    let type_defs: BTreeMap<String, Vec<(String, String)>> = checked
+        .type_defs
+        .iter()
+        .map(|(k, v)| {
+            (
+                k.clone(),
+                v.iter()
+                    .map(|(f, t)| (f.clone(), type_kind_to_codegen_str(t)))
+                    .collect(),
+            )
+        })
+        .collect();
+    let object_bytes = emit_object_with_types(
         &mir,
         &CodegenOptions {
             target: args.target.clone(),
             profile: args.profile.clone(),
             debuginfo: args.debuginfo.clone(),
         },
+        &type_defs,
+        &checked.enum_defs,
     )
     .map_err(|e| format!("codegen failed: {e}"))?;
     let codegen_ms = codegen_start
@@ -2942,9 +2959,24 @@ fn maybe_warn_legacy_sources(files: &[PathBuf]) {
     }
 }
 
+fn ensure_runnable_entry_has_main(source_path: &Path) -> Result<(), String> {
+    let unit = resolve_compilation_unit(source_path)?;
+    if has_main_function(&unit.ast) {
+        return Ok(());
+    }
+    Err(format!(
+        "`vibe run` requires an entry source file that defines `main`; `{}` has no main function. \
+run an entry file (for example `.../main.yb`) or use `vibe check {}` for module validation.",
+        source_path.display(),
+        source_path.display()
+    ))
+}
+
 fn has_main_function(ast: &vibe_ast::FileAst) -> bool {
     ast.declarations.iter().any(|decl| {
-        let vibe_ast::Declaration::Function(func) = decl;
+        let vibe_ast::Declaration::Function(func) = decl else {
+            return false;
+        };
         func.name == "main"
     })
 }

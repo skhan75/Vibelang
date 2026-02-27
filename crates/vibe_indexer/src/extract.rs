@@ -30,7 +30,9 @@ pub fn build_file_index(
     let mut function_symbol_ids = BTreeMap::new();
     let mut declared_functions = Vec::new();
     for (idx, decl) in ast.declarations.iter().enumerate() {
-        let Declaration::Function(func) = decl;
+        let Declaration::Function(func) = decl else {
+            continue;
+        };
         let symbol_id = SymbolId(stable_symbol_id(
             &file,
             &func.name,
@@ -539,6 +541,39 @@ fn collect_stmt_refs(
             }
         }
         Stmt::Break { .. } | Stmt::Continue { .. } => {}
+        Stmt::Match {
+            scrutinee, arms, default_action, ..
+        } => {
+            collect_expr_refs(scrutinee, file, locals, function_symbol_ids, references, dependencies);
+            for arm in arms {
+                collect_expr_refs(
+                    &arm.pattern,
+                    file,
+                    locals,
+                    function_symbol_ids,
+                    references,
+                    dependencies,
+                );
+                collect_expr_refs(
+                    &arm.action,
+                    file,
+                    locals,
+                    function_symbol_ids,
+                    references,
+                    dependencies,
+                );
+            }
+            if let Some(e) = default_action {
+                collect_expr_refs(
+                    e,
+                    file,
+                    locals,
+                    function_symbol_ids,
+                    references,
+                    dependencies,
+                );
+            }
+        }
     }
 }
 
@@ -697,11 +732,24 @@ fn collect_expr_refs(
                 );
             }
         }
+        Expr::Constructor { fields, .. } => {
+            for (_, e) in fields {
+                collect_expr_refs(
+                    e,
+                    file,
+                    locals,
+                    function_symbol_ids,
+                    references,
+                    dependencies,
+                );
+            }
+        }
         Expr::Int { .. }
         | Expr::Float { .. }
         | Expr::Bool { .. }
         | Expr::String { .. }
-        | Expr::DotResult { .. } => {}
+        | Expr::DotResult { .. }
+        | Expr::EnumVariant { .. } => {}
     }
 }
 

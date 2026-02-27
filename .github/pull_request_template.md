@@ -2,11 +2,21 @@
 
 Describe why this change exists and what user-facing behavior changed.
 
+## Checklist IDs (required)
+
+- [ ] IDs addressed from `docs/checklists/features_and_optimizations.md` (example: `A-02`, `C-01`)
+
+## Acceptance Evidence (required)
+
+- [ ] Evidence/report path(s) proving acceptance criteria are met
+- [ ] If examples are impacted: list exact files moved from fail -> pass
+
 ## Test Plan
 
 - [ ] `cargo fmt --all`
 - [ ] `cargo clippy --workspace --all-targets -- -D warnings`
 - [ ] relevant `cargo test` commands
+- [ ] Regression tests added/updated for the checklist ID(s)
 
 ## Release-Gate Reports (required for release PRs)
 

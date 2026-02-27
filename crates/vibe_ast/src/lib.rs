@@ -10,6 +10,30 @@ pub struct FileAst {
 #[derive(Debug, Clone)]
 pub enum Declaration {
     Function(FunctionDecl),
+    Type(TypeDecl),
+    Enum(EnumDecl),
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct TypeDecl {
+    pub is_public: bool,
+    pub name: String,
+    pub fields: Vec<TypeField>,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct TypeField {
+    pub name: String,
+    pub ty: TypeRef,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct EnumDecl {
+    pub is_public: bool,
+    pub name: String,
+    pub variants: Vec<String>,
+    pub span: Span,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -111,6 +135,19 @@ pub enum Stmt {
         expr: Expr,
         span: Span,
     },
+    Match {
+        scrutinee: Expr,
+        arms: Vec<MatchArm>,
+        default_action: Option<Expr>,
+        span: Span,
+    },
+}
+
+#[derive(Debug, Clone)]
+pub struct MatchArm {
+    pub pattern: Expr,
+    pub action: Expr,
+    pub span: Span,
 }
 
 #[derive(Debug, Clone)]
@@ -209,6 +246,16 @@ pub enum Expr {
         expr: Box<Expr>,
         span: Span,
     },
+    Constructor {
+        type_name: String,
+        fields: Vec<(String, Expr)>,
+        span: Span,
+    },
+    EnumVariant {
+        enum_name: String,
+        variant: String,
+        span: Span,
+    },
 }
 
 impl Expr {
@@ -231,7 +278,9 @@ impl Expr {
             | Expr::Await { span, .. }
             | Expr::Question { span, .. }
             | Expr::DotResult { span }
-            | Expr::Old { span, .. } => *span,
+            | Expr::Old { span, .. }
+            | Expr::Constructor { span, .. }
+            | Expr::EnumVariant { span, .. } => *span,
         }
     }
 }

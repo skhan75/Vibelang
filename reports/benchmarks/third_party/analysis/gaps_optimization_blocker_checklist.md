@@ -1,6 +1,6 @@
 # Benchmark Gaps, Optimizations, and Blockers Checklist
 
-Updated at: `2026-02-26T07:21:50Z`  
+Updated at: `2026-02-27T13:45:17Z`  
 Scope: third-party benchmark stack (`PLB-CI + Hyperfine`)
 
 ## Resolved this cycle
@@ -9,6 +9,8 @@ Scope: third-party benchmark stack (`PLB-CI + Hyperfine`)
 - [x] Cleared old generated benchmark reports and regenerated fresh artifacts
 - [x] Installed local toolchains: `zig`, `deno`, `kotlin`, `pypy3`, `pyston3`
 - [x] Enabled `clang`/`clang++` availability via Zig Clang frontend wrappers
+- [x] Fixed VibeLang PLB-CI wrapper creation (runner script now copied from adapter include path)
+- [x] Restored Rust lane availability in no-docker runs (removed `sudo` after-build, set `CC/CXX` to `gcc/g++`)
 
 ## Open blockers (must-fix for strict public report)
 
@@ -20,16 +22,17 @@ Scope: third-party benchmark stack (`PLB-CI + Hyperfine`)
   - Evidence: parity validator fails in publication mode
 
 - [ ] **B2: Strict lane completeness still missing**
-  - Runtime lanes unavailable: `rust`, `zig`, `swift`
-  - Compile lanes unavailable: `rust`, `zig`, `swift`
+  - Runtime lane still unavailable: `zig`
+  - Compile lane still unavailable: `zig`
+  - Runtime/compile lanes for `rust` and `swift` are now available in local no-docker sweeps
   - Evidence: `reports/benchmarks/third_party/full/summary.md` budget violations
 
-- [ ] **B3: Swift toolchain not usable locally**
-  - `swift`/`swiftc` still missing from preflight in local mode
-  - Swiftly initialization works, but toolchain fetch did not complete in this environment
+- [ ] **B3: Zig local compatibility mismatch**
+  - Local Zig (`0.15.2`) is incompatible with portions of upstream PLB-CI Zig source set in no-docker mode
+  - Current symptom: Zig build failures before result directory generation in compile/runtime sweep
 
 - [ ] **B4: Docker strict run instability**
-  - Docker was intermittently unreachable during this session
+  - This WSL distro cannot currently reach Docker daemon (`docker info` reports Docker Desktop WSL integration not enabled)
   - Strict collection requires stable `docker info` and Docker-enabled run metadata
 
 ## Optimization opportunities (post-blocker)
@@ -48,7 +51,8 @@ Scope: third-party benchmark stack (`PLB-CI + Hyperfine`)
 
 ## Next execution checklist
 
-- [ ] Confirm Docker daemon is stable (`docker info` succeeds consistently)
+- [ ] Enable Docker Desktop WSL integration for this distro and confirm `docker info` is healthy
+- [ ] Resolve Zig local compatibility (pin compatible Zig for no-docker or rely on strict Docker lane)
 - [ ] Complete canonical implementations for the remaining 4 adapters
 - [ ] Re-run strict collection:
   - `python3 tooling/metrics/collect_third_party_benchmarks.py --profile full --publication-mode`

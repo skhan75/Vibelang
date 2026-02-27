@@ -4,7 +4,12 @@ This folder shows how to model domain "shapes" with the currently stable VibeLan
 
 ## What is runnable today
 
-- Shape-like records via `Map<Str, Int>`:
+- Nominal type declarations (struct-like records):
+  - `74_type_point_basics.yb`
+  - `76_type_mixed_fields.yb`
+- Enum + match control flow:
+  - `75_enum_match_basics.yb`
+- Shape-like records via `Map<Str, Int>` (legacy fallback pattern):
   - `71_shape_with_map_record.yb`
   - `72_shape_contracts_and_validation.yb`
 - Composition-based behavior layering (recommended over inheritance-style hierarchies in current surface):
@@ -12,7 +17,6 @@ This folder shows how to model domain "shapes" with the currently stable VibeLan
 
 ## What is not fully available yet
 
-- Native user-defined struct/type declarations as executable surface
 - Class-based inheritance
 - Trait/interface polymorphism
 

@@ -1,0 +1,36 @@
+{
+  "format": "vibe-examples-ci-parity-v1",
+  "generated_at_utc": "2026-02-27T13:53:38Z",
+  "allowlist_path": "examples/INTENTIONAL_FAILURES_ALLOWLIST.txt",
+  "allowlist_parse_errors": [],
+  "summary": {
+    "total_examples": 78,
+    "check_pass": 78,
+    "check_fail": 0,
+    "run_pass": 73,
+    "run_fail": 0,
+    "run_expected_fail": 2,
+    "run_skipped_non_entry": 3
+  },
+  "check_failures": [],
+  "run_failures": [],
+  "run_expected_failures": [
+    {
+      "file": "examples/10_contracts_intent/68_runtime_require_failure_demo.yb",
+      "checklist_id": "D-03",
+      "exit_code": 1
+    },
+    {
+      "file": "examples/10_contracts_intent/69_runtime_ensure_failure_demo.yb",
+      "checklist_id": "D-03",
+      "exit_code": 2
+    }
+  ],
+  "run_skipped_non_entry": [
+    "examples/08_modules_packages/project_math/demo/math.yb",
+    "examples/08_modules_packages/project_pipeline/app/formatter.yb",
+    "examples/08_modules_packages/project_pipeline/app/parser.yb"
+  ],
+  "allowlist_unexpected_passes": [],
+  "status": "pass"
+}

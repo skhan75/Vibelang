@@ -30,20 +30,11 @@ shared publicly (research, blogs, talks, release notes).
 
 ### B1. VibeLang adapter parity is incomplete (Open)
 
-Several VibeLang adapter files currently print expected output constants or
-lightweight proxy results, which violates workload-equivalence requirements.
-
-Examples include:
-- `benchmarks/third_party/plbci/adapters/vibelang/algorithm/nsieve/1.yb`
-- `benchmarks/third_party/plbci/adapters/vibelang/algorithm/knucleotide/1.yb`
-- `benchmarks/third_party/plbci/adapters/vibelang/algorithm/regex-redux/1.yb`
-- `benchmarks/third_party/plbci/adapters/vibelang/algorithm/fasta/1.yb`
-- `benchmarks/third_party/plbci/adapters/vibelang/algorithm/json-serde/1.yb`
-- `benchmarks/third_party/plbci/adapters/vibelang/algorithm/http-server/1.yb`
-- `benchmarks/third_party/plbci/adapters/vibelang/algorithm/secp256k1/1.yb`
-- `benchmarks/third_party/plbci/adapters/vibelang/algorithm/lru/1.yb`
-- `benchmarks/third_party/plbci/adapters/vibelang/algorithm/pidigits/1.yb`
+Four adapters remain noncanonical and block strict-publication:
 - `benchmarks/third_party/plbci/adapters/vibelang/algorithm/edigits/1.yb`
+- `benchmarks/third_party/plbci/adapters/vibelang/algorithm/http-server/1.yb`
+- `benchmarks/third_party/plbci/adapters/vibelang/algorithm/json-serde/1.yb`
+- `benchmarks/third_party/plbci/adapters/vibelang/algorithm/secp256k1/1.yb`
 
 Exit criterion:
 - Replace each proxy implementation with canonical equivalent algorithmic
@@ -59,7 +50,8 @@ Exit criterion:
 
 ### B3. Docker reproducibility is not currently healthy on this host (Open)
 
-Recent local attempts show Docker daemon connectivity problems.
+Current WSL environment reports Docker daemon unavailable because Docker Desktop
+WSL integration is not enabled for this distro.
 
 Exit criterion:
 - `docker info` is healthy.
@@ -88,10 +80,10 @@ Closure evidence:
 
 Some PLB-CI problems require capabilities not yet exposed as stable VibeLang
 stdlib/runtime APIs for direct canonical implementation:
-- regex engine equivalents for `regex-redux`
+- high-precision numeric primitives for robust `edigits`
 - networking/socket stack for `http-server`
-- cryptographic primitives for `secp256k1`
-- high-precision numeric support for robust `pidigits`/`edigits` implementations
+- cryptographic primitives / ECC primitives for `secp256k1`
+- canonical checksum/hash path for `json-serde` output validation
 
 Exit criterion:
 - Provide stable runtime/stdlib APIs (or validated equivalent algorithmic paths)

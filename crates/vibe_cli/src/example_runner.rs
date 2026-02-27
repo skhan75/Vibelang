@@ -28,12 +28,16 @@ pub fn run_examples_with_policy(ast: &FileAst, enforce_contracts: bool) -> Examp
     let mut summary = ExampleRunSummary::default();
     let mut functions = BTreeMap::new();
     for decl in &ast.declarations {
-        let Declaration::Function(func) = decl;
+        let Declaration::Function(func) = decl else {
+            continue;
+        };
         functions.insert(func.name.clone(), func);
     }
 
     for decl in &ast.declarations {
-        let Declaration::Function(func) = decl;
+        let Declaration::Function(func) = decl else {
+            continue;
+        };
         for contract in &func.contracts {
             let Contract::Examples { cases, .. } = contract else {
                 continue;
@@ -260,6 +264,8 @@ fn eval_expr_with_ctx(
                 enforce_contracts,
             )
         }
+        Expr::Constructor { .. } => Err("type constructors are not supported in phase 2 examples".to_string()),
+        Expr::EnumVariant { .. } => Err("enum variants are not supported in phase 2 examples".to_string()),
     }
 }
 
@@ -447,6 +453,94 @@ fn eval_stmt_list(
     Ok(EvalControl::Next)
 }
 
+fn try_eval_mutating_member_stmt(
+    expr: &Expr,
+    env: &mut BTreeMap<String, DeterministicValue>,
+    functions: &BTreeMap<String, &FunctionDecl>,
+    depth: usize,
+    enforce_contracts: bool,
+) -> Result<bool, String> {
+    let Expr::Call { callee, args, .. } = expr else {
+        return Ok(false);
+    };
+    let Expr::Member { object, field, .. } = &**callee else {
+        return Ok(false);
+    };
+    let Expr::Ident { name, .. } = &**object else {
+        return Ok(false);
+    };
+    match field.as_str() {
+        "append" => {
+            if args.len() != 1 {
+                return Err("append expects one argument".to_string());
+            }
+            let value = eval_expr_with_ctx(
+                &args[0],
+                env,
+                functions,
+                depth + 1,
+                None,
+                None,
+                enforce_contracts,
+            )?;
+            let target = env
+                .get_mut(name)
+                .ok_or_else(|| format!("unknown identifier `{name}` for append"))?;
+            match target {
+                DeterministicValue::List(items) => {
+                    items.push(value);
+                    Ok(true)
+                }
+                other => Err(format!(
+                    "append target must be List, got `{}`",
+                    deterministic_value_name(other)
+                )),
+            }
+        }
+        "set" => {
+            if args.len() != 2 {
+                return Err("set expects index and value arguments".to_string());
+            }
+            let index = eval_expr_with_ctx(
+                &args[0],
+                env,
+                functions,
+                depth + 1,
+                None,
+                None,
+                enforce_contracts,
+            )?
+            .as_int()?;
+            let value = eval_expr_with_ctx(
+                &args[1],
+                env,
+                functions,
+                depth + 1,
+                None,
+                None,
+                enforce_contracts,
+            )?;
+            let target = env
+                .get_mut(name)
+                .ok_or_else(|| format!("unknown identifier `{name}` for set"))?;
+            match target {
+                DeterministicValue::List(items) => {
+                    if index < 0 || index as usize >= items.len() {
+                        return Err("list.set index out of bounds in example evaluation".to_string());
+                    }
+                    items[index as usize] = value;
+                    Ok(true)
+                }
+                other => Err(format!(
+                    "set target must be List, got `{}`",
+                    deterministic_value_name(other)
+                )),
+            }
+        }
+        _ => Ok(false),
+    }
+}
+
 fn eval_stmt(
     stmt: &Stmt,
     env: &mut BTreeMap<String, DeterministicValue>,
@@ -494,6 +588,9 @@ fn eval_stmt(
             enforce_contracts,
         )?)),
         Stmt::ExprStmt { expr, .. } => {
+            if try_eval_mutating_member_stmt(expr, env, functions, depth + 1, enforce_contracts)? {
+                return Ok(EvalControl::Next);
+            }
             let _ = eval_expr_with_ctx(
                 expr,
                 env,
@@ -604,6 +701,9 @@ fn eval_stmt(
         }
         Stmt::Break { .. } => Ok(EvalControl::Break),
         Stmt::Continue { .. } => Ok(EvalControl::Continue),
+        Stmt::Match { .. } => {
+            Err("match is not supported in phase 2 deterministic example runner".to_string())
+        }
     }
 }
 

@@ -9,8 +9,8 @@ use vibe_ast::{
 };
 use vibe_diagnostics::{Diagnostic, Diagnostics, Severity, Span};
 use vibe_hir::{
-    verify_hir, HirContractKind, HirExpr, HirExprKind, HirFunction, HirParam, HirProgram,
-    HirSelectCase, HirSelectPattern, HirStmt,
+    verify_hir, HirContractKind, HirExpr, HirExprKind, HirFunction, HirMatchArm, HirParam,
+    HirProgram, HirSelectCase, HirSelectPattern, HirStmt,
 };
 
 use crate::effect_diagnostics::emit_effect_diagnostics;
@@ -31,6 +31,8 @@ pub enum TypeKind {
     Map(Box<TypeKind>, Box<TypeKind>),
     Result(Box<TypeKind>, Box<TypeKind>),
     Chan(Box<TypeKind>),
+    UserType(String),
+    Enum(String),
     Void,
     Unknown,
 }
@@ -39,6 +41,21 @@ pub enum TypeKind {
 pub struct CheckOutput {
     pub diagnostics: Diagnostics,
     pub hir: HirProgram,
+    pub type_defs: BTreeMap<String, Vec<(String, TypeKind)>>,
+    pub enum_defs: BTreeMap<String, Vec<String>>,
+}
+
+/// Convert TypeKind to a string for codegen (Int, Bool, Str, etc).
+pub fn type_kind_to_codegen_str(t: &TypeKind) -> String {
+    match t {
+        TypeKind::Int => "Int".to_string(),
+        TypeKind::Float => "Float".to_string(),
+        TypeKind::Bool => "Bool".to_string(),
+        TypeKind::Str => "Str".to_string(),
+        TypeKind::UserType(name) => name.clone(),
+        TypeKind::Enum(name) => name.clone(),
+        _ => "Unknown".to_string(),
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -48,27 +65,78 @@ enum ContractContext {
     Other,
 }
 
+struct TypeContext<'a> {
+    sigs: &'a BTreeMap<String, Option<TypeKind>>,
+    type_defs: &'a BTreeMap<String, Vec<(String, TypeKind)>>,
+    enum_defs: &'a BTreeMap<String, Vec<String>>,
+}
+
 pub fn check_and_lower(ast: &FileAst) -> CheckOutput {
     let mut diagnostics = Diagnostics::default();
     let mut signatures: BTreeMap<String, Option<TypeKind>> = BTreeMap::new();
+    let mut type_defs: BTreeMap<String, Vec<(String, TypeKind)>> = BTreeMap::new();
+    let mut enum_defs: BTreeMap<String, Vec<String>> = BTreeMap::new();
     let mut hir = HirProgram::default();
     let mut effect_summaries: Vec<FunctionEffectSummary> = Vec::new();
 
     for decl in &ast.declarations {
-        let Declaration::Function(f) = decl;
-        if signatures.contains_key(&f.name) {
-            diagnostics.push(Diagnostic::new(
-                "E2002",
-                Severity::Error,
-                format!("duplicate function `{}`", f.name),
-                f.span,
-            ));
+        match decl {
+            Declaration::Type(t) => {
+                if type_defs.contains_key(&t.name) {
+                    diagnostics.push(Diagnostic::new(
+                        "E2002",
+                        Severity::Error,
+                        format!("duplicate type `{}`", t.name),
+                        t.span,
+                    ));
+                }
+                let mut fields = Vec::new();
+                for f in &t.fields {
+                    let field_ty = parse_type_ref(&f.ty);
+                    fields.push((f.name.clone(), field_ty));
+                }
+                type_defs.insert(t.name.clone(), fields);
+            }
+            Declaration::Enum(e) => {
+                if enum_defs.contains_key(&e.name) {
+                    diagnostics.push(Diagnostic::new(
+                        "E2002",
+                        Severity::Error,
+                        format!("duplicate enum `{}`", e.name),
+                        e.span,
+                    ));
+                }
+                enum_defs.insert(e.name.clone(), e.variants.clone());
+            }
+            Declaration::Function(f) => {
+                if signatures.contains_key(&f.name) {
+                    diagnostics.push(Diagnostic::new(
+                        "E2002",
+                        Severity::Error,
+                        format!("duplicate function `{}`", f.name),
+                        f.span,
+                    ));
+                }
+                signatures.insert(
+                    f.name.clone(),
+                    f.return_type
+                        .as_ref()
+                        .map(|t| resolve_type_ref(t, &type_defs, &enum_defs)),
+                );
+            }
         }
-        signatures.insert(f.name.clone(), f.return_type.as_ref().map(parse_type_ref));
     }
 
+    let ctx = TypeContext {
+        sigs: &signatures,
+        type_defs: &type_defs,
+        enum_defs: &enum_defs,
+    };
+
     for decl in &ast.declarations {
-        let Declaration::Function(func) = decl;
+        let Declaration::Function(func) = decl else {
+            continue;
+        };
         let mut env: BTreeMap<String, TypeKind> = BTreeMap::new();
         let mut observed_effects: BTreeSet<String> = BTreeSet::new();
         let mut declared_effects: BTreeSet<String> = BTreeSet::new();
@@ -106,7 +174,7 @@ pub fn check_and_lower(ast: &FileAst) -> CheckOutput {
             env.insert(
                 p.name.clone(),
                 p.ty.as_ref()
-                    .map(parse_type_ref)
+                    .map(|t| resolve_type_ref(t, &type_defs, &enum_defs))
                     .unwrap_or(TypeKind::Unknown),
             );
         }
@@ -129,7 +197,7 @@ pub fn check_and_lower(ast: &FileAst) -> CheckOutput {
                     infer_expr(
                         expr,
                         &env,
-                        &signatures,
+                        &ctx,
                         ContractContext::Require,
                         &mut diagnostics,
                         &mut observed_effects,
@@ -138,7 +206,7 @@ pub fn check_and_lower(ast: &FileAst) -> CheckOutput {
                         infer_expr(
                             expr,
                             &env,
-                            &signatures,
+                            &ctx,
                             ContractContext::Require,
                             &mut diagnostics,
                             &mut observed_effects
@@ -160,7 +228,7 @@ pub fn check_and_lower(ast: &FileAst) -> CheckOutput {
                         infer_expr(
                             expr,
                             &env,
-                            &signatures,
+                            &ctx,
                             ContractContext::Ensure,
                             &mut diagnostics,
                             &mut observed_effects
@@ -181,7 +249,7 @@ pub fn check_and_lower(ast: &FileAst) -> CheckOutput {
                         infer_expr(
                             &case.call,
                             &env,
-                            &signatures,
+                            &ctx,
                             ContractContext::Other,
                             &mut diagnostics,
                             &mut observed_effects,
@@ -189,7 +257,7 @@ pub fn check_and_lower(ast: &FileAst) -> CheckOutput {
                         infer_expr(
                             &case.expected,
                             &env,
-                            &signatures,
+                            &ctx,
                             ContractContext::Other,
                             &mut diagnostics,
                             &mut observed_effects,
@@ -205,14 +273,14 @@ pub fn check_and_lower(ast: &FileAst) -> CheckOutput {
         for expr in &require_contract_exprs {
             hir_body.push(HirStmt::ContractCheck {
                 kind: HirContractKind::Require,
-                expr: lower_contract_expr(expr, &env, None),
+                expr: lower_contract_expr(expr, &env, None, &ctx),
             });
         }
         for stmt in &func.body {
             check_stmt(
                 stmt,
                 &mut env,
-                &signatures,
+                &ctx,
                 &mut diagnostics,
                 &mut observed_effects,
                 &mut inferred_returns,
@@ -226,17 +294,17 @@ pub fn check_and_lower(ast: &FileAst) -> CheckOutput {
             let t = infer_expr(
                 expr,
                 &env,
-                &signatures,
+                &ctx,
                 ContractContext::Other,
                 &mut diagnostics,
                 &mut observed_effects,
             );
             inferred_returns.push(t);
-            let lowered_tail = lower_expr(expr, &env);
+            let lowered_tail = lower_expr(expr, &env, &ctx);
             for contract_expr in &ensure_contract_exprs {
                 hir_body.push(HirStmt::ContractCheck {
                     kind: HirContractKind::Ensure,
-                    expr: lower_contract_expr(contract_expr, &env, Some(&lowered_tail)),
+                    expr: lower_contract_expr(contract_expr, &env, Some(&lowered_tail), &ctx),
                 });
             }
             hir_tail_expr = Some(lowered_tail);
@@ -244,7 +312,7 @@ pub fn check_and_lower(ast: &FileAst) -> CheckOutput {
 
         let inferred_return = unify_return_types(&inferred_returns);
         if let Some(declared) = func.return_type.as_ref() {
-            let declared = parse_type_ref(declared);
+            let declared = resolve_type_ref(declared, &type_defs, &enum_defs);
             if !type_compatible(&declared, &inferred_return) {
                 diagnostics.push(Diagnostic::new(
                     "E2201",
@@ -312,14 +380,19 @@ pub fn check_and_lower(ast: &FileAst) -> CheckOutput {
         ));
     }
 
-    CheckOutput { diagnostics, hir }
+    CheckOutput {
+        diagnostics,
+        hir,
+        type_defs,
+        enum_defs,
+    }
 }
 
 #[allow(clippy::too_many_arguments)]
 fn check_stmt(
     stmt: &Stmt,
     env: &mut BTreeMap<String, TypeKind>,
-    sigs: &BTreeMap<String, Option<TypeKind>>,
+    ctx: &TypeContext,
     diagnostics: &mut Diagnostics,
     observed_effects: &mut BTreeSet<String>,
     inferred_returns: &mut Vec<TypeKind>,
@@ -332,12 +405,12 @@ fn check_stmt(
             let t = infer_expr(
                 expr,
                 env,
-                sigs,
+                ctx,
                 ContractContext::Other,
                 diagnostics,
                 observed_effects,
             );
-            let lowered_expr = lower_expr(expr, env);
+            let lowered_expr = lower_expr(expr, env, ctx);
             env.insert(name.clone(), t);
             hir_out.push(HirStmt::Binding {
                 name: name.clone(),
@@ -348,7 +421,7 @@ fn check_stmt(
             let rhs = infer_expr(
                 expr,
                 env,
-                sigs,
+                ctx,
                 ContractContext::Other,
                 diagnostics,
                 observed_effects,
@@ -376,31 +449,67 @@ fn check_stmt(
                         ));
                     }
                 }
-                Expr::Member { .. } => {
+                Expr::Member { object, field, .. } => {
                     observed_effects.insert("mut_state".to_string());
+                    let base_ty = infer_expr(
+                        object,
+                        env,
+                        ctx,
+                        ContractContext::Other,
+                        diagnostics,
+                        observed_effects,
+                    );
+                    if let TypeKind::UserType(user_type_name) = base_ty {
+                        if let Some(fields) = ctx.type_defs.get(&user_type_name) {
+                            if let Some((_, field_ty)) = fields.iter().find(|(n, _)| n == field) {
+                                if !type_compatible(field_ty, &rhs)
+                                    && !matches!(rhs, TypeKind::Unknown)
+                                    && !matches!(field_ty, TypeKind::Unknown)
+                                {
+                                    diagnostics.push(Diagnostic::new(
+                                        "E2259",
+                                        Severity::Error,
+                                        format!(
+                                            "field assignment type mismatch `{user_type_name}.{field}`: expected `{}`, got `{}`",
+                                            type_name(field_ty),
+                                            type_name(&rhs)
+                                        ),
+                                        *span,
+                                    ));
+                                }
+                            } else {
+                                diagnostics.push(Diagnostic::new(
+                                    "E2251",
+                                    Severity::Error,
+                                    format!("type `{user_type_name}` has no field `{field}`"),
+                                    *span,
+                                ));
+                            }
+                        }
+                    }
                 }
                 _ => {}
             }
             hir_out.push(HirStmt::Assignment {
-                target: lower_expr(target, env),
-                expr: lower_expr(expr, env),
+                target: lower_expr(target, env, ctx),
+                expr: lower_expr(expr, env, ctx),
             });
         }
         Stmt::Return { expr, .. } => {
             let ret_ty = infer_expr(
                 expr,
                 env,
-                sigs,
+                ctx,
                 ContractContext::Other,
                 diagnostics,
                 observed_effects,
             );
             inferred_returns.push(ret_ty);
-            let lowered_return_expr = lower_expr(expr, env);
+            let lowered_return_expr = lower_expr(expr, env, ctx);
             for ensure_expr in ensure_contract_exprs {
                 hir_out.push(HirStmt::ContractCheck {
                     kind: HirContractKind::Ensure,
-                    expr: lower_contract_expr(ensure_expr, env, Some(&lowered_return_expr)),
+                    expr: lower_contract_expr(ensure_expr, env, Some(&lowered_return_expr), ctx),
                 });
             }
             hir_out.push(HirStmt::Return {
@@ -411,13 +520,13 @@ fn check_stmt(
             let _ = infer_expr(
                 expr,
                 env,
-                sigs,
+                ctx,
                 ContractContext::Other,
                 diagnostics,
                 observed_effects,
             );
             hir_out.push(HirStmt::Expr {
-                expr: lower_expr(expr, env),
+                expr: lower_expr(expr, env, ctx),
             });
         }
         Stmt::For {
@@ -426,7 +535,7 @@ fn check_stmt(
             let iter_ty = infer_expr(
                 iter,
                 env,
-                sigs,
+                ctx,
                 ContractContext::Other,
                 diagnostics,
                 observed_effects,
@@ -442,7 +551,7 @@ fn check_stmt(
                 check_stmt(
                     s,
                     env,
-                    sigs,
+                    ctx,
                     diagnostics,
                     observed_effects,
                     inferred_returns,
@@ -453,7 +562,7 @@ fn check_stmt(
             }
             hir_out.push(HirStmt::For {
                 var: var.clone(),
-                iter: lower_expr(iter, env),
+                iter: lower_expr(iter, env, ctx),
                 body: child_hir,
             });
         }
@@ -466,7 +575,7 @@ fn check_stmt(
             let cond_ty = infer_expr(
                 cond,
                 env,
-                sigs,
+                ctx,
                 ContractContext::Other,
                 diagnostics,
                 observed_effects,
@@ -484,7 +593,7 @@ fn check_stmt(
                 check_stmt(
                     s,
                     env,
-                    sigs,
+                    ctx,
                     diagnostics,
                     observed_effects,
                     inferred_returns,
@@ -498,7 +607,7 @@ fn check_stmt(
                 check_stmt(
                     s,
                     env,
-                    sigs,
+                    ctx,
                     diagnostics,
                     observed_effects,
                     inferred_returns,
@@ -508,7 +617,7 @@ fn check_stmt(
                 );
             }
             hir_out.push(HirStmt::If {
-                cond: lower_expr(cond, env),
+                cond: lower_expr(cond, env, ctx),
                 then_body: then_hir,
                 else_body: else_hir,
             });
@@ -517,7 +626,7 @@ fn check_stmt(
             let cond_ty = infer_expr(
                 cond,
                 env,
-                sigs,
+                ctx,
                 ContractContext::Other,
                 diagnostics,
                 observed_effects,
@@ -535,7 +644,7 @@ fn check_stmt(
                 check_stmt(
                     s,
                     env,
-                    sigs,
+                    ctx,
                     diagnostics,
                     observed_effects,
                     inferred_returns,
@@ -545,7 +654,7 @@ fn check_stmt(
                 );
             }
             hir_out.push(HirStmt::While {
-                cond: lower_expr(cond, env),
+                cond: lower_expr(cond, env, ctx),
                 body: child_hir,
             });
         }
@@ -553,7 +662,7 @@ fn check_stmt(
             let count_ty = infer_expr(
                 count,
                 env,
-                sigs,
+                ctx,
                 ContractContext::Other,
                 diagnostics,
                 observed_effects,
@@ -571,7 +680,7 @@ fn check_stmt(
                 check_stmt(
                     s,
                     env,
-                    sigs,
+                    ctx,
                     diagnostics,
                     observed_effects,
                     inferred_returns,
@@ -581,7 +690,7 @@ fn check_stmt(
                 );
             }
             hir_out.push(HirStmt::Repeat {
-                count: lower_expr(count, env),
+                count: lower_expr(count, env, ctx),
                 body: child_hir,
             });
         }
@@ -616,7 +725,7 @@ fn check_stmt(
                         let _ = infer_expr(
                             expr,
                             env,
-                            sigs,
+                            ctx,
                             ContractContext::Other,
                             diagnostics,
                             observed_effects,
@@ -641,14 +750,14 @@ fn check_stmt(
                 let _ = infer_expr(
                     &c.action,
                     env,
-                    sigs,
+                    ctx,
                     ContractContext::Other,
                     diagnostics,
                     observed_effects,
                 );
                 lowered_cases.push(HirSelectCase {
-                    pattern: lower_select_pattern(&c.pattern, env),
-                    action: lower_expr(&c.action, env),
+                    pattern: lower_select_pattern(&c.pattern, env, ctx),
+                    action: lower_expr(&c.action, env, ctx),
                 });
             }
             hir_out.push(HirStmt::Select {
@@ -660,14 +769,14 @@ fn check_stmt(
             let _ = infer_expr(
                 expr,
                 env,
-                sigs,
+                ctx,
                 ContractContext::Other,
                 diagnostics,
                 observed_effects,
             );
             check_go_sendability(expr, env, expr_type_hint, diagnostics);
             hir_out.push(HirStmt::Go {
-                expr: lower_expr(expr, env),
+                expr: lower_expr(expr, env, ctx),
             });
         }
         Stmt::Thread { expr, .. } => {
@@ -675,14 +784,76 @@ fn check_stmt(
             let _ = infer_expr(
                 expr,
                 env,
-                sigs,
+                ctx,
                 ContractContext::Other,
                 diagnostics,
                 observed_effects,
             );
             check_go_sendability(expr, env, expr_type_hint, diagnostics);
             hir_out.push(HirStmt::Thread {
-                expr: lower_expr(expr, env),
+                expr: lower_expr(expr, env, ctx),
+            });
+        }
+        Stmt::Match {
+            scrutinee,
+            arms,
+            default_action,
+            span,
+        } => {
+            let scrutinee_ty =
+                infer_expr(scrutinee, env, ctx, ContractContext::Other, diagnostics, observed_effects);
+            if let TypeKind::Enum(enum_name) = &scrutinee_ty {
+                if default_action.is_none() {
+                    if let Some(variants) = ctx.enum_defs.get(enum_name) {
+                        let mut covered: BTreeSet<String> = BTreeSet::new();
+                        for arm in arms {
+                            match &arm.pattern {
+                                Expr::EnumVariant {
+                                    enum_name: en, variant, ..
+                                } if en == enum_name => {
+                                    covered.insert(variant.clone());
+                                }
+                                Expr::Member {
+                                    object,
+                                    field: variant,
+                                    ..
+                                } if matches!(&**object, Expr::Ident { name, .. } if name == enum_name) =>
+                                {
+                                    covered.insert(variant.clone());
+                                }
+                                _ => {}
+                            }
+                        }
+                        for v in variants {
+                            if !covered.contains(v) {
+                                diagnostics.push(Diagnostic::new(
+                                    "E2258",
+                                    Severity::Error,
+                                    format!(
+                                        "match on enum `{enum_name}` is not exhaustive: missing variant `{v}`",
+                                    ),
+                                    *span,
+                                ));
+                            }
+                        }
+                    }
+                }
+            }
+            let scrutinee_hir = lower_expr(scrutinee, env, ctx);
+            let hir_arms: Vec<_> = arms
+                .iter()
+                .map(|a| HirMatchArm {
+                    pattern: lower_expr(&a.pattern, env, ctx),
+                    action: lower_expr(&a.action, env, ctx),
+                })
+                .collect();
+            let default_hir = default_action
+                .as_ref()
+                .map(|e| lower_expr(e, env, ctx));
+            hir_out.push(HirStmt::Match {
+                scrutinee: scrutinee_hir,
+                arms: hir_arms,
+                default_action: default_hir,
             });
         }
     }
@@ -691,11 +862,12 @@ fn check_stmt(
 fn lower_select_pattern(
     pattern: &SelectPattern,
     env: &BTreeMap<String, TypeKind>,
+    ctx: &TypeContext,
 ) -> HirSelectPattern {
     match pattern {
         SelectPattern::Receive { binding, expr } => HirSelectPattern::Receive {
             binding: binding.clone(),
-            expr: lower_expr(expr, env),
+            expr: lower_expr(expr, env, ctx),
         },
         SelectPattern::After { duration_literal } => HirSelectPattern::After {
             duration_literal: duration_literal.clone(),
@@ -711,6 +883,7 @@ fn lower_contract_expr(
     expr: &Expr,
     env: &BTreeMap<String, TypeKind>,
     dot_result: Option<&HirExpr>,
+    ctx: &TypeContext,
 ) -> HirExpr {
     if let Expr::DotResult { .. } = expr {
         if let Some(result) = dot_result {
@@ -727,7 +900,7 @@ fn lower_contract_expr(
         Expr::List { items, .. } => HirExprKind::List(
             items
                 .iter()
-                .map(|e| lower_contract_expr(e, env, dot_result))
+                .map(|e| lower_contract_expr(e, env, dot_result, ctx))
                 .collect(),
         ),
         Expr::Map { entries, .. } => HirExprKind::Map(
@@ -735,67 +908,91 @@ fn lower_contract_expr(
                 .iter()
                 .map(|(k, v)| {
                     (
-                        lower_contract_expr(k, env, dot_result),
-                        lower_contract_expr(v, env, dot_result),
+                        lower_contract_expr(k, env, dot_result, ctx),
+                        lower_contract_expr(v, env, dot_result, ctx),
                     )
                 })
                 .collect(),
         ),
-        Expr::Member { object, field, .. } => HirExprKind::Member {
-            object: Box::new(lower_contract_expr(object, env, dot_result)),
-            field: field.clone(),
-        },
+        Expr::Member { object, field, .. } => {
+            if let Expr::Ident { name: enum_name, .. } = &**object {
+                if ctx.enum_defs.contains_key(enum_name) {
+                    return HirExpr::new(
+                        HirExprKind::EnumVariant {
+                            enum_name: enum_name.clone(),
+                            variant: field.clone(),
+                        },
+                        enum_name.clone(),
+                    );
+                }
+            }
+            HirExprKind::Member {
+                object: Box::new(lower_contract_expr(object, env, dot_result, ctx)),
+                field: field.clone(),
+            }
+        }
         Expr::Index { object, index, .. } => HirExprKind::Index {
-            object: Box::new(lower_contract_expr(object, env, dot_result)),
-            index: Box::new(lower_contract_expr(index, env, dot_result)),
+            object: Box::new(lower_contract_expr(object, env, dot_result, ctx)),
+            index: Box::new(lower_contract_expr(index, env, dot_result, ctx)),
         },
         Expr::Slice {
             object, start, end, ..
         } => HirExprKind::Slice {
-            object: Box::new(lower_contract_expr(object, env, dot_result)),
+            object: Box::new(lower_contract_expr(object, env, dot_result, ctx)),
             start: start
                 .as_ref()
-                .map(|expr| Box::new(lower_contract_expr(expr, env, dot_result))),
+                .map(|e| Box::new(lower_contract_expr(e, env, dot_result, ctx))),
             end: end
                 .as_ref()
-                .map(|expr| Box::new(lower_contract_expr(expr, env, dot_result))),
+                .map(|e| Box::new(lower_contract_expr(e, env, dot_result, ctx))),
         },
         Expr::Call { callee, args, .. } => HirExprKind::Call {
-            callee: Box::new(lower_contract_expr(callee, env, dot_result)),
+            callee: Box::new(lower_contract_expr(callee, env, dot_result, ctx)),
             args: args
                 .iter()
-                .map(|a| lower_contract_expr(a, env, dot_result))
+                .map(|a| lower_contract_expr(a, env, dot_result, ctx))
                 .collect(),
         },
         Expr::Binary {
             left, op, right, ..
         } => HirExprKind::Binary {
-            left: Box::new(lower_contract_expr(left, env, dot_result)),
+            left: Box::new(lower_contract_expr(left, env, dot_result, ctx)),
             op: *op,
-            right: Box::new(lower_contract_expr(right, env, dot_result)),
+            right: Box::new(lower_contract_expr(right, env, dot_result, ctx)),
         },
         Expr::Unary { op, expr, .. } => HirExprKind::Unary {
             op: *op,
-            expr: Box::new(lower_contract_expr(expr, env, dot_result)),
+            expr: Box::new(lower_contract_expr(expr, env, dot_result, ctx)),
         },
         Expr::Async { expr, .. } => HirExprKind::Async {
-            expr: Box::new(lower_contract_expr(expr, env, dot_result)),
+            expr: Box::new(lower_contract_expr(expr, env, dot_result, ctx)),
         },
         Expr::Await { expr, .. } => HirExprKind::Await {
-            expr: Box::new(lower_contract_expr(expr, env, dot_result)),
+            expr: Box::new(lower_contract_expr(expr, env, dot_result, ctx)),
         },
         Expr::Question { expr, .. } => HirExprKind::Question {
-            expr: Box::new(lower_contract_expr(expr, env, dot_result)),
+            expr: Box::new(lower_contract_expr(expr, env, dot_result, ctx)),
         },
         Expr::DotResult { .. } => HirExprKind::DotResult,
         Expr::Old { expr, .. } => HirExprKind::Old {
-            expr: Box::new(lower_contract_expr(expr, env, dot_result)),
+            expr: Box::new(lower_contract_expr(expr, env, dot_result, ctx)),
+        },
+        Expr::Constructor { type_name, fields, .. } => HirExprKind::Constructor {
+            type_name: type_name.clone(),
+            fields: fields
+                .iter()
+                .map(|(n, e)| (n.clone(), lower_contract_expr(e, env, dot_result, ctx)))
+                .collect(),
+        },
+        Expr::EnumVariant { enum_name, variant, .. } => HirExprKind::EnumVariant {
+            enum_name: enum_name.clone(),
+            variant: variant.clone(),
         },
     };
     HirExpr::new(kind, ty)
 }
 
-fn lower_expr(expr: &Expr, env: &BTreeMap<String, TypeKind>) -> HirExpr {
+fn lower_expr(expr: &Expr, env: &BTreeMap<String, TypeKind>, ctx: &TypeContext) -> HirExpr {
     let ty = type_name(&expr_type_hint(expr, env));
     let kind = match expr {
         Expr::Ident { name, .. } => HirExprKind::Ident(name.clone()),
@@ -804,56 +1001,80 @@ fn lower_expr(expr: &Expr, env: &BTreeMap<String, TypeKind>) -> HirExpr {
         Expr::Bool { value, .. } => HirExprKind::Bool(*value),
         Expr::String { value, .. } => HirExprKind::String(value.clone()),
         Expr::List { items, .. } => {
-            HirExprKind::List(items.iter().map(|e| lower_expr(e, env)).collect())
+            HirExprKind::List(items.iter().map(|e| lower_expr(e, env, ctx)).collect())
         }
         Expr::Map { entries, .. } => HirExprKind::Map(
             entries
                 .iter()
-                .map(|(k, v)| (lower_expr(k, env), lower_expr(v, env)))
+                .map(|(k, v)| (lower_expr(k, env, ctx), lower_expr(v, env, ctx)))
                 .collect(),
         ),
-        Expr::Member { object, field, .. } => HirExprKind::Member {
-            object: Box::new(lower_expr(object, env)),
-            field: field.clone(),
-        },
+        Expr::Member { object, field, .. } => {
+            if let Expr::Ident { name: enum_name, .. } = &**object {
+                if ctx.enum_defs.contains_key(enum_name) {
+                    return HirExpr::new(
+                        HirExprKind::EnumVariant {
+                            enum_name: enum_name.clone(),
+                            variant: field.clone(),
+                        },
+                        enum_name.clone(),
+                    );
+                }
+            }
+            HirExprKind::Member {
+                object: Box::new(lower_expr(object, env, ctx)),
+                field: field.clone(),
+            }
+        }
         Expr::Index { object, index, .. } => HirExprKind::Index {
-            object: Box::new(lower_expr(object, env)),
-            index: Box::new(lower_expr(index, env)),
+            object: Box::new(lower_expr(object, env, ctx)),
+            index: Box::new(lower_expr(index, env, ctx)),
         },
         Expr::Slice {
             object, start, end, ..
         } => HirExprKind::Slice {
-            object: Box::new(lower_expr(object, env)),
-            start: start.as_ref().map(|expr| Box::new(lower_expr(expr, env))),
-            end: end.as_ref().map(|expr| Box::new(lower_expr(expr, env))),
+            object: Box::new(lower_expr(object, env, ctx)),
+            start: start.as_ref().map(|e| Box::new(lower_expr(e, env, ctx))),
+            end: end.as_ref().map(|e| Box::new(lower_expr(e, env, ctx))),
+        },
+        Expr::Constructor { type_name, fields, .. } => HirExprKind::Constructor {
+            type_name: type_name.clone(),
+            fields: fields
+                .iter()
+                .map(|(n, e)| (n.clone(), lower_expr(e, env, ctx)))
+                .collect(),
         },
         Expr::Call { callee, args, .. } => HirExprKind::Call {
-            callee: Box::new(lower_expr(callee, env)),
-            args: args.iter().map(|a| lower_expr(a, env)).collect(),
+            callee: Box::new(lower_expr(callee, env, ctx)),
+            args: args.iter().map(|a| lower_expr(a, env, ctx)).collect(),
         },
         Expr::Binary {
             left, op, right, ..
         } => HirExprKind::Binary {
-            left: Box::new(lower_expr(left, env)),
+            left: Box::new(lower_expr(left, env, ctx)),
             op: *op,
-            right: Box::new(lower_expr(right, env)),
+            right: Box::new(lower_expr(right, env, ctx)),
         },
         Expr::Unary { op, expr, .. } => HirExprKind::Unary {
             op: *op,
-            expr: Box::new(lower_expr(expr, env)),
+            expr: Box::new(lower_expr(expr, env, ctx)),
         },
         Expr::Async { expr, .. } => HirExprKind::Async {
-            expr: Box::new(lower_expr(expr, env)),
+            expr: Box::new(lower_expr(expr, env, ctx)),
         },
         Expr::Await { expr, .. } => HirExprKind::Await {
-            expr: Box::new(lower_expr(expr, env)),
+            expr: Box::new(lower_expr(expr, env, ctx)),
         },
         Expr::Question { expr, .. } => HirExprKind::Question {
-            expr: Box::new(lower_expr(expr, env)),
+            expr: Box::new(lower_expr(expr, env, ctx)),
         },
         Expr::DotResult { .. } => HirExprKind::DotResult,
         Expr::Old { expr, .. } => HirExprKind::Old {
-            expr: Box::new(lower_expr(expr, env)),
+            expr: Box::new(lower_expr(expr, env, ctx)),
+        },
+        Expr::EnumVariant { enum_name, variant, .. } => HirExprKind::EnumVariant {
+            enum_name: enum_name.clone(),
+            variant: variant.clone(),
         },
     };
     HirExpr::new(kind, ty)
@@ -992,17 +1213,20 @@ fn expr_type_hint(expr: &Expr, env: &BTreeMap<String, TypeKind>) -> TypeKind {
         },
         Expr::DotResult { .. } => TypeKind::Unknown,
         Expr::Old { expr, .. } => expr_type_hint(expr, env),
+        Expr::Constructor { type_name, .. } => TypeKind::UserType(type_name.clone()),
+        Expr::EnumVariant { enum_name, .. } => TypeKind::Enum(enum_name.clone()),
     }
 }
 
 fn infer_expr(
     expr: &Expr,
     env: &BTreeMap<String, TypeKind>,
-    sigs: &BTreeMap<String, Option<TypeKind>>,
+    ctx: &TypeContext,
     context: ContractContext,
     diagnostics: &mut Diagnostics,
     observed_effects: &mut BTreeSet<String>,
 ) -> TypeKind {
+    let sigs = ctx.sigs;
     match expr {
         Expr::Ident { name, span } => {
             if let Some(t) = env.get(name) {
@@ -1026,14 +1250,7 @@ fn infer_expr(
         Expr::List { items, .. } => {
             observed_effects.insert("alloc".to_string());
             if let Some(first) = items.first() {
-                TypeKind::List(Box::new(infer_expr(
-                    first,
-                    env,
-                    sigs,
-                    context,
-                    diagnostics,
-                    observed_effects,
-                )))
+                TypeKind::List(Box::new(infer_expr(first, env, ctx, context, diagnostics, observed_effects)))
             } else {
                 TypeKind::List(Box::new(TypeKind::Unknown))
             }
@@ -1048,9 +1265,9 @@ fn infer_expr(
             let mut value_ty = TypeKind::Unknown;
             for (idx, (key, value)) in entries.iter().enumerate() {
                 let inferred_key =
-                    infer_expr(key, env, sigs, context, diagnostics, observed_effects);
+                    infer_expr(key, env, ctx, context, diagnostics, observed_effects);
                 let inferred_value =
-                    infer_expr(value, env, sigs, context, diagnostics, observed_effects);
+                    infer_expr(value, env, ctx, context, diagnostics, observed_effects);
                 if idx == 0 {
                     key_ty = inferred_key;
                     value_ty = inferred_value;
@@ -1096,18 +1313,146 @@ fn infer_expr(
             }
             TypeKind::Map(Box::new(key_ty), Box::new(value_ty))
         }
-        Expr::Member { object, field, .. } => {
-            let base = infer_expr(object, env, sigs, context, diagnostics, observed_effects);
+        Expr::Constructor {
+            type_name: ctor_type_name,
+            fields,
+            span,
+        } => {
+            observed_effects.insert("alloc".to_string());
+            if let Some(type_fields) = ctx.type_defs.get(ctor_type_name) {
+                let mut provided: BTreeSet<&str> = BTreeSet::new();
+                for (field_name, field_expr) in fields {
+                    if !type_fields.iter().any(|(f, _)| f == field_name) {
+                        diagnostics.push(Diagnostic::new(
+                            "E2252",
+                            Severity::Error,
+                            format!("type `{ctor_type_name}` has no field `{field_name}`"),
+                            *span,
+                        ));
+                    } else if !provided.insert(field_name.as_str()) {
+                        diagnostics.push(Diagnostic::new(
+                            "E2253",
+                            Severity::Error,
+                            format!("duplicate field `{field_name}` in constructor"),
+                            *span,
+                        ));
+                    } else {
+                        let expected_ty =
+                            type_fields.iter().find(|(f, _)| f == field_name).map(|(_, t)| t);
+                        let actual = infer_expr(
+                            field_expr,
+                            env,
+                            ctx,
+                            context,
+                            diagnostics,
+                            observed_effects,
+                        );
+                        if let Some(exp) = expected_ty {
+                            if !type_compatible(exp, &actual)
+                                && !matches!(actual, TypeKind::Unknown)
+                                && !matches!(exp, TypeKind::Unknown)
+                            {
+                                diagnostics.push(Diagnostic::new(
+                                    "E2254",
+                                    Severity::Error,
+                                    format!(
+                                        "field `{field_name}` type mismatch: expected `{}`, got `{}`",
+                                        type_name(exp),
+                                        type_name(&actual)
+                                    ),
+                                    field_expr.span(),
+                                ));
+                            }
+                        }
+                    }
+                }
+                for (fname, _) in type_fields {
+                    if !fields.iter().any(|(n, _)| n == fname) {
+                        diagnostics.push(Diagnostic::new(
+                            "E2255",
+                            Severity::Error,
+                            format!("missing required field `{fname}` in constructor for type `{ctor_type_name}`"),
+                            *span,
+                        ));
+                    }
+                }
+            } else {
+                diagnostics.push(Diagnostic::new(
+                    "E2256",
+                    Severity::Error,
+                    format!("unknown type `{ctor_type_name}`"),
+                    *span,
+                ));
+            }
+            TypeKind::UserType(ctor_type_name.clone())
+        }
+        Expr::EnumVariant { enum_name, variant, span } => {
+            if let Some(variants) = ctx.enum_defs.get(enum_name) {
+                if !variants.contains(variant) {
+                    diagnostics.push(Diagnostic::new(
+                        "E2250",
+                        Severity::Error,
+                        format!("enum `{enum_name}` has no variant `{variant}`"),
+                        *span,
+                    ));
+                }
+            } else {
+                diagnostics.push(Diagnostic::new(
+                    "E2257",
+                    Severity::Error,
+                    format!("unknown enum `{enum_name}`"),
+                    *span,
+                ));
+            }
+            TypeKind::Enum(enum_name.clone())
+        }
+        Expr::Member { object, field, span } => {
+            if let Expr::Ident { name: enum_name, .. } = &**object {
+                if ctx.enum_defs.contains_key(enum_name) {
+                    if let Some(variants) = ctx.enum_defs.get(enum_name) {
+                        if !variants.contains(field) {
+                            diagnostics.push(Diagnostic::new(
+                                "E2250",
+                                Severity::Error,
+                                format!(
+                                    "enum `{enum_name}` has no variant `{field}`",
+                                ),
+                                *span,
+                            ));
+                        }
+                    }
+                    return TypeKind::Enum(enum_name.clone());
+                }
+            }
+            let base = infer_expr(object, env, ctx, context, diagnostics, observed_effects);
             match field.as_str() {
                 "len" => TypeKind::Int,
                 "balance" => TypeKind::Int,
-                _ => match base {
-                    TypeKind::Map(key_ty, value_ty)
-                        if matches!(*key_ty, TypeKind::Str) && !is_container_member_api(field) =>
-                    {
-                        *value_ty
+                _ => match &base {
+                    TypeKind::UserType(type_name) => {
+                        if let Some(fields) = ctx.type_defs.get(type_name) {
+                            if let Some((_, ty)) = fields.iter().find(|(n, _)| n == field) {
+                                return ty.clone();
+                            }
+                            diagnostics.push(Diagnostic::new(
+                                "E2251",
+                                Severity::Error,
+                                format!(
+                                    "type `{type_name}` has no field `{field}`",
+                                ),
+                                *span,
+                            ));
+                            TypeKind::Unknown
+                        } else {
+                            base
+                        }
                     }
-                    other => other,
+                    TypeKind::Map(key_ty, value_ty)
+                        if matches!(**key_ty, TypeKind::Str) && !is_container_member_api(field) =>
+                    {
+                        (**value_ty).clone()
+                    }
+                    other => other.clone(),
                 },
             }
         }
@@ -1116,8 +1461,8 @@ fn infer_expr(
             index,
             span,
         } => {
-            let object_ty = infer_expr(object, env, sigs, context, diagnostics, observed_effects);
-            let index_ty = infer_expr(index, env, sigs, context, diagnostics, observed_effects);
+            let object_ty = infer_expr(object, env, ctx, context, diagnostics, observed_effects);
+            let index_ty = infer_expr(index, env, ctx, context, diagnostics, observed_effects);
             match object_ty {
                 TypeKind::List(inner) => {
                     if !matches!(index_ty, TypeKind::Int | TypeKind::Unknown) {
@@ -1180,9 +1525,9 @@ fn infer_expr(
             end,
             span,
         } => {
-            let object_ty = infer_expr(object, env, sigs, context, diagnostics, observed_effects);
+            let object_ty = infer_expr(object, env, ctx, context, diagnostics, observed_effects);
             if let Some(start) = start {
-                let start_ty = infer_expr(start, env, sigs, context, diagnostics, observed_effects);
+                let start_ty = infer_expr(start, env, ctx, context, diagnostics, observed_effects);
                 if !matches!(start_ty, TypeKind::Int | TypeKind::Unknown) {
                     diagnostics.push(Diagnostic::new(
                         "E2234",
@@ -1193,7 +1538,7 @@ fn infer_expr(
                 }
             }
             if let Some(end) = end {
-                let end_ty = infer_expr(end, env, sigs, context, diagnostics, observed_effects);
+                let end_ty = infer_expr(end, env, ctx, context, diagnostics, observed_effects);
                 if !matches!(end_ty, TypeKind::Int | TypeKind::Unknown) {
                     diagnostics.push(Diagnostic::new(
                         "E2235",
@@ -1222,13 +1567,13 @@ fn infer_expr(
             }
         }
         Expr::Call { callee, args, .. } => {
-            let callee_ty = infer_expr(callee, env, sigs, context, diagnostics, observed_effects);
+            let callee_ty = infer_expr(callee, env, ctx, context, diagnostics, observed_effects);
             let mut arg_types = Vec::with_capacity(args.len());
             for arg in args {
                 arg_types.push(infer_expr(
                     arg,
                     env,
-                    sigs,
+                    ctx,
                     context,
                     diagnostics,
                     observed_effects,
@@ -1592,8 +1937,8 @@ fn infer_expr(
             right,
             span,
         } => {
-            let lt = infer_expr(left, env, sigs, context, diagnostics, observed_effects);
-            let rt = infer_expr(right, env, sigs, context, diagnostics, observed_effects);
+            let lt = infer_expr(left, env, ctx, context, diagnostics, observed_effects);
+            let rt = infer_expr(right, env, ctx, context, diagnostics, observed_effects);
             match op {
                 BinaryOp::Eq
                 | BinaryOp::Ne
@@ -1644,7 +1989,7 @@ fn infer_expr(
             }
         }
         Expr::Unary { op, expr, .. } => {
-            let t = infer_expr(expr, env, sigs, context, diagnostics, observed_effects);
+            let t = infer_expr(expr, env, ctx, context, diagnostics, observed_effects);
             match op {
                 UnaryOp::Neg => t,
                 UnaryOp::Not => TypeKind::Bool,
@@ -1661,14 +2006,14 @@ fn infer_expr(
                 ));
             }
             check_go_sendability(expr, env, expr_type_hint, diagnostics);
-            infer_expr(expr, env, sigs, context, diagnostics, observed_effects)
+            infer_expr(expr, env, ctx, context, diagnostics, observed_effects)
         }
         Expr::Await { expr, .. } => {
             observed_effects.insert("concurrency".to_string());
-            infer_expr(expr, env, sigs, context, diagnostics, observed_effects)
+            infer_expr(expr, env, ctx, context, diagnostics, observed_effects)
         }
         Expr::Question { expr, span } => {
-            let inner = infer_expr(expr, env, sigs, context, diagnostics, observed_effects);
+            let inner = infer_expr(expr, env, ctx, context, diagnostics, observed_effects);
             match inner {
                 TypeKind::Result(ok, _err) => *ok,
                 TypeKind::Unknown => TypeKind::Unknown,
@@ -1703,7 +2048,7 @@ fn infer_expr(
                     *span,
                 ));
             }
-            infer_expr(expr, env, sigs, context, diagnostics, observed_effects)
+            infer_expr(expr, env, ctx, context, diagnostics, observed_effects)
         }
     }
 }
@@ -1771,6 +2116,72 @@ fn validate_contract_expr(expr: &Expr, context: ContractContext, diagnostics: &m
         }
         _ => {}
     }
+}
+
+fn resolve_type_ref(
+    t: &TypeRef,
+    type_defs: &BTreeMap<String, Vec<(String, TypeKind)>>,
+    enum_defs: &BTreeMap<String, Vec<String>>,
+) -> TypeKind {
+    let raw = t.raw.replace(' ', "");
+    if raw.is_empty() {
+        return TypeKind::Unknown;
+    }
+    if type_defs.contains_key(&raw) {
+        return TypeKind::UserType(raw);
+    }
+    if enum_defs.contains_key(&raw) {
+        return TypeKind::Enum(raw);
+    }
+    if raw.starts_with("List<") && raw.ends_with('>') {
+        let inner = &raw[5..raw.len() - 1];
+        return TypeKind::List(Box::new(resolve_type_ref(
+            &TypeRef {
+                raw: inner.to_string(),
+            },
+            type_defs,
+            enum_defs,
+        )));
+    }
+    if let Some((ok, err)) = split_generic_pair(&raw, "Result") {
+        return TypeKind::Result(
+            Box::new(resolve_type_ref(
+                &TypeRef { raw: ok },
+                type_defs,
+                enum_defs,
+            )),
+            Box::new(resolve_type_ref(
+                &TypeRef { raw: err },
+                type_defs,
+                enum_defs,
+            )),
+        );
+    }
+    if let Some((key, value)) = split_generic_pair(&raw, "Map") {
+        return TypeKind::Map(
+            Box::new(resolve_type_ref(
+                &TypeRef { raw: key },
+                type_defs,
+                enum_defs,
+            )),
+            Box::new(resolve_type_ref(
+                &TypeRef { raw: value },
+                type_defs,
+                enum_defs,
+            )),
+        );
+    }
+    if raw.starts_with("Chan<") && raw.ends_with('>') {
+        let inner = &raw[5..raw.len() - 1];
+        return TypeKind::Chan(Box::new(resolve_type_ref(
+            &TypeRef {
+                raw: inner.to_string(),
+            },
+            type_defs,
+            enum_defs,
+        )));
+    }
+    parse_type_ref(t)
 }
 
 fn parse_type_ref(t: &TypeRef) -> TypeKind {
@@ -1861,6 +2272,8 @@ fn type_compatible(a: &TypeKind, b: &TypeKind) -> bool {
             type_compatible(a_ok, b_ok) && type_compatible(a_err, b_err)
         }
         (TypeKind::Chan(a_inner), TypeKind::Chan(b_inner)) => type_compatible(a_inner, b_inner),
+        (TypeKind::UserType(a), TypeKind::UserType(b)) => a == b,
+        (TypeKind::Enum(a), TypeKind::Enum(b)) => a == b,
         (TypeKind::Int, TypeKind::Float) | (TypeKind::Float, TypeKind::Int) => true,
         _ => false,
     }
@@ -1876,6 +2289,8 @@ fn type_name(t: &TypeKind) -> String {
         TypeKind::Map(key, value) => format!("Map<{}, {}>", type_name(key), type_name(value)),
         TypeKind::Result(ok, err) => format!("Result<{}, {}>", type_name(ok), type_name(err)),
         TypeKind::Chan(inner) => format!("Chan<{}>", type_name(inner)),
+        TypeKind::UserType(name) => name.clone(),
+        TypeKind::Enum(name) => name.clone(),
         TypeKind::Void => "Void".to_string(),
         TypeKind::Unknown => "Unknown".to_string(),
     }

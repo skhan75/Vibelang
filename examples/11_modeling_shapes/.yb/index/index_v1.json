@@ -1390,6 +1390,321 @@
       "effect_mismatches": [],
       "diagnostics": [],
       "dependencies": []
+    },
+    "/home/azskdev/workspace/VibeStack/vibelang/examples/11_modeling_shapes/74_type_point_basics.yb": {
+      "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/11_modeling_shapes/74_type_point_basics.yb",
+      "file_hash": "c74e389fc7067ecf8b2c6e90e5994b5cf1947a6b4904870307e6a24db8778c9f",
+      "symbols": [
+        {
+          "id": 13618121025267189156,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/11_modeling_shapes/74_type_point_basics.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 5,
+            "line_end": 17,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 1669265658870397656,
+          "name": "alloc",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/11_modeling_shapes/74_type_point_basics.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 3,
+            "line_end": 7,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 3957215482109487739,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/11_modeling_shapes/74_type_point_basics.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 3,
+            "line_end": 8,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 5641253310140977384,
+          "name": "p",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/11_modeling_shapes/74_type_point_basics.yb",
+          "span": {
+            "line_start": 9,
+            "col_start": 3,
+            "line_end": 9,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 2734223078022498983,
+          "name": "sum",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/11_modeling_shapes/74_type_point_basics.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 3,
+            "line_end": 10,
+            "col_end": 5
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 5641253310140977384,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/11_modeling_shapes/74_type_point_basics.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 10,
+            "line_end": 10,
+            "col_end": 10
+          }
+        },
+        {
+          "symbol_id": 5641253310140977384,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/11_modeling_shapes/74_type_point_basics.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 16,
+            "line_end": 10,
+            "col_end": 16
+          }
+        },
+        {
+          "symbol_id": 2734223078022498983,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/11_modeling_shapes/74_type_point_basics.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 6,
+            "line_end": 11,
+            "col_end": 8
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 13618121025267189156,
+          "function_name": "main",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/11_modeling_shapes/74_type_point_basics.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "alloc",
+            "io"
+          ],
+          "effects_observed": [
+            "alloc",
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/home/azskdev/workspace/VibeStack/vibelang/examples/11_modeling_shapes/75_enum_match_basics.yb": {
+      "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/11_modeling_shapes/75_enum_match_basics.yb",
+      "file_hash": "ecdae5bcf92a198d075650e71ac50486e66b63e5d4f2ef920a532dcd6abefa33",
+      "symbols": [
+        {
+          "id": 14062126994470772085,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/11_modeling_shapes/75_enum_match_basics.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 5,
+            "line_end": 16,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 2018746818953930350,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/11_modeling_shapes/75_enum_match_basics.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 3,
+            "line_end": 8,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 15653784389904236833,
+          "name": "c",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/11_modeling_shapes/75_enum_match_basics.yb",
+          "span": {
+            "line_start": 9,
+            "col_start": 3,
+            "line_end": 9,
+            "col_end": 3
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 15653784389904236833,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/11_modeling_shapes/75_enum_match_basics.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 9,
+            "line_end": 10,
+            "col_end": 9
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 14062126994470772085,
+          "function_name": "main",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/11_modeling_shapes/75_enum_match_basics.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "io"
+          ],
+          "effects_observed": [],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [
+        {
+          "function_name": "main",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/11_modeling_shapes/75_enum_match_basics.yb",
+          "declared_only": [
+            "io"
+          ],
+          "observed_only": []
+        }
+      ],
+      "diagnostics": [
+        {
+          "code": "E3003",
+          "severity": "Info",
+          "message": "declared effect `io` was not observed",
+          "span": {
+            "line_start": 7,
+            "col_start": 5,
+            "line_end": 16,
+            "col_end": 1
+          }
+        }
+      ],
+      "dependencies": [
+        "Color"
+      ]
+    },
+    "/home/azskdev/workspace/VibeStack/vibelang/examples/11_modeling_shapes/76_type_mixed_fields.yb": {
+      "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/11_modeling_shapes/76_type_mixed_fields.yb",
+      "file_hash": "eaa88d5aa7ca537557613306d76423c1759c79faecd70746e2e3396c504686dd",
+      "symbols": [
+        {
+          "id": 4124255621660402542,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/11_modeling_shapes/76_type_mixed_fields.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 5,
+            "line_end": 17,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 6336364661323754204,
+          "name": "alloc",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/11_modeling_shapes/76_type_mixed_fields.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 3,
+            "line_end": 8,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 850889222249249897,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/11_modeling_shapes/76_type_mixed_fields.yb",
+          "span": {
+            "line_start": 9,
+            "col_start": 3,
+            "line_end": 9,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 18304336121138144658,
+          "name": "p",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/11_modeling_shapes/76_type_mixed_fields.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 3,
+            "line_end": 10,
+            "col_end": 3
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 18304336121138144658,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/11_modeling_shapes/76_type_mixed_fields.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 6,
+            "line_end": 11,
+            "col_end": 6
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 4124255621660402542,
+          "function_name": "main",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/11_modeling_shapes/76_type_mixed_fields.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "alloc",
+            "io"
+          ],
+          "effects_observed": [
+            "alloc",
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
     }
   }
 }

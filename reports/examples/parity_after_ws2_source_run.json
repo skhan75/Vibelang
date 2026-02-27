@@ -1,0 +1,52 @@
+{
+  "generated_at_utc": "2026-02-27T08:32:55Z",
+  "command": "cargo run -q -p vibe_cli -- check/run <example>",
+  "total_examples": 78,
+  "check": {
+    "pass": 78,
+    "fail": 0
+  },
+  "run": {
+    "pass": 73,
+    "fail": 5
+  },
+  "run_failures": [
+    {
+      "file": "examples/08_modules_packages/project_math/demo/math.yb",
+      "rc": 2,
+      "out": [
+        "`vibe run` requires an entry source file that defines `main`; `examples/08_modules_packages/project_math/demo/math.yb` has no main function. run an entry file (for example `.../main.yb`) or use `vibe check examples/08_modules_packages/project_math/demo/math.yb` for module validation."
+      ]
+    },
+    {
+      "file": "examples/08_modules_packages/project_pipeline/app/formatter.yb",
+      "rc": 2,
+      "out": [
+        "`vibe run` requires an entry source file that defines `main`; `examples/08_modules_packages/project_pipeline/app/formatter.yb` has no main function. run an entry file (for example `.../main.yb`) or use `vibe check examples/08_modules_packages/project_pipeline/app/formatter.yb` for module validation."
+      ]
+    },
+    {
+      "file": "examples/08_modules_packages/project_pipeline/app/parser.yb",
+      "rc": 2,
+      "out": [
+        "`vibe run` requires an entry source file that defines `main`; `examples/08_modules_packages/project_pipeline/app/parser.yb` has no main function. run an entry file (for example `.../main.yb`) or use `vibe check examples/08_modules_packages/project_pipeline/app/parser.yb` for module validation."
+      ]
+    },
+    {
+      "file": "examples/10_contracts_intent/68_runtime_require_failure_demo.yb",
+      "rc": 1,
+      "out": [
+        "panic: contract @require failed in native execution"
+      ]
+    },
+    {
+      "file": "examples/10_contracts_intent/69_runtime_ensure_failure_demo.yb",
+      "rc": 2,
+      "out": [
+        "contract/example preflight failed for `examples/10_contracts_intent/69_runtime_ensure_failure_demo.yb`: 1 of 1 example(s) failed",
+        "  - broken_increment example failed: contract @ensure failed in `broken_increment`"
+      ]
+    }
+  ],
+  "check_failures": []
+}

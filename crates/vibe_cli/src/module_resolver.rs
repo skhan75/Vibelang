@@ -149,7 +149,9 @@ pub fn resolve_compilation_unit(entry_path: &Path) -> Result<CompilationUnit, St
         };
         let parsed = &docs[idx].1;
         for decl in &parsed.ast.declarations {
-            let Declaration::Function(func) = decl;
+            let Declaration::Function(func) = decl else {
+                continue;
+            };
             if module == &entry_module || func.is_public {
                 merged_decls.push(decl.clone());
                 visible_functions.insert(func.name.clone());
@@ -275,7 +277,9 @@ fn visit_module(
 
 fn collect_called_functions(ast: &FileAst, out: &mut BTreeSet<String>) {
     for decl in &ast.declarations {
-        let Declaration::Function(func) = decl;
+        let Declaration::Function(func) = decl else {
+            continue;
+        };
         for contract in &func.contracts {
             collect_calls_from_contract(contract, out);
         }
@@ -354,6 +358,18 @@ fn collect_calls_from_stmt(stmt: &Stmt, out: &mut BTreeSet<String>) {
             }
         }
         Stmt::Break { .. } | Stmt::Continue { .. } => {}
+        Stmt::Match {
+            scrutinee, arms, default_action, ..
+        } => {
+            collect_calls_from_expr(scrutinee, out);
+            for arm in arms {
+                collect_calls_from_expr(&arm.pattern, out);
+                collect_calls_from_expr(&arm.action, out);
+            }
+            if let Some(e) = default_action {
+                collect_calls_from_expr(e, out);
+            }
+        }
     }
 }
 
@@ -406,12 +422,18 @@ fn collect_calls_from_expr(expr: &Expr, out: &mut BTreeSet<String>) {
                 collect_calls_from_expr(v, out);
             }
         }
+        Expr::Constructor { fields, .. } => {
+            for (_, e) in fields {
+                collect_calls_from_expr(e, out);
+            }
+        }
         Expr::Ident { .. }
         | Expr::Int { .. }
         | Expr::Float { .. }
         | Expr::Bool { .. }
         | Expr::String { .. }
-        | Expr::DotResult { .. } => {}
+        | Expr::DotResult { .. }
+        | Expr::EnumVariant { .. } => {}
     }
 }
 
@@ -420,6 +442,8 @@ fn module_span(ast: &FileAst) -> Span {
         .first()
         .map(|decl| match decl {
             Declaration::Function(func) => func.span,
+            Declaration::Type(t) => t.span,
+            Declaration::Enum(e) => e.span,
         })
         .unwrap_or_else(|| Span::new(1, 1, 1, 1))
 }

@@ -1,0 +1,17 @@
+type Point {
+  x: Int,
+  y: Int
+}
+
+pub main() -> Int {
+  @effect alloc
+  @effect io
+  p := Point { x: 3, y: 4 }
+  sum := p.x + p.y
+  if sum == 7 {
+    println("point-sum")
+  } else {
+    println("point-sum-bad")
+  }
+  0
+}

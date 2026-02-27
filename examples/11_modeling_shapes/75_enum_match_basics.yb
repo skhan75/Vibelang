@@ -1,0 +1,16 @@
+enum Color {
+  Red,
+  Green,
+  Blue
+}
+
+pub main() -> Int {
+  @effect io
+  c := Color.Red
+  match c {
+    case Color.Red => println("red")
+    case Color.Green => println("green")
+    case Color.Blue => println("blue")
+  }
+  0
+}

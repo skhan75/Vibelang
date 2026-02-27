@@ -1,0 +1,6 @@
+# Intentional failure demos kept for contract-behavior demonstration.
+# These files are expected to fail under `vibe run`.
+# Format: <example-path> | <checklist-id>
+
+examples/10_contracts_intent/68_runtime_require_failure_demo.yb | D-03
+examples/10_contracts_intent/69_runtime_ensure_failure_demo.yb | D-03

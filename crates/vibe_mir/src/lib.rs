@@ -75,6 +75,17 @@ pub enum MirStmt {
         kind: MirContractKind,
         expr: MirExpr,
     },
+    Match {
+        scrutinee: MirExpr,
+        arms: Vec<MirMatchArm>,
+        default_action: Option<MirExpr>,
+    },
+}
+
+#[derive(Debug, Clone)]
+pub struct MirMatchArm {
+    pub pattern: MirExpr,
+    pub action: MirExpr,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -117,6 +128,7 @@ pub enum MirExpr {
     Member {
         object: Box<MirExpr>,
         field: String,
+        object_type: Option<String>,
     },
     Index {
         object: Box<MirExpr>,
@@ -154,6 +166,14 @@ pub enum MirExpr {
     DotResult,
     Old {
         expr: Box<MirExpr>,
+    },
+    Constructor {
+        type_name: String,
+        fields: Vec<(String, MirExpr)>,
+    },
+    EnumVariant {
+        enum_name: String,
+        variant: String,
     },
 }
 
@@ -276,6 +296,24 @@ fn lower_stmt_list(stmts: &[HirStmt]) -> Result<Vec<MirStmt>, String> {
                 },
                 expr: lower_expr(expr)?,
             }),
+            HirStmt::Match {
+                scrutinee,
+                arms,
+                default_action,
+            } => out.push(MirStmt::Match {
+                scrutinee: lower_expr(scrutinee)?,
+                arms: arms
+                    .iter()
+                    .map(|a| Ok(MirMatchArm {
+                        pattern: lower_expr(&a.pattern)?,
+                        action: lower_expr(&a.action)?,
+                    }))
+                    .collect::<Result<Vec<_>, String>>()?,
+                default_action: default_action
+                    .as_ref()
+                    .map(|e| lower_expr(e))
+                    .transpose()?,
+            }),
         }
     }
     Ok(out)
@@ -300,10 +338,21 @@ fn lower_expr(expr: &HirExpr) -> Result<MirExpr, String> {
                 .map(|(k, v)| Ok((lower_expr(k)?, lower_expr(v)?)))
                 .collect::<Result<Vec<_>, String>>()?,
         ),
-        HirExprKind::Member { object, field } => MirExpr::Member {
-            object: Box::new(lower_expr(object)?),
-            field: field.clone(),
-        },
+        HirExprKind::Member { object, field } => {
+            let ot = (!object.ty.is_empty()
+                && object.ty != "Int"
+                && object.ty != "Float"
+                && object.ty != "Bool"
+                && object.ty != "Str"
+                && !object.ty.starts_with("List")
+                && !object.ty.starts_with("Map"))
+                .then(|| object.ty.clone());
+            MirExpr::Member {
+                object: Box::new(lower_expr(object)?),
+                field: field.clone(),
+                object_type: ot,
+            }
+        }
         HirExprKind::Index { object, index } => MirExpr::Index {
             object: Box::new(lower_expr(object)?),
             index: Box::new(lower_expr(index)?),
@@ -351,6 +400,17 @@ fn lower_expr(expr: &HirExpr) -> Result<MirExpr, String> {
         HirExprKind::DotResult => MirExpr::DotResult,
         HirExprKind::Old { expr } => MirExpr::Old {
             expr: Box::new(lower_expr(expr)?),
+        },
+        HirExprKind::Constructor { type_name, fields } => MirExpr::Constructor {
+            type_name: type_name.clone(),
+            fields: fields
+                .iter()
+                .map(|(n, e)| Ok((n.clone(), lower_expr(e)?)))
+                .collect::<Result<Vec<_>, String>>()?,
+        },
+        HirExprKind::EnumVariant { enum_name, variant } => MirExpr::EnumVariant {
+            enum_name: enum_name.clone(),
+            variant: variant.clone(),
         },
     })
 }
@@ -457,6 +517,20 @@ fn verify_stmt_list(
                     verify_expr(&case.action)?;
                 }
             }
+            MirStmt::Match {
+                scrutinee,
+                arms,
+                default_action,
+            } => {
+                verify_expr(scrutinee)?;
+                for arm in arms {
+                    verify_expr(&arm.pattern)?;
+                    verify_expr(&arm.action)?;
+                }
+                if let Some(e) = default_action {
+                    verify_expr(e)?;
+                }
+            }
         }
     }
     Ok(())
@@ -480,7 +554,7 @@ fn verify_expr(expr: &MirExpr) -> Result<(), String> {
                 verify_expr(v)?;
             }
         }
-        MirExpr::Member { object, field } => {
+        MirExpr::Member { object, field, object_type: _ } => {
             verify_expr(object)?;
             if field.trim().is_empty() {
                 return Err("empty member field in MIR".to_string());
@@ -520,6 +594,12 @@ fn verify_expr(expr: &MirExpr) -> Result<(), String> {
         MirExpr::Question { expr } | MirExpr::Old { expr } => {
             verify_expr(expr)?;
         }
+        MirExpr::Constructor { type_name: _, fields } => {
+            for (_, e) in fields {
+                verify_expr(e)?;
+            }
+        }
+        MirExpr::EnumVariant { .. } => {}
         MirExpr::Int(_)
         | MirExpr::Float(_)
         | MirExpr::Bool(_)

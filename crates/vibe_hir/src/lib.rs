@@ -75,6 +75,17 @@ pub enum HirStmt {
         kind: HirContractKind,
         expr: HirExpr,
     },
+    Match {
+        scrutinee: HirExpr,
+        arms: Vec<HirMatchArm>,
+        default_action: Option<HirExpr>,
+    },
+}
+
+#[derive(Debug, Clone)]
+pub struct HirMatchArm {
+    pub pattern: HirExpr,
+    pub action: HirExpr,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -144,6 +155,14 @@ pub enum HirExprKind {
     DotResult,
     Old {
         expr: Box<HirExpr>,
+    },
+    Constructor {
+        type_name: String,
+        fields: Vec<(String, HirExpr)>,
+    },
+    EnumVariant {
+        enum_name: String,
+        variant: String,
     },
 }
 
@@ -266,6 +285,20 @@ fn verify_stmt_list(stmts: &[HirStmt], scope: &mut BTreeMap<String, String>) -> 
                     verify_expr(&case.action)?;
                 }
             }
+            HirStmt::Match {
+                scrutinee,
+                arms,
+                default_action,
+            } => {
+                verify_expr(scrutinee)?;
+                for arm in arms {
+                    verify_expr(&arm.pattern)?;
+                    verify_expr(&arm.action)?;
+                }
+                if let Some(e) = default_action {
+                    verify_expr(e)?;
+                }
+            }
         }
     }
     Ok(())
@@ -333,6 +366,12 @@ fn verify_expr(expr: &HirExpr) -> Result<(), String> {
         HirExprKind::Old { expr } => {
             verify_expr(expr)?;
         }
+        HirExprKind::Constructor { type_name: _, fields } => {
+            for (_, e) in fields {
+                verify_expr(e)?;
+            }
+        }
+        HirExprKind::EnumVariant { .. } => {}
         HirExprKind::Int(_)
         | HirExprKind::Float(_)
         | HirExprKind::Bool(_)

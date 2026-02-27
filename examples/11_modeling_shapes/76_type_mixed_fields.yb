@@ -1,0 +1,17 @@
+type Person {
+  name: Str,
+  age: Int,
+  active: Bool
+}
+
+pub main() -> Int {
+  @effect alloc
+  @effect io
+  p := Person { name: "alice", age: 30, active: true }
+  if p.active {
+    println("person-active")
+  } else {
+    println("person-inactive")
+  }
+  0
+}

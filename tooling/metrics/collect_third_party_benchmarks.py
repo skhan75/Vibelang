@@ -341,6 +341,40 @@ def ensure_plbci_checkout(
     return checkout_dir
 
 
+def patch_staged_bench_file(bench_path: Path, language_id: str) -> None:
+    text = bench_path.read_text()
+    patched = text
+    if language_id == "rust":
+        patched = patched.replace(
+            "sudo mv /tmp/rs/target/release/_app out",
+            "mv /tmp/rs/target/release/_app out",
+        )
+        patched = re.sub(r"(?m)^\s*CC:\s*clang\s*$", "      CC: gcc", patched)
+        patched = re.sub(r"(?m)^\s*CXX:\s*clang\+\+\s*$", "      CXX: g++", patched)
+    elif language_id == "zig":
+        patched = re.sub(
+            r"(?m)^\s*build:\s*zig build[^\n]*$",
+            "    build: mkdir -p zig-out/bin && zig build-exe app.zig -O ReleaseFast -mcpu broadwell -femit-bin=zig-out/bin/app",
+            patched,
+        )
+    if patched != text:
+        bench_path.write_text(patched)
+
+
+def copy_adapter_includes(adapter_root: Path, plbci_dir: Path) -> None:
+    adapter_include_root = adapter_root / "include"
+    if not adapter_include_root.exists():
+        return
+    target_include_root = plbci_dir / "bench" / "include"
+    for path in adapter_include_root.rglob("*"):
+        if not path.is_file():
+            continue
+        rel = path.relative_to(adapter_include_root)
+        dst = target_include_root / rel
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(path, dst)
+
+
 def stage_config(
     repo_root: Path,
     matrix: dict[str, Any],
@@ -391,19 +425,26 @@ def stage_config(
             src = plbci_dir / "bench" / bench_file
         if not src.exists():
             fail(f"bench file missing for language `{lang['id']}`: {src}")
-        shutil.copy2(src, stage_dir / bench_file)
+        dst = stage_dir / bench_file
+        shutil.copy2(src, dst)
+        patch_staged_bench_file(dst, str(lang.get("id", "")))
 
     adapter_algo_root = adapter_root / "algorithm"
     target_algo_root = plbci_dir / "bench" / "algorithm"
     if not adapter_algo_root.exists():
         fail(f"adapter algorithm root missing: {adapter_algo_root}")
+    skip_parts = {".yb", ".vibe", "target", "node_modules"}
     for path in adapter_algo_root.rglob("*"):
         if not path.is_file():
+            continue
+        if any(part in skip_parts for part in path.parts):
             continue
         rel = path.relative_to(adapter_algo_root)
         dst = target_algo_root / rel
         dst.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(path, dst)
+
+    copy_adapter_includes(adapter_root=adapter_root, plbci_dir=plbci_dir)
 
     return stage_dir / "bench.yaml", target_algo_root
 

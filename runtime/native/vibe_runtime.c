@@ -127,6 +127,19 @@ void vibe_exit(int code) {
     exit(code);
 }
 
+/* Heap records: fixed 8-byte slots, slot_count slots. Returns aligned pointer. */
+void *vibe_record_alloc(int64_t slot_count) {
+    if (slot_count <= 0) {
+        vibe_panic("vibe_record_alloc: invalid slot_count");
+    }
+    size_t size = (size_t)slot_count * 8;
+    void *ptr = calloc(1, size);
+    if (ptr == NULL) {
+        vibe_panic("vibe_record_alloc: allocation failed");
+    }
+    return ptr;
+}
+
 static char *vibe_strdup_or_panic(const char *src) {
     if (src == NULL) {
         char *empty = (char *)calloc(1, sizeof(char));
@@ -294,6 +307,56 @@ int64_t vibe_list_len_i64(void *handle) {
         vibe_panic("list len called on non-list handle");
     }
     return list->len;
+}
+
+static int vibe_list_sort_desc_i64_cmp(const void *lhs, const void *rhs) {
+    int64_t left = *(const int64_t *)lhs;
+    int64_t right = *(const int64_t *)rhs;
+    if (left < right) {
+        return 1;
+    }
+    if (left > right) {
+        return -1;
+    }
+    return 0;
+}
+
+void *vibe_list_sort_desc_i64(void *handle) {
+    vibe_list_i64 *list = (vibe_list_i64 *)handle;
+    if (list == NULL || list->tag != VIBE_CONTAINER_LIST_I64) {
+        vibe_panic("list sort_desc called on non-list handle");
+    }
+    vibe_list_i64 *out = (vibe_list_i64 *)vibe_list_new_i64(list->len);
+    out->len = list->len;
+    if (list->len > 0) {
+        memcpy(out->items, list->items, (size_t)list->len * sizeof(int64_t));
+        qsort(
+            out->items,
+            (size_t)out->len,
+            sizeof(int64_t),
+            vibe_list_sort_desc_i64_cmp
+        );
+    }
+    return (void *)out;
+}
+
+void *vibe_list_take_i64(void *handle, int64_t count) {
+    vibe_list_i64 *list = (vibe_list_i64 *)handle;
+    if (list == NULL || list->tag != VIBE_CONTAINER_LIST_I64) {
+        vibe_panic("list take called on non-list handle");
+    }
+    if (count < 0) {
+        count = 0;
+    }
+    if (count > list->len) {
+        count = list->len;
+    }
+    vibe_list_i64 *out = (vibe_list_i64 *)vibe_list_new_i64(count);
+    out->len = count;
+    if (count > 0) {
+        memcpy(out->items, list->items, (size_t)count * sizeof(int64_t));
+    }
+    return (void *)out;
 }
 
 static uint64_t vibe_hash_u64(uint64_t value) {

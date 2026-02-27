@@ -2,6 +2,6 @@ fn runAll(tasks: Unknown) -> Unknown {
   Let { name: "jobs", expr: Call { callee: Var("chan"), args: [Int(1024)] } }
   Let { name: "out", expr: Call { callee: Var("chan"), args: [Int(1024)] } }
   Repeat { count: Call { callee: Var("cpu_count"), args: [] }, body: [Go(Call { callee: Var("worker"), args: [Var("jobs"), Var("out")] })] }
-  ContractCheck { kind: Ensure, expr: Binary { left: Call { callee: Var("len"), args: [Call { callee: Member { object: Var("out"), field: "take" }, args: [Call { callee: Var("len"), args: [Var("tasks")] }] }] }, op: "Eq", right: Call { callee: Var("len"), args: [Var("tasks")] } } }
-  Return(Call { callee: Member { object: Var("out"), field: "take" }, args: [Call { callee: Var("len"), args: [Var("tasks")] }] })
+  ContractCheck { kind: Ensure, expr: Binary { left: Call { callee: Var("len"), args: [Call { callee: Member { object: Var("out"), field: "take", object_type: Some("Chan<Unknown>") }, args: [Call { callee: Var("len"), args: [Var("tasks")] }] }] }, op: "Eq", right: Call { callee: Var("len"), args: [Var("tasks")] } } }
+  Return(Call { callee: Member { object: Var("out"), field: "take", object_type: Some("Chan<Unknown>") }, args: [Call { callee: Var("len"), args: [Var("tasks")] }] })
 }

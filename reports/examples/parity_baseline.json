@@ -1,0 +1,235 @@
+{
+  "generated_at_utc": "2026-02-27T07:47:06Z",
+  "total_examples": 75,
+  "check": {
+    "pass": 75,
+    "fail": 0
+  },
+  "run": {
+    "pass": 46,
+    "fail": 29
+  },
+  "check_failures": [],
+  "run_failures": [
+    {
+      "file": "examples/02_strings_numbers/11_string_len_compare.yb",
+      "rc": 1,
+      "output": [
+        "panic: container len called on unsupported container"
+      ]
+    },
+    {
+      "file": "examples/02_strings_numbers/12_string_build_loop.yb",
+      "rc": 1,
+      "output": [
+        "panic: container len called on unsupported container"
+      ]
+    },
+    {
+      "file": "examples/02_strings_numbers/13_int_arithmetic_min_max.yb",
+      "rc": 2,
+      "output": [
+        "codegen failed: E3403: unknown call target `max`"
+      ]
+    },
+    {
+      "file": "examples/02_strings_numbers/14_float_basics.yb",
+      "rc": 101,
+      "output": [
+        "thread 'main' panicked at /home/azskdev/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cranelift-frontend-0.121.2/src/frontend.rs:544:21:",
+        "declared type of variable var0 doesn't match type of value v2",
+        "note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace"
+      ]
+    },
+    {
+      "file": "examples/02_strings_numbers/15_float_comparison.yb",
+      "rc": 2,
+      "output": [
+        "codegen failed: failed to define function `main`: Compilation error: Verifier errors"
+      ]
+    },
+    {
+      "file": "examples/03_data_structures/16_list_append_get_set.yb",
+      "rc": 1,
+      "output": [
+        "panic: container set(Str, Int) is only valid for Map<Str, Int>"
+      ]
+    },
+    {
+      "file": "examples/03_data_structures/17_list_sort_take.yb",
+      "rc": 2,
+      "output": [
+        "codegen failed: E3404: member call `.sort_desc()` is not supported in v0.1 native backend"
+      ]
+    },
+    {
+      "file": "examples/03_data_structures/19_queue_with_list.yb",
+      "rc": 1,
+      "output": [
+        "panic: container get(Str) is only valid for Map<Str, Int>"
+      ]
+    },
+    {
+      "file": "examples/03_data_structures/21_map_int_int_basics.yb",
+      "rc": 1,
+      "output": [
+        "panic: container set(Str, Int) is only valid for Map<Str, Int>"
+      ]
+    },
+    {
+      "file": "examples/04_algorithms/23_linear_search.yb",
+      "rc": 1,
+      "output": [
+        "panic: container get(Str) is only valid for Map<Str, Int>"
+      ]
+    },
+    {
+      "file": "examples/04_algorithms/24_binary_search.yb",
+      "rc": 1,
+      "output": [
+        "panic: container get(Str) is only valid for Map<Str, Int>"
+      ]
+    },
+    {
+      "file": "examples/04_algorithms/25_bubble_sort.yb",
+      "rc": 1,
+      "output": [
+        "panic: container get(Str) is only valid for Map<Str, Int>"
+      ]
+    },
+    {
+      "file": "examples/04_algorithms/26_selection_sort.yb",
+      "rc": 1,
+      "output": [
+        "panic: container get(Str) is only valid for Map<Str, Int>"
+      ]
+    },
+    {
+      "file": "examples/04_algorithms/27_prefix_sum.yb",
+      "rc": 1,
+      "output": [
+        "panic: container get(Str) is only valid for Map<Str, Int>"
+      ]
+    },
+    {
+      "file": "examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+      "rc": 1,
+      "output": [
+        "panic: container get(Str) is only valid for Map<Str, Int>"
+      ]
+    },
+    {
+      "file": "examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+      "rc": 1,
+      "output": [
+        "panic: container remove(Str) is only valid for Map<Str, Int>"
+      ]
+    },
+    {
+      "file": "examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+      "rc": 1,
+      "output": [
+        "panic: container get(Str) is only valid for Map<Str, Int>"
+      ]
+    },
+    {
+      "file": "examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+      "rc": 2,
+      "output": [
+        "codegen failed: E3403: unknown call target `max`"
+      ]
+    },
+    {
+      "file": "examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+      "rc": 1,
+      "output": [
+        "panic: container len called on unsupported container"
+      ]
+    },
+    {
+      "file": "examples/08_modules_packages/project_math/demo/math.yb",
+      "rc": 2,
+      "output": [
+        "link failed:",
+        "/usr/bin/ld: /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o: in function `_start':",
+        "(.text+0x1b): undefined reference to `main'",
+        "collect2: error: ld returned 1 exit status"
+      ]
+    },
+    {
+      "file": "examples/08_modules_packages/project_pipeline/app/formatter.yb",
+      "rc": 2,
+      "output": [
+        "link failed:",
+        "/usr/bin/ld: /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o: in function `_start':",
+        "(.text+0x1b): undefined reference to `main'",
+        "collect2: error: ld returned 1 exit status"
+      ]
+    },
+    {
+      "file": "examples/08_modules_packages/project_pipeline/app/main.yb",
+      "rc": 1,
+      "output": [
+        "panic: container len called on unsupported container"
+      ]
+    },
+    {
+      "file": "examples/08_modules_packages/project_pipeline/app/parser.yb",
+      "rc": 2,
+      "output": [
+        "link failed:",
+        "/usr/bin/ld: /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o: in function `_start':",
+        "(.text+0x1b): undefined reference to `main'",
+        "collect2: error: ld returned 1 exit status"
+      ]
+    },
+    {
+      "file": "examples/09_agentic_patterns/47_agentic_guardrail_pipeline.yb",
+      "rc": 1,
+      "output": [
+        "panic: container get(Str) is only valid for Map<Str, Int>"
+      ]
+    },
+    {
+      "file": "examples/10_contracts_intent/60_effect_alloc_mut_state.yb",
+      "rc": 2,
+      "output": [
+        "contract/example preflight failed for `examples/10_contracts_intent/60_effect_alloc_mut_state.yb`: 1 of 2 example(s) failed",
+        "  - build_series example failed: method `.append()` is not supported in phase 2 examples"
+      ]
+    },
+    {
+      "file": "examples/10_contracts_intent/66_list_transform_contracts.yb",
+      "rc": 2,
+      "output": [
+        "codegen failed: E3403: unknown call target `len`"
+      ]
+    },
+    {
+      "file": "examples/10_contracts_intent/67_public_api_style_contracts.yb",
+      "rc": 2,
+      "output": [
+        "codegen failed: E3403: unknown call target `len`"
+      ]
+    },
+    {
+      "file": "examples/10_contracts_intent/68_runtime_require_failure_demo.yb",
+      "rc": 1,
+      "output": [
+        "panic: contract @require failed in native execution"
+      ]
+    },
+    {
+      "file": "examples/10_contracts_intent/69_runtime_ensure_failure_demo.yb",
+      "rc": 2,
+      "output": [
+        "contract/example preflight failed for `examples/10_contracts_intent/69_runtime_ensure_failure_demo.yb`: 1 of 1 example(s) failed",
+        "  - broken_increment example failed: contract @ensure failed in `broken_increment`"
+      ]
+    }
+  ],
+  "intentional_failure_allowlist": [
+    "examples/10_contracts_intent/68_runtime_require_failure_demo.yb",
+    "examples/10_contracts_intent/69_runtime_ensure_failure_demo.yb"
+  ]
+}

@@ -1,8 +1,9 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use cranelift_codegen::ir::condcodes::IntCC;
-use cranelift_codegen::ir::{self, AbiParam, InstBuilder, UserFuncName};
+use cranelift_codegen::ir::condcodes::{FloatCC, IntCC};
+use cranelift_codegen::ir::immediates::Offset32;
+use cranelift_codegen::ir::{self, AbiParam, InstBuilder, MemFlags, UserFuncName};
 use cranelift_codegen::isa;
 use cranelift_codegen::settings::{self, Configurable};
 use cranelift_frontend::{FunctionBuilder, FunctionBuilderContext, Switch, Variable};
@@ -39,6 +40,8 @@ struct RuntimeFunctions {
     panic_fn: FuncId,
     list_new_i64_fn: FuncId,
     list_append_i64_fn: FuncId,
+    list_sort_desc_i64_fn: FuncId,
+    list_take_i64_fn: FuncId,
     container_len_fn: FuncId,
     container_get_i64_fn: FuncId,
     container_set_i64_fn: FuncId,
@@ -96,6 +99,7 @@ struct RuntimeFunctions {
     http_status_text_fn: FuncId,
     http_default_port_fn: FuncId,
     http_build_request_line_fn: FuncId,
+    record_alloc_fn: FuncId,
 }
 
 #[derive(Clone, Copy)]
@@ -105,6 +109,16 @@ struct LoopContext {
 }
 
 pub fn emit_object(program: &MirProgram, options: &CodegenOptions) -> Result<Vec<u8>, String> {
+    emit_object_with_types(program, options, &BTreeMap::new(), &BTreeMap::new())
+}
+
+#[allow(unused_variables)]
+pub fn emit_object_with_types(
+    program: &MirProgram,
+    options: &CodegenOptions,
+    type_defs: &BTreeMap<String, Vec<(String, String)>>,
+    enum_defs: &BTreeMap<String, Vec<String>>,
+) -> Result<Vec<u8>, String> {
     let triple = parse_target(&options.target)?;
     let isa = build_isa(triple, &options.profile, &options.debuginfo)?;
     let builder = ObjectBuilder::new(isa, "vibe_module".to_string(), default_libcall_names())
@@ -141,6 +155,8 @@ pub fn emit_object(program: &MirProgram, options: &CodegenOptions) -> Result<Vec
             &function_returns,
             runtime_fns,
             ptr_ty,
+            type_defs,
+            enum_defs,
         )?;
     }
 
@@ -231,6 +247,21 @@ fn declare_runtime_functions(
     let list_append_i64_fn = module
         .declare_function("vibe_list_append_i64", Linkage::Import, &list_append_sig)
         .map_err(|e| format!("failed to declare runtime list_append symbol: {e}"))?;
+
+    let mut list_sort_desc_sig = module.make_signature();
+    list_sort_desc_sig.params.push(AbiParam::new(ptr_ty));
+    list_sort_desc_sig.returns.push(AbiParam::new(ptr_ty));
+    let list_sort_desc_i64_fn = module
+        .declare_function("vibe_list_sort_desc_i64", Linkage::Import, &list_sort_desc_sig)
+        .map_err(|e| format!("failed to declare runtime list_sort_desc symbol: {e}"))?;
+
+    let mut list_take_sig = module.make_signature();
+    list_take_sig.params.push(AbiParam::new(ptr_ty));
+    list_take_sig.params.push(AbiParam::new(ir::types::I64));
+    list_take_sig.returns.push(AbiParam::new(ptr_ty));
+    let list_take_i64_fn = module
+        .declare_function("vibe_list_take_i64", Linkage::Import, &list_take_sig)
+        .map_err(|e| format!("failed to declare runtime list_take symbol: {e}"))?;
 
     let mut map_new_i64_i64_sig = module.make_signature();
     map_new_i64_i64_sig.returns.push(AbiParam::new(ptr_ty));
@@ -862,11 +893,20 @@ fn declare_runtime_functions(
         )
         .map_err(|e| format!("failed to declare runtime http_build_request_line symbol: {e}"))?;
 
+    let mut record_alloc_sig = module.make_signature();
+    record_alloc_sig.params.push(AbiParam::new(ir::types::I64));
+    record_alloc_sig.returns.push(AbiParam::new(ptr_ty));
+    let record_alloc_fn = module
+        .declare_function("vibe_record_alloc", Linkage::Import, &record_alloc_sig)
+        .map_err(|e| format!("failed to declare runtime vibe_record_alloc symbol: {e}"))?;
+
     Ok(RuntimeFunctions {
         print_fn,
         panic_fn,
         list_new_i64_fn,
         list_append_i64_fn,
+        list_sort_desc_i64_fn,
+        list_take_i64_fn,
         container_len_fn,
         container_get_i64_fn,
         container_set_i64_fn,
@@ -924,6 +964,7 @@ fn declare_runtime_functions(
         http_status_text_fn,
         http_default_port_fn,
         http_build_request_line_fn,
+        record_alloc_fn,
     })
 }
 
@@ -935,6 +976,8 @@ fn define_function(
     function_returns: &BTreeMap<String, MirType>,
     runtime_fns: RuntimeFunctions,
     ptr_ty: ir::Type,
+    type_defs: &BTreeMap<String, Vec<(String, String)>>,
+    enum_defs: &BTreeMap<String, Vec<String>>,
 ) -> Result<(), String> {
     let mut ctx = module.make_context();
     ctx.func.signature = build_signature(module, function, ptr_ty);
@@ -978,6 +1021,8 @@ fn define_function(
             &mut str_data_counter,
             function,
             None,
+            type_defs,
+            enum_defs,
         )?;
     }
 
@@ -1011,6 +1056,8 @@ fn emit_stmt(
     str_data_counter: &mut usize,
     owner: &MirFunction,
     loop_ctx: Option<LoopContext>,
+    type_defs: &BTreeMap<String, Vec<(String, String)>>,
+    enum_defs: &BTreeMap<String, Vec<String>>,
 ) -> Result<bool, String> {
     match stmt {
         MirStmt::Let { name, expr } => {
@@ -1025,10 +1072,12 @@ fn emit_stmt(
                 ptr_ty,
                 str_data_counter,
                 owner,
+                type_defs,
+                enum_defs,
             )?;
             let var = Variable::from_u32(*next_var as u32);
             *next_var += 1;
-            builder.declare_var(var, value_type_for_expr(expr, ptr_ty));
+            builder.declare_var(var, value_type_for_expr(expr, owner, function_returns, ptr_ty));
             builder.def_var(var, value);
             locals.insert(name.clone(), var);
             Ok(false)
@@ -1045,13 +1094,15 @@ fn emit_stmt(
                 ptr_ty,
                 str_data_counter,
                 owner,
+                type_defs,
+                enum_defs,
             )?;
             let var = if let Some(v) = locals.get(name) {
                 *v
             } else {
                 let v = Variable::from_u32(*next_var as u32);
                 *next_var += 1;
-                builder.declare_var(v, value_type_for_expr(expr, ptr_ty));
+                builder.declare_var(v, value_type_for_expr(expr, owner, function_returns, ptr_ty));
                 locals.insert(name.clone(), v);
                 v
             };
@@ -1070,6 +1121,8 @@ fn emit_stmt(
                 ptr_ty,
                 str_data_counter,
                 owner,
+                type_defs,
+                enum_defs,
             )?;
             Ok(false)
         }
@@ -1085,6 +1138,8 @@ fn emit_stmt(
                 ptr_ty,
                 str_data_counter,
                 owner,
+                type_defs,
+                enum_defs,
             )?;
             Ok(false)
         }
@@ -1100,6 +1155,8 @@ fn emit_stmt(
                 ptr_ty,
                 str_data_counter,
                 owner,
+                type_defs,
+                enum_defs,
             )?;
             if owner.return_type == MirType::Void {
                 builder.ins().return_(&[]);
@@ -1149,6 +1206,8 @@ fn emit_stmt(
                 ptr_ty,
                 str_data_counter,
                 owner,
+                type_defs,
+                enum_defs,
             )?;
             Ok(false)
         }
@@ -1165,6 +1224,8 @@ fn emit_stmt(
                 ptr_ty,
                 str_data_counter,
                 owner,
+                type_defs,
+                enum_defs,
             )?;
             Ok(false)
         }
@@ -1184,6 +1245,8 @@ fn emit_stmt(
                 ptr_ty,
                 str_data_counter,
                 owner,
+                type_defs,
+                enum_defs,
             )?;
             let cond_ty = builder.func.dfg.value_type(cond_v);
             let zero = builder.ins().iconst(cond_ty, 0);
@@ -1213,6 +1276,8 @@ fn emit_stmt(
                     str_data_counter,
                     owner,
                     loop_ctx,
+                    type_defs,
+                    enum_defs,
                 )?;
             }
             if !then_terminated {
@@ -1239,6 +1304,8 @@ fn emit_stmt(
                     str_data_counter,
                     owner,
                     loop_ctx,
+                    type_defs,
+                    enum_defs,
                 )?;
             }
             if !else_terminated {
@@ -1266,6 +1333,8 @@ fn emit_stmt(
                 ptr_ty,
                 str_data_counter,
                 owner,
+                type_defs,
+                enum_defs,
             )?;
             Ok(false)
         }
@@ -1282,6 +1351,8 @@ fn emit_stmt(
                 ptr_ty,
                 str_data_counter,
                 owner,
+                type_defs,
+                enum_defs,
             )?;
             Ok(false)
         }
@@ -1299,6 +1370,8 @@ fn emit_stmt(
                 ptr_ty,
                 str_data_counter,
                 owner,
+                type_defs,
+                enum_defs,
             )?;
             Ok(false)
         }
@@ -1316,7 +1389,102 @@ fn emit_stmt(
                 ptr_ty,
                 str_data_counter,
                 owner,
+                type_defs,
+                enum_defs,
             )?;
+            Ok(false)
+        }
+        MirStmt::Match {
+            scrutinee,
+            arms,
+            default_action,
+        } => {
+            let scrut_v = emit_expr(
+                scrutinee,
+                module,
+                builder,
+                locals,
+                function_ids,
+                function_returns,
+                runtime_fns,
+                ptr_ty,
+                str_data_counter,
+                owner,
+                type_defs,
+                enum_defs,
+            )?;
+            let merge_block = builder.create_block();
+            let mut arm_blocks: Vec<ir::Block> = Vec::with_capacity(arms.len());
+            for _ in arms.iter() {
+                arm_blocks.push(builder.create_block());
+            }
+            let default_block = builder.create_block();
+            let mut check_blocks: Vec<ir::Block> = Vec::with_capacity(arms.len() + 1);
+            for _ in 0..=arms.len() {
+                check_blocks.push(builder.create_block());
+            }
+            builder.ins().jump(check_blocks[0], &[]);
+            for (i, arm) in arms.iter().enumerate() {
+                builder.switch_to_block(check_blocks[i]);
+                let MirExpr::EnumVariant { enum_name, variant } = &arm.pattern else {
+                    return Err("E3499: match arm pattern must be enum variant".to_string());
+                };
+                let variants = enum_defs.get(enum_name).ok_or_else(|| {
+                    format!("E3499: unknown enum in match arm `{enum_name}`")
+                })?;
+                let tag = variants.iter().position(|v| v == variant).unwrap_or(0) as i64;
+                let tag_const = builder.ins().iconst(ir::types::I64, tag);
+                let cond = builder.ins().icmp(IntCC::Equal, scrut_v, tag_const);
+                let next_check = check_blocks[i + 1];
+                builder.ins().brif(cond, arm_blocks[i], &[], next_check, &[]);
+            }
+            builder.switch_to_block(check_blocks[arms.len()]);
+            builder.ins().jump(default_block, &[]);
+            builder.switch_to_block(default_block);
+            if let Some(default_expr) = default_action {
+                let _ = emit_expr(
+                    default_expr,
+                    module,
+                    builder,
+                    locals,
+                    function_ids,
+                    function_returns,
+                    runtime_fns,
+                    ptr_ty,
+                    str_data_counter,
+                    owner,
+                    type_defs,
+                    enum_defs,
+                )?;
+            }
+            builder.ins().jump(merge_block, &[]);
+            for (i, arm) in arms.iter().enumerate() {
+                builder.switch_to_block(arm_blocks[i]);
+                let _ = emit_expr(
+                    &arm.action,
+                    module,
+                    builder,
+                    locals,
+                    function_ids,
+                    function_returns,
+                    runtime_fns,
+                    ptr_ty,
+                    str_data_counter,
+                    owner,
+                    type_defs,
+                    enum_defs,
+                )?;
+                builder.ins().jump(merge_block, &[]);
+            }
+            for b in &check_blocks {
+                builder.seal_block(*b);
+            }
+            builder.seal_block(default_block);
+            for b in &arm_blocks {
+                builder.seal_block(*b);
+            }
+            builder.switch_to_block(merge_block);
+            builder.seal_block(merge_block);
             Ok(false)
         }
     }
@@ -1335,6 +1503,8 @@ fn emit_contract_check(
     ptr_ty: ir::Type,
     str_data_counter: &mut usize,
     owner: &MirFunction,
+    type_defs: &BTreeMap<String, Vec<(String, String)>>,
+    enum_defs: &BTreeMap<String, Vec<String>>,
 ) -> Result<(), String> {
     let cond_v = emit_expr(
         expr,
@@ -1347,6 +1517,8 @@ fn emit_contract_check(
         ptr_ty,
         str_data_counter,
         owner,
+        type_defs,
+        enum_defs,
     )?;
     let cond_ty = builder.func.dfg.value_type(cond_v);
     let zero = builder.ins().iconst(cond_ty, 0);
@@ -1388,6 +1560,8 @@ fn emit_go_stmt(
     ptr_ty: ir::Type,
     str_data_counter: &mut usize,
     owner: &MirFunction,
+    type_defs: &BTreeMap<String, Vec<(String, String)>>,
+    enum_defs: &BTreeMap<String, Vec<String>>,
 ) -> Result<(), String> {
     let MirExpr::Call { callee, args } = expr else {
         return Err("E3301: unsupported `go` target: expected direct function call".to_string());
@@ -1419,6 +1593,8 @@ fn emit_go_stmt(
                 ptr_ty,
                 str_data_counter,
                 owner,
+                type_defs,
+                enum_defs,
             )?;
             let arg_ty = builder.func.dfg.value_type(arg);
             let arg_i64 = if arg_ty == ir::types::I64 {
@@ -1459,6 +1635,8 @@ fn emit_for_stmt(
     ptr_ty: ir::Type,
     str_data_counter: &mut usize,
     owner: &MirFunction,
+    type_defs: &BTreeMap<String, Vec<(String, String)>>,
+    enum_defs: &BTreeMap<String, Vec<String>>,
 ) -> Result<(), String> {
     if matches!(iter_kind, MirForIterKind::Unknown) {
         return Err(
@@ -1477,6 +1655,8 @@ fn emit_for_stmt(
         ptr_ty,
         str_data_counter,
         owner,
+        type_defs,
+        enum_defs,
     )?;
     if builder.func.dfg.value_type(iter_handle) != ptr_ty {
         return Err(
@@ -1600,6 +1780,8 @@ fn emit_for_stmt(
                 break_block: exit_block,
                 continue_block,
             }),
+            type_defs,
+            enum_defs,
         )?;
     }
     if !body_terminated {
@@ -1637,6 +1819,8 @@ fn emit_while_stmt(
     ptr_ty: ir::Type,
     str_data_counter: &mut usize,
     owner: &MirFunction,
+    type_defs: &BTreeMap<String, Vec<(String, String)>>,
+    enum_defs: &BTreeMap<String, Vec<String>>,
 ) -> Result<(), String> {
     let header_block = builder.create_block();
     let body_block = builder.create_block();
@@ -1655,6 +1839,8 @@ fn emit_while_stmt(
         ptr_ty,
         str_data_counter,
         owner,
+        type_defs,
+        enum_defs,
     )?;
     let cond_ty = builder.func.dfg.value_type(cond_v);
     let zero = builder.ins().iconst(cond_ty, 0);
@@ -1683,6 +1869,8 @@ fn emit_while_stmt(
                 break_block: exit_block,
                 continue_block: header_block,
             }),
+            type_defs,
+            enum_defs,
         )?;
     }
     if !body_terminated {
@@ -1710,6 +1898,8 @@ fn emit_repeat_stmt(
     ptr_ty: ir::Type,
     str_data_counter: &mut usize,
     owner: &MirFunction,
+    type_defs: &BTreeMap<String, Vec<(String, String)>>,
+    enum_defs: &BTreeMap<String, Vec<String>>,
 ) -> Result<(), String> {
     let loop_count = emit_expr(
         count,
@@ -1722,6 +1912,8 @@ fn emit_repeat_stmt(
         ptr_ty,
         str_data_counter,
         owner,
+        type_defs,
+        enum_defs,
     )?;
     let idx_var = Variable::from_u32(*next_var as u32);
     *next_var += 1;
@@ -1770,6 +1962,8 @@ fn emit_repeat_stmt(
                 break_block: exit_block,
                 continue_block,
             }),
+            type_defs,
+            enum_defs,
         )?;
     }
     if !body_terminated {
@@ -1805,6 +1999,8 @@ fn emit_select_stmt(
     ptr_ty: ir::Type,
     str_data_counter: &mut usize,
     owner: &MirFunction,
+    type_defs: &BTreeMap<String, Vec<(String, String)>>,
+    enum_defs: &BTreeMap<String, Vec<String>>,
 ) -> Result<(), String> {
     if cases.is_empty() {
         return Ok(());
@@ -1844,6 +2040,8 @@ fn emit_select_stmt(
                 ptr_ty,
                 str_data_counter,
                 owner,
+                type_defs,
+                enum_defs,
             )?;
             return Ok(());
         }
@@ -1866,6 +2064,8 @@ fn emit_select_stmt(
                 ptr_ty,
                 str_data_counter,
                 owner,
+                type_defs,
+                enum_defs,
             )?;
             return Ok(());
         }
@@ -1958,6 +2158,8 @@ fn emit_select_stmt(
                         ptr_ty,
                         str_data_counter,
                         owner,
+                        type_defs,
+                        enum_defs,
                     )?;
                     let has_data_local =
                         module.declare_func_in_func(runtime_fns.chan_has_data_fn, builder.func);
@@ -2003,6 +2205,8 @@ fn emit_select_stmt(
                         ptr_ty,
                         str_data_counter,
                         owner,
+                        type_defs,
+                        enum_defs,
                     )?;
                     builder.ins().jump(exit_block, &[]);
                     builder.seal_block(ready_block);
@@ -2042,6 +2246,8 @@ fn emit_select_stmt(
                         ptr_ty,
                         str_data_counter,
                         owner,
+                        type_defs,
+                        enum_defs,
                     )?;
                     builder.ins().jump(exit_block, &[]);
                     builder.seal_block(ready_block);
@@ -2069,6 +2275,8 @@ fn emit_select_stmt(
                 ptr_ty,
                 str_data_counter,
                 owner,
+                type_defs,
+                enum_defs,
             )?;
             builder.ins().jump(exit_block, &[]);
         } else if let Some(after_idx) = after_case_idx {
@@ -2104,6 +2312,8 @@ fn emit_select_stmt(
                 ptr_ty,
                 str_data_counter,
                 owner,
+                type_defs,
+                enum_defs,
             )?;
             builder.ins().jump(exit_block, &[]);
             builder.seal_block(after_block);
@@ -2151,6 +2361,8 @@ fn emit_expr(
     ptr_ty: ir::Type,
     str_data_counter: &mut usize,
     owner: &MirFunction,
+    type_defs: &BTreeMap<String, Vec<(String, String)>>,
+    enum_defs: &BTreeMap<String, Vec<String>>,
 ) -> Result<ir::Value, String> {
     Ok(match expr {
         MirExpr::Var(name) => {
@@ -2184,6 +2396,8 @@ fn emit_expr(
                     ptr_ty,
                     str_data_counter,
                     owner,
+                    type_defs,
+                    enum_defs,
                 )?;
                 if builder.func.dfg.value_type(value) != ir::types::I64 {
                     return Err(
@@ -2232,6 +2446,8 @@ fn emit_expr(
                         ptr_ty,
                         str_data_counter,
                         owner,
+                        type_defs,
+                        enum_defs,
                     )?;
                     let value = emit_expr(
                         value_expr,
@@ -2244,6 +2460,8 @@ fn emit_expr(
                         ptr_ty,
                         str_data_counter,
                         owner,
+                        type_defs,
+                        enum_defs,
                     )?;
                     if builder.func.dfg.value_type(value) != ir::types::I64 {
                         return Err(
@@ -2278,7 +2496,7 @@ fn emit_expr(
                 map_handle
             }
         }
-        MirExpr::Member { object, field } => {
+        MirExpr::Member { object, field, object_type: type_hint } => {
             let container = emit_expr(
                 object,
                 module,
@@ -2290,6 +2508,8 @@ fn emit_expr(
                 ptr_ty,
                 str_data_counter,
                 owner,
+                type_defs,
+                enum_defs,
             )?;
             if field == "len" {
                 let use_str_len = is_known_string_expr_with_owner(object, owner)
@@ -2307,6 +2527,28 @@ fn emit_expr(
                     .first()
                     .copied()
                     .unwrap_or_else(|| builder.ins().iconst(ir::types::I64, 0)));
+            }
+            if let Some(type_name) = type_hint {
+                if let Some(fields) = type_defs.get(type_name) {
+                    let slot_index = fields
+                        .iter()
+                        .position(|(f, _)| f == field)
+                        .ok_or_else(|| format!("E3402: unknown field `{field}` on type `{type_name}`"))?;
+                    let (_, field_ty) = &fields[slot_index];
+                    let offset_bytes = (slot_index as i64 * 8) as i32;
+                    let load_ty = match field_ty.as_str() {
+                        "Str" => ptr_ty,
+                        "Bool" => ir::types::I8,
+                        _ => ir::types::I64,
+                    };
+                    let loaded = builder.ins().load(
+                        load_ty,
+                        MemFlags::new(),
+                        container,
+                        Offset32::new(offset_bytes),
+                    );
+                    return Ok(loaded);
+                }
             }
             return Err(format!(
                 "E3402: member access `{field}` native lowering is not available in v0.1 backend"
@@ -2328,6 +2570,8 @@ fn emit_expr(
                 ptr_ty,
                 str_data_counter,
                 owner,
+                type_defs,
+                enum_defs,
             )?;
             let index_value = emit_expr(
                 index,
@@ -2340,6 +2584,8 @@ fn emit_expr(
                 ptr_ty,
                 str_data_counter,
                 owner,
+                type_defs,
+                enum_defs,
             )?;
             if *object_is_str {
                 let local_get_byte =
@@ -2377,6 +2623,8 @@ fn emit_expr(
                 ptr_ty,
                 str_data_counter,
                 owner,
+                type_defs,
+                enum_defs,
             )?;
             let start_value = if let Some(start) = start {
                 emit_expr(
@@ -2390,6 +2638,8 @@ fn emit_expr(
                     ptr_ty,
                     str_data_counter,
                     owner,
+                    type_defs,
+                    enum_defs,
                 )?
             } else {
                 builder.ins().iconst(ir::types::I64, 0)
@@ -2406,6 +2656,8 @@ fn emit_expr(
                     ptr_ty,
                     str_data_counter,
                     owner,
+                    type_defs,
+                    enum_defs,
                 )?
             } else {
                 let local_len =
@@ -2421,6 +2673,64 @@ fn emit_expr(
         }
         MirExpr::Call { callee, args } => {
             if let MirExpr::Var(name) = &**callee {
+                if name == "__assign" {
+                    if args.len() != 2 {
+                        return Err("__assign expects two arguments".to_string());
+                    }
+                    if let MirExpr::Member { object, field, object_type: type_hint } = &args[0] {
+                        if let Some(type_name) = type_hint {
+                            if let Some(fields) = type_defs.get(type_name) {
+                                let slot_index = fields
+                                    .iter()
+                                    .position(|(f, _)| f == field)
+                                    .ok_or_else(|| format!("E3402: unknown field `{field}`"))?;
+                                let ptr = emit_expr(
+                                    object,
+                                    module,
+                                    builder,
+                                    locals,
+                                    function_ids,
+                                    function_returns,
+                                    runtime_fns,
+                                    ptr_ty,
+                                    str_data_counter,
+                                    owner,
+                                    type_defs,
+                                    enum_defs,
+                                )?;
+                                let value = emit_expr(
+                                    &args[1],
+                                    module,
+                                    builder,
+                                    locals,
+                                    function_ids,
+                                    function_returns,
+                                    runtime_fns,
+                                    ptr_ty,
+                                    str_data_counter,
+                                    owner,
+                                    type_defs,
+                                    enum_defs,
+                                )?;
+                                let offset_bytes = (slot_index as i64 * 8) as i32;
+                                let store_ty = builder.func.dfg.value_type(value);
+                                let to_store = if store_ty == ir::types::I8 {
+                                    builder.ins().sextend(ir::types::I64, value)
+                                } else {
+                                    value
+                                };
+                                builder.ins().store(
+                                    MemFlags::new(),
+                                    to_store,
+                                    ptr,
+                                    Offset32::new(offset_bytes),
+                                );
+                                return Ok(builder.ins().iconst(ir::types::I64, 0));
+                            }
+                        }
+                    }
+                    return Err("E3499: __assign requires record field Member target".to_string());
+                }
                 if name == "print" || name == "println" {
                     if args.len() != 1 {
                         return Err(format!("`{name}` expects one argument"));
@@ -2436,6 +2746,8 @@ fn emit_expr(
                         ptr_ty,
                         str_data_counter,
                         owner,
+                        type_defs,
+                        enum_defs,
                     )?;
                     let local_print =
                         module.declare_func_in_func(runtime_fns.print_fn, builder.func);
@@ -2457,6 +2769,8 @@ fn emit_expr(
                         ptr_ty,
                         str_data_counter,
                         owner,
+                        type_defs,
+                        enum_defs,
                     )?;
                     let local_new =
                         module.declare_func_in_func(runtime_fns.chan_new_fn, builder.func);
@@ -2465,6 +2779,119 @@ fn emit_expr(
                         "chan runtime call did not return channel handle".to_string()
                     })?;
                     return Ok(chan);
+                }
+                if name == "cpu_count" {
+                    if !args.is_empty() {
+                        return Err("`cpu_count` expects no arguments".to_string());
+                    }
+                    return Ok(builder.ins().iconst(ir::types::I64, 1));
+                }
+                if name == "len" {
+                    if args.len() != 1 {
+                        return Err("`len` expects one argument".to_string());
+                    }
+                    let arg0 = emit_expr(
+                        &args[0],
+                        module,
+                        builder,
+                        locals,
+                        function_ids,
+                        function_returns,
+                        runtime_fns,
+                        ptr_ty,
+                        str_data_counter,
+                        owner,
+                        type_defs,
+                        enum_defs,
+                    )?;
+                    let use_str_len = is_known_string_expr_with_owner(&args[0], owner);
+                    let local_len = if use_str_len {
+                        module.declare_func_in_func(runtime_fns.str_len_bytes_fn, builder.func)
+                    } else {
+                        module.declare_func_in_func(runtime_fns.container_len_fn, builder.func)
+                    };
+                    let call = builder.ins().call(local_len, &[arg0]);
+                    return Ok(call_result_or_zero(builder, call));
+                }
+                if name == "min" || name == "max" {
+                    if args.len() != 2 {
+                        return Err(format!("`{name}` expects two arguments"));
+                    }
+                    let left = emit_expr(
+                        &args[0],
+                        module,
+                        builder,
+                        locals,
+                        function_ids,
+                        function_returns,
+                        runtime_fns,
+                        ptr_ty,
+                        str_data_counter,
+                        owner,
+                        type_defs,
+                        enum_defs,
+                    )?;
+                    let right = emit_expr(
+                        &args[1],
+                        module,
+                        builder,
+                        locals,
+                        function_ids,
+                        function_returns,
+                        runtime_fns,
+                        ptr_ty,
+                        str_data_counter,
+                        owner,
+                        type_defs,
+                        enum_defs,
+                    )?;
+                    let left_ty = builder.func.dfg.value_type(left);
+                    let right_ty = builder.func.dfg.value_type(right);
+                    if left_ty == ir::types::F64 || right_ty == ir::types::F64 {
+                        let left_f = coerce_numeric_to_f64(builder, left);
+                        let right_f = coerce_numeric_to_f64(builder, right);
+                        let cc = if name == "min" {
+                            FloatCC::LessThan
+                        } else {
+                            FloatCC::GreaterThan
+                        };
+                        let cond = builder.ins().fcmp(cc, left_f, right_f);
+                        return Ok(builder.ins().select(cond, left_f, right_f));
+                    }
+                    let cc = if name == "min" {
+                        IntCC::SignedLessThan
+                    } else {
+                        IntCC::SignedGreaterThan
+                    };
+                    let cond = builder.ins().icmp(cc, left, right);
+                    return Ok(builder.ins().select(cond, left, right));
+                }
+                if name == "sorted_desc" {
+                    if args.len() != 1 {
+                        return Err("`sorted_desc` expects one argument".to_string());
+                    }
+                    let input = emit_expr(
+                        &args[0],
+                        module,
+                        builder,
+                        locals,
+                        function_ids,
+                        function_returns,
+                        runtime_fns,
+                        ptr_ty,
+                        str_data_counter,
+                        owner,
+                        type_defs,
+                        enum_defs,
+                    )?;
+                    let local_sort =
+                        module.declare_func_in_func(runtime_fns.list_sort_desc_i64_fn, builder.func);
+                    let sorted_call = builder.ins().call(local_sort, &[input]);
+                    let sorted_handle = call_result_or_zero(builder, sorted_call);
+                    let local_eq =
+                        module.declare_func_in_func(runtime_fns.container_eq_fn, builder.func);
+                    let eq_call = builder.ins().call(local_eq, &[input, sorted_handle]);
+                    return Ok(call_result_or_zero(builder, eq_call));
                 }
                 if let Some(fid) = function_ids.get(name) {
                     let local = module.declare_func_in_func(*fid, builder.func);
@@ -2481,6 +2908,8 @@ fn emit_expr(
                             ptr_ty,
                             str_data_counter,
                             owner,
+                            type_defs,
+                            enum_defs,
                         )?);
                     }
                     let call = builder.ins().call(local, &lowered_args);
@@ -2495,7 +2924,7 @@ fn emit_expr(
                 }
                 return Err(format!("E3403: unknown call target `{name}`"));
             }
-            if let MirExpr::Member { object, field } = &**callee {
+            if let MirExpr::Member { object, field, .. } = &**callee {
                 let mut lowered_args = Vec::with_capacity(args.len());
                 for arg in args {
                     lowered_args.push(emit_expr(
@@ -2509,6 +2938,8 @@ fn emit_expr(
                         ptr_ty,
                         str_data_counter,
                         owner,
+                        type_defs,
+                        enum_defs,
                     )?);
                 }
                 if let MirExpr::Var(namespace) = &**object {
@@ -2534,6 +2965,8 @@ fn emit_expr(
                     ptr_ty,
                     str_data_counter,
                     owner,
+                    type_defs,
+                    enum_defs,
                 )?;
                 match field.as_str() {
                     "send" => {
@@ -2591,6 +3024,34 @@ fn emit_expr(
                             .first()
                             .copied()
                             .unwrap_or_else(|| builder.ins().iconst(ir::types::I64, 0)));
+                    }
+                    "sort_desc" => {
+                        if !lowered_args.is_empty() {
+                            return Err("`.sort_desc()` expects no arguments".to_string());
+                        }
+                        let local_sort = module
+                            .declare_func_in_func(runtime_fns.list_sort_desc_i64_fn, builder.func);
+                        let call = builder.ins().call(local_sort, &[object_value]);
+                        return Ok(builder
+                            .inst_results(call)
+                            .first()
+                            .copied()
+                            .unwrap_or_else(|| builder.ins().iconst(ptr_ty, 0)));
+                    }
+                    "take" => {
+                        if lowered_args.len() != 1 {
+                            return Err("`.take()` expects one count argument".to_string());
+                        }
+                        let local_take =
+                            module.declare_func_in_func(runtime_fns.list_take_i64_fn, builder.func);
+                        let call = builder
+                            .ins()
+                            .call(local_take, &[object_value, lowered_args[0]]);
+                        return Ok(builder
+                            .inst_results(call)
+                            .first()
+                            .copied()
+                            .unwrap_or_else(|| builder.ins().iconst(ptr_ty, 0)));
                     }
                     "len" => {
                         if !lowered_args.is_empty() {
@@ -2707,6 +3168,8 @@ fn emit_expr(
                 ptr_ty,
                 str_data_counter,
                 owner,
+                type_defs,
+                enum_defs,
             )?;
             let r = emit_expr(
                 right,
@@ -2719,7 +3182,22 @@ fn emit_expr(
                 ptr_ty,
                 str_data_counter,
                 owner,
+                type_defs,
+                enum_defs,
             )?;
+            let l_ty = builder.func.dfg.value_type(l);
+            let r_ty = builder.func.dfg.value_type(r);
+            let numeric_is_float = l_ty == ir::types::F64 || r_ty == ir::types::F64;
+            let l_num = if numeric_is_float {
+                coerce_numeric_to_f64(builder, l)
+            } else {
+                l
+            };
+            let r_num = if numeric_is_float {
+                coerce_numeric_to_f64(builder, r)
+            } else {
+                r
+            };
             match op.as_str() {
                 "Add" => {
                     if is_known_string_expr_with_owner(left, owner)
@@ -2731,13 +3209,33 @@ fn emit_expr(
                         builder.inst_results(call).first().copied().ok_or_else(|| {
                             "string concat runtime call returned no value".to_string()
                         })?
+                    } else if numeric_is_float {
+                        builder.ins().fadd(l_num, r_num)
                     } else {
                         builder.ins().iadd(l, r)
                     }
                 }
-                "Sub" => builder.ins().isub(l, r),
-                "Mul" => builder.ins().imul(l, r),
-                "Div" => builder.ins().sdiv(l, r),
+                "Sub" => {
+                    if numeric_is_float {
+                        builder.ins().fsub(l_num, r_num)
+                    } else {
+                        builder.ins().isub(l, r)
+                    }
+                }
+                "Mul" => {
+                    if numeric_is_float {
+                        builder.ins().fmul(l_num, r_num)
+                    } else {
+                        builder.ins().imul(l, r)
+                    }
+                }
+                "Div" => {
+                    if numeric_is_float {
+                        builder.ins().fdiv(l_num, r_num)
+                    } else {
+                        builder.ins().sdiv(l, r)
+                    }
+                }
                 "Eq" | "Ne" => {
                     let is_ne = op == "Ne";
                     if is_known_string_expr_with_owner(left, owner)
@@ -2766,6 +3264,14 @@ fn emit_expr(
                         } else {
                             eq_value
                         }
+                    } else if numeric_is_float {
+                        let cc = if is_ne {
+                            FloatCC::NotEqual
+                        } else {
+                            FloatCC::Equal
+                        };
+                        let cmp = builder.ins().fcmp(cc, l_num, r_num);
+                        builder.ins().uextend(ir::types::I64, cmp)
                     } else {
                         let cc = if is_ne { IntCC::NotEqual } else { IntCC::Equal };
                         let cmp = builder.ins().icmp(cc, l, r);
@@ -2773,15 +3279,27 @@ fn emit_expr(
                     }
                 }
                 "Lt" | "Le" | "Gt" | "Ge" => {
-                    let cc = match op.as_str() {
-                        "Lt" => IntCC::SignedLessThan,
-                        "Le" => IntCC::SignedLessThanOrEqual,
-                        "Gt" => IntCC::SignedGreaterThan,
-                        "Ge" => IntCC::SignedGreaterThanOrEqual,
-                        _ => IntCC::Equal,
-                    };
-                    let cmp = builder.ins().icmp(cc, l, r);
-                    builder.ins().uextend(ir::types::I64, cmp)
+                    if numeric_is_float {
+                        let cc = match op.as_str() {
+                            "Lt" => FloatCC::LessThan,
+                            "Le" => FloatCC::LessThanOrEqual,
+                            "Gt" => FloatCC::GreaterThan,
+                            "Ge" => FloatCC::GreaterThanOrEqual,
+                            _ => FloatCC::Equal,
+                        };
+                        let cmp = builder.ins().fcmp(cc, l_num, r_num);
+                        builder.ins().uextend(ir::types::I64, cmp)
+                    } else {
+                        let cc = match op.as_str() {
+                            "Lt" => IntCC::SignedLessThan,
+                            "Le" => IntCC::SignedLessThanOrEqual,
+                            "Gt" => IntCC::SignedGreaterThan,
+                            "Ge" => IntCC::SignedGreaterThanOrEqual,
+                            _ => IntCC::Equal,
+                        };
+                        let cmp = builder.ins().icmp(cc, l, r);
+                        builder.ins().uextend(ir::types::I64, cmp)
+                    }
                 }
                 _ => {
                     return Err(format!(
@@ -2802,9 +3320,17 @@ fn emit_expr(
                 ptr_ty,
                 str_data_counter,
                 owner,
+                type_defs,
+                enum_defs,
             )?;
             match op.as_str() {
-                "Neg" => builder.ins().ineg(v),
+                "Neg" => {
+                    if builder.func.dfg.value_type(v) == ir::types::F64 {
+                        builder.ins().fneg(v)
+                    } else {
+                        builder.ins().ineg(v)
+                    }
+                }
                 "Not" => {
                     let v_ty = builder.func.dfg.value_type(v);
                     let zero = builder.ins().iconst(v_ty, 0);
@@ -2830,6 +3356,8 @@ fn emit_expr(
                 ptr_ty,
                 str_data_counter,
                 owner,
+                type_defs,
+                enum_defs,
             )?;
             let inner_ty = builder.func.dfg.value_type(inner);
             if inner_ty == ptr_ty {
@@ -2856,6 +3384,8 @@ fn emit_expr(
                 ptr_ty,
                 str_data_counter,
                 owner,
+                type_defs,
+                enum_defs,
             )?;
             let inner_ty = builder.func.dfg.value_type(inner);
             if inner_ty == ptr_ty {
@@ -2881,8 +3411,72 @@ fn emit_expr(
             ptr_ty,
             str_data_counter,
             owner,
+            type_defs,
+            enum_defs,
         )?,
         MirExpr::DotResult => builder.ins().iconst(ir::types::I64, 0),
+        MirExpr::Constructor { type_name, fields } => {
+            let field_list = type_defs.get(type_name).ok_or_else(|| {
+                format!("E3499: unknown type `{type_name}` in constructor")
+            })?;
+            let slot_count = field_list.len() as i64;
+            let local_alloc =
+                module.declare_func_in_func(runtime_fns.record_alloc_fn, builder.func);
+            let slot_const = builder.ins().iconst(ir::types::I64, slot_count);
+            let alloc_call = builder.ins().call(local_alloc, &[slot_const]);
+            let ptr = builder
+                .inst_results(alloc_call)
+                .first()
+                .copied()
+                .ok_or_else(|| "record_alloc did not return".to_string())?;
+            let field_order: Vec<&str> = field_list.iter().map(|(f, _)| f.as_str()).collect();
+            for (fname, fval) in fields {
+                let slot_index = field_order
+                    .iter()
+                    .position(|x| *x == fname)
+                    .ok_or_else(|| format!("E3499: unknown field `{fname}` in constructor"))?;
+                let value = emit_expr(
+                    fval,
+                    module,
+                    builder,
+                    locals,
+                    function_ids,
+                    function_returns,
+                    runtime_fns,
+                    ptr_ty,
+                    str_data_counter,
+                    owner,
+                    type_defs,
+                    enum_defs,
+                )?;
+                let (_, _field_ty) = &field_list[slot_index];
+                let offset_bytes = (slot_index as i64 * 8) as i32;
+                let store_ty = builder.func.dfg.value_type(value);
+                let to_store = if store_ty == ir::types::I8 {
+                    builder.ins().sextend(ir::types::I64, value)
+                } else {
+                    value
+                };
+                builder.ins().store(
+                    MemFlags::new(),
+                    to_store,
+                    ptr,
+                    Offset32::new(offset_bytes),
+                );
+            }
+            ptr
+        }
+        MirExpr::EnumVariant { enum_name, variant } => {
+            let variants = enum_defs.get(enum_name).ok_or_else(|| {
+                format!("E3499: unknown enum `{enum_name}`")
+            })?;
+            let tag = variants
+                .iter()
+                .position(|v| v == variant)
+                .ok_or_else(|| format!("E3499: unknown variant `{enum_name}.{variant}`"))?
+                as i64;
+            builder.ins().iconst(ir::types::I64, tag)
+        }
     })
 }
 
@@ -2917,6 +3511,21 @@ fn call_result_or_zero(builder: &mut FunctionBuilder<'_>, call: ir::Inst) -> ir:
         .first()
         .copied()
         .unwrap_or_else(|| builder.ins().iconst(ir::types::I64, 0))
+}
+
+fn coerce_numeric_to_f64(builder: &mut FunctionBuilder<'_>, value: ir::Value) -> ir::Value {
+    let ty = builder.func.dfg.value_type(value);
+    if ty == ir::types::F64 {
+        return value;
+    }
+    if ty == ir::types::I64 {
+        return builder.ins().fcvt_from_sint(ir::types::F64, value);
+    }
+    if ty == ir::types::I8 {
+        let widened = builder.ins().sextend(ir::types::I64, value);
+        return builder.ins().fcvt_from_sint(ir::types::F64, widened);
+    }
+    value
 }
 
 fn emit_stdlib_namespace_call(
@@ -3166,7 +3775,7 @@ fn is_known_string_expr(expr: &MirExpr) -> bool {
         MirExpr::Call { callee, .. }
             if matches!(
                 &**callee,
-                MirExpr::Member { object, field }
+                MirExpr::Member { object, field, .. }
                 if matches!(&**object, MirExpr::Var(namespace)
                     if (namespace == "path" && (field == "join" || field == "parent" || field == "basename"))
                     || (namespace == "fs" && field == "read_text")
@@ -3331,16 +3940,67 @@ fn is_known_string_expr_with_owner(expr: &MirExpr, owner: &MirFunction) -> bool 
 
 fn is_known_container_expr(expr: &MirExpr) -> bool {
     matches!(expr, MirExpr::List(_) | MirExpr::Map(_))
+        || matches!(
+            expr,
+            MirExpr::Call { callee, .. }
+                if matches!(&**callee, MirExpr::Member { field, .. } if field == "sort_desc" || field == "take")
+        )
 }
 
-fn value_type_for_expr(expr: &MirExpr, ptr_ty: ir::Type) -> ir::Type {
+fn value_type_for_expr(
+    expr: &MirExpr,
+    owner: &MirFunction,
+    function_returns: &BTreeMap<String, MirType>,
+    ptr_ty: ir::Type,
+) -> ir::Type {
     match expr {
         MirExpr::Float(_) => ir::types::F64,
         MirExpr::Bool(_) => ir::types::I8,
         MirExpr::Str(_) => ptr_ty,
-        MirExpr::Binary { left, op, right } if op == "Add" => {
-            if is_known_string_expr(left) || is_known_string_expr(right) {
+        MirExpr::Var(name) => {
+            if is_var_known_string_in_owner(owner, name) {
                 ptr_ty
+            } else if owner
+                .params
+                .iter()
+                .any(|param| param.name == *name && param.ty == MirType::F64)
+            {
+                ir::types::F64
+            } else if owner
+                .params
+                .iter()
+                .any(|param| param.name == *name && param.ty == MirType::Bool)
+            {
+                ir::types::I8
+            } else {
+                ir::types::I64
+            }
+        }
+        MirExpr::Binary { left, op, right } if op == "Add" => {
+            if is_known_string_expr_with_owner(left, owner)
+                || is_known_string_expr_with_owner(right, owner)
+            {
+                ptr_ty
+            } else {
+                let left_ty = value_type_for_expr(left, owner, function_returns, ptr_ty);
+                let right_ty = value_type_for_expr(right, owner, function_returns, ptr_ty);
+                if left_ty == ir::types::F64 || right_ty == ir::types::F64 {
+                    ir::types::F64
+                } else {
+                    ir::types::I64
+                }
+            }
+        }
+        MirExpr::Binary { left, op, right }
+            if op == "Sub" || op == "Mul" || op == "Div" || op == "Lt" || op == "Le"
+                || op == "Gt" || op == "Ge" =>
+        {
+            let left_ty = value_type_for_expr(left, owner, function_returns, ptr_ty);
+            let right_ty = value_type_for_expr(right, owner, function_returns, ptr_ty);
+            if op == "Lt" || op == "Le" || op == "Gt" || op == "Ge" {
+                ir::types::I64
+            } else if left_ty == ir::types::F64 || right_ty == ir::types::F64 {
+                ir::types::F64
             } else {
                 ir::types::I64
             }
@@ -3349,9 +4009,49 @@ fn value_type_for_expr(expr: &MirExpr, ptr_ty: ir::Type) -> ir::Type {
         MirExpr::Member { field, .. } if field == "len" => ir::types::I64,
         MirExpr::Index { .. } => ir::types::I64,
         MirExpr::Slice { object_is_str, .. } if *object_is_str => ptr_ty,
-        MirExpr::Async { expr } | MirExpr::Await { expr } => value_type_for_expr(expr, ptr_ty),
+        MirExpr::Async { expr } | MirExpr::Await { expr } => {
+            value_type_for_expr(expr, owner, function_returns, ptr_ty)
+        }
         MirExpr::Call { callee, .. } if matches!(&**callee, MirExpr::Var(name) if name == "chan") => {
             ptr_ty
+        }
+        MirExpr::Call { callee, .. }
+            if matches!(&**callee, MirExpr::Var(name)
+                if name == "len"
+                    || name == "cpu_count"
+                    || name == "sorted_desc") =>
+        {
+            ir::types::I64
+        }
+        MirExpr::Call { callee, args }
+            if matches!(&**callee, MirExpr::Var(name) if name == "min" || name == "max") =>
+        {
+            if args
+                .iter()
+                .any(|arg| value_type_for_expr(arg, owner, function_returns, ptr_ty) == ir::types::F64)
+            {
+                ir::types::F64
+            } else {
+                ir::types::I64
+            }
+        }
+        MirExpr::Call { callee, .. }
+            if matches!(&**callee, MirExpr::Var(name)
+                if matches!(function_returns.get(name), Some(MirType::Str))) =>
+        {
+            ptr_ty
+        }
+        MirExpr::Call { callee, .. }
+            if matches!(&**callee, MirExpr::Var(name)
+                if matches!(function_returns.get(name), Some(MirType::F64))) =>
+        {
+            ir::types::F64
+        }
+        MirExpr::Call { callee, .. }
+            if matches!(&**callee, MirExpr::Var(name)
+                if matches!(function_returns.get(name), Some(MirType::Bool))) =>
+        {
+            ir::types::I8
         }
         MirExpr::Call { callee, .. }
             if matches!(&**callee, MirExpr::Member { field, .. } if field == "get"
@@ -3367,9 +4067,14 @@ fn value_type_for_expr(expr: &MirExpr, ptr_ty: ir::Type) -> ir::Type {
             ir::types::I64
         }
         MirExpr::Call { callee, .. }
+            if matches!(&**callee, MirExpr::Member { field, .. } if field == "sort_desc" || field == "take") =>
+        {
+            ptr_ty
+        }
+        MirExpr::Call { callee, .. }
             if matches!(
                 &**callee,
-                MirExpr::Member { object, field }
+                MirExpr::Member { object, field, .. }
                 if matches!(&**object, MirExpr::Var(namespace)
                     if (namespace == "path" && (field == "join" || field == "parent" || field == "basename"))
                     || (namespace == "fs" && field == "read_text")
@@ -3381,6 +4086,14 @@ fn value_type_for_expr(expr: &MirExpr, ptr_ty: ir::Type) -> ir::Type {
         {
             ptr_ty
         }
+        MirExpr::Unary { op, expr } if op == "Neg" => {
+            value_type_for_expr(expr, owner, function_returns, ptr_ty)
+        }
+        MirExpr::Unary { .. } => ir::types::I64,
+        MirExpr::Question { expr } | MirExpr::Old { expr } => {
+            value_type_for_expr(expr, owner, function_returns, ptr_ty)
+        }
+        MirExpr::DotResult => ir::types::I64,
         _ => ir::types::I64,
     }
 }
