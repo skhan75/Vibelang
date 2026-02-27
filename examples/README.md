@@ -1,4 +1,4 @@
-# VibeLang Examples (70 programs)
+# VibeLang Examples (75 programs)
 
 This directory contains runnable sample programs that cover VibeLang from basic syntax to advanced concurrency and modular projects.
 
@@ -27,6 +27,7 @@ This directory contains runnable sample programs that cover VibeLang from basic 
 - Modules and imports: `examples/08_modules_packages/`
 - Agentic workflow patterns: `examples/09_agentic_patterns/`
 - Intent and contracts: `examples/10_contracts_intent/`
+- Shapes and composition patterns: `examples/11_modeling_shapes/`
 
 ## Example index
 
@@ -100,6 +101,11 @@ This directory contains runnable sample programs that cover VibeLang from basic 
 68. `10_contracts_intent/68_runtime_require_failure_demo.yb`
 69. `10_contracts_intent/69_runtime_ensure_failure_demo.yb`
 70. `10_contracts_intent/70_concurrency_effect_contracts.yb`
+71. `11_modeling_shapes/71_shape_with_map_record.yb`
+72. `11_modeling_shapes/72_shape_contracts_and_validation.yb`
+73. `11_modeling_shapes/73_composition_over_inheritance.yb`
+74. `06_concurrency_async/43_async_await_pipeline.yb`
+75. `06_concurrency_async/44_async_await_parallel_join.yb`
 
 ## Feature gap tracker
 

@@ -1,0 +1,44 @@
+base_score(raw: Int) -> Int {
+  raw + 10
+}
+
+apply_premium_bonus(score: Int, is_premium: Int) -> Int {
+  if is_premium == 1 {
+    return score + 5
+  }
+  score
+}
+
+apply_risk_penalty(score: Int, risk_level: Int) -> Int {
+  if risk_level > 3 {
+    return score - 4
+  }
+  score
+}
+
+final_score(raw: Int, is_premium: Int, risk_level: Int) -> Int {
+  @intent "demonstrate composition-based behavior instead of inheritance"
+  @examples {
+    final_score(10, 1, 2) => 25
+    final_score(10, 0, 5) => 16
+  }
+  base := base_score(raw)
+  boosted := apply_premium_bonus(base, is_premium)
+  apply_risk_penalty(boosted, risk_level)
+}
+
+pub main() -> Int {
+  @effect io
+  a := final_score(10, 1, 2)
+  b := final_score(10, 0, 5)
+  if a == 25 {
+    if b == 16 {
+      println("composition-ok")
+    } else {
+      println("composition-bad-b")
+    }
+  } else {
+    println("composition-bad-a")
+  }
+  0
+}

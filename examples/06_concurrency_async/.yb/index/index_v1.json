@@ -1568,6 +1568,542 @@
       "effect_mismatches": [],
       "diagnostics": [],
       "dependencies": []
+    },
+    "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb": {
+      "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+      "file_hash": "da2599b0589ba622475f7df3d1d74e74444f35691c09a8c947fbab32855eeef2",
+      "symbols": [
+        {
+          "id": 5797342670899793524,
+          "name": "add_one",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 3,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 13043219327989873518,
+          "name": "x",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 3,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 16267403889917966,
+          "name": "double_value",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 1,
+            "line_end": 7,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 16925919733520778262,
+          "name": "x",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 1,
+            "line_end": 7,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 8465299485125528012,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "span": {
+            "line_start": 9,
+            "col_start": 5,
+            "line_end": 22,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 15643078026520786929,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 3,
+            "line_end": 10,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 14957896983885277302,
+          "name": "concurrency",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 3,
+            "line_end": 11,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 8141585058484362526,
+          "name": "first_task",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 3,
+            "line_end": 12,
+            "col_end": 12
+          }
+        },
+        {
+          "id": 1161884650308188036,
+          "name": "first",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "span": {
+            "line_start": 13,
+            "col_start": 3,
+            "line_end": 13,
+            "col_end": 7
+          }
+        },
+        {
+          "id": 5935974929466864927,
+          "name": "second_task",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "span": {
+            "line_start": 14,
+            "col_start": 3,
+            "line_end": 14,
+            "col_end": 13
+          }
+        },
+        {
+          "id": 15007584272437760084,
+          "name": "second",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "span": {
+            "line_start": 15,
+            "col_start": 3,
+            "line_end": 15,
+            "col_end": 8
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 13043219327989873518,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        },
+        {
+          "symbol_id": 16925919733520778262,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 3,
+            "line_end": 6,
+            "col_end": 3
+          }
+        },
+        {
+          "symbol_id": 16925919733520778262,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 7,
+            "line_end": 6,
+            "col_end": 7
+          }
+        },
+        {
+          "symbol_id": 5797342670899793524,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 23,
+            "line_end": 12,
+            "col_end": 29
+          }
+        },
+        {
+          "symbol_id": 8141585058484362526,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "span": {
+            "line_start": 13,
+            "col_start": 18,
+            "line_end": 13,
+            "col_end": 27
+          }
+        },
+        {
+          "symbol_id": 16267403889917966,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "span": {
+            "line_start": 14,
+            "col_start": 24,
+            "line_end": 14,
+            "col_end": 35
+          }
+        },
+        {
+          "symbol_id": 1161884650308188036,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "span": {
+            "line_start": 14,
+            "col_start": 37,
+            "line_end": 14,
+            "col_end": 41
+          }
+        },
+        {
+          "symbol_id": 5935974929466864927,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "span": {
+            "line_start": 15,
+            "col_start": 19,
+            "line_end": 15,
+            "col_end": 29
+          }
+        },
+        {
+          "symbol_id": 15007584272437760084,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "span": {
+            "line_start": 16,
+            "col_start": 6,
+            "line_end": 16,
+            "col_end": 11
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 5797342670899793524,
+          "function_name": "add_one",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "signature_hash": "f9ab59edfec3d03368c2f17af823a44cf3a4bf81be1ee21470a12274fb85b989",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        },
+        {
+          "symbol_id": 16267403889917966,
+          "function_name": "double_value",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "signature_hash": "c25802fc9c14221c38f809771766dd9566518f51745f6b35bb3ff2e04f3c06a9",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        },
+        {
+          "symbol_id": 8465299485125528012,
+          "function_name": "main",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "concurrency",
+            "io"
+          ],
+          "effects_observed": [
+            "concurrency",
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb": {
+      "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb",
+      "file_hash": "d253e7fc674447ed631040ba610799cdfda04ca4361ac9e8dc7516c8b240ad31",
+      "symbols": [
+        {
+          "id": 9604743773660301499,
+          "name": "sum",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 3,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 11759623877310751529,
+          "name": "a",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 3,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 16774775997100398702,
+          "name": "b",
+          "kind": "Param",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 3,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 3641714857957585129,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 5,
+            "line_end": 18,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 3458535233311866099,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 3,
+            "line_end": 6,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 11637243379732345310,
+          "name": "concurrency",
+          "kind": "Effect",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 3,
+            "line_end": 7,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 5647582789573568295,
+          "name": "task_a",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 3,
+            "line_end": 8,
+            "col_end": 8
+          }
+        },
+        {
+          "id": 6080365048890261612,
+          "name": "task_b",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb",
+          "span": {
+            "line_start": 9,
+            "col_start": 3,
+            "line_end": 9,
+            "col_end": 8
+          }
+        },
+        {
+          "id": 6762419395974980641,
+          "name": "a",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 3,
+            "line_end": 10,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 16047211817128828823,
+          "name": "b",
+          "kind": "Local",
+          "module": null,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 3,
+            "line_end": 11,
+            "col_end": 3
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 11759623877310751529,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        },
+        {
+          "symbol_id": 16774775997100398702,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 7,
+            "line_end": 2,
+            "col_end": 7
+          }
+        },
+        {
+          "symbol_id": 9604743773660301499,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 19,
+            "line_end": 8,
+            "col_end": 21
+          }
+        },
+        {
+          "symbol_id": 9604743773660301499,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb",
+          "span": {
+            "line_start": 9,
+            "col_start": 19,
+            "line_end": 9,
+            "col_end": 21
+          }
+        },
+        {
+          "symbol_id": 5647582789573568295,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 14,
+            "line_end": 10,
+            "col_end": 19
+          }
+        },
+        {
+          "symbol_id": 6080365048890261612,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 14,
+            "line_end": 11,
+            "col_end": 19
+          }
+        },
+        {
+          "symbol_id": 6762419395974980641,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 6,
+            "line_end": 12,
+            "col_end": 6
+          }
+        },
+        {
+          "symbol_id": 16047211817128828823,
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 10,
+            "line_end": 12,
+            "col_end": 10
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 3641714857957585129,
+          "function_name": "main",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "concurrency",
+            "io"
+          ],
+          "effects_observed": [
+            "concurrency",
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        },
+        {
+          "symbol_id": 9604743773660301499,
+          "function_name": "sum",
+          "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb",
+          "signature_hash": "1e29ae433af9c20c2a533ae5c62df55240e388df2c1da45dba3ad9b8a257f029",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
     }
   }
 }

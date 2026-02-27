@@ -1,0 +1,32 @@
+make_point(x: Int, y: Int) -> Map<Str, Int> {
+  @intent "create a point-like shape using a map record"
+  @effect alloc
+  {"x": x, "y": y}
+}
+
+translate_x(point: Map<Str, Int>, dx: Int) -> Map<Str, Int> {
+  @intent "move the point on x-axis while preserving y"
+  @effect alloc
+  @effect mut_state
+  moved := {"x": point.get("x"), "y": point.get("y")}
+  moved.set("x", moved.get("x") + dx)
+  moved
+}
+
+pub main() -> Int {
+  @effect io
+  @effect alloc
+  @effect mut_state
+  point := make_point(3, 4)
+  shifted := translate_x(point, 5)
+  if shifted.get("x") == 8 {
+    if shifted.get("y") == 4 {
+      println("shape-map-ok")
+    } else {
+      println("shape-map-bad-y")
+    }
+  } else {
+    println("shape-map-bad-x")
+  }
+  0
+}

@@ -1,0 +1,22 @@
+add_one(x: Int) -> Int {
+  x + 1
+}
+
+double_value(x: Int) -> Int {
+  x + x
+}
+
+pub main() -> Int {
+  @effect io
+  @effect concurrency
+  first_task := async add_one(5)
+  first := await first_task
+  second_task := async double_value(first)
+  second := await second_task
+  if second == 12 {
+    println("async-pipeline-ok")
+  } else {
+    println("async-pipeline-bad")
+  }
+  0
+}

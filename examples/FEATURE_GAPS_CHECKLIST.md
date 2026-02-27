@@ -95,6 +95,18 @@ that block full example execution parity.
     - Improve CLI diagnostic for non-entry module execution.
     - Add explicit example-runner policy: run entry modules only for multi-file projects.
 
+## Existing alternatives already demonstrated
+
+- Shape modeling with today's stable surface:
+  - `examples/11_modeling_shapes/71_shape_with_map_record.yb`
+  - `examples/11_modeling_shapes/72_shape_contracts_and_validation.yb`
+- Composition pattern as current alternative to inheritance:
+  - `examples/11_modeling_shapes/73_composition_over_inheritance.yb`
+- Async/await runnable references:
+  - `examples/06_concurrency_async/42_async_thread_bridge.yb`
+  - `examples/06_concurrency_async/43_async_await_pipeline.yb`
+  - `examples/06_concurrency_async/44_async_await_parallel_join.yb`
+
 ## Expected-failure demo files (not blockers)
 
 - `examples/10_contracts_intent/68_runtime_require_failure_demo.yb`

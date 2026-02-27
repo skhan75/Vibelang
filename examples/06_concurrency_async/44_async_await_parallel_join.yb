@@ -1,0 +1,18 @@
+sum(a: Int, b: Int) -> Int {
+  a + b
+}
+
+pub main() -> Int {
+  @effect io
+  @effect concurrency
+  task_a := async sum(2, 3)
+  task_b := async sum(10, 20)
+  a := await task_a
+  b := await task_b
+  if a + b == 35 {
+    println("async-parallel-join-ok")
+  } else {
+    println("async-parallel-join-bad")
+  }
+  0
+}

@@ -1,0 +1,30 @@
+rectangle_area(width: Int, height: Int) -> Int {
+  @intent "compute area for a valid rectangle shape"
+  @examples {
+    rectangle_area(2, 3) => 6
+    rectangle_area(5, 4) => 20
+  }
+  @require width > 0
+  @require height > 0
+  @ensure . > 0
+  width * height
+}
+
+make_rectangle(width: Int, height: Int) -> Map<Str, Int> {
+  @intent "create a rectangle-like shape record"
+  @effect alloc
+  {"w": width, "h": height}
+}
+
+pub main() -> Int {
+  @effect io
+  @effect alloc
+  rect := make_rectangle(4, 6)
+  area := rectangle_area(rect.get("w"), rect.get("h"))
+  if area == 24 {
+    println("shape-contract-ok")
+  } else {
+    println("shape-contract-bad")
+  }
+  0
+}
