@@ -1,23 +1,43 @@
-# Summary
+# The VibeLang Programming Language
 
-- [Preface: How to Read This Book](preface.md)
-- [Chapter 1: Getting Started and Mental Model](ch01_getting_started.md)
-- [Chapter 2: Core Syntax and Semantics](ch02_core_syntax_semantics.md)
-- [Chapter 3: Types, Functions, and Errors](ch03_types_functions_errors.md)
-- [Chapter 4: Contracts and Executable Examples](ch04_contracts_examples.md)
-- [Chapter 5: Effects and Performance Reasoning](ch05_effects_performance.md)
-- [Chapter 6: Concurrency (`go`, `chan`, `select`, cancellation)](ch06_concurrency.md)
-- [Chapter 7: Tooling Workflow](ch07_tooling.md)
-- [Chapter 8: Intent-Driven Development and Sidecar Model](ch08_intent_sidecar.md)
-- [Chapter 9: Migration and Compatibility](ch09_migration_compatibility.md)
-- [Chapter 10: Advanced Internals Overview](ch10_advanced_internals.md)
-- [Chapter 11: Lexical Structure, Keywords, and Literals](ch11_lexical_structure_keywords_and_literals.md)
-- [Chapter 12: Expressions and Control-Flow Deep Dive](ch12_expressions_and_control_flow_deep_dive.md)
-- [Chapter 13: Strings, Containers, and Data Structures](ch13_strings_containers_and_data_structures.md)
-- [Chapter 14: Modules, Imports, and Visibility](ch14_modules_imports_and_visibility.md)
-- [Chapter 15: Ownership, Sendability, and Memory Model](ch15_ownership_sendability_and_memory.md)
-- [Chapter 16: ABI, FFI, and Unsafe Boundaries](ch16_abi_ffi_and_unsafe_boundaries.md)
-- [Chapter 17: Determinism, Build Profiles, and Release Engineering](ch17_determinism_profiles_and_release_engineering.md)
-- [Chapter 18: Production Adoption Patterns](ch18_production_adoption_patterns.md)
-- [Chapter 19: Concept Drills and Pattern Workbook](ch19_concept_drills_and_pattern_workbook.md)
-- [Chapter 20: Reference Appendices for Teams](ch20_reference_appendices_for_teams.md)
+[Preface](preface.md)
+
+## Getting Started
+
+- [Getting Started](ch01_getting_started.md)
+- [Your First VibeLang Program](ch02_first_program.md)
+
+## VibeLang Fundamentals
+
+- [Core Syntax and Semantics](ch03_syntax_and_semantics.md)
+- [Types and Functions](ch04_types_and_functions.md)
+- [Control Flow](ch05_control_flow.md)
+
+## The Contract System
+
+- [Contracts and Intent-Driven Development](ch06_contracts_and_intent.md)
+- [The Effects System](ch07_effects_system.md)
+- [Error Handling with Result](ch08_error_handling.md)
+
+## Working with Data
+
+- [Strings, Lists, and Maps](ch09_collections.md)
+- [Modules and Packages](ch10_modules_and_packages.md)
+
+## Concurrency and Safety
+
+- [Concurrency with go, chan, and select](ch11_concurrency.md)
+- [Ownership, Sendability, and Memory](ch12_ownership_and_memory.md)
+
+## Advanced Topics
+
+- [Advanced Patterns and Real-World Programs](ch13_advanced_patterns.md)
+- [The Compiler: How VibeLang Works](ch14_compiler_internals.md)
+- [Toolchain Deep Dive](ch15_toolchain.md)
+- [Production and Release Engineering](ch16_production.md)
+
+## Appendices
+
+- [Appendix A: Keyword Reference](appendix_a_keywords.md)
+- [Appendix B: Operators and Symbols](appendix_b_operators.md)
+- [Appendix C: Standard Library Reference](appendix_c_stdlib.md)
