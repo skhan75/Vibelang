@@ -1,0 +1,27 @@
+name: Documentation issue
+description: Report missing, confusing, or incorrect documentation.
+labels: ["docs"]
+body:
+  - type: input
+    id: page
+    attributes:
+      label: Page / link
+      description: Where is the doc issue located?
+      placeholder: docs/... or URL
+    validations:
+      required: true
+
+  - type: textarea
+    id: issue
+    attributes:
+      label: What’s wrong?
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested fix
+    validations:
+      required: false
+

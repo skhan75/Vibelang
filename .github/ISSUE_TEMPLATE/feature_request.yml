@@ -1,0 +1,47 @@
+name: Feature request
+description: Suggest a new feature or improvement.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please include intent and expected user impact. If it’s non-trivial, propose an API surface.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - language
+        - stdlib
+        - cli/tooling
+        - lsp/editor
+        - packaging
+        - benchmarking
+        - other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What problem are you trying to solve?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Include examples / API sketch if possible.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: false
+

@@ -5,7 +5,7 @@
   "description": "VS Code/Cursor language support for VibeLang (.yb/.vibe).",
   "version": "0.13.1",
   "publisher": "vibelang",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "engines": {
     "vscode": "^1.90.0"
   },

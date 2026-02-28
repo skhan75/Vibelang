@@ -1,0 +1,68 @@
+name: Bug report
+description: Report a bug in the compiler, runtime, CLI, or tooling.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report an issue.
+
+  - type: input
+    id: version
+    attributes:
+      label: VibeLang version
+      description: Output of `vibe --version --json` (or `vibe --version`)
+      placeholder: v0.x.y (commit ...)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - cli
+        - lexer/parser
+        - typechecker
+        - codegen
+        - runtime
+        - stdlib
+        - lsp/indexer
+        - docs
+        - benchmarks
+        - other
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: Minimal source code + exact commands to reproduce.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / diagnostics
+      description: Paste any error output here.
+      render: text
+    validations:
+      required: false
+

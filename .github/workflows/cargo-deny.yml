@@ -1,0 +1,35 @@
+name: cargo-deny
+
+on:
+  push:
+    branches: ["main", "release/**"]
+    paths:
+      - ".github/workflows/cargo-deny.yml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "crates/**"
+      - "deny.toml"
+  pull_request:
+    branches: ["main", "release/**"]
+    paths:
+      - ".github/workflows/cargo-deny.yml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "crates/**"
+      - "deny.toml"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deny:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: EmbarkStudios/cargo-deny-action@v1
+        with:
+          command: check
+          arguments: --all-features
+

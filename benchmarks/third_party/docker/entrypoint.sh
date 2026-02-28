@@ -14,7 +14,12 @@ if ! timeout 20 docker info >/dev/null 2>&1; then
   exit 1
 fi
 
-python3 tooling/metrics/collect_third_party_benchmarks.py --profile "${PROFILE}"
+collect_args=(--profile "${PROFILE}")
+if [[ "${VALIDATION_MODE}" == "strict" ]]; then
+  collect_args+=(--publication-mode)
+fi
+
+python3 tooling/metrics/collect_third_party_benchmarks.py "${collect_args[@]}"
 python3 tooling/metrics/validate_third_party_benchmarks.py --enforcement-mode "${VALIDATION_MODE}"
 
 if [[ -f "reports/benchmarks/third_party/full/results.json" ]]; then

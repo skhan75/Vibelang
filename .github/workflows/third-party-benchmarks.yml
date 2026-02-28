@@ -1,0 +1,46 @@
+name: third-party-benchmarks
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main", "release/**"]
+    paths:
+      - ".github/workflows/third-party-benchmarks.yml"
+      - "benchmarks/third_party/**"
+      - "tooling/metrics/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "crates/**"
+      - "runtime/**"
+      - "stdlib/**"
+  pull_request:
+    branches: ["main", "release/**"]
+    paths:
+      - ".github/workflows/third-party-benchmarks.yml"
+      - "benchmarks/third_party/**"
+      - "tooling/metrics/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "crates/**"
+      - "runtime/**"
+      - "stdlib/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  strict_full:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: run third-party benchmark runner (strict)
+        run: |
+          set -euo pipefail
+          PROFILE=full VALIDATION_MODE=strict bash benchmarks/third_party/docker/run_in_runner_container.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: third-party-benchmarks-full
+          path: reports/benchmarks/third_party/
+          retention-days: 3
+
