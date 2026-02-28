@@ -1,15 +1,12 @@
-<p align="center">
-  <img src="assets/branding/vibelang-mascot-hero.png" alt="VibeLang" width="360" />
-</p>
 
-<h1 align="center">VibeLang</h1>
+<h1 align="left">VibeLang</h1>
 
-<p align="center">
+<p align="left">
   <strong>Code with Intent.</strong><br />
   <sub>Native AOT compilation · First-class contracts · Structured concurrency · AI-era guardrails</sub>
 </p>
 
-<p align="center">
+<p align="left">
   <a href="https://github.com/skhan75/VibeLang/releases/tag/v1.0.0"><img src="https://img.shields.io/badge/release-v1.0.0-22c55e" alt="release" /></a>
   <a href="#performance"><img src="https://img.shields.io/badge/27×_faster-than_Go-00f0ff" alt="performance" /></a>
   <a href="#performance"><img src="https://img.shields.io/badge/100×_faster-than_Python-b026ff" alt="performance" /></a>
@@ -17,7 +14,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache_2.0-blue.svg" alt="license" /></a>
 </p>
 
-<p align="center">
+<p align="left">
   <a href="https://www.thevibelang.org">Website</a> ·
   <a href="https://www.thevibelang.org/documentation">Documentation</a> ·
   <a href="#quickstart">Quickstart</a> ·
