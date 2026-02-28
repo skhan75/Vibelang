@@ -15,6 +15,7 @@ fn phase12_stdlib_module_surface_runs_end_to_end() {
             r#"
 pub main() -> Int {{
   @effect io
+  @effect net
   println(path.join("/tmp", "vibe"))
   println(path.parent("/tmp/vibe/file.txt"))
   println(path.basename("/tmp/vibe/file.txt"))
@@ -24,12 +25,17 @@ pub main() -> Int {{
   println(json.stringify_i64(time.duration_ms(2)))
   println(json.stringify_i64(json.parse_i64("42")))
   println(json.minify("{{ \"a\" : 1 }}"))
+  println(json.canonical("{{ \"a\" : 1 }}"))
+  println(json.repeat_array(json.canonical("{{\"a\":1}}"), 3))
+  println(hash.md5_hex("abc"))
   if json.is_valid("{{\"a\":1}}") {{
     println("json-ok")
   }}
   println(http.status_text(200))
   println(json.stringify_i64(http.default_port("https")))
   println(http.build_request_line("GET", "/ready"))
+  println(json.stringify_i64(http.server_bench(10)))
+  println(crypto.secp256k1_bench(1))
   if fs.write_text("{text_file}", "hello-stdlib") {{
     println("write-ok")
   }}
@@ -56,7 +62,7 @@ pub main() -> Int {{
     );
     assert_eq!(
         out.stdout,
-        "/tmp/vibe\n/tmp/vibe\nfile.txt\nabs\n2000\n42\n{\"a\":1}\njson-ok\nOK\n443\nGET /ready HTTP/1.1\nwrite-ok\nexists-ok\nhello-stdlib\nmkdir-ok\n"
+        "/tmp/vibe\n/tmp/vibe\nfile.txt\nabs\n2000\n42\n{\"a\":1}\n{\"a\":1}\n[{\"a\":1},{\"a\":1},{\"a\":1}]\n900150983cd24fb0d6963f7d28e17f72\njson-ok\nOK\n443\nGET /ready HTTP/1.1\n55\nbac4db182bd8e59da66ec3b0e1759a102ff7308a916cccb51c68253d4bf32c16,a6bf6c1c8c9261f65983cfb987e0e8b4b8a7cc34376454b27f5adf7e36dc15d0\nwrite-ok\nexists-ok\nhello-stdlib\nmkdir-ok\n"
     );
 }
 
@@ -69,6 +75,7 @@ pub main() -> Int {
   @effect io
   println(path.join("/a", "b"))
   println(json.minify("{ \"k\" : 1 }"))
+  println(hash.md5_hex("abc"))
   println(http.build_request_line("POST", "/submit"))
   println(json.stringify_i64(time.duration_ms(3)))
   0

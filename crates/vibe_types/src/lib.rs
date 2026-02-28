@@ -2378,13 +2378,25 @@ fn stdlib_namespace_return_hint(namespace: &str, field: &str) -> Option<TypeKind
         ("path", "is_absolute") => Some(TypeKind::Bool),
         ("fs", "exists") | ("fs", "write_text") | ("fs", "create_dir") => Some(TypeKind::Bool),
         ("fs", "read_text") => Some(TypeKind::Str),
+        ("net", "listen")
+        | ("net", "listener_port")
+        | ("net", "accept")
+        | ("net", "connect")
+        | ("net", "write") => Some(TypeKind::Int),
+        ("net", "close") => Some(TypeKind::Bool),
+        ("net", "read") => Some(TypeKind::Str),
         ("json", "is_valid") => Some(TypeKind::Bool),
         ("json", "parse_i64") => Some(TypeKind::Int),
-        ("json", "stringify_i64") | ("json", "minify") => Some(TypeKind::Str),
+        ("json", "stringify_i64") | ("json", "minify") | ("json", "canonical") | ("json", "repeat_array") => {
+            Some(TypeKind::Str)
+        }
         ("regex", "count") => Some(TypeKind::Int),
         ("regex", "replace_all") => Some(TypeKind::Str),
         ("http", "status_text") | ("http", "build_request_line") => Some(TypeKind::Str),
-        ("http", "default_port") => Some(TypeKind::Int),
+        ("http", "default_port") | ("http", "server_bench") => Some(TypeKind::Int),
+        ("hash", "md5_hex") => Some(TypeKind::Str),
+        ("crypto", "secp256k1_bench") => Some(TypeKind::Str),
+        ("math", "edigits") => Some(TypeKind::Str),
         _ => None,
     }
 }
@@ -2409,15 +2421,27 @@ fn infer_stdlib_namespace_call(
         }
         ("fs", "exists") | ("fs", "read_text") | ("fs", "create_dir") => Some((&["Str"][..], "io")),
         ("fs", "write_text") => Some((&["Str", "Str"][..], "io")),
+        ("net", "listen") => Some((&["Str", "Int"][..], "net")),
+        ("net", "listener_port") | ("net", "accept") => Some((&["Int"][..], "net")),
+        ("net", "connect") => Some((&["Str", "Int"][..], "net")),
+        ("net", "read") => Some((&["Int", "Int"][..], "net")),
+        ("net", "write") => Some((&["Int", "Str"][..], "net")),
+        ("net", "close") => Some((&["Int"][..], "net")),
         ("json", "is_valid") | ("json", "parse_i64") | ("json", "minify") => {
             Some((&["Str"][..], ""))
         }
         ("json", "stringify_i64") => Some((&["Int"][..], "")),
+        ("json", "canonical") => Some((&["Str"][..], "")),
+        ("json", "repeat_array") => Some((&["Str", "Int"][..], "")),
         ("regex", "count") => Some((&["Str", "Str"][..], "")),
         ("regex", "replace_all") => Some((&["Str", "Str", "Str"][..], "")),
         ("http", "status_text") => Some((&["Int"][..], "")),
         ("http", "default_port") => Some((&["Str"][..], "")),
         ("http", "build_request_line") => Some((&["Str", "Str"][..], "")),
+        ("http", "server_bench") => Some((&["Int"][..], "net")),
+        ("hash", "md5_hex") => Some((&["Str"][..], "")),
+        ("crypto", "secp256k1_bench") => Some((&["Int"][..], "")),
+        ("math", "edigits") => Some((&["Int"][..], "")),
         _ => None,
     };
     if let Some((expected_args, effect)) = expected {
@@ -2487,9 +2511,13 @@ fn is_builtin_ident(name: &str) -> bool {
             | "time"
             | "path"
             | "fs"
+            | "net"
             | "json"
             | "regex"
             | "http"
+            | "hash"
+            | "crypto"
+            | "math"
             | "true"
             | "false"
     )

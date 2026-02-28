@@ -10,7 +10,10 @@ keeping deterministic behavior and local-first validation.
 - `time` (preview): clock + duration helpers
 - `path` (stable): path composition/introspection helpers
 - `fs` (preview): filesystem read/write/exists/directory helpers
+- `net` (preview): TCP socket primitives
 - `json` (preview): parse/validate/minify/stringify primitives
+- `hash` (preview): hashing helpers
+- `crypto` (preview): cryptography-related helpers (benchmark parity)
 - `http` (preview): protocol helper primitives (status text, default ports, request lines)
 
 Detailed module references:
@@ -20,7 +23,10 @@ Detailed module references:
 - `stdlib/time/README.md`
 - `stdlib/path/README.md`
 - `stdlib/fs/README.md`
+- `stdlib/net/README.md`
 - `stdlib/json/README.md`
+- `stdlib/hash/README.md`
+- `stdlib/crypto/README.md`
 - `stdlib/http/README.md`
 
 ## Compiler/runtime contract

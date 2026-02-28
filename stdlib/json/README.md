@@ -6,6 +6,8 @@
 - `json.parse_i64(raw: Str) -> Int`
 - `json.stringify_i64(value: Int) -> Str`
 - `json.minify(raw: Str) -> Str`
+- `json.canonical(raw: Str) -> Str`
+- `json.repeat_array(item: Str, n: Int) -> Str`
 
 ## Semantics
 
@@ -14,6 +16,9 @@
 - `parse_i64` parses integer literals with surrounding whitespace.
 - `stringify_i64` serializes `Int` to canonical decimal string.
 - `minify` removes insignificant whitespace while preserving string literals and escapes.
+- `canonical` emits a compact canonical JSON string, normalizing numeric formatting to match the
+  implementation’s canonical serializer behavior.
+- `repeat_array` constructs a compact JSON array by repeating `item` \(n\) times: `[...]`.
 
 ## Error model
 

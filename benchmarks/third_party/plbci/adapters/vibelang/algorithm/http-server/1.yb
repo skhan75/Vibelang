@@ -1,17 +1,21 @@
+read_n() -> Int {
+  @effect io
+  raw := fs.read_text(".benchmark_input")
+  if raw == "" {
+    return 10
+  }
+  n := json.parse_i64(raw)
+  if n <= 0 {
+    return 10
+  }
+  return n
+}
+
 pub main() -> Int {
   @effect io
-  @effect mut_state
-  req := 0
-  ok := 0
-  while req < 500000 {
-    if req - (req / 11) * 11 < 2 {
-      ok = ok + 1
-    }
-    req = req + 1
-  }
-  if ok == -1 {
-    println("unreachable")
-  }
-  println("55")
-  0
+  @effect net
+  n := read_n()
+  sum := http.server_bench(n)
+  println(json.stringify_i64(sum))
+  return 0
 }

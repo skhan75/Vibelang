@@ -1,18 +1,13 @@
 pub main() -> Int {
   @effect io
-  @effect mut_state
-  i := 0
-  acc := 1
-  while i < 500000 {
-    acc = (acc * 48271) - ((acc / 2147483647) * 2147483647)
-    if acc < 0 {
-      acc = acc + 2147483647
+  raw := fs.read_text(".benchmark_input")
+  n := 1
+  if raw != "" {
+    parsed := json.parse_i64(raw)
+    if parsed > 0 {
+      n = parsed
     }
-    i = i + 1
   }
-  if acc == -1 {
-    println("unreachable")
-  }
-  println("bac4db182bd8e59da66ec3b0e1759a102ff7308a916cccb51c68253d4bf32c16,a6bf6c1c8c9261f65983cfb987e0e8b4b8a7cc34376454b27f5adf7e36dc15d0")
-  0
+  println(crypto.secp256k1_bench(n))
+  return 0
 }

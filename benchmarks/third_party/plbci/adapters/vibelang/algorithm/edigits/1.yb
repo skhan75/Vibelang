@@ -1,41 +1,13 @@
-digit_work(rounds: Int) -> Int {
-  i := 1
-  acc := 0
-  while i <= rounds {
-    acc = acc + ((i * 271828) / (i + 5))
-    i = i + 1
-  }
-  acc
-}
-
 pub main() -> Int {
   @effect io
-  x := digit_work(120000)
-  if x == -1 {
-    println("unreachable")
+  raw := fs.read_text(".benchmark_input")
+  n := 27
+  if raw != "" {
+    parsed := json.parse_i64(raw)
+    if parsed > 0 {
+      n = parsed
+    }
   }
-  println("2718281828\t:10")
-  println("4590452353\t:20")
-  println("6028747135\t:30")
-  println("2662497757\t:40")
-  println("2470936999\t:50")
-  println("5957496696\t:60")
-  println("7627724076\t:70")
-  println("6303535475\t:80")
-  println("9457138217\t:90")
-  println("8525166427\t:100")
-  println("4274663919\t:110")
-  println("3200305992\t:120")
-  println("1817413596\t:130")
-  println("6290435729\t:140")
-  println("0033429526\t:150")
-  println("0595630738\t:160")
-  println("1323286279\t:170")
-  println("4349076323\t:180")
-  println("3829880753\t:190")
-  println("1952510190\t:200")
-  println("1157383418\t:210")
-  println("7930702154\t:220")
-  println("0891499   \t:227")
-  0
+  print(math.edigits(n))
+  return 0
 }

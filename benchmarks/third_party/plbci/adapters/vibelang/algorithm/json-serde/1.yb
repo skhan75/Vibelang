@@ -1,21 +1,32 @@
 pub main() -> Int {
   @effect io
-  @effect alloc
-  @effect mut_state
-  payload := "{ \"name\": \"vibelang\", \"value\": 42 }"
-  i := 0
-  checksum := 0
-  while i < 160000 {
-    minified := json.minify(payload)
-    if json.is_valid(minified) {
-      checksum = checksum + 1
+  input := fs.read_text(".benchmark_input")
+  file_name := "sample"
+  n := 10
+  if input != "" {
+    i := 0
+    while i < input.len() {
+      if input[i:i+1] == " " {
+        file_name = input[0:i]
+        n_raw := input[i+1:input.len()]
+        n = json.parse_i64(n_raw)
+        if n <= 0 {
+          n = 10
+        }
+        i = input.len()
+      } else {
+        i = i + 1
+      }
     }
-    i = i + 1
+    if file_name == "" {
+      file_name = input
+    }
   }
-  if checksum == -1 {
-    println("unreachable")
-  }
-  println("9f8a9edb47ee2f885325cdc8a18591f4")
-  println("80bf2dee6461725c8200bfced3c695b7")
-  0
+
+  raw := fs.read_text(file_name + ".json")
+  canon := json.canonical(raw)
+  println(hash.md5_hex(canon))
+  arr := json.repeat_array(canon, n)
+  println(hash.md5_hex(arr))
+  return 0
 }
