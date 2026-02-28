@@ -14,50 +14,34 @@ VibeLang compiles ahead-of-time (AOT) to native machine code through a series
 of transformations:
 
 ```
-    ╭──────────────────────────────────────╮
-    │          Source Code (.yb)            │
-    ╰──────────────────┬───────────────────╯
-                       │
-                       ▼
-    ╭──────────────────────────────────────╮
-    │  ① Lexer                 vibe_lexer  │
-    │     Tokenizes source into a stream   │
-    ╰──────────────────┬───────────────────╯
-                       │  Token Stream
-                       ▼
-    ╭──────────────────────────────────────╮
-    │  ② Parser               vibe_parser  │
-    │     Builds syntactic tree from tokens │
-    ╰──────────────────┬───────────────────╯
-                       │  Abstract Syntax Tree
-                       ▼
-    ╭──────────────────────────────────────╮
-    │  ③ Type Checker          vibe_types  │
-    │     Infers types, checks effects     │
-    ╰──────────────────┬───────────────────╯
-                       │  Typed AST
-                       ▼
-    ╭──────────────────────────────────────╮
-    │  ④ HIR Lowering            vibe_hir  │
-    │     Desugars, lowers contracts       │
-    ╰──────────────────┬───────────────────╯
-                       │  High-Level IR
-                       ▼
-    ╭──────────────────────────────────────╮
-    │  ⑤ MIR Lowering            vibe_mir  │
-    │     Optimizes, analyzes effects      │
-    ╰──────────────────┬───────────────────╯
-                       │  Mid-Level IR
-                       ▼
-    ╭──────────────────────────────────────╮
-    │  ⑥ Code Gen      vibe_codegen        │
-    │     Cranelift backend → machine code  │
-    ╰──────────────────┬───────────────────╯
-                       │  Machine Code
-                       ▼
-    ╭──────────────────────────────────────╮
-    │          Native Binary               │
-    ╰──────────────────────────────────────╯
+  Source Code (.yb)
+        |
+        v
+  [ Lexer ]              vibe_lexer
+        |
+        |  Token Stream
+        v
+  [ Parser ]             vibe_parser
+        |
+        |  AST
+        v
+  [ Type Checker ]       vibe_types
+        |
+        |  Typed AST
+        v
+  [ HIR Lowering ]       vibe_hir
+        |
+        |  High-Level IR
+        v
+  [ MIR Lowering ]       vibe_mir
+        |
+        |  Mid-Level IR
+        v
+  [ Code Gen ]           vibe_codegen (Cranelift)
+        |
+        |  Machine Code
+        v
+  [ Native Binary ]
 ```
 
 Each stage has a corresponding Rust crate. The `vibe_diagnostics` crate provides

@@ -991,42 +991,22 @@ Understanding where contracts fit in the compilation pipeline helps you reason
 about their behavior:
 
 ```
-    ╭──────────────────────────────────────────────────────╮
-    │                    Source Code                        │
-    ╰────────────────────────┬─────────────────────────────╯
-                             │
-                             ▼
-    ╭──────────────────────────────────────────────────────╮
-    │  ① Parse Annotations                                 │
-    │     Extracts @intent, @examples, @require,           │
-    │     @ensure, @effect from function bodies             │
-    ╰────────────────────────┬─────────────────────────────╯
-                             │
-                             ▼
-    ╭──────────────────────────────────────────────────────╮
-    │  ② Type Check                                        │
-    │     Verifies contract expressions are well-typed     │
-    │     and reference only in-scope bindings              │
-    ╰────────────────────────┬─────────────────────────────╯
-                             │
-                             ▼
-    ╭──────────────────────────────────────────────────────╮
-    │  ③ Effect Analysis                                   │
-    │     Walks the call graph to verify @effect            │
-    │     declarations match actual side effects            │
-    ╰────────────────────────┬─────────────────────────────╯
-                             │
-                             ▼
-    ╭──────────────────────────────────────────────────────╮
-    │  ④ Code Generation                                   │
-    │     Injects runtime checks for @require / @ensure    │
-    │     Generates test cases from @examples              │
-    ╰────────────────────────┬─────────────────────────────╯
-                             │
-                             ▼
-    ╭──────────────────────────────────────────────────────╮
-    │           Binary  +  Test Binary                     │
-    ╰──────────────────────────────────────────────────────╯
+  Source Code
+        |
+        v
+  [ Parse Annotations ]    extracts @intent, @examples,
+        |                  @require, @ensure, @effect
+        v
+  [ Type Check ]           verifies contract expressions
+        |                  are well-typed
+        v
+  [ Effect Analysis ]      walks call graph to verify
+        |                  @effect declarations
+        v
+  [ Code Generation ]      injects @require/@ensure checks,
+        |                  generates tests from @examples
+        v
+  Binary + Test Binary
 ```
 
 Contract expressions are type-checked like any other expression. If you write
