@@ -6,6 +6,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <pthread.h>
+#include <math.h>
 #include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
@@ -3283,4 +3284,418 @@ char *vibe_secp256k1_bench(int64_t n) {
     memcpy(out + 65, hy, 64);
     out[out_len] = '\0';
     return out;
+}
+
+// --- edigits (digits of e) ---
+
+#define VIBE_BIG_BASE 1000000000u
+
+typedef struct vibe_big {
+    uint32_t *d; // little-endian base 1e9 limbs
+    size_t len;
+    size_t cap;
+} vibe_big;
+
+static void vibe_big_trim(vibe_big *a) {
+    while (a->len > 0 && a->d[a->len - 1] == 0) {
+        a->len--;
+    }
+}
+
+static void vibe_big_reserve(vibe_big *a, size_t cap) {
+    if (cap <= a->cap) {
+        return;
+    }
+    size_t new_cap = a->cap == 0 ? 4 : a->cap;
+    while (new_cap < cap) {
+        new_cap *= 2;
+    }
+    uint32_t *next = (uint32_t *)realloc(a->d, new_cap * sizeof(uint32_t));
+    if (next == NULL) {
+        vibe_panic("failed to allocate bigint");
+    }
+    a->d = next;
+    a->cap = new_cap;
+}
+
+static void vibe_big_init_u32(vibe_big *a, uint32_t v) {
+    a->d = NULL;
+    a->len = 0;
+    a->cap = 0;
+    if (v == 0) {
+        return;
+    }
+    vibe_big_reserve(a, 1);
+    a->d[0] = v;
+    a->len = 1;
+}
+
+static void vibe_big_copy(vibe_big *out, const vibe_big *a) {
+    out->d = NULL;
+    out->len = 0;
+    out->cap = 0;
+    if (a->len == 0) {
+        return;
+    }
+    vibe_big_reserve(out, a->len);
+    memcpy(out->d, a->d, a->len * sizeof(uint32_t));
+    out->len = a->len;
+}
+
+static void vibe_big_free(vibe_big *a) {
+    free(a->d);
+    a->d = NULL;
+    a->len = 0;
+    a->cap = 0;
+}
+
+static int vibe_big_cmp(const vibe_big *a, const vibe_big *b) {
+    if (a->len != b->len) {
+        return a->len < b->len ? -1 : 1;
+    }
+    for (size_t i = a->len; i > 0; i--) {
+        uint32_t av = a->d[i - 1];
+        uint32_t bv = b->d[i - 1];
+        if (av != bv) {
+            return av < bv ? -1 : 1;
+        }
+    }
+    return 0;
+}
+
+static void vibe_big_add(vibe_big *out, const vibe_big *a, const vibe_big *b) {
+    size_t n = a->len > b->len ? a->len : b->len;
+    vibe_big_reserve(out, n + 1);
+    uint64_t carry = 0;
+    for (size_t i = 0; i < n; i++) {
+        uint64_t av = i < a->len ? a->d[i] : 0;
+        uint64_t bv = i < b->len ? b->d[i] : 0;
+        uint64_t s = av + bv + carry;
+        out->d[i] = (uint32_t)(s % VIBE_BIG_BASE);
+        carry = s / VIBE_BIG_BASE;
+    }
+    if (carry) {
+        out->d[n] = (uint32_t)carry;
+        out->len = n + 1;
+    } else {
+        out->len = n;
+    }
+    vibe_big_trim(out);
+}
+
+static void vibe_big_add_inplace(vibe_big *a, const vibe_big *b) {
+    vibe_big tmp = {0};
+    vibe_big_add(&tmp, a, b);
+    vibe_big_free(a);
+    *a = tmp;
+}
+
+static void vibe_big_sub_inplace(vibe_big *a, const vibe_big *b) {
+    // requires a >= b
+    uint64_t borrow = 0;
+    for (size_t i = 0; i < a->len; i++) {
+        uint64_t av = a->d[i];
+        uint64_t bv = (i < b->len ? b->d[i] : 0) + borrow;
+        if (av < bv) {
+            a->d[i] = (uint32_t)(VIBE_BIG_BASE + av - bv);
+            borrow = 1;
+        } else {
+            a->d[i] = (uint32_t)(av - bv);
+            borrow = 0;
+        }
+    }
+    vibe_big_trim(a);
+}
+
+static void vibe_big_mul_small_inplace(vibe_big *a, uint32_t m) {
+    if (a->len == 0 || m == 1) {
+        return;
+    }
+    if (m == 0) {
+        a->len = 0;
+        return;
+    }
+    vibe_big_reserve(a, a->len + 1);
+    uint64_t carry = 0;
+    for (size_t i = 0; i < a->len; i++) {
+        uint64_t cur = (uint64_t)a->d[i] * m + carry;
+        a->d[i] = (uint32_t)(cur % VIBE_BIG_BASE);
+        carry = cur / VIBE_BIG_BASE;
+    }
+    if (carry) {
+        a->d[a->len++] = (uint32_t)carry;
+    }
+    vibe_big_trim(a);
+}
+
+static uint32_t vibe_big_div_small_inplace(vibe_big *a, uint32_t v) {
+    uint64_t rem = 0;
+    for (size_t i = a->len; i > 0; i--) {
+        uint64_t cur = a->d[i - 1] + rem * VIBE_BIG_BASE;
+        a->d[i - 1] = (uint32_t)(cur / v);
+        rem = cur % v;
+    }
+    vibe_big_trim(a);
+    return (uint32_t)rem;
+}
+
+static void vibe_big_mul(vibe_big *out, const vibe_big *a, const vibe_big *b) {
+    if (a->len == 0 || b->len == 0) {
+        out->len = 0;
+        return;
+    }
+    vibe_big_reserve(out, a->len + b->len);
+    memset(out->d, 0, (a->len + b->len) * sizeof(uint32_t));
+    for (size_t i = 0; i < a->len; i++) {
+        uint64_t carry = 0;
+        for (size_t j = 0; j < b->len || carry; j++) {
+            uint64_t cur = out->d[i + j] +
+                           (uint64_t)a->d[i] * (j < b->len ? b->d[j] : 0) + carry;
+            out->d[i + j] = (uint32_t)(cur % VIBE_BIG_BASE);
+            carry = cur / VIBE_BIG_BASE;
+        }
+    }
+    out->len = a->len + b->len;
+    vibe_big_trim(out);
+}
+
+static void vibe_big_mul_small(vibe_big *out, const vibe_big *a, uint32_t m) {
+    vibe_big_copy(out, a);
+    vibe_big_mul_small_inplace(out, m);
+}
+
+static void vibe_big_shift_base_add(vibe_big *r, uint32_t digit) {
+    vibe_big_reserve(r, r->len + 1);
+    if (r->len > 0) {
+        memmove(r->d + 1, r->d, r->len * sizeof(uint32_t));
+    }
+    r->d[0] = digit;
+    r->len += 1;
+    vibe_big_trim(r);
+}
+
+static void vibe_big_div(vibe_big *q, const vibe_big *a1, const vibe_big *b1) {
+    // q = a1 / b1, integers, b1 > 0
+    if (b1->len == 0) {
+        vibe_panic("division by zero bigint");
+    }
+    if (a1->len == 0) {
+        q->len = 0;
+        return;
+    }
+    if (vibe_big_cmp(a1, b1) < 0) {
+        q->len = 0;
+        return;
+    }
+    uint32_t b_msd = b1->d[b1->len - 1];
+    uint32_t norm = (uint32_t)(VIBE_BIG_BASE / ((uint64_t)b_msd + 1));
+
+    vibe_big a = {0};
+    vibe_big b = {0};
+    vibe_big_copy(&a, a1);
+    vibe_big_copy(&b, b1);
+    if (norm != 1) {
+        vibe_big_mul_small_inplace(&a, norm);
+        vibe_big_mul_small_inplace(&b, norm);
+    }
+
+    vibe_big r = {0};
+    q->len = 0;
+    vibe_big_reserve(q, a.len);
+    memset(q->d, 0, a.len * sizeof(uint32_t));
+    q->len = a.len;
+
+    for (size_t i = a.len; i > 0; i--) {
+        vibe_big_shift_base_add(&r, a.d[i - 1]);
+        uint32_t s1 = r.len <= b.len ? 0 : r.d[b.len];
+        uint32_t s2 = r.len <= b.len - 1 ? 0 : r.d[b.len - 1];
+        uint64_t d_est = ((uint64_t)s1 * VIBE_BIG_BASE + s2) / b.d[b.len - 1];
+        if (d_est >= VIBE_BIG_BASE) {
+            d_est = VIBE_BIG_BASE - 1;
+        }
+
+        vibe_big bd = {0};
+        vibe_big_mul_small(&bd, &b, (uint32_t)d_est);
+        while (vibe_big_cmp(&r, &bd) < 0) {
+            vibe_big_free(&bd);
+            d_est -= 1;
+            vibe_big_mul_small(&bd, &b, (uint32_t)d_est);
+        }
+        vibe_big_sub_inplace(&r, &bd);
+        vibe_big_free(&bd);
+        q->d[i - 1] = (uint32_t)d_est;
+    }
+    vibe_big_trim(q);
+    if (norm != 1) {
+        (void)vibe_big_div_small_inplace(&r, norm);
+    }
+    vibe_big_free(&a);
+    vibe_big_free(&b);
+    vibe_big_free(&r);
+}
+
+static char *vibe_big_to_dec_str(const vibe_big *a) {
+    if (a->len == 0) {
+        return vibe_strdup_or_panic("0");
+    }
+    size_t approx = a->len * 9 + 1;
+    char *out = (char *)calloc(approx + 1, sizeof(char));
+    if (out == NULL) {
+        vibe_panic("failed to allocate bigint string");
+    }
+    char *p = out;
+    int wrote = snprintf(p, approx + 1, "%u", a->d[a->len - 1]);
+    if (wrote < 0) {
+        out[0] = '\0';
+        return out;
+    }
+    p += wrote;
+    for (size_t i = a->len - 1; i > 0; i--) {
+        wrote = snprintf(p, approx + 1 - (size_t)(p - out), "%09u", a->d[i - 1]);
+        if (wrote < 0) {
+            break;
+        }
+        p += wrote;
+    }
+    return out;
+}
+
+typedef struct vibe_pq {
+    vibe_big p;
+    vibe_big q;
+} vibe_pq;
+
+static vibe_pq vibe_sum_terms(uint32_t a, uint32_t b) {
+    if (b == a + 1) {
+        vibe_pq base = {0};
+        vibe_big_init_u32(&base.p, 1);
+        vibe_big_init_u32(&base.q, b);
+        return base;
+    }
+    uint32_t mid = (a + b) / 2;
+    vibe_pq left = vibe_sum_terms(a, mid);
+    vibe_pq right = vibe_sum_terms(mid, b);
+
+    vibe_big p_left_q_right = {0};
+    vibe_big_mul(&p_left_q_right, &left.p, &right.q);
+    vibe_big_add_inplace(&p_left_q_right, &right.p);
+
+    vibe_big q_left_q_right = {0};
+    vibe_big_mul(&q_left_q_right, &left.q, &right.q);
+
+    vibe_big_free(&left.p);
+    vibe_big_free(&left.q);
+    vibe_big_free(&right.p);
+    vibe_big_free(&right.q);
+
+    vibe_pq out = {0};
+    out.p = p_left_q_right;
+    out.q = q_left_q_right;
+    return out;
+}
+
+static uint32_t vibe_edigits_find_k(int64_t n) {
+    // Find k such that log10(k!) >= n + 50 via Stirling approximation.
+    int64_t target = n + 50;
+    uint32_t a = 0;
+    uint32_t b = 1;
+    while (1) {
+        double k = (double)b;
+        if (k > 0) {
+            double ln_k_fact =
+                k * (log(k) - 1.0) + 0.5 * log(2.0 * 3.14159265358979323846 * k);
+            double log10_k_fact = ln_k_fact / log(10.0);
+            if (log10_k_fact >= (double)target) {
+                break;
+            }
+        }
+        a = b;
+        b *= 2;
+    }
+    while (b - a > 1) {
+        uint32_t m = a + (b - a) / 2;
+        double k = (double)m;
+        double ln_k_fact =
+            k * (log(k) - 1.0) + 0.5 * log(2.0 * 3.14159265358979323846 * k);
+        double log10_k_fact = ln_k_fact / log(10.0);
+        if (log10_k_fact >= (double)target) {
+            b = m;
+        } else {
+            a = m;
+        }
+    }
+    return b;
+}
+
+static char *vibe_edigits_calculate(int64_t n) {
+    if (n <= 0) {
+        return vibe_strdup_or_panic("");
+    }
+    uint32_t k = vibe_edigits_find_k(n);
+    vibe_pq pq = vibe_sum_terms(0, k - 1);
+    vibe_big_add_inplace(&pq.p, &pq.q); // p += q
+
+    // multiply p by 10^(n-1)
+    int64_t exp = n - 1;
+    uint32_t shift = (uint32_t)(exp / 9);
+    uint32_t rem = (uint32_t)(exp % 9);
+    uint32_t pow10 = 1;
+    for (uint32_t i = 0; i < rem; i++) {
+        pow10 *= 10u;
+    }
+    vibe_big_mul_small_inplace(&pq.p, pow10);
+    if (shift > 0 && pq.p.len > 0) {
+        vibe_big_reserve(&pq.p, pq.p.len + shift);
+        memmove(pq.p.d + shift, pq.p.d, pq.p.len * sizeof(uint32_t));
+        memset(pq.p.d, 0, shift * sizeof(uint32_t));
+        pq.p.len += shift;
+    }
+    vibe_big_trim(&pq.p);
+
+    vibe_big answer = {0};
+    vibe_big_div(&answer, &pq.p, &pq.q);
+    char *s = vibe_big_to_dec_str(&answer);
+
+    vibe_big_free(&pq.p);
+    vibe_big_free(&pq.q);
+    vibe_big_free(&answer);
+
+    // Ensure length n (left-pad with zeros if necessary)
+    size_t len = strlen(s);
+    if ((int64_t)len >= n) {
+        return s;
+    }
+    size_t pad = (size_t)(n - (int64_t)len);
+    char *out = (char *)calloc((size_t)n + 1, sizeof(char));
+    if (out == NULL) {
+        vibe_panic("failed to allocate edigits string");
+    }
+    memset(out, '0', pad);
+    memcpy(out + pad, s, len);
+    out[n] = '\0';
+    free(s);
+    return out;
+}
+
+char *vibe_edigits(int64_t n) {
+    if (n <= 0) {
+        n = 27;
+    }
+    char *digits = vibe_edigits_calculate(n);
+    vibe_string_builder builder;
+    vibe_builder_init(&builder, (size_t)n + 64);
+    for (int64_t i = 0; i < n; i += 10) {
+        int64_t count = i + 10 <= n ? i + 10 : n;
+        char line[16];
+        memset(line, ' ', 10);
+        int64_t take = count - i;
+        memcpy(line, digits + i, (size_t)take);
+        line[10] = '\0';
+        char suffix[32];
+        int suffix_len = snprintf(suffix, sizeof(suffix), "\t:%lld\n", (long long)count);
+        vibe_builder_append_bytes(&builder, line, 10);
+        vibe_builder_append_bytes(&builder, suffix, (size_t)(suffix_len > 0 ? suffix_len : 0));
+    }
+    free(digits);
+    return builder.data;
 }

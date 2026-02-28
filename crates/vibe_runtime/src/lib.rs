@@ -162,6 +162,7 @@ pub fn link_executable(
         .arg(output_binary);
     if !is_windows_target(&options.target) {
         cmd.arg("-pthread");
+        cmd.arg("-lm");
     }
     if is_linux_gnu_target(&options.target) {
         cmd.arg("-Wl,--build-id=none").arg("-Wl,--gc-sections");
