@@ -3,3 +3,7 @@
 **/.vibe/artifacts/
 **/__pycache__/
 /.cache/
+.env
+.env.*
+*.env
+*.env.*

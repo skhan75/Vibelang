@@ -135,6 +135,15 @@ vibelang/
 5. **Deterministic diagnostics** — error messages must be stable and sorted. Golden
    test fixtures enforce this.
 
+## Secrets and credentials
+
+- **Never commit secrets**: `.env`, API keys, access tokens, private keys, credentials, or any
+  files that contain them.
+- **Use local env files**: if you need local configuration, use `.env` in your working copy and
+  keep it untracked. The repository ignores `.env` by default.
+- **If a secret is committed**: treat it as compromised, revoke/rotate it immediately, then
+  remove it from the repository and add prevention (CI secret scanning, tighter ignores).
+
 ## Testing
 
 ### Run all tests
