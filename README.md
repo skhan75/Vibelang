@@ -8,9 +8,9 @@
 
 <p align="left">
   <a href="https://github.com/skhan75/VibeLang/releases/tag/v1.0.0"><img src="https://img.shields.io/badge/release-v1.0.0-22c55e" alt="release" /></a>
-  <a href="#performance"><img src="https://img.shields.io/badge/27×_faster-than_Go-00f0ff" alt="performance" /></a>
-  <a href="#performance"><img src="https://img.shields.io/badge/100×_faster-than_Python-b026ff" alt="performance" /></a>
-  <a href="#performance"><img src="https://img.shields.io/badge/4.3_MB-avg_memory-ff2d95" alt="memory" /></a>
+  <a href="#performance"><img src="https://img.shields.io/badge/benchmarked-PLB--CI-0ea5e9" alt="benchmarked" /></a>
+  <a href="#performance"><img src="https://img.shields.io/badge/benchmarks-docker--first-9333ea" alt="benchmarks" /></a>
+  <a href="#performance"><img src="https://img.shields.io/badge/performance-transparent_reports-f97316" alt="performance reports" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache_2.0-blue.svg" alt="license" /></a>
 </p>
 
@@ -76,7 +76,7 @@ Platform guides: [Linux](docs/install/linux.md) · [macOS](docs/install/macos.md
 
 ## Performance
 
-We track performance using the [PLB-CI](benchmarks/third_party/plbci/) suite (Hyperfine-based, Docker-first).
+We track performance using the [PLB-CI](benchmarks/third_party/plbci/) suite (Hyperfine-based, Docker-first) and publish the methodology and raw evidence alongside summaries. Prefer these reports over single headline numbers.
 
 - **Publication policy**: `benchmarks/third_party/APPLE_TO_APPLE_BENCHMARK_POLICY.md`
 - **CI runner**: `.github/workflows/third-party-benchmarks.yml` runs strict mode.
