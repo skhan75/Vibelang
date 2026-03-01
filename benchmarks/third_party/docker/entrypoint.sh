@@ -14,6 +14,15 @@ if ! timeout 20 docker info >/dev/null 2>&1; then
   exit 1
 fi
 
+if [[ -d ".cache/third_party/plbci/.git" ]]; then
+  git config --global --add safe.directory "$(pwd)/.cache/third_party/plbci" || true
+fi
+
+echo "Building bench-enabled vibe binary..."
+cargo build --release -p vibe_cli --features bench-runtime
+cp target/release/vibe /usr/local/bin/vibe
+chmod 0755 /usr/local/bin/vibe
+
 collect_args=(--profile "${PROFILE}")
 if [[ "${VALIDATION_MODE}" == "strict" ]]; then
   collect_args+=(--publication-mode)

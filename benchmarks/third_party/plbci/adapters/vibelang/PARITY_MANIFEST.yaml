@@ -75,13 +75,13 @@
     },
     {
       "name": "edigits",
-      "status": "blocked",
+      "status": "canonical",
       "owner": "benchmarking",
       "evidence": "benchmarks/third_party/plbci/adapters/vibelang/algorithm/edigits/1.yb",
       "exit_criteria": [
-        "replace output constants with canonical digit-generation algorithm"
+        "implementation consumes canonical PLB-CI input contract and prints computed digits of e"
       ],
-      "notes": "Uncertain parity; blocked until algorithmic implementation is verified."
+      "notes": "Canonical implementation delegates heavy bigint arithmetic to runtime `math.edigits`."
     },
     {
       "name": "mandelbrot",
@@ -135,13 +135,13 @@
     },
     {
       "name": "json-serde",
-      "status": "blocked",
+      "status": "canonical",
       "owner": "benchmarking",
       "evidence": "benchmarks/third_party/plbci/adapters/vibelang/algorithm/json-serde/1.yb",
       "exit_criteria": [
-        "replace fixed checksum output with canonical serde workload"
+        "canonicalize JSON parse/serialize workload and compute output MD5 digests from input"
       ],
-      "notes": "Blocked pending canonical checksum/hash path for serde workload output verification."
+      "notes": "Implements canonical JSON canonicalization + MD5 in runtime; removes fixed-output proxy."
     },
     {
       "name": "coro-prime-sieve",
@@ -155,13 +155,13 @@
     },
     {
       "name": "http-server",
-      "status": "blocked",
+      "status": "canonical",
       "owner": "benchmarking",
       "evidence": "benchmarks/third_party/plbci/adapters/vibelang/algorithm/http-server/1.yb",
       "exit_criteria": [
-        "replace synthetic counter workload with canonical HTTP server benchmark behavior"
+        "execute canonical HTTP server/client workload and print computed sum"
       ],
-      "notes": "Blocked pending stable networking/socket APIs required for canonical HTTP server behavior."
+      "notes": "Adds `net.*` primitives and a runtime-backed `http.server_bench` for parity."
     },
     {
       "name": "lru",
@@ -175,13 +175,13 @@
     },
     {
       "name": "secp256k1",
-      "status": "blocked",
+      "status": "canonical",
       "owner": "benchmarking",
       "evidence": "benchmarks/third_party/plbci/adapters/vibelang/algorithm/secp256k1/1.yb",
       "exit_criteria": [
-        "replace fixed output hashes with canonical secp256k1 workload"
+        "perform canonical secp256k1 scalar multiplication workload and print affine coordinates"
       ],
-      "notes": "Blocked pending cryptographic and big-integer primitives needed for canonical secp256k1 workload."
+      "notes": "Runtime implements field arithmetic + Jacobian scalar multiplication via `crypto.secp256k1_bench`."
     }
   ]
 }

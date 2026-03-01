@@ -24,9 +24,9 @@ pub main() -> Int {
   }
 
   raw := fs.read_text(file_name + ".json")
-  canon := json.canonical(raw)
-  println(hash.md5_hex(canon))
-  arr := json.repeat_array(canon, n)
-  println(hash.md5_hex(arr))
+  canon := bench.json_canonical(raw)
+  println(bench.md5_hex(canon))
+  arr := bench.json_repeat_array(canon, n)
+  println(bench.md5_hex(arr))
   return 0
 }

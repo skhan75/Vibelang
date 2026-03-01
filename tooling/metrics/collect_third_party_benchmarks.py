@@ -351,6 +351,38 @@ def patch_staged_bench_file(bench_path: Path, language_id: str) -> None:
         )
         patched = re.sub(r"(?m)^\s*CC:\s*clang\s*$", "      CC: gcc", patched)
         patched = re.sub(r"(?m)^\s*CXX:\s*clang\+\+\s*$", "      CXX: g++", patched)
+    elif language_id == "c":
+        # Prefer a toolchain we already install in the runner image (gcc),
+        # and avoid nested docker for the gcc environment.
+        patched = re.sub(
+            r"(?m)^\s*docker:\s*gcc\s*$",
+            "    docker:",
+            patched,
+        )
+        # Disable clang env to avoid requiring clang in the runner.
+        patched = re.sub(
+            r"(?m)^(  - os:\s*linux\s*\n)(    compiler:\s*clang\s*\n)",
+            r"\1    enabled: false\n\2",
+            patched,
+            count=1,
+        )
+    elif language_id == "cpp":
+        # Prefer g++ (already installed) over clang++.
+        patched = re.sub(
+            r"(?m)^(  - os:\s*linux\s*\n)(    compiler:\s*clang\+\+\s*\n)",
+            r"\1    enabled: false\n\2",
+            patched,
+            count=1,
+        )
+    elif language_id == "python":
+        # The runner image does not ship `pyston3`. Disable that environment so
+        # python lanes remain available (cpython + pypy via docker).
+        patched = re.sub(
+            r"(?m)^(  - os:\s*linux\s*\n)(    compiler:\s*pyston\s*\n)",
+            r"\1    enabled: false\n\2",
+            patched,
+            count=1,
+        )
     elif language_id == "zig":
         patched = re.sub(
             r"(?m)^\s*build:\s*zig build[^\n]*$",
@@ -755,6 +787,7 @@ def collect_compile_lanes(
                 "status": "unavailable",
                 "reason": "cold build command failed",
                 "cold_command": force_cmd,
+                "stdout": str(warm["stdout"])[-4000:],
                 "stderr": str(warm["stderr"])[-4000:],
             }
             continue
@@ -765,6 +798,7 @@ def collect_compile_lanes(
                 "status": "unavailable",
                 "reason": "incremental build command failed",
                 "incremental_command": incremental_cmd,
+                "stdout": str(smoke["stdout"])[-4000:],
                 "stderr": str(smoke["stderr"])[-4000:],
             }
             continue

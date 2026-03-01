@@ -1,10 +1,7 @@
-# `hash` module (preview)
+# `hash` module (deprecated)
 
-## APIs
+This namespace is no longer part of the default stdlib surface.
 
-- `hash.md5_hex(text: Str) -> Str`
-
-## Semantics
-
-- `md5_hex` returns a lowercase hex-encoded MD5 digest of the input UTF-8 text bytes.
+Use `bench.md5_hex` instead (see `stdlib/bench/README.md`). It is only available when Vibe is built
+with `--features bench-runtime`.
 

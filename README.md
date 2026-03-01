@@ -76,26 +76,11 @@ Platform guides: [Linux](docs/install/linux.md) · [macOS](docs/install/macos.md
 
 ## Performance
 
-18 benchmarks from the [PLB-CI](benchmarks/third_party/plbci/) suite, measured with Hyperfine on AMD Ryzen 9 5900X.
+We track performance using the [PLB-CI](benchmarks/third_party/plbci/) suite (Hyperfine-based, Docker-first).
 
-| vs Language | Speedup (geomean) |
-|---|---|
-| Python | **100×** |
-| TypeScript | **71×** |
-| Go | **27×** |
-| C | **10.7×** |
-| C++ | **10.5×** |
-
-| Benchmark | VibeLang | Go | Python |
-|---|---|---|---|
-| binarytrees | **1.53 ms** | 199 ms | 372 ms |
-| spectral-norm | **1.40 ms** | 102 ms | 2,078 ms |
-| http-server | **2.29 ms** | 89 ms | 1,700 ms |
-| coro-prime-sieve | **1.64 ms** | 12.3 ms | 317 ms |
-
-Average memory: **4.3 MB** (Go 9.5 MB · Python 27 MB · TypeScript 74.5 MB)
-
-Full methodology: [`reports/benchmarks/`](reports/benchmarks/third_party/full/summary.md)
+- **Publication policy**: `benchmarks/third_party/APPLE_TO_APPLE_BENCHMARK_POLICY.md`
+- **CI runner**: `.github/workflows/third-party-benchmarks.yml` runs strict mode.
+- **Reports**: [`reports/benchmarks/`](reports/benchmarks/third_party/full/summary.md)
 
 ## Contracts & Intent
 

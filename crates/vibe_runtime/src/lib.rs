@@ -14,6 +14,9 @@ pub use select::{select_recv, SelectRecvStatus};
 pub use task::{spawn_task, TaskHandle, TaskId};
 
 pub const RUNTIME_C_SOURCE: &str = include_str!("../../../runtime/native/vibe_runtime.c");
+#[cfg(feature = "bench-runtime")]
+pub const BENCH_RUNTIME_C_SOURCE: &str =
+    include_str!("../../../runtime/native/vibe_runtime_bench.c");
 pub const SUPPORTED_TARGETS: &[&str] = &[
     "x86_64-unknown-linux-gnu",
     "x86_64-apple-darwin",
@@ -43,47 +46,35 @@ pub fn runtime_source_path() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../runtime/native/vibe_runtime.c")
 }
 
-pub fn compile_runtime_object(
-    output_dir: &Path,
+#[cfg(feature = "bench-runtime")]
+pub fn bench_runtime_source_path() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../runtime/native/vibe_runtime_bench.c")
+}
+
+fn compile_runtime_c_object(
+    out_obj: &Path,
+    source_for_compile: &Path,
+    stamp_path: &Path,
+    stamp_tag: &str,
     options: &RuntimeBuildOptions,
-) -> Result<PathBuf, String> {
-    ensure_supported_target(&options.target)?;
-    std::fs::create_dir_all(output_dir)
-        .map_err(|e| format!("failed to create runtime output directory: {e}"))?;
-    let out_obj = output_dir.join("vibe_runtime.o");
-    let src = runtime_source_path();
-    let source_for_compile = if src.exists() {
-        src
-    } else {
-        // Packaged CLI installs may run without the repository source tree.
-        // Materialize embedded runtime C source to a local temp path in that case.
-        let embedded_src = output_dir.join("vibe_runtime_embedded.c");
-        std::fs::write(&embedded_src, RUNTIME_C_SOURCE).map_err(|e| {
-            format!(
-                "failed to write embedded runtime source `{}`: {e}",
-                embedded_src.display()
-            )
-        })?;
-        embedded_src
-    };
-    let stamp_path = output_dir.join("vibe_runtime.build.stamp");
+) -> Result<(), String> {
     let current_stamp = format!(
-        "target={}\nprofile={}\ndebuginfo={}\n",
+        "tag={stamp_tag}\ntarget={}\nprofile={}\ndebuginfo={}\n",
         options.target, options.profile, options.debuginfo
     );
     if out_obj.exists() && stamp_path.exists() {
-        let stamp_matches = std::fs::read_to_string(&stamp_path)
+        let stamp_matches = std::fs::read_to_string(stamp_path)
             .map(|contents| contents == current_stamp)
             .unwrap_or(false);
         if stamp_matches {
-            let src_meta = std::fs::metadata(&source_for_compile).ok();
-            let out_meta = std::fs::metadata(&out_obj).ok();
+            let src_meta = std::fs::metadata(source_for_compile).ok();
+            let out_meta = std::fs::metadata(out_obj).ok();
             if let (Some(src_meta), Some(out_meta)) = (src_meta, out_meta) {
                 if let (Ok(src_modified), Ok(out_modified)) =
                     (src_meta.modified(), out_meta.modified())
                 {
                     if out_modified >= src_modified {
-                        return Ok(out_obj);
+                        return Ok(());
                     }
                 }
             }
@@ -92,9 +83,9 @@ pub fn compile_runtime_object(
 
     let mut cmd = Command::new("cc");
     cmd.arg("-c")
-        .arg(&source_for_compile)
+        .arg(source_for_compile)
         .arg("-o")
-        .arg(&out_obj)
+        .arg(out_obj)
         .arg("-fno-ident")
         .arg("-ffunction-sections")
         .arg("-fdata-sections")
@@ -127,7 +118,67 @@ pub fn compile_runtime_object(
             String::from_utf8_lossy(&output.stderr)
         ));
     }
-    let _ = std::fs::write(&stamp_path, current_stamp);
+    let _ = std::fs::write(stamp_path, current_stamp);
+    Ok(())
+}
+
+pub fn compile_runtime_object(
+    output_dir: &Path,
+    options: &RuntimeBuildOptions,
+) -> Result<PathBuf, String> {
+    ensure_supported_target(&options.target)?;
+    std::fs::create_dir_all(output_dir)
+        .map_err(|e| format!("failed to create runtime output directory: {e}"))?;
+
+    let out_obj = output_dir.join("vibe_runtime.o");
+    let src = runtime_source_path();
+    let source_for_compile = if src.exists() {
+        src
+    } else {
+        let embedded_src = output_dir.join("vibe_runtime_embedded.c");
+        std::fs::write(&embedded_src, RUNTIME_C_SOURCE).map_err(|e| {
+            format!(
+                "failed to write embedded runtime source `{}`: {e}",
+                embedded_src.display()
+            )
+        })?;
+        embedded_src
+    };
+    let stamp_path = output_dir.join("vibe_runtime.build.stamp");
+    compile_runtime_c_object(
+        &out_obj,
+        &source_for_compile,
+        &stamp_path,
+        "core",
+        options,
+    )?;
+
+    #[cfg(feature = "bench-runtime")]
+    {
+        let bench_obj = output_dir.join("vibe_runtime_bench.o");
+        let src = bench_runtime_source_path();
+        let source_for_compile = if src.exists() {
+            src
+        } else {
+            let embedded_src = output_dir.join("vibe_runtime_bench_embedded.c");
+            std::fs::write(&embedded_src, BENCH_RUNTIME_C_SOURCE).map_err(|e| {
+                format!(
+                    "failed to write embedded bench runtime source `{}`: {e}",
+                    embedded_src.display()
+                )
+            })?;
+            embedded_src
+        };
+        let stamp_path = output_dir.join("vibe_runtime_bench.build.stamp");
+        compile_runtime_c_object(
+            &bench_obj,
+            &source_for_compile,
+            &stamp_path,
+            "bench",
+            options,
+        )?;
+    }
+
     Ok(out_obj)
 }
 
@@ -158,6 +209,29 @@ pub fn link_executable(
     let mut cmd = Command::new("cc");
     cmd.arg(object_file)
         .arg(runtime_object)
+        .args({
+            #[cfg(feature = "bench-runtime")]
+            {
+                let Some(dir) = runtime_object.parent() else {
+                    return Err(format!(
+                        "runtime object has no parent directory: `{}`",
+                        runtime_object.display()
+                    ));
+                };
+                let bench_obj = dir.join("vibe_runtime_bench.o");
+                if !bench_obj.exists() {
+                    return Err(format!(
+                        "bench runtime object does not exist: `{}`",
+                        bench_obj.display()
+                    ));
+                }
+                vec![bench_obj]
+            }
+            #[cfg(not(feature = "bench-runtime"))]
+            {
+                Vec::<std::path::PathBuf>::new()
+            }
+        })
         .arg("-o")
         .arg(output_binary);
     if !is_windows_target(&options.target) {

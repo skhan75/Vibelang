@@ -13,5 +13,8 @@ cranelift-object = "0.121.2"
 target-lexicon = "0.13.5"
 vibe_mir.workspace = true
 
+[features]
+bench-runtime = []
+
 [lib]
 path = "src/lib.rs"

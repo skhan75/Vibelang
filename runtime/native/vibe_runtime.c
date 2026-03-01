@@ -3692,7 +3692,12 @@ char *vibe_edigits(int64_t n) {
         memcpy(line, digits + i, (size_t)take);
         line[10] = '\0';
         char suffix[32];
-        int suffix_len = snprintf(suffix, sizeof(suffix), "\t:%lld\n", (long long)count);
+        int suffix_len = 0;
+        if (count < n) {
+            suffix_len = snprintf(suffix, sizeof(suffix), "\t:%lld\n", (long long)count);
+        } else {
+            suffix_len = snprintf(suffix, sizeof(suffix), "\t:%lld", (long long)count);
+        }
         vibe_builder_append_bytes(&builder, line, 10);
         vibe_builder_append_bytes(&builder, suffix, (size_t)(suffix_len > 0 ? suffix_len : 0));
     }

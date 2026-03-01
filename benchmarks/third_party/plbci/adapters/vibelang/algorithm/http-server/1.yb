@@ -15,7 +15,7 @@ pub main() -> Int {
   @effect io
   @effect net
   n := read_n()
-  sum := http.server_bench(n)
+  sum := bench.http_server_bench(n)
   println(json.stringify_i64(sum))
   return 0
 }

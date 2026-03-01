@@ -10,11 +10,9 @@ keeping deterministic behavior and local-first validation.
 - `time` (preview): clock + duration helpers
 - `path` (stable): path composition/introspection helpers
 - `fs` (preview): filesystem read/write/exists/directory helpers
-- `net` (preview): TCP socket primitives
 - `json` (preview): parse/validate/minify/stringify primitives
-- `hash` (preview): hashing helpers
-- `crypto` (preview): cryptography-related helpers (benchmark parity)
 - `http` (preview): protocol helper primitives (status text, default ports, request lines)
+- `bench` (benchmark-only): gated benchmark parity APIs (requires `bench-runtime`)
 
 Detailed module references:
 
@@ -23,17 +21,17 @@ Detailed module references:
 - `stdlib/time/README.md`
 - `stdlib/path/README.md`
 - `stdlib/fs/README.md`
-- `stdlib/net/README.md`
 - `stdlib/json/README.md`
-- `stdlib/hash/README.md`
-- `stdlib/crypto/README.md`
 - `stdlib/http/README.md`
+- `stdlib/bench/README.md`
 
 ## Compiler/runtime contract
 
 - Typechecker recognizes stdlib namespace calls (`time.*`, `path.*`, `fs.*`, `json.*`, `http.*`)
   and enforces argument/return contracts.
-- Codegen lowers stdlib calls to runtime `vibe_*` symbols in `runtime/native/vibe_runtime.c`.
+- With `bench-runtime`, typechecker/codegen also recognize `bench.*` and lower those calls to
+  `vibe_bench_*` symbols in `runtime/native/vibe_runtime_bench.c`.
+- Codegen lowers the default stdlib calls to runtime `vibe_*` symbols in `runtime/native/vibe_runtime.c`.
 - Runtime implementations are deterministic for equal inputs except explicitly nondeterministic
   APIs (`time.now_ms`).
 

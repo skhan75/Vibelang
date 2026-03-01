@@ -1,11 +1,5 @@
-# `crypto` module (preview)
+# `crypto` module (deprecated)
 
-## APIs
-
-- `crypto.secp256k1_bench(n: Int) -> Str`
-
-## Scope
-
-This surface currently exists to support third-party benchmark parity and is not a general-purpose
-cryptography API.
+Benchmark parity crypto helpers are now exposed under `bench.*` (see `stdlib/bench/README.md`) and
+are only available when Vibe is built with `--features bench-runtime`.
 

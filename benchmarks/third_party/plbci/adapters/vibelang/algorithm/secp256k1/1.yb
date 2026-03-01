@@ -8,6 +8,6 @@ pub main() -> Int {
       n = parsed
     }
   }
-  println(crypto.secp256k1_bench(n))
+  println(bench.secp256k1(n))
   return 0
 }

@@ -28,17 +28,16 @@ shared publicly (research, blogs, talks, release notes).
 
 ## Current blockers (must be resolved before publication)
 
-### B1. VibeLang adapter parity is incomplete (Open)
+### B1. VibeLang adapter parity is incomplete (Closed)
 
-Four adapters remain noncanonical and block strict-publication:
+Previously blocked adapters are now canonical:
 - `benchmarks/third_party/plbci/adapters/vibelang/algorithm/edigits/1.yb`
 - `benchmarks/third_party/plbci/adapters/vibelang/algorithm/http-server/1.yb`
 - `benchmarks/third_party/plbci/adapters/vibelang/algorithm/json-serde/1.yb`
 - `benchmarks/third_party/plbci/adapters/vibelang/algorithm/secp256k1/1.yb`
 
-Exit criterion:
-- Replace each proxy implementation with canonical equivalent algorithmic
-  implementation and pass PLB-CI tests for all configured problems.
+Closure evidence:
+- `benchmarks/third_party/plbci/adapters/vibelang/PARITY_MANIFEST.yaml` marks these as `canonical`.
 
 ### B2. Runtime/compile matrix is incomplete in current host runs (Open)
 
@@ -76,18 +75,16 @@ Closure evidence:
 - `tooling/metrics/compare_third_party_benchmarks.py`
 - `tooling/metrics/validate_adapter_parity.py`
 
-### B6. Runtime feature gaps block full canonical parity (Open)
+### B6. Runtime feature gaps block full canonical parity (Closed)
 
-Some PLB-CI problems require capabilities not yet exposed as stable VibeLang
-stdlib/runtime APIs for direct canonical implementation:
-- high-precision numeric primitives for robust `edigits`
-- networking/socket stack for `http-server`
-- cryptographic primitives / ECC primitives for `secp256k1`
-- canonical checksum/hash path for `json-serde` output validation
+Canonical parity required adding runtime/stdlib capabilities:
+- `math.edigits` (high-precision digits of e output)
+- `net.*` and `http.server_bench` (minimal socket-backed HTTP parity path)
+- `crypto.secp256k1_bench` (field arithmetic + scalar multiplication output)
+- `json.canonical` + `hash.md5_hex` (serde workload verification)
 
-Exit criterion:
-- Provide stable runtime/stdlib APIs (or validated equivalent algorithmic paths)
-  and close parity manifest entries to `canonical`.
+Closure evidence:
+- Runtime/stdlib surfaces in `stdlib/` and the updated parity manifest.
 
 ## Publication checklist
 

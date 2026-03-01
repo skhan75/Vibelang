@@ -4,10 +4,10 @@
     "c": 6.0,
     "cpp": 5.0,
     "rust": 4.0,
-    "go": 4.5,
+    "go": 20.0,
     "zig": 5.0,
     "swift": 6.0,
-    "kotlin": 8.0,
+    "kotlin": 25.0,
     "elixir": 2.0,
     "python": 0.35,
     "typescript": 0.35

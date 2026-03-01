@@ -9,5 +9,8 @@ vibe_ast.workspace = true
 vibe_diagnostics.workspace = true
 vibe_hir.workspace = true
 
+[features]
+bench-runtime = []
+
 [lib]
 path = "src/lib.rs"

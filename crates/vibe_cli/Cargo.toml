@@ -4,6 +4,9 @@ edition.workspace = true
 version.workspace = true
 license.workspace = true
 
+[features]
+bench-runtime = ["vibe_runtime/bench-runtime", "vibe_types/bench-runtime", "vibe_codegen/bench-runtime"]
+
 [dependencies]
 vibe_ast.workspace = true
 vibe_codegen.workspace = true

@@ -8,6 +8,6 @@ pub main() -> Int {
       n = parsed
     }
   }
-  print(math.edigits(n))
+  print(bench.edigits(n))
   return 0
 }
