@@ -1,4 +1,8 @@
 
+<p align="left">
+  <img src="assets/branding/vibelang-chevron-stack.png" alt="VibeLang icon" width="96" />
+</p>
+
 <h1 align="left">VibeLang</h1>
 
 <p align="left">
