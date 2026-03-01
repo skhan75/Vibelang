@@ -1,24 +1,30 @@
 
-<p align="left">
-  <img src="assets/branding/vibelang-chevron-stack.png" alt="VibeLang icon" width="96" />
+<p align="center">
+  <img src="assets/branding/vibelang-chevron-stack.png" alt="VibeLang icon" width="132" />
 </p>
 
-<h1 align="left">VibeLang</h1>
+<h1 align="center">VibeLang</h1>
 
-<p align="left">
+<p align="center">
   <strong>Code with Intent.</strong><br />
   <sub>Native AOT compilation · First-class contracts · Structured concurrency · AI-era guardrails</sub>
 </p>
 
-<p align="left">
-  <a href="https://github.com/skhan75/VibeLang/releases/tag/v1.0.0"><img src="https://img.shields.io/badge/release-v1.0.0-22c55e" alt="release" /></a>
-  <a href="#performance"><img src="https://img.shields.io/badge/benchmarked-PLB--CI-0ea5e9" alt="benchmarked" /></a>
-  <a href="#performance"><img src="https://img.shields.io/badge/benchmarks-docker--first-9333ea" alt="benchmarks" /></a>
-  <a href="#performance"><img src="https://img.shields.io/badge/performance-transparent_reports-f97316" alt="performance reports" /></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache_2.0-blue.svg" alt="license" /></a>
+<p align="center">
+  <a href="https://github.com/skhan75/VibeLang/releases/tag/v1.0.0"><img src="https://img.shields.io/badge/release-v1.0.0-22c55e?style=for-the-badge" alt="release" /></a>
+  <a href="#performance"><img src="https://img.shields.io/badge/benchmarked-PLB--CI-0ea5e9?style=for-the-badge" alt="benchmarked" /></a>
+  <a href="#performance"><img src="https://img.shields.io/badge/benchmarks-docker--first-9333ea?style=for-the-badge" alt="benchmarks" /></a>
+  <a href="#performance"><img src="https://img.shields.io/badge/performance-transparent_reports-f97316?style=for-the-badge" alt="performance reports" /></a>
 </p>
 
-<p align="left">
+<p align="center">
+  <a href="https://github.com/skhan75/VibeLang/stargazers"><img src="https://img.shields.io/github/stars/skhan75/VibeLang?style=for-the-badge&color=8b5cf6" alt="stars" /></a>
+  <a href="https://github.com/skhan75/VibeLang/commits/main"><img src="https://img.shields.io/github/last-commit/skhan75/VibeLang?style=for-the-badge&color=f59e0b" alt="last commit" /></a>
+  <a href="https://github.com/skhan75/VibeLang/issues"><img src="https://img.shields.io/github/issues/skhan75/VibeLang?style=for-the-badge&color=ec4899" alt="issues" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache_2.0-2563eb?style=for-the-badge" alt="license" /></a>
+</p>
+
+<p align="center">
   <a href="https://www.thevibelang.org">Website</a> ·
   <a href="https://www.thevibelang.org/documentation">Documentation</a> ·
   <a href="#quickstart">Quickstart</a> ·
@@ -140,7 +146,7 @@ VS Code extension: [`editor-support/vscode/`](editor-support/vscode/)
 | [Language Spec](docs/spec/) | Grammar, type system, semantics, memory model |
 | [CLI Manual](docs/cli/help_manual.md) | Commands, flags, and exit codes |
 | [Stdlib Reference](docs/stdlib/reference_index.md) | Module index with stability tiers |
-| [Examples](examples/) | 70+ programs across 10 categories |
+| [Examples](examples/) | 87 programs across 11 categories |
 
 ## Contributing
 
