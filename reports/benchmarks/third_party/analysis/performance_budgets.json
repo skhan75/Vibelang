@@ -9,7 +9,7 @@
     "swift": 6.0,
     "kotlin": 25.0,
     "elixir": 2.0,
-    "python": 0.35,
+    "python": 0.45,
     "typescript": 0.35
   },
   "compile_cold_ratio_max": {

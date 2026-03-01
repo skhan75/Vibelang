@@ -1,108 +1,134 @@
-# VibeLang Full Local Benchmark Report (Third-Party Stack)
+# VibeLang Third-Party Benchmark Report
 
-Date (UTC): `2026-02-26T07:21:50Z`  
+This report documents the **strict Docker-backed** PLB-CI run used for the canonical artifacts:
+
+- `reports/benchmarks/third_party/full/results.json`
+- `reports/benchmarks/third_party/full/summary.md`
+
+Date (UTC): `2026-03-01T07:28:22Z`  
 Run profile: `full`  
-Timestamp ID: `20260226_072150Z`  
-Execution mode: **full local degraded run** (`runtime + compile lanes enabled`, `--no-docker`, `--allow-preflight-degraded`)
+Publication mode: **strict** (`--publication-mode`)  
+Execution mode: **docker-first runner container** (reproducible toolchains, pinned PLB-CI ref)
 
-Publication classification: **internal-only** (not strict apples-to-apples publishable yet).
+Publication classification: **publication-mode compliant** (strict validation passed with allowlisted lane gaps).
 
-## What changed before this run
+## What changed before this run (benchmarks unblock work)
 
-- Old generated benchmark reports were removed from `reports/benchmarks/third_party/` and regenerated from scratch.
-- Installed/added local toolchains for better lane coverage:
-  - `zig 0.15.2`
-  - `deno 2.7.1`
-  - `kotlin/kotlinc 2.3.10`
-  - `pypy3 7.3.20`
-  - `pyston3 2.3.5`
-  - `clang`/`clang++` now available via Zig's Clang frontend.
-- Remaining toolchain gap: `swift` / `swiftc` (Swiftly installation attempt did not complete in this environment).
+- Bench-only runtime was split behind the `bench-runtime` feature and exposed under `bench.*`.
+- PLB-CI adapter parity is now canonical in publication mode.
+- The third-party runner container installs required toolchains and builds a bench-enabled `vibe`.
 
 ## Commands run
 
 ```bash
-# strict attempt (expected to fail until remaining canonical blockers are fixed)
-python3 tooling/metrics/collect_third_party_benchmarks.py --profile full --publication-mode
+# docker-first strict run (runner image must exist)
+docker build -f benchmarks/third_party/docker/Dockerfile -t vibelang-third-party-bench:local .
+docker run --rm \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v "$(pwd):/workspace/VibeStack" \
+  -w /workspace/VibeStack/vibelang \
+  -e PROFILE=full \
+  -e VALIDATION_MODE=strict \
+  vibelang-third-party-bench:local
 
-# full benchmark collection (fresh, after clearing old generated reports)
-python3 tooling/metrics/collect_third_party_benchmarks.py \
-  --profile full \
-  --no-docker \
-  --allow-preflight-degraded
-
-# summary validation + strict gate check
-python3 tooling/metrics/validate_third_party_benchmarks.py
-python3 tooling/metrics/validate_third_party_benchmarks.py --publication-mode
+# local re-validation (must pass)
+python3 tooling/metrics/validate_third_party_benchmarks.py --enforcement-mode strict
+python3 tooling/metrics/validate_adapter_parity.py \
+  --manifest benchmarks/third_party/plbci/adapters/vibelang/PARITY_MANIFEST.yaml \
+  --matrix-file benchmarks/third_party/plbci/config/language_matrix.json \
+  --adapter-root benchmarks/third_party/plbci/adapters/vibelang \
+  --publication-mode
 ```
 
 ## Evidence artifacts (newly generated)
 
 - Detailed JSON (canonical): `reports/benchmarks/third_party/full/results.json`
 - Human-readable summary (canonical): `reports/benchmarks/third_party/full/summary.md`
+- Delta report (self-delta, for convenience): `reports/benchmarks/third_party/analysis/deltas/latest_delta.md`
 
 ## Coverage snapshot
 
 ### Runtime lane status
 
-- `ok`: `vibelang`, `c`, `cpp`, `go`, `kotlin`, `elixir`, `python`, `typescript`
-- `unavailable`: `rust`, `zig`, `swift`
+- `ok`: `vibelang`, `c`, `cpp`, `rust`, `go`, `zig`, `kotlin`, `elixir`, `python`, `typescript`
+- `unavailable` (allowlisted): `swift`
 
 ### Compile lane status
 
-- `ok`: `vibelang`, `c`, `cpp`, `go`, `kotlin`, `elixir`, `python`, `typescript`
-- `unavailable`: `rust`, `zig`, `swift`
+- `ok`: `vibelang`, `c`, `cpp`, `rust`, `go`, `zig`, `python`, `typescript`
+- `unavailable` (allowlisted): `swift`, `kotlin`, `elixir`
 
 ### Preflight state
 
-- `status`: `degraded`
-- `mode`: `no-docker`
-- Remaining preflight gaps: `swift`, `swiftc`
+- `status`: `ok` (publication-mode requires this)
+- Docker enabled: `true`
+- PLB-CI ref pinned: `ad18b203dd1769724f4eea94fc3ac1e99f6593e0`
 
 ## Easy-to-read result summary
 
 ### Key wins
 
-- Runtime geomean is faster than:
-  - `c` (`0.093x`)
-  - `cpp` (`0.095x`)
-  - `go` (`0.037x`)
-  - `elixir` (`0.003x`)
-  - `python` (`0.010x`)
-  - `typescript` (`0.014x`)
-- Compile cold is faster than:
-  - `kotlin` (`0.305x`)
-  - `elixir` (`0.317x`)
-  - `python` (`0.542x`)
-  - `typescript` (`0.784x`)
+- Runtime geomean faster than:
+  - `c` (`0.549x`)
+  - `cpp` (`0.371x`)
+  - `rust` (`0.485x`)
+  - `zig` (`0.398x`)
+  - `elixir` (`0.028x`)
+  - `python` (`0.224x`)
+  - `typescript` (`0.066x`)
+- Compile cold faster than:
+  - `rust` (`0.566x`)
+  - `zig` (`0.437x`)
 
 ### Main performance gaps
 
-- Runtime slower than `kotlin` (`1.943x`)
+- Runtime slower than:
+  - `kotlin` (`17.158x`)
+  - `go` (`13.220x`)
 - Compile cold slower than:
-  - `cpp` (`1.123x`)
-  - `c` (`1.112x`)
-  - `go` (`1.041x`)
+  - `c` (`1.718x`)
+  - `cpp` (`1.708x`)
+  - `python` (`1.427x`)
+  - `typescript` (`1.083x`)
+  - `go` (`1.056x`)
 
 ### Concurrency proxy snapshot (`coro-prime-sieve`, lower is better)
 
-- `vibelang`: `1.643 ms`
+- `vibelang`: `3.349 ms`
 - `kotlin`: `1.285 ms`
-- `go`: `12.341 ms`
-- `typescript`: `155.549 ms`
-- `python`: `316.813 ms`
+- `go`: `2.631 ms`
+- `typescript`: `133.574 ms`
+- `python`: `153.959 ms`
 - `elixir`: `329.597 ms`
 
-## Why this is still not publishable
+## Memory footprint and binary size
 
-- Strict publication mode still fails immediately on parity gating because 4 adapters are still noncanonical:
-  - `edigits`
-  - `http-server`
-  - `json-serde`
-  - `secp256k1`
-- In this local no-docker run, additional strict gate failures remain for missing language lanes:
-  - runtime/compile unavailable: `rust`, `zig`, `swift`
-- Docker daemon connectivity was unstable during this session, so strict Docker-backed collection could not be completed end-to-end.
+The canonical JSON includes:
+
+- runtime memory samples (`mem_bytes`) aggregated as `memory_mean_bytes` in `reports/benchmarks/third_party/full/summary.md`
+- compile-lane `binary_size_bytes` (when the compile lane is available)
+
+Snapshot (from the strict run at `2026-03-01T07:28:22Z`):
+
+| language | memory_mean_bytes | binary_size_bytes |
+| --- | ---: | ---: |
+| vibelang | 33273669 | 249280 |
+| c | 3670528 | 16200 |
+| cpp | 2031616 | 16200 |
+| rust | 8055286 | 316248 |
+| go | 1966080 | 1704 |
+| zig | 3732593 | 1711056 |
+| python | 27168426 | 1077 |
+| typescript | 78215680 | 92332880 |
+| elixir | 83461266 | n/a |
+
+## Publication notes (strict mode)
+
+- Adapter parity: **pass** in publication mode (0 noncanonical problems).
+- Strict validation: **pass** (see `reports/benchmarks/third_party/full/summary.md` “Budget Gate Output” section).
+- Allowlisted lane gaps:
+  - `swift` runtime+compile unavailable (allowlisted)
+  - `kotlin` + `elixir` compile lanes unavailable (allowlisted)
 
 ## Action checklist
 

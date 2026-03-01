@@ -383,10 +383,21 @@ def patch_staged_bench_file(bench_path: Path, language_id: str) -> None:
             patched,
             count=1,
         )
+        # When the benchmark tool runs inside a container (our runner image) but
+        # uses the host docker daemon via /var/run/docker.sock, bind-mounting
+        # temp paths like /tmp/_bench_* into nested docker containers will fail
+        # (those paths exist only inside the runner container, not on the host).
+        # Disable the pypy environment to avoid nested-docker build failures.
+        patched = re.sub(
+            r"(?m)^(  - os:\s*linux\s*\n)(    compiler:\s*pypy\s*\n)",
+            r"\1    enabled: false\n\2",
+            patched,
+            count=1,
+        )
     elif language_id == "zig":
         patched = re.sub(
             r"(?m)^\s*build:\s*zig build[^\n]*$",
-            "    build: mkdir -p zig-out/bin && zig build-exe app.zig -O ReleaseFast -mcpu broadwell -femit-bin=zig-out/bin/app",
+            "    build: mkdir -p zig-out/bin && zig build-exe app.zig -O ReleaseFast -mcpu broadwell -lc -femit-bin=zig-out/bin/app",
             patched,
         )
     if patched != text:

@@ -1,0 +1,108 @@
+{
+  "format": "vibe-third-party-benchmark-delta-v1",
+  "generated_at_epoch_s": 1772350102,
+  "generated_at_utc": "2026-03-01T07:28:22Z",
+  "timestamp_id": "20260301_072822Z",
+  "baseline_results": "reports/benchmarks/third_party/full/results.json",
+  "candidate_results": "reports/benchmarks/third_party/full/results.json",
+  "runtime_geomean_delta": {
+    "c": {
+      "before": 0.5494633395540062,
+      "after": 0.5494633395540062,
+      "delta_abs": 0.0,
+      "delta_pct": 0.0
+    },
+    "cpp": {
+      "before": 0.37107765356748307,
+      "after": 0.37107765356748307,
+      "delta_abs": 0.0,
+      "delta_pct": 0.0
+    },
+    "elixir": {
+      "before": 0.02799333271773623,
+      "after": 0.02799333271773623,
+      "delta_abs": 0.0,
+      "delta_pct": 0.0
+    },
+    "go": {
+      "before": 13.219664879917875,
+      "after": 13.219664879917875,
+      "delta_abs": 0.0,
+      "delta_pct": 0.0
+    },
+    "kotlin": {
+      "before": 17.15789966997771,
+      "after": 17.15789966997771,
+      "delta_abs": 0.0,
+      "delta_pct": 0.0
+    },
+    "python": {
+      "before": 0.22367673412650818,
+      "after": 0.22367673412650818,
+      "delta_abs": 0.0,
+      "delta_pct": 0.0
+    },
+    "rust": {
+      "before": 0.48535418746043385,
+      "after": 0.48535418746043385,
+      "delta_abs": 0.0,
+      "delta_pct": 0.0
+    },
+    "typescript": {
+      "before": 0.06596363564224472,
+      "after": 0.06596363564224472,
+      "delta_abs": 0.0,
+      "delta_pct": 0.0
+    },
+    "zig": {
+      "before": 0.39817837033760833,
+      "after": 0.39817837033760833,
+      "delta_abs": 0.0,
+      "delta_pct": 0.0
+    }
+  },
+  "compile_cold_delta": {
+    "c": {
+      "before": 1.717920319419005,
+      "after": 1.717920319419005,
+      "delta_abs": 0.0,
+      "delta_pct": 0.0
+    },
+    "cpp": {
+      "before": 1.707819419433614,
+      "after": 1.707819419433614,
+      "delta_abs": 0.0,
+      "delta_pct": 0.0
+    },
+    "go": {
+      "before": 1.056397750101425,
+      "after": 1.056397750101425,
+      "delta_abs": 0.0,
+      "delta_pct": 0.0
+    },
+    "python": {
+      "before": 1.4268688372024687,
+      "after": 1.4268688372024687,
+      "delta_abs": 0.0,
+      "delta_pct": 0.0
+    },
+    "rust": {
+      "before": 0.566278406383525,
+      "after": 0.566278406383525,
+      "delta_abs": 0.0,
+      "delta_pct": 0.0
+    },
+    "typescript": {
+      "before": 1.0825268089184168,
+      "after": 1.0825268089184168,
+      "delta_abs": 0.0,
+      "delta_pct": 0.0
+    },
+    "zig": {
+      "before": 0.4372037417407573,
+      "after": 0.4372037417407573,
+      "delta_abs": 0.0,
+      "delta_pct": 0.0
+    }
+  }
+}
