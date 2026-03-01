@@ -1,6 +1,2549 @@
 {
   "schema_version": 1,
   "files": {
+    "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb": {
+      "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+      "file_hash": "2a72200febbc6a01ae4052e0d5a66051963648e514d688fd064c0f9a043fff79",
+      "symbols": [
+        {
+          "id": 18411607439670188762,
+          "name": "neighbors",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 13,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 7953590074217534234,
+          "name": "from_nodes",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 13,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 1936740864888981512,
+          "name": "node",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 13,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 4200114682036171219,
+          "name": "to_nodes",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 13,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 13684302704801967256,
+          "name": "alloc",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 16617118987911580315,
+          "name": "mut_state",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 7401919756184523274,
+          "name": "out",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 3,
+            "line_end": 4,
+            "col_end": 5
+          }
+        },
+        {
+          "id": 7138988900035541734,
+          "name": "i",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 3,
+            "line_end": 5,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 15508442961393271467,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 15,
+            "col_start": 5,
+            "line_end": 49,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 7992663245604378967,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 16,
+            "col_start": 3,
+            "line_end": 16,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 5046811292014198769,
+          "name": "alloc",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 17,
+            "col_start": 3,
+            "line_end": 17,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 14014559210287601000,
+          "name": "mut_state",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 18,
+            "col_start": 3,
+            "line_end": 18,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 12530077196949560979,
+          "name": "from_nodes",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 19,
+            "col_start": 3,
+            "line_end": 19,
+            "col_end": 12
+          }
+        },
+        {
+          "id": 11310115072206162495,
+          "name": "to_nodes",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 20,
+            "col_start": 3,
+            "line_end": 20,
+            "col_end": 10
+          }
+        },
+        {
+          "id": 2628230484247936291,
+          "name": "visited",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 22,
+            "col_start": 3,
+            "line_end": 22,
+            "col_end": 9
+          }
+        },
+        {
+          "id": 11944641709348481160,
+          "name": "order",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 23,
+            "col_start": 3,
+            "line_end": 23,
+            "col_end": 7
+          }
+        },
+        {
+          "id": 1974358938590863264,
+          "name": "queue",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 24,
+            "col_start": 3,
+            "line_end": 24,
+            "col_end": 7
+          }
+        },
+        {
+          "id": 2171784919073492352,
+          "name": "head",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 25,
+            "col_start": 3,
+            "line_end": 25,
+            "col_end": 6
+          }
+        },
+        {
+          "id": 3428682947778716747,
+          "name": "node",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 28,
+            "col_start": 5,
+            "line_end": 28,
+            "col_end": 8
+          }
+        },
+        {
+          "id": 3674075112007745892,
+          "name": "ns",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 30,
+            "col_start": 5,
+            "line_end": 30,
+            "col_end": 6
+          }
+        },
+        {
+          "id": 13055397845023986025,
+          "name": "i",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 31,
+            "col_start": 5,
+            "line_end": 31,
+            "col_end": 5
+          }
+        },
+        {
+          "id": 14898823443952418404,
+          "name": "n",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 33,
+            "col_start": 7,
+            "line_end": 33,
+            "col_end": 7
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 7138988900035541734,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 9,
+            "line_end": 6,
+            "col_end": 9
+          }
+        },
+        {
+          "symbol_id": 7953590074217534234,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 13,
+            "line_end": 6,
+            "col_end": 22
+          }
+        },
+        {
+          "symbol_id": 7953590074217534234,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 8,
+            "line_end": 7,
+            "col_end": 17
+          }
+        },
+        {
+          "symbol_id": 7138988900035541734,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 23,
+            "line_end": 7,
+            "col_end": 23
+          }
+        },
+        {
+          "symbol_id": 1936740864888981512,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 29,
+            "line_end": 7,
+            "col_end": 32
+          }
+        },
+        {
+          "symbol_id": 7401919756184523274,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 7,
+            "line_end": 8,
+            "col_end": 9
+          }
+        },
+        {
+          "symbol_id": 4200114682036171219,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 18,
+            "line_end": 8,
+            "col_end": 25
+          }
+        },
+        {
+          "symbol_id": 7138988900035541734,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 31,
+            "line_end": 8,
+            "col_end": 31
+          }
+        },
+        {
+          "symbol_id": 7138988900035541734,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 5,
+            "line_end": 10,
+            "col_end": 5
+          }
+        },
+        {
+          "symbol_id": 7138988900035541734,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 9,
+            "line_end": 10,
+            "col_end": 9
+          }
+        },
+        {
+          "symbol_id": 7401919756184523274,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 3,
+            "line_end": 12,
+            "col_end": 5
+          }
+        },
+        {
+          "symbol_id": 2171784919073492352,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 27,
+            "col_start": 9,
+            "line_end": 27,
+            "col_end": 12
+          }
+        },
+        {
+          "symbol_id": 1974358938590863264,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 27,
+            "col_start": 16,
+            "line_end": 27,
+            "col_end": 20
+          }
+        },
+        {
+          "symbol_id": 1974358938590863264,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 28,
+            "col_start": 13,
+            "line_end": 28,
+            "col_end": 17
+          }
+        },
+        {
+          "symbol_id": 2171784919073492352,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 28,
+            "col_start": 23,
+            "line_end": 28,
+            "col_end": 26
+          }
+        },
+        {
+          "symbol_id": 2171784919073492352,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 29,
+            "col_start": 5,
+            "line_end": 29,
+            "col_end": 8
+          }
+        },
+        {
+          "symbol_id": 2171784919073492352,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 29,
+            "col_start": 12,
+            "line_end": 29,
+            "col_end": 15
+          }
+        },
+        {
+          "symbol_id": 18411607439670188762,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 30,
+            "col_start": 11,
+            "line_end": 30,
+            "col_end": 19
+          }
+        },
+        {
+          "symbol_id": 3428682947778716747,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 30,
+            "col_start": 21,
+            "line_end": 30,
+            "col_end": 24
+          }
+        },
+        {
+          "symbol_id": 12530077196949560979,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 30,
+            "col_start": 27,
+            "line_end": 30,
+            "col_end": 36
+          }
+        },
+        {
+          "symbol_id": 11310115072206162495,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 30,
+            "col_start": 39,
+            "line_end": 30,
+            "col_end": 46
+          }
+        },
+        {
+          "symbol_id": 13055397845023986025,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 32,
+            "col_start": 11,
+            "line_end": 32,
+            "col_end": 11
+          }
+        },
+        {
+          "symbol_id": 3674075112007745892,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 32,
+            "col_start": 15,
+            "line_end": 32,
+            "col_end": 16
+          }
+        },
+        {
+          "symbol_id": 3674075112007745892,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 33,
+            "col_start": 12,
+            "line_end": 33,
+            "col_end": 13
+          }
+        },
+        {
+          "symbol_id": 13055397845023986025,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 33,
+            "col_start": 19,
+            "line_end": 33,
+            "col_end": 19
+          }
+        },
+        {
+          "symbol_id": 2628230484247936291,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 34,
+            "col_start": 11,
+            "line_end": 34,
+            "col_end": 17
+          }
+        },
+        {
+          "symbol_id": 14898823443952418404,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 34,
+            "col_start": 28,
+            "line_end": 34,
+            "col_end": 28
+          }
+        },
+        {
+          "symbol_id": 2628230484247936291,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 35,
+            "col_start": 9,
+            "line_end": 35,
+            "col_end": 15
+          }
+        },
+        {
+          "symbol_id": 14898823443952418404,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 35,
+            "col_start": 21,
+            "line_end": 35,
+            "col_end": 21
+          }
+        },
+        {
+          "symbol_id": 1974358938590863264,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 36,
+            "col_start": 9,
+            "line_end": 36,
+            "col_end": 13
+          }
+        },
+        {
+          "symbol_id": 14898823443952418404,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 36,
+            "col_start": 22,
+            "line_end": 36,
+            "col_end": 22
+          }
+        },
+        {
+          "symbol_id": 11944641709348481160,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 37,
+            "col_start": 9,
+            "line_end": 37,
+            "col_end": 13
+          }
+        },
+        {
+          "symbol_id": 14898823443952418404,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 37,
+            "col_start": 22,
+            "line_end": 37,
+            "col_end": 22
+          }
+        },
+        {
+          "symbol_id": 13055397845023986025,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 39,
+            "col_start": 7,
+            "line_end": 39,
+            "col_end": 7
+          }
+        },
+        {
+          "symbol_id": 13055397845023986025,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 39,
+            "col_start": 11,
+            "line_end": 39,
+            "col_end": 11
+          }
+        },
+        {
+          "symbol_id": 11944641709348481160,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "span": {
+            "line_start": 43,
+            "col_start": 6,
+            "line_end": 43,
+            "col_end": 10
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 15508442961393271467,
+          "function_name": "main",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "alloc",
+            "io",
+            "mut_state"
+          ],
+          "effects_observed": [
+            "alloc",
+            "io",
+            "mut_state"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        },
+        {
+          "symbol_id": 18411607439670188762,
+          "function_name": "neighbors",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
+          "signature_hash": "0ae5c75fdcb4895a6b0bf19a9ca1483eba7ade123f26b9efd4066c714e81cbdc",
+          "effects_declared": [
+            "alloc",
+            "mut_state"
+          ],
+          "effects_observed": [
+            "alloc",
+            "mut_state"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb": {
+      "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+      "file_hash": "ed5885671097e1546576742b5f3b900c2e4e745a8afdaaebfb08731240376346",
+      "symbols": [
+        {
+          "id": 7526392126775916368,
+          "name": "neighbors",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 13,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 3485686882179570697,
+          "name": "from_nodes",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 13,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 12021650338544311968,
+          "name": "node",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 13,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 5053496939721321534,
+          "name": "to_nodes",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 13,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 11386723848581319128,
+          "name": "alloc",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 12312402006428208288,
+          "name": "mut_state",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 2957051858754944932,
+          "name": "out",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 3,
+            "line_end": 4,
+            "col_end": 5
+          }
+        },
+        {
+          "id": 16075020544861751422,
+          "name": "i",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 3,
+            "line_end": 5,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 6288519120734051665,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 15,
+            "col_start": 5,
+            "line_end": 53,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 4687878062947508373,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 16,
+            "col_start": 3,
+            "line_end": 16,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 5806905757767725211,
+          "name": "alloc",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 17,
+            "col_start": 3,
+            "line_end": 17,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 15026926790065711958,
+          "name": "mut_state",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 18,
+            "col_start": 3,
+            "line_end": 18,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 11085106353111749670,
+          "name": "from_nodes",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 19,
+            "col_start": 3,
+            "line_end": 19,
+            "col_end": 12
+          }
+        },
+        {
+          "id": 9370921364517514702,
+          "name": "to_nodes",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 20,
+            "col_start": 3,
+            "line_end": 20,
+            "col_end": 10
+          }
+        },
+        {
+          "id": 362996794946859143,
+          "name": "visited",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 22,
+            "col_start": 3,
+            "line_end": 22,
+            "col_end": 9
+          }
+        },
+        {
+          "id": 944716495722792265,
+          "name": "order",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 24,
+            "col_start": 3,
+            "line_end": 24,
+            "col_end": 7
+          }
+        },
+        {
+          "id": 15139401293864559141,
+          "name": "stack",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 25,
+            "col_start": 3,
+            "line_end": 25,
+            "col_end": 7
+          }
+        },
+        {
+          "id": 7776854229099073644,
+          "name": "top",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 26,
+            "col_start": 3,
+            "line_end": 26,
+            "col_end": 5
+          }
+        },
+        {
+          "id": 18038216063042887088,
+          "name": "node",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 30,
+            "col_start": 5,
+            "line_end": 30,
+            "col_end": 8
+          }
+        },
+        {
+          "id": 17776189082448378515,
+          "name": "ns",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 34,
+            "col_start": 7,
+            "line_end": 34,
+            "col_end": 8
+          }
+        },
+        {
+          "id": 4392867512441775501,
+          "name": "i",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 35,
+            "col_start": 7,
+            "line_end": 35,
+            "col_end": 7
+          }
+        },
+        {
+          "id": 13983743315823497557,
+          "name": "n",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 37,
+            "col_start": 9,
+            "line_end": 37,
+            "col_end": 9
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 16075020544861751422,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 9,
+            "line_end": 6,
+            "col_end": 9
+          }
+        },
+        {
+          "symbol_id": 3485686882179570697,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 13,
+            "line_end": 6,
+            "col_end": 22
+          }
+        },
+        {
+          "symbol_id": 3485686882179570697,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 8,
+            "line_end": 7,
+            "col_end": 17
+          }
+        },
+        {
+          "symbol_id": 16075020544861751422,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 23,
+            "line_end": 7,
+            "col_end": 23
+          }
+        },
+        {
+          "symbol_id": 12021650338544311968,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 29,
+            "line_end": 7,
+            "col_end": 32
+          }
+        },
+        {
+          "symbol_id": 2957051858754944932,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 7,
+            "line_end": 8,
+            "col_end": 9
+          }
+        },
+        {
+          "symbol_id": 5053496939721321534,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 18,
+            "line_end": 8,
+            "col_end": 25
+          }
+        },
+        {
+          "symbol_id": 16075020544861751422,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 31,
+            "line_end": 8,
+            "col_end": 31
+          }
+        },
+        {
+          "symbol_id": 16075020544861751422,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 5,
+            "line_end": 10,
+            "col_end": 5
+          }
+        },
+        {
+          "symbol_id": 16075020544861751422,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 9,
+            "line_end": 10,
+            "col_end": 9
+          }
+        },
+        {
+          "symbol_id": 2957051858754944932,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 3,
+            "line_end": 12,
+            "col_end": 5
+          }
+        },
+        {
+          "symbol_id": 362996794946859143,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 23,
+            "col_start": 3,
+            "line_end": 23,
+            "col_end": 9
+          }
+        },
+        {
+          "symbol_id": 7776854229099073644,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 28,
+            "col_start": 9,
+            "line_end": 28,
+            "col_end": 11
+          }
+        },
+        {
+          "symbol_id": 7776854229099073644,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 29,
+            "col_start": 5,
+            "line_end": 29,
+            "col_end": 7
+          }
+        },
+        {
+          "symbol_id": 7776854229099073644,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 29,
+            "col_start": 11,
+            "line_end": 29,
+            "col_end": 13
+          }
+        },
+        {
+          "symbol_id": 15139401293864559141,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 30,
+            "col_start": 13,
+            "line_end": 30,
+            "col_end": 17
+          }
+        },
+        {
+          "symbol_id": 7776854229099073644,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 30,
+            "col_start": 23,
+            "line_end": 30,
+            "col_end": 25
+          }
+        },
+        {
+          "symbol_id": 362996794946859143,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 31,
+            "col_start": 9,
+            "line_end": 31,
+            "col_end": 15
+          }
+        },
+        {
+          "symbol_id": 18038216063042887088,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 31,
+            "col_start": 26,
+            "line_end": 31,
+            "col_end": 29
+          }
+        },
+        {
+          "symbol_id": 362996794946859143,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 32,
+            "col_start": 7,
+            "line_end": 32,
+            "col_end": 13
+          }
+        },
+        {
+          "symbol_id": 18038216063042887088,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 32,
+            "col_start": 19,
+            "line_end": 32,
+            "col_end": 22
+          }
+        },
+        {
+          "symbol_id": 944716495722792265,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 33,
+            "col_start": 7,
+            "line_end": 33,
+            "col_end": 11
+          }
+        },
+        {
+          "symbol_id": 18038216063042887088,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 33,
+            "col_start": 20,
+            "line_end": 33,
+            "col_end": 23
+          }
+        },
+        {
+          "symbol_id": 7526392126775916368,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 34,
+            "col_start": 13,
+            "line_end": 34,
+            "col_end": 21
+          }
+        },
+        {
+          "symbol_id": 18038216063042887088,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 34,
+            "col_start": 23,
+            "line_end": 34,
+            "col_end": 26
+          }
+        },
+        {
+          "symbol_id": 11085106353111749670,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 34,
+            "col_start": 29,
+            "line_end": 34,
+            "col_end": 38
+          }
+        },
+        {
+          "symbol_id": 9370921364517514702,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 34,
+            "col_start": 41,
+            "line_end": 34,
+            "col_end": 48
+          }
+        },
+        {
+          "symbol_id": 17776189082448378515,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 35,
+            "col_start": 12,
+            "line_end": 35,
+            "col_end": 13
+          }
+        },
+        {
+          "symbol_id": 4392867512441775501,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 36,
+            "col_start": 13,
+            "line_end": 36,
+            "col_end": 13
+          }
+        },
+        {
+          "symbol_id": 17776189082448378515,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 37,
+            "col_start": 14,
+            "line_end": 37,
+            "col_end": 15
+          }
+        },
+        {
+          "symbol_id": 4392867512441775501,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 37,
+            "col_start": 21,
+            "line_end": 37,
+            "col_end": 21
+          }
+        },
+        {
+          "symbol_id": 362996794946859143,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 38,
+            "col_start": 13,
+            "line_end": 38,
+            "col_end": 19
+          }
+        },
+        {
+          "symbol_id": 13983743315823497557,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 38,
+            "col_start": 30,
+            "line_end": 38,
+            "col_end": 30
+          }
+        },
+        {
+          "symbol_id": 15139401293864559141,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 39,
+            "col_start": 11,
+            "line_end": 39,
+            "col_end": 15
+          }
+        },
+        {
+          "symbol_id": 13983743315823497557,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 39,
+            "col_start": 24,
+            "line_end": 39,
+            "col_end": 24
+          }
+        },
+        {
+          "symbol_id": 7776854229099073644,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 40,
+            "col_start": 11,
+            "line_end": 40,
+            "col_end": 13
+          }
+        },
+        {
+          "symbol_id": 7776854229099073644,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 40,
+            "col_start": 17,
+            "line_end": 40,
+            "col_end": 19
+          }
+        },
+        {
+          "symbol_id": 4392867512441775501,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 42,
+            "col_start": 9,
+            "line_end": 42,
+            "col_end": 9
+          }
+        },
+        {
+          "symbol_id": 4392867512441775501,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 42,
+            "col_start": 13,
+            "line_end": 42,
+            "col_end": 13
+          }
+        },
+        {
+          "symbol_id": 944716495722792265,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "span": {
+            "line_start": 47,
+            "col_start": 6,
+            "line_end": 47,
+            "col_end": 10
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 6288519120734051665,
+          "function_name": "main",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "alloc",
+            "io",
+            "mut_state"
+          ],
+          "effects_observed": [
+            "alloc",
+            "io",
+            "mut_state"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        },
+        {
+          "symbol_id": 7526392126775916368,
+          "function_name": "neighbors",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb",
+          "signature_hash": "0ae5c75fdcb4895a6b0bf19a9ca1483eba7ade123f26b9efd4066c714e81cbdc",
+          "effects_declared": [
+            "alloc",
+            "mut_state"
+          ],
+          "effects_observed": [
+            "alloc",
+            "mut_state"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb": {
+      "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+      "file_hash": "ae21677303459f6bdca7ff6d6511fb34e8b61ee0bd6c1fa094095b8f746932af",
+      "symbols": [
+        {
+          "id": 6297474372998156000,
+          "name": "tree_sum",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 13,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 12218228867458836118,
+          "name": "left",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 13,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 8094523758047382630,
+          "name": "node",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 13,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 2623948918756308119,
+          "name": "right",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 13,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 12450312181025314730,
+          "name": "values",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 13,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 5158577296772639215,
+          "name": "left_total",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 3,
+            "line_end": 10,
+            "col_end": 12
+          }
+        },
+        {
+          "id": 16637837789682293217,
+          "name": "right_total",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 3,
+            "line_end": 11,
+            "col_end": 13
+          }
+        },
+        {
+          "id": 975616437899894618,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 15,
+            "col_start": 5,
+            "line_end": 28,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 5337616314052605849,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 16,
+            "col_start": 3,
+            "line_end": 16,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 12596326418291803121,
+          "name": "alloc",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 17,
+            "col_start": 3,
+            "line_end": 17,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 16844678103650010173,
+          "name": "values",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 18,
+            "col_start": 3,
+            "line_end": 18,
+            "col_end": 8
+          }
+        },
+        {
+          "id": 15569282346267748808,
+          "name": "left",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 19,
+            "col_start": 3,
+            "line_end": 19,
+            "col_end": 6
+          }
+        },
+        {
+          "id": 1858582837881236753,
+          "name": "right",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 20,
+            "col_start": 3,
+            "line_end": 20,
+            "col_end": 7
+          }
+        },
+        {
+          "id": 6581137382743153823,
+          "name": "total",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 21,
+            "col_start": 3,
+            "line_end": 21,
+            "col_end": 7
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 8094523758047382630,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 6,
+            "line_end": 7,
+            "col_end": 9
+          }
+        },
+        {
+          "symbol_id": 6297474372998156000,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 17,
+            "line_end": 10,
+            "col_end": 24
+          }
+        },
+        {
+          "symbol_id": 12218228867458836118,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 26,
+            "line_end": 10,
+            "col_end": 29
+          }
+        },
+        {
+          "symbol_id": 8094523758047382630,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 35,
+            "line_end": 10,
+            "col_end": 38
+          }
+        },
+        {
+          "symbol_id": 12450312181025314730,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 42,
+            "line_end": 10,
+            "col_end": 47
+          }
+        },
+        {
+          "symbol_id": 12218228867458836118,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 50,
+            "line_end": 10,
+            "col_end": 53
+          }
+        },
+        {
+          "symbol_id": 2623948918756308119,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 56,
+            "line_end": 10,
+            "col_end": 60
+          }
+        },
+        {
+          "symbol_id": 6297474372998156000,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 18,
+            "line_end": 11,
+            "col_end": 25
+          }
+        },
+        {
+          "symbol_id": 2623948918756308119,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 27,
+            "line_end": 11,
+            "col_end": 31
+          }
+        },
+        {
+          "symbol_id": 8094523758047382630,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 37,
+            "line_end": 11,
+            "col_end": 40
+          }
+        },
+        {
+          "symbol_id": 12450312181025314730,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 44,
+            "line_end": 11,
+            "col_end": 49
+          }
+        },
+        {
+          "symbol_id": 12218228867458836118,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 52,
+            "line_end": 11,
+            "col_end": 55
+          }
+        },
+        {
+          "symbol_id": 2623948918756308119,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 58,
+            "line_end": 11,
+            "col_end": 62
+          }
+        },
+        {
+          "symbol_id": 12450312181025314730,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 3,
+            "line_end": 12,
+            "col_end": 8
+          }
+        },
+        {
+          "symbol_id": 8094523758047382630,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 14,
+            "line_end": 12,
+            "col_end": 17
+          }
+        },
+        {
+          "symbol_id": 5158577296772639215,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 22,
+            "line_end": 12,
+            "col_end": 31
+          }
+        },
+        {
+          "symbol_id": 16637837789682293217,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 35,
+            "line_end": 12,
+            "col_end": 45
+          }
+        },
+        {
+          "symbol_id": 6297474372998156000,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 21,
+            "col_start": 12,
+            "line_end": 21,
+            "col_end": 19
+          }
+        },
+        {
+          "symbol_id": 16844678103650010173,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 21,
+            "col_start": 24,
+            "line_end": 21,
+            "col_end": 29
+          }
+        },
+        {
+          "symbol_id": 15569282346267748808,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 21,
+            "col_start": 32,
+            "line_end": 21,
+            "col_end": 35
+          }
+        },
+        {
+          "symbol_id": 1858582837881236753,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 21,
+            "col_start": 38,
+            "line_end": 21,
+            "col_end": 42
+          }
+        },
+        {
+          "symbol_id": 6581137382743153823,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "span": {
+            "line_start": 22,
+            "col_start": 6,
+            "line_end": 22,
+            "col_end": 10
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 975616437899894618,
+          "function_name": "main",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "alloc",
+            "io"
+          ],
+          "effects_observed": [
+            "alloc",
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        },
+        {
+          "symbol_id": 6297474372998156000,
+          "function_name": "tree_sum",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb",
+          "signature_hash": "50ebc4b4669ede71f1d0840680d3c43c7db2db2ea763137b8a3570ece1e02d56",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb": {
+      "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+      "file_hash": "85b2b6d5963a2b9fc01eb5042a390f9707d39476f2678999ae237cceddbc071e",
+      "symbols": [
+        {
+          "id": 8130737593760386773,
+          "name": "tree_depth",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 8,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 11874227339207052191,
+          "name": "left",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 8,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 5762103459082649422,
+          "name": "node",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 8,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 3504327867735087523,
+          "name": "right",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 8,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 10433326819042799625,
+          "name": "left_depth",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 3,
+            "line_end": 5,
+            "col_end": 12
+          }
+        },
+        {
+          "id": 17136778248538161069,
+          "name": "right_depth",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 3,
+            "line_end": 6,
+            "col_end": 13
+          }
+        },
+        {
+          "id": 185137740921500238,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 5,
+            "line_end": 22,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 12792920392043530796,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 3,
+            "line_end": 11,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 14482288607178684145,
+          "name": "alloc",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 3,
+            "line_end": 12,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 9165164148857242258,
+          "name": "left",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 13,
+            "col_start": 3,
+            "line_end": 13,
+            "col_end": 6
+          }
+        },
+        {
+          "id": 8095170861002332691,
+          "name": "right",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 14,
+            "col_start": 3,
+            "line_end": 14,
+            "col_end": 7
+          }
+        },
+        {
+          "id": 544455919695359189,
+          "name": "depth",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 15,
+            "col_start": 3,
+            "line_end": 15,
+            "col_end": 7
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 5762103459082649422,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 6,
+            "line_end": 2,
+            "col_end": 9
+          }
+        },
+        {
+          "symbol_id": 8130737593760386773,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 17,
+            "line_end": 5,
+            "col_end": 26
+          }
+        },
+        {
+          "symbol_id": 11874227339207052191,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 28,
+            "line_end": 5,
+            "col_end": 31
+          }
+        },
+        {
+          "symbol_id": 5762103459082649422,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 37,
+            "line_end": 5,
+            "col_end": 40
+          }
+        },
+        {
+          "symbol_id": 11874227339207052191,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 44,
+            "line_end": 5,
+            "col_end": 47
+          }
+        },
+        {
+          "symbol_id": 3504327867735087523,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 50,
+            "line_end": 5,
+            "col_end": 54
+          }
+        },
+        {
+          "symbol_id": 8130737593760386773,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 18,
+            "line_end": 6,
+            "col_end": 27
+          }
+        },
+        {
+          "symbol_id": 3504327867735087523,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 29,
+            "line_end": 6,
+            "col_end": 33
+          }
+        },
+        {
+          "symbol_id": 5762103459082649422,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 39,
+            "line_end": 6,
+            "col_end": 42
+          }
+        },
+        {
+          "symbol_id": 11874227339207052191,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 46,
+            "line_end": 6,
+            "col_end": 49
+          }
+        },
+        {
+          "symbol_id": 3504327867735087523,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 52,
+            "line_end": 6,
+            "col_end": 56
+          }
+        },
+        {
+          "symbol_id": 10433326819042799625,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 7,
+            "line_end": 7,
+            "col_end": 16
+          }
+        },
+        {
+          "symbol_id": 17136778248538161069,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 19,
+            "line_end": 7,
+            "col_end": 29
+          }
+        },
+        {
+          "symbol_id": 8130737593760386773,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 15,
+            "col_start": 12,
+            "line_end": 15,
+            "col_end": 21
+          }
+        },
+        {
+          "symbol_id": 9165164148857242258,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 15,
+            "col_start": 26,
+            "line_end": 15,
+            "col_end": 29
+          }
+        },
+        {
+          "symbol_id": 8095170861002332691,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 15,
+            "col_start": 32,
+            "line_end": 15,
+            "col_end": 36
+          }
+        },
+        {
+          "symbol_id": 544455919695359189,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "span": {
+            "line_start": 16,
+            "col_start": 6,
+            "line_end": 16,
+            "col_end": 10
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 185137740921500238,
+          "function_name": "main",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "alloc",
+            "io"
+          ],
+          "effects_observed": [
+            "alloc",
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        },
+        {
+          "symbol_id": 8130737593760386773,
+          "function_name": "tree_depth",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/35_tree_depth_recursive.yb",
+          "signature_hash": "13ddc590907d10387a2aa1ae90d448eeb2570ae9853a2a7a3914125b0de58945",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb": {
+      "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+      "file_hash": "ecceffea29b625ca656f0d463123778124ca9b227f4b45874e2335869fde82b2",
+      "symbols": [
+        {
+          "id": 7395341792014114133,
+          "name": "is_palindrome",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 14,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 17821503138627207983,
+          "name": "s",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 14,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 16995519172257773898,
+          "name": "i",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 10704066675323062775,
+          "name": "j",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 4168930678470047494,
+          "name": "left",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 5,
+            "line_end": 5,
+            "col_end": 8
+          }
+        },
+        {
+          "id": 13388868103469832113,
+          "name": "right",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 5,
+            "line_end": 6,
+            "col_end": 9
+          }
+        },
+        {
+          "id": 6887535624698591694,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 16,
+            "col_start": 5,
+            "line_end": 24,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 424710601513259437,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 17,
+            "col_start": 3,
+            "line_end": 17,
+            "col_end": 3
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 17821503138627207983,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 8,
+            "line_end": 3,
+            "col_end": 8
+          }
+        },
+        {
+          "symbol_id": 16995519172257773898,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 9,
+            "line_end": 4,
+            "col_end": 9
+          }
+        },
+        {
+          "symbol_id": 10704066675323062775,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 13,
+            "line_end": 4,
+            "col_end": 13
+          }
+        },
+        {
+          "symbol_id": 17821503138627207983,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 13,
+            "line_end": 5,
+            "col_end": 13
+          }
+        },
+        {
+          "symbol_id": 16995519172257773898,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 15,
+            "line_end": 5,
+            "col_end": 15
+          }
+        },
+        {
+          "symbol_id": 16995519172257773898,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 17,
+            "line_end": 5,
+            "col_end": 17
+          }
+        },
+        {
+          "symbol_id": 17821503138627207983,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 14,
+            "line_end": 6,
+            "col_end": 14
+          }
+        },
+        {
+          "symbol_id": 10704066675323062775,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 16,
+            "line_end": 6,
+            "col_end": 16
+          }
+        },
+        {
+          "symbol_id": 10704066675323062775,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 18,
+            "line_end": 6,
+            "col_end": 18
+          }
+        },
+        {
+          "symbol_id": 4168930678470047494,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 8,
+            "line_end": 7,
+            "col_end": 11
+          }
+        },
+        {
+          "symbol_id": 13388868103469832113,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 16,
+            "line_end": 7,
+            "col_end": 20
+          }
+        },
+        {
+          "symbol_id": 16995519172257773898,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 5,
+            "line_end": 10,
+            "col_end": 5
+          }
+        },
+        {
+          "symbol_id": 16995519172257773898,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 9,
+            "line_end": 10,
+            "col_end": 9
+          }
+        },
+        {
+          "symbol_id": 10704066675323062775,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 5,
+            "line_end": 11,
+            "col_end": 5
+          }
+        },
+        {
+          "symbol_id": 10704066675323062775,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 9,
+            "line_end": 11,
+            "col_end": 9
+          }
+        },
+        {
+          "symbol_id": 7395341792014114133,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "span": {
+            "line_start": 18,
+            "col_start": 6,
+            "line_end": 18,
+            "col_end": 18
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 7395341792014114133,
+          "function_name": "is_palindrome",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "signature_hash": "18771996595e193e1234458117d225ba9a5986a4c86b6d9eaf34374674dd7a94",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        },
+        {
+          "symbol_id": 6887535624698591694,
+          "function_name": "main",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/05_graphs_recursion_patterns/36_palindrome_check.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "io"
+          ],
+          "effects_observed": [
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
     "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb": {
       "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb",
       "file_hash": "2a72200febbc6a01ae4052e0d5a66051963648e514d688fd064c0f9a043fff79",

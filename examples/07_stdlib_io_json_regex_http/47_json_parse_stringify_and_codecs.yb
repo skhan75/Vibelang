@@ -1,0 +1,20 @@
+type User {
+  id: Int,
+  name: Str,
+  active: Bool
+}
+
+pub main() -> Int {
+  @effect io
+  @effect alloc
+  println(json.parse("{ \"id\" : 7, \"name\" : \"sam\", \"active\" : true }"))
+  println(json.stringify("vibe"))
+
+  fallback := User { id: 1, name: "fallback", active: false }
+  decoded := json.decode_User("{\"id\":7,\"name\":\"sam\",\"active\":true}", fallback)
+  println(json.encode_User(decoded))
+
+  decoded2 := json.decode_User("{\"id\":9}", fallback)
+  println(json.encode_User(decoded2))
+  0
+}

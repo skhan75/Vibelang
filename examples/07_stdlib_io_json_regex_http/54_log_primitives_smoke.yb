@@ -1,0 +1,8 @@
+pub main() -> Int {
+  @effect io
+  log.info("hello")
+  log.warn("watch")
+  log.error("oops")
+  println("done")
+  0
+}

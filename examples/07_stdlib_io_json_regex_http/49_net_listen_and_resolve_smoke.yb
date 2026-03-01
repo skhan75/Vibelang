@@ -1,0 +1,20 @@
+pub main() -> Int {
+  @effect io
+  @effect net
+  listener := net.listen("127.0.0.1", 0)
+  port := net.listener_port(listener)
+  net.close(listener)
+
+  if port > 0 {
+    println("port-ok")
+  } else {
+    println("port-bad")
+  }
+
+  if net.resolve("127.0.0.1") != "" {
+    println("dns-ok")
+  } else {
+    println("dns-bad")
+  }
+  0
+}

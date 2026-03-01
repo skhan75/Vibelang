@@ -1,4 +1,4 @@
-# VibeLang Examples (78 programs)
+# VibeLang Examples (87 programs)
 
 This directory contains runnable sample programs that cover VibeLang from basic syntax to advanced concurrency and modular projects.
 
@@ -24,7 +24,7 @@ This directory contains runnable sample programs that cover VibeLang from basic 
 - Algorithms: `examples/04_algorithms/`
 - Graphs, recursion, patterns: `examples/05_graphs_recursion_patterns/`
 - Concurrency and async: `examples/06_concurrency_async/`
-- Stdlib IO/JSON/Regex/HTTP: `examples/07_stdlib_io_json_regex_http/`
+- Stdlib IO/JSON/Regex/HTTP + boundary APIs: `examples/07_stdlib_io_json_regex_http/`
 - Modules and imports: `examples/08_modules_packages/`
 - Agentic workflow patterns: `examples/09_agentic_patterns/`
 - Intent and contracts: `examples/10_contracts_intent/`
@@ -110,6 +110,15 @@ This directory contains runnable sample programs that cover VibeLang from basic 
 76. `11_modeling_shapes/74_type_point_basics.yb`
 77. `11_modeling_shapes/75_enum_match_basics.yb`
 78. `11_modeling_shapes/76_type_mixed_fields.yb`
+79. `07_stdlib_io_json_regex_http/47_json_parse_stringify_and_codecs.yb`
+80. `07_stdlib_io_json_regex_http/48_http_sync_client_unreachable_smoke.yb`
+81. `07_stdlib_io_json_regex_http/49_net_listen_and_resolve_smoke.yb`
+82. `07_stdlib_io_json_regex_http/50_convert_parsing_and_formatting.yb`
+83. `07_stdlib_io_json_regex_http/51_text_utilities_daily_ops.yb`
+84. `07_stdlib_io_json_regex_http/52_encoding_roundtrip_basics.yb`
+85. `07_stdlib_io_json_regex_http/53_time_monotonic_smoke.yb`
+86. `07_stdlib_io_json_regex_http/54_log_primitives_smoke.yb`
+87. `07_stdlib_io_json_regex_http/55_env_cli_surface_smoke.yb`
 
 ## Feature gap tracker
 

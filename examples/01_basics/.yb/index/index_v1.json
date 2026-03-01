@@ -1,6 +1,1001 @@
 {
   "schema_version": 1,
   "files": {
+    "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/01_hello_world.yb": {
+      "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/01_hello_world.yb",
+      "file_hash": "66099f9294d96930f6d7aaf11183df5ea4596b3d4f2ed0b515c619b7ae6b450f",
+      "symbols": [
+        {
+          "id": 14381741438590335253,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/01_hello_world.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 5,
+            "line_end": 5,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 15807317070041903617,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/01_hello_world.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        }
+      ],
+      "references": [],
+      "function_meta": [
+        {
+          "symbol_id": 14381741438590335253,
+          "function_name": "main",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/01_hello_world.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "io"
+          ],
+          "effects_observed": [
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/02_variables_and_reassignment.yb": {
+      "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/02_variables_and_reassignment.yb",
+      "file_hash": "6b8dc081add6e4859b79650d91ebd6cf699eb18cc1eefcac20bcbab3fcc3a9b8",
+      "symbols": [
+        {
+          "id": 1801194280884422833,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/02_variables_and_reassignment.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 5,
+            "line_end": 11,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 6154549204561898390,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/02_variables_and_reassignment.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 6031901341052524453,
+          "name": "count",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/02_variables_and_reassignment.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 7
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 6031901341052524453,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/02_variables_and_reassignment.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 3,
+            "line_end": 4,
+            "col_end": 7
+          }
+        },
+        {
+          "symbol_id": 6031901341052524453,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/02_variables_and_reassignment.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 11,
+            "line_end": 4,
+            "col_end": 15
+          }
+        },
+        {
+          "symbol_id": 6031901341052524453,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/02_variables_and_reassignment.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 6,
+            "line_end": 5,
+            "col_end": 10
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 1801194280884422833,
+          "function_name": "main",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/02_variables_and_reassignment.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "io"
+          ],
+          "effects_observed": [
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/03_comments_and_readability.yb": {
+      "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/03_comments_and_readability.yb",
+      "file_hash": "67cfd1dede10de127231f816fc9ffd9af1462073fa2c2bbfff3fa9fdcdc50ad1",
+      "symbols": [
+        {
+          "id": 10331293885882496386,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/03_comments_and_readability.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 5,
+            "line_end": 12,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 15141893064695983996,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/03_comments_and_readability.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 992576124679606340,
+          "name": "value",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/03_comments_and_readability.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 3,
+            "line_end": 5,
+            "col_end": 7
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 992576124679606340,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/03_comments_and_readability.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 6,
+            "line_end": 6,
+            "col_end": 10
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 10331293885882496386,
+          "function_name": "main",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/03_comments_and_readability.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "io"
+          ],
+          "effects_observed": [
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/04_functions_parameters_return.yb": {
+      "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/04_functions_parameters_return.yb",
+      "file_hash": "eae6e4f78e905c550e1a4d80825081ba7079e1b97480ebe8a416899967dfc1f5",
+      "symbols": [
+        {
+          "id": 53263120747538541,
+          "name": "add",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/04_functions_parameters_return.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 3,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 3887751624970022169,
+          "name": "a",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/04_functions_parameters_return.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 3,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 16880937830740497534,
+          "name": "b",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/04_functions_parameters_return.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 3,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 18296521115235434145,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/04_functions_parameters_return.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 5,
+            "line_end": 14,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 4869664029164195108,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/04_functions_parameters_return.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 3,
+            "line_end": 6,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 2397735612883434040,
+          "name": "total",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/04_functions_parameters_return.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 3,
+            "line_end": 7,
+            "col_end": 7
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 3887751624970022169,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/04_functions_parameters_return.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        },
+        {
+          "symbol_id": 16880937830740497534,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/04_functions_parameters_return.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 7,
+            "line_end": 2,
+            "col_end": 7
+          }
+        },
+        {
+          "symbol_id": 53263120747538541,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/04_functions_parameters_return.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 12,
+            "line_end": 7,
+            "col_end": 14
+          }
+        },
+        {
+          "symbol_id": 2397735612883434040,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/04_functions_parameters_return.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 6,
+            "line_end": 8,
+            "col_end": 10
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 53263120747538541,
+          "function_name": "add",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/04_functions_parameters_return.yb",
+          "signature_hash": "30a2a6e0a0d8102acbc3d2353f7fc177fffd970083bc8e8988530b190eed1ebe",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        },
+        {
+          "symbol_id": 18296521115235434145,
+          "function_name": "main",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/04_functions_parameters_return.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "io"
+          ],
+          "effects_observed": [
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/05_if_else.yb": {
+      "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/05_if_else.yb",
+      "file_hash": "5bf7415324a8442db2038ed3839e6aafa42292d2c2df53982e9b29ccdb617959",
+      "symbols": [
+        {
+          "id": 15774919372704452729,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/05_if_else.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 5,
+            "line_end": 10,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 8570830120421178533,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/05_if_else.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 9679493734697796618,
+          "name": "x",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/05_if_else.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 3
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 9679493734697796618,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/05_if_else.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 6,
+            "line_end": 4,
+            "col_end": 6
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 15774919372704452729,
+          "function_name": "main",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/05_if_else.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "io"
+          ],
+          "effects_observed": [
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/06_while_loop_counter.yb": {
+      "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/06_while_loop_counter.yb",
+      "file_hash": "2d8286d66e235be18f0290dd1b3329470efaa429231bd94ae01e5db7609ed943",
+      "symbols": [
+        {
+          "id": 1047392137679279506,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/06_while_loop_counter.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 5,
+            "line_end": 15,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 11208335734563490054,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/06_while_loop_counter.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 17301266141385069539,
+          "name": "i",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/06_while_loop_counter.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 2385572124831301261,
+          "name": "total",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/06_while_loop_counter.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 3,
+            "line_end": 4,
+            "col_end": 7
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 17301266141385069539,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/06_while_loop_counter.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 9,
+            "line_end": 5,
+            "col_end": 9
+          }
+        },
+        {
+          "symbol_id": 2385572124831301261,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/06_while_loop_counter.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 5,
+            "line_end": 6,
+            "col_end": 9
+          }
+        },
+        {
+          "symbol_id": 2385572124831301261,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/06_while_loop_counter.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 13,
+            "line_end": 6,
+            "col_end": 17
+          }
+        },
+        {
+          "symbol_id": 17301266141385069539,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/06_while_loop_counter.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 21,
+            "line_end": 6,
+            "col_end": 21
+          }
+        },
+        {
+          "symbol_id": 17301266141385069539,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/06_while_loop_counter.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 5,
+            "line_end": 7,
+            "col_end": 5
+          }
+        },
+        {
+          "symbol_id": 17301266141385069539,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/06_while_loop_counter.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 9,
+            "line_end": 7,
+            "col_end": 9
+          }
+        },
+        {
+          "symbol_id": 2385572124831301261,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/06_while_loop_counter.yb",
+          "span": {
+            "line_start": 9,
+            "col_start": 6,
+            "line_end": 9,
+            "col_end": 10
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 1047392137679279506,
+          "function_name": "main",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/06_while_loop_counter.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "io"
+          ],
+          "effects_observed": [
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/07_for_loop_over_list.yb": {
+      "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/07_for_loop_over_list.yb",
+      "file_hash": "8b6ea3d60d02fd21f9991e3bc990f639b173986070737d9527d5f0883fb0a884",
+      "symbols": [
+        {
+          "id": 12360702200185286061,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/07_for_loop_over_list.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 5,
+            "line_end": 15,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 13535235250572823658,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/07_for_loop_over_list.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 8890957090205226963,
+          "name": "alloc",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/07_for_loop_over_list.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 4137925329694526260,
+          "name": "values",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/07_for_loop_over_list.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 3,
+            "line_end": 4,
+            "col_end": 8
+          }
+        },
+        {
+          "id": 16925470873680189327,
+          "name": "sum",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/07_for_loop_over_list.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 3,
+            "line_end": 5,
+            "col_end": 5
+          }
+        },
+        {
+          "id": 4949371724298703424,
+          "name": "v",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/07_for_loop_over_list.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 3,
+            "line_end": 6,
+            "col_end": 5
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 4137925329694526260,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/07_for_loop_over_list.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 12,
+            "line_end": 6,
+            "col_end": 17
+          }
+        },
+        {
+          "symbol_id": 16925470873680189327,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/07_for_loop_over_list.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 5,
+            "line_end": 7,
+            "col_end": 7
+          }
+        },
+        {
+          "symbol_id": 16925470873680189327,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/07_for_loop_over_list.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 11,
+            "line_end": 7,
+            "col_end": 13
+          }
+        },
+        {
+          "symbol_id": 4949371724298703424,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/07_for_loop_over_list.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 17,
+            "line_end": 7,
+            "col_end": 17
+          }
+        },
+        {
+          "symbol_id": 16925470873680189327,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/07_for_loop_over_list.yb",
+          "span": {
+            "line_start": 9,
+            "col_start": 6,
+            "line_end": 9,
+            "col_end": 8
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 12360702200185286061,
+          "function_name": "main",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/07_for_loop_over_list.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "alloc",
+            "io"
+          ],
+          "effects_observed": [
+            "alloc",
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/08_break_continue_loop.yb": {
+      "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/08_break_continue_loop.yb",
+      "file_hash": "22b9ebfee89748380b0d55bddc3c04db7c5bcad2934e86d72dd9fb49fe5ceb33",
+      "symbols": [
+        {
+          "id": 5996050034661587858,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/08_break_continue_loop.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 5,
+            "line_end": 25,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 2718332266478618751,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/08_break_continue_loop.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 1315174380635676412,
+          "name": "i",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/08_break_continue_loop.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 3,
+            "line_end": 5,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 16112208390885004160,
+          "name": "total",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/08_break_continue_loop.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 3,
+            "line_end": 6,
+            "col_end": 7
+          }
+        },
+        {
+          "id": 10268943518429248962,
+          "name": "skip",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/08_break_continue_loop.yb",
+          "span": {
+            "line_start": 9,
+            "col_start": 5,
+            "line_end": 9,
+            "col_end": 8
+          }
+        },
+        {
+          "id": 846466123535055700,
+          "name": "stop",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/08_break_continue_loop.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 5,
+            "line_end": 10,
+            "col_end": 8
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 1315174380635676412,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/08_break_continue_loop.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 9,
+            "line_end": 7,
+            "col_end": 9
+          }
+        },
+        {
+          "symbol_id": 1315174380635676412,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/08_break_continue_loop.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 5,
+            "line_end": 8,
+            "col_end": 5
+          }
+        },
+        {
+          "symbol_id": 1315174380635676412,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/08_break_continue_loop.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 9,
+            "line_end": 8,
+            "col_end": 9
+          }
+        },
+        {
+          "symbol_id": 1315174380635676412,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/08_break_continue_loop.yb",
+          "span": {
+            "line_start": 9,
+            "col_start": 13,
+            "line_end": 9,
+            "col_end": 13
+          }
+        },
+        {
+          "symbol_id": 1315174380635676412,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/08_break_continue_loop.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 13,
+            "line_end": 10,
+            "col_end": 13
+          }
+        },
+        {
+          "symbol_id": 10268943518429248962,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/08_break_continue_loop.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 9,
+            "line_end": 11,
+            "col_end": 12
+          }
+        },
+        {
+          "symbol_id": 846466123535055700,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/08_break_continue_loop.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 11,
+            "line_end": 12,
+            "col_end": 14
+          }
+        },
+        {
+          "symbol_id": 16112208390885004160,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/08_break_continue_loop.yb",
+          "span": {
+            "line_start": 13,
+            "col_start": 9,
+            "line_end": 13,
+            "col_end": 13
+          }
+        },
+        {
+          "symbol_id": 16112208390885004160,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/08_break_continue_loop.yb",
+          "span": {
+            "line_start": 13,
+            "col_start": 17,
+            "line_end": 13,
+            "col_end": 21
+          }
+        },
+        {
+          "symbol_id": 1315174380635676412,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/08_break_continue_loop.yb",
+          "span": {
+            "line_start": 13,
+            "col_start": 25,
+            "line_end": 13,
+            "col_end": 25
+          }
+        },
+        {
+          "symbol_id": 1315174380635676412,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/08_break_continue_loop.yb",
+          "span": {
+            "line_start": 15,
+            "col_start": 9,
+            "line_end": 15,
+            "col_end": 9
+          }
+        },
+        {
+          "symbol_id": 16112208390885004160,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/08_break_continue_loop.yb",
+          "span": {
+            "line_start": 19,
+            "col_start": 6,
+            "line_end": 19,
+            "col_end": 10
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 5996050034661587858,
+          "function_name": "main",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/01_basics/08_break_continue_loop.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "io"
+          ],
+          "effects_observed": [
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
     "/home/azskdev/workspace/VibeStack/vibelang/examples/01_basics/01_hello_world.yb": {
       "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/01_basics/01_hello_world.yb",
       "file_hash": "66099f9294d96930f6d7aaf11183df5ea4596b3d4f2ed0b515c619b7ae6b450f",

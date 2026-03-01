@@ -1,0 +1,15 @@
+pub main() -> Int {
+  @effect io
+  @effect nondet
+  key := "VIBE_EXAMPLE_NOT_SET"
+  if env.get(key) == "" {
+    println("env-get-empty")
+  }
+  if !env.has(key) {
+    println("env-has-false")
+  }
+  println(env.get_required(key))
+  println(json.stringify_i64(cli.args_len()))
+  println(cli.arg(0))
+  0
+}

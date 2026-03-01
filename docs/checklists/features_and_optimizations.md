@@ -228,6 +228,7 @@ without rewriting core functionality in another language.
 - **Evidence**:
   - Runtime + lowering: `runtime/native/vibe_runtime.c`, `crates/vibe_codegen/src/lib.rs`, `crates/vibe_types/src/lib.rs`
   - Conformance: `crates/vibe_cli/tests/phase12_stdlib.rs`
+  - Example: `examples/07_stdlib_io_json_regex_http/47_json_parse_stringify_and_codecs.yb`
 - **Why**: production apps need to consume/emit JSON payloads (configs, HTTP APIs, logs) without
   bespoke parsers.
 - **Delivery status**: preview implementation shipped as canonicalized string APIs:
@@ -256,6 +257,7 @@ without rewriting core functionality in another language.
   - Canonical generated entrypoints: `json.encode_<Type>` / `json.decode_<Type>(raw, fallback)`
   - Runtime + lowering + typing: `runtime/native/vibe_runtime.c`, `crates/vibe_codegen/src/lib.rs`, `crates/vibe_types/src/lib.rs`
   - Example coverage: `compiler/tests/fixtures/stdlib/json/basic.yb`, `crates/vibe_cli/tests/phase12_stdlib.rs`
+  - Example: `examples/07_stdlib_io_json_regex_http/47_json_parse_stringify_and_codecs.yb`
 - **Why**: production APIs should not be written as ad-hoc `Map<Str, ...>` plumbing; they need
   safe, typed request/response models.
 - **Dependencies**: `C-01`/`C-01a` nominal types (done); canonical approach selected:
@@ -282,6 +284,7 @@ without rewriting core functionality in another language.
 - **Evidence**:
   - Runtime + lowering + typing: `runtime/native/vibe_runtime.c`, `crates/vibe_codegen/src/lib.rs`, `crates/vibe_types/src/lib.rs`
   - Deterministic local-server tests: `crates/vibe_cli/tests/phase12_stdlib.rs`
+  - Example: `examples/07_stdlib_io_json_regex_http/48_http_sync_client_unreachable_smoke.yb`
 - **Delivery status**: shipped with sync request helpers and explicit `net` effect;
   structured request/response object types are deferred.
 - **Spec hooks**:
@@ -308,6 +311,7 @@ without rewriting core functionality in another language.
   - Runtime + lowering + typing: `runtime/native/vibe_runtime.c`, `crates/vibe_codegen/src/lib.rs`, `crates/vibe_types/src/lib.rs`
   - Conformance: `crates/vibe_cli/tests/phase12_stdlib.rs`
   - Module docs (TLS plan documented): `stdlib/net/README.md`
+  - Example: `examples/07_stdlib_io_json_regex_http/49_net_listen_and_resolve_smoke.yb`
 - **Spec hooks**:
   - `docs/spec/async_await_and_threads.md` and `docs/spec/concurrency_and_scheduling.md`
   - `docs/spec/unsafe_escape_hatches.md` (if raw sockets need unsafe paths)
@@ -343,6 +347,7 @@ without rewriting core functionality in another language.
   - Canonical preview APIs shipped under `convert.*`: `to_int/parse_i64/to_float/parse_f64/to_str/to_str_f64`
   - Runtime + lowering + typing: `runtime/native/vibe_runtime.c`, `crates/vibe_codegen/src/lib.rs`, `crates/vibe_types/src/lib.rs`
   - Fixtures/tests: `compiler/tests/fixtures/stdlib/convert/basic.yb`, `crates/vibe_cli/tests/phase12_stdlib.rs`
+  - Example: `examples/07_stdlib_io_json_regex_http/50_convert_parsing_and_formatting.yb`
 - **Delivery status**: shipped in preview with deterministic formatting and sentinel parse failures;
   Result-based parse/cast promotion is tracked as follow-up hardening.
 
@@ -360,6 +365,7 @@ without rewriting core functionality in another language.
   - APIs: `text.trim/contains/starts_with/ends_with/replace/to_lower/to_upper/byte_len/split_part`
   - Runtime + lowering + typing: `runtime/native/vibe_runtime.c`, `crates/vibe_codegen/src/lib.rs`, `crates/vibe_types/src/lib.rs`
   - Docs + fixtures: `stdlib/text/README.md`, `compiler/tests/fixtures/stdlib/text/basic.yb`
+  - Example: `examples/07_stdlib_io_json_regex_http/51_text_utilities_daily_ops.yb`
 
 ### F-07 (P1) Bytes/encoding utilities (hex/base64/urlencode) for APIs
 - [x] Add byte/encoding helpers needed for web/service integrations.
@@ -376,6 +382,7 @@ without rewriting core functionality in another language.
   - APIs: `encoding.hex_encode/hex_decode/base64_encode/base64_decode/url_encode/url_decode`
   - Runtime + lowering + typing: `runtime/native/vibe_runtime.c`, `crates/vibe_codegen/src/lib.rs`, `crates/vibe_types/src/lib.rs`
   - Fixtures/tests: `compiler/tests/fixtures/stdlib/encoding/basic.yb`, `crates/vibe_cli/tests/phase12_stdlib.rs`
+  - Example: `examples/07_stdlib_io_json_regex_http/52_encoding_roundtrip_basics.yb`
 - **Delivery status**: shipped in preview; decode errors currently follow sentinel-return behavior.
 
 ### F-08 (P1) Time for production: monotonic clock + parsing/formatting policy
@@ -391,6 +398,7 @@ without rewriting core functionality in another language.
   - API: `time.monotonic_now_ms()`
   - Runtime + lowering + typing: `runtime/native/vibe_runtime.c`, `crates/vibe_codegen/src/lib.rs`, `crates/vibe_types/src/lib.rs`
   - Docs/test coverage: `stdlib/time/README.md`, `crates/vibe_cli/tests/phase12_stdlib.rs`
+  - Example: `examples/07_stdlib_io_json_regex_http/53_time_monotonic_smoke.yb`
 
 ### F-09 (P1) Logging/telemetry primitives with explicit effects
 - [x] Provide a small, stable logging surface (and hooks for structured telemetry).
@@ -406,6 +414,7 @@ without rewriting core functionality in another language.
   - APIs: `log.info/warn/error`
   - Runtime + lowering + typing: `runtime/native/vibe_runtime.c`, `crates/vibe_codegen/src/lib.rs`, `crates/vibe_types/src/lib.rs`
   - Fixtures: `compiler/tests/fixtures/stdlib/log/basic.yb`
+  - Example: `examples/07_stdlib_io_json_regex_http/54_log_primitives_smoke.yb`
 
 ### F-10 (P1) Env/config/CLI args surface (robust apps without bespoke glue)
 - [x] Provide standard APIs for environment variables, argv parsing, and exit codes.
@@ -421,6 +430,7 @@ without rewriting core functionality in another language.
   - APIs: `env.get/has/get_required`, `cli.args_len/arg`
   - Runtime + lowering + typing: `runtime/native/vibe_runtime.c`, `crates/vibe_codegen/src/lib.rs`, `crates/vibe_types/src/lib.rs`
   - Docs + fixtures: `stdlib/env/README.md`, `stdlib/cli/README.md`, `compiler/tests/fixtures/stdlib/env_cli/basic.yb`
+  - Example: `examples/07_stdlib_io_json_regex_http/55_env_cli_surface_smoke.yb`
 
 ---
 

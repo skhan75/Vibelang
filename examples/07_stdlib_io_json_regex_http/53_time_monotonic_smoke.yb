@@ -1,0 +1,13 @@
+pub main() -> Int {
+  @effect io
+  @effect nondet
+  a := time.monotonic_now_ms()
+  b := time.monotonic_now_ms()
+  if b >= a {
+    println("mono-ok")
+  } else {
+    println("mono-bad")
+  }
+  println(json.stringify_i64(time.duration_ms(5)))
+  0
+}

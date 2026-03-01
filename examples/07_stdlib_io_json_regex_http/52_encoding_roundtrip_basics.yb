@@ -1,0 +1,10 @@
+pub main() -> Int {
+  @effect io
+  println(encoding.hex_encode("A"))
+  println(encoding.hex_decode("4142"))
+  println(encoding.base64_encode("hi"))
+  println(encoding.base64_decode("aGk="))
+  println(encoding.url_encode("a b"))
+  println(encoding.url_decode("a%20b"))
+  0
+}

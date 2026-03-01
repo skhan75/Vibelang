@@ -1,0 +1,13 @@
+pub main() -> Int {
+  @effect io
+  println(text.trim("  x  "))
+  if text.contains("abc", "b") {
+    println("contains")
+  }
+  println(text.replace("a-b-c", "-", "+"))
+  println(text.to_lower("HELLO"))
+  println(text.to_upper("hello"))
+  println(json.stringify_i64(text.byte_len("abc")))
+  println(text.split_part("a,b,c", ",", 2))
+  0
+}

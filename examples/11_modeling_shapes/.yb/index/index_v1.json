@@ -1,6 +1,1711 @@
 {
   "schema_version": 1,
   "files": {
+    "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/71_shape_with_map_record.yb": {
+      "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/71_shape_with_map_record.yb",
+      "file_hash": "39b81f22e66ed704dfe45fc1a5e3a8463ed174ac3c68588f216bbe4f2e7999ae",
+      "symbols": [
+        {
+          "id": 7790048465760323663,
+          "name": "make_point",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/71_shape_with_map_record.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 5,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 7394892461330232477,
+          "name": "x",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/71_shape_with_map_record.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 5,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 10861636502771591912,
+          "name": "y",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/71_shape_with_map_record.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 5,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 5174148126116840069,
+          "name": "create a point-like shape using a map record",
+          "kind": "Contract",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/71_shape_with_map_record.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 11,
+            "line_end": 2,
+            "col_end": 56
+          }
+        },
+        {
+          "id": 350759624282865657,
+          "name": "alloc",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/71_shape_with_map_record.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 17165929172781753596,
+          "name": "translate_x",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/71_shape_with_map_record.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 1,
+            "line_end": 14,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 7119633687853189599,
+          "name": "dx",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/71_shape_with_map_record.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 1,
+            "line_end": 14,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 9993297415559367572,
+          "name": "point",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/71_shape_with_map_record.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 1,
+            "line_end": 14,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 17781236964446165999,
+          "name": "move the point on x-axis while preserving y",
+          "kind": "Contract",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/71_shape_with_map_record.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 11,
+            "line_end": 8,
+            "col_end": 55
+          }
+        },
+        {
+          "id": 5697489494252570435,
+          "name": "alloc",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/71_shape_with_map_record.yb",
+          "span": {
+            "line_start": 9,
+            "col_start": 3,
+            "line_end": 9,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 15053964754852569175,
+          "name": "mut_state",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/71_shape_with_map_record.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 3,
+            "line_end": 10,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 13421602572353488476,
+          "name": "moved",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/71_shape_with_map_record.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 3,
+            "line_end": 11,
+            "col_end": 7
+          }
+        },
+        {
+          "id": 6401167972631260149,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/71_shape_with_map_record.yb",
+          "span": {
+            "line_start": 16,
+            "col_start": 5,
+            "line_end": 32,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 10285683491128162085,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/71_shape_with_map_record.yb",
+          "span": {
+            "line_start": 17,
+            "col_start": 3,
+            "line_end": 17,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 15411860765009657127,
+          "name": "alloc",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/71_shape_with_map_record.yb",
+          "span": {
+            "line_start": 18,
+            "col_start": 3,
+            "line_end": 18,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 16838911604412838056,
+          "name": "mut_state",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/71_shape_with_map_record.yb",
+          "span": {
+            "line_start": 19,
+            "col_start": 3,
+            "line_end": 19,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 17357305862427557583,
+          "name": "point",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/71_shape_with_map_record.yb",
+          "span": {
+            "line_start": 20,
+            "col_start": 3,
+            "line_end": 20,
+            "col_end": 7
+          }
+        },
+        {
+          "id": 12190671847059951969,
+          "name": "shifted",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/71_shape_with_map_record.yb",
+          "span": {
+            "line_start": 21,
+            "col_start": 3,
+            "line_end": 21,
+            "col_end": 9
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 7394892461330232477,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/71_shape_with_map_record.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 9,
+            "line_end": 4,
+            "col_end": 9
+          }
+        },
+        {
+          "symbol_id": 10861636502771591912,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/71_shape_with_map_record.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 17,
+            "line_end": 4,
+            "col_end": 17
+          }
+        },
+        {
+          "symbol_id": 9993297415559367572,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/71_shape_with_map_record.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 18,
+            "line_end": 11,
+            "col_end": 22
+          }
+        },
+        {
+          "symbol_id": 9993297415559367572,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/71_shape_with_map_record.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 39,
+            "line_end": 11,
+            "col_end": 43
+          }
+        },
+        {
+          "symbol_id": 13421602572353488476,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/71_shape_with_map_record.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 3,
+            "line_end": 12,
+            "col_end": 7
+          }
+        },
+        {
+          "symbol_id": 13421602572353488476,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/71_shape_with_map_record.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 18,
+            "line_end": 12,
+            "col_end": 22
+          }
+        },
+        {
+          "symbol_id": 7119633687853189599,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/71_shape_with_map_record.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 35,
+            "line_end": 12,
+            "col_end": 36
+          }
+        },
+        {
+          "symbol_id": 13421602572353488476,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/71_shape_with_map_record.yb",
+          "span": {
+            "line_start": 13,
+            "col_start": 3,
+            "line_end": 13,
+            "col_end": 7
+          }
+        },
+        {
+          "symbol_id": 7790048465760323663,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/71_shape_with_map_record.yb",
+          "span": {
+            "line_start": 20,
+            "col_start": 12,
+            "line_end": 20,
+            "col_end": 21
+          }
+        },
+        {
+          "symbol_id": 17165929172781753596,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/71_shape_with_map_record.yb",
+          "span": {
+            "line_start": 21,
+            "col_start": 14,
+            "line_end": 21,
+            "col_end": 24
+          }
+        },
+        {
+          "symbol_id": 17357305862427557583,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/71_shape_with_map_record.yb",
+          "span": {
+            "line_start": 21,
+            "col_start": 26,
+            "line_end": 21,
+            "col_end": 30
+          }
+        },
+        {
+          "symbol_id": 12190671847059951969,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/71_shape_with_map_record.yb",
+          "span": {
+            "line_start": 22,
+            "col_start": 6,
+            "line_end": 22,
+            "col_end": 12
+          }
+        },
+        {
+          "symbol_id": 12190671847059951969,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/71_shape_with_map_record.yb",
+          "span": {
+            "line_start": 23,
+            "col_start": 8,
+            "line_end": 23,
+            "col_end": 14
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 6401167972631260149,
+          "function_name": "main",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/71_shape_with_map_record.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "alloc",
+            "io",
+            "mut_state"
+          ],
+          "effects_observed": [
+            "alloc",
+            "io",
+            "mut_state"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        },
+        {
+          "symbol_id": 7790048465760323663,
+          "function_name": "make_point",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/71_shape_with_map_record.yb",
+          "signature_hash": "2bf9d19b1120bff11ae413db0e942e0f87fcc264a6ea20e2a535d90b7e01c4f7",
+          "effects_declared": [
+            "alloc"
+          ],
+          "effects_observed": [
+            "alloc"
+          ],
+          "intent_text": "create a point-like shape using a map record",
+          "has_examples": false,
+          "is_public": false
+        },
+        {
+          "symbol_id": 17165929172781753596,
+          "function_name": "translate_x",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/71_shape_with_map_record.yb",
+          "signature_hash": "5997f318d378ccdae72adc86329849dc6ce4efb75c97bff0c5b4203011d3c8f5",
+          "effects_declared": [
+            "alloc",
+            "mut_state"
+          ],
+          "effects_observed": [
+            "alloc",
+            "mut_state"
+          ],
+          "intent_text": "move the point on x-axis while preserving y",
+          "has_examples": false,
+          "is_public": false
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/72_shape_contracts_and_validation.yb": {
+      "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/72_shape_contracts_and_validation.yb",
+      "file_hash": "67599242a3cf5d21889fa42b806da268d14bab8554fc6b88aa6ae01a2e04aa38",
+      "symbols": [
+        {
+          "id": 14085076414394608619,
+          "name": "rectangle_area",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/72_shape_contracts_and_validation.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 11,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 4202397734822832073,
+          "name": "height",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/72_shape_contracts_and_validation.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 11,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 3870638726703996415,
+          "name": "width",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/72_shape_contracts_and_validation.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 11,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 13316800703578369028,
+          "name": "compute area for a valid rectangle shape",
+          "kind": "Contract",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/72_shape_contracts_and_validation.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 11,
+            "line_end": 2,
+            "col_end": 52
+          }
+        },
+        {
+          "id": 13069608239497570772,
+          "name": "@examples",
+          "kind": "Contract",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/72_shape_contracts_and_validation.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 17959325053119380870,
+          "name": "@contract",
+          "kind": "Contract",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/72_shape_contracts_and_validation.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 3,
+            "line_end": 7,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 12553837692333522611,
+          "name": "@contract",
+          "kind": "Contract",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/72_shape_contracts_and_validation.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 3,
+            "line_end": 8,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 4382267600360803858,
+          "name": "@contract",
+          "kind": "Contract",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/72_shape_contracts_and_validation.yb",
+          "span": {
+            "line_start": 9,
+            "col_start": 3,
+            "line_end": 9,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 11037642891740224782,
+          "name": "make_rectangle",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/72_shape_contracts_and_validation.yb",
+          "span": {
+            "line_start": 13,
+            "col_start": 1,
+            "line_end": 17,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 15850919463381882962,
+          "name": "height",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/72_shape_contracts_and_validation.yb",
+          "span": {
+            "line_start": 13,
+            "col_start": 1,
+            "line_end": 17,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 2576753756990671358,
+          "name": "width",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/72_shape_contracts_and_validation.yb",
+          "span": {
+            "line_start": 13,
+            "col_start": 1,
+            "line_end": 17,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 13776715643664444479,
+          "name": "create a rectangle-like shape record",
+          "kind": "Contract",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/72_shape_contracts_and_validation.yb",
+          "span": {
+            "line_start": 14,
+            "col_start": 11,
+            "line_end": 14,
+            "col_end": 48
+          }
+        },
+        {
+          "id": 11467465383696372188,
+          "name": "alloc",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/72_shape_contracts_and_validation.yb",
+          "span": {
+            "line_start": 15,
+            "col_start": 3,
+            "line_end": 15,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 4917691222668357300,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/72_shape_contracts_and_validation.yb",
+          "span": {
+            "line_start": 19,
+            "col_start": 5,
+            "line_end": 30,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 15425166493812718854,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/72_shape_contracts_and_validation.yb",
+          "span": {
+            "line_start": 20,
+            "col_start": 3,
+            "line_end": 20,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 12091180488626412402,
+          "name": "alloc",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/72_shape_contracts_and_validation.yb",
+          "span": {
+            "line_start": 21,
+            "col_start": 3,
+            "line_end": 21,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 14350551248646160890,
+          "name": "rect",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/72_shape_contracts_and_validation.yb",
+          "span": {
+            "line_start": 22,
+            "col_start": 3,
+            "line_end": 22,
+            "col_end": 6
+          }
+        },
+        {
+          "id": 5605296902499248947,
+          "name": "area",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/72_shape_contracts_and_validation.yb",
+          "span": {
+            "line_start": 23,
+            "col_start": 3,
+            "line_end": 23,
+            "col_end": 6
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 14085076414394608619,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/72_shape_contracts_and_validation.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 5,
+            "line_end": 4,
+            "col_end": 18
+          }
+        },
+        {
+          "symbol_id": 14085076414394608619,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/72_shape_contracts_and_validation.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 5,
+            "line_end": 5,
+            "col_end": 18
+          }
+        },
+        {
+          "symbol_id": 3870638726703996415,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/72_shape_contracts_and_validation.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 12,
+            "line_end": 7,
+            "col_end": 16
+          }
+        },
+        {
+          "symbol_id": 4202397734822832073,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/72_shape_contracts_and_validation.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 12,
+            "line_end": 8,
+            "col_end": 17
+          }
+        },
+        {
+          "symbol_id": 3870638726703996415,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/72_shape_contracts_and_validation.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 3,
+            "line_end": 10,
+            "col_end": 7
+          }
+        },
+        {
+          "symbol_id": 4202397734822832073,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/72_shape_contracts_and_validation.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 11,
+            "line_end": 10,
+            "col_end": 16
+          }
+        },
+        {
+          "symbol_id": 2576753756990671358,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/72_shape_contracts_and_validation.yb",
+          "span": {
+            "line_start": 16,
+            "col_start": 9,
+            "line_end": 16,
+            "col_end": 13
+          }
+        },
+        {
+          "symbol_id": 15850919463381882962,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/72_shape_contracts_and_validation.yb",
+          "span": {
+            "line_start": 16,
+            "col_start": 21,
+            "line_end": 16,
+            "col_end": 26
+          }
+        },
+        {
+          "symbol_id": 11037642891740224782,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/72_shape_contracts_and_validation.yb",
+          "span": {
+            "line_start": 22,
+            "col_start": 11,
+            "line_end": 22,
+            "col_end": 24
+          }
+        },
+        {
+          "symbol_id": 14085076414394608619,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/72_shape_contracts_and_validation.yb",
+          "span": {
+            "line_start": 23,
+            "col_start": 11,
+            "line_end": 23,
+            "col_end": 24
+          }
+        },
+        {
+          "symbol_id": 14350551248646160890,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/72_shape_contracts_and_validation.yb",
+          "span": {
+            "line_start": 23,
+            "col_start": 26,
+            "line_end": 23,
+            "col_end": 29
+          }
+        },
+        {
+          "symbol_id": 14350551248646160890,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/72_shape_contracts_and_validation.yb",
+          "span": {
+            "line_start": 23,
+            "col_start": 41,
+            "line_end": 23,
+            "col_end": 44
+          }
+        },
+        {
+          "symbol_id": 5605296902499248947,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/72_shape_contracts_and_validation.yb",
+          "span": {
+            "line_start": 24,
+            "col_start": 6,
+            "line_end": 24,
+            "col_end": 9
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 4917691222668357300,
+          "function_name": "main",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/72_shape_contracts_and_validation.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "alloc",
+            "io"
+          ],
+          "effects_observed": [
+            "alloc",
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        },
+        {
+          "symbol_id": 11037642891740224782,
+          "function_name": "make_rectangle",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/72_shape_contracts_and_validation.yb",
+          "signature_hash": "f4ae9e9a3d8816a6d6fbe4f56c0a305f52d0aa3cd1ea66395a131605cc85ab9f",
+          "effects_declared": [
+            "alloc"
+          ],
+          "effects_observed": [
+            "alloc"
+          ],
+          "intent_text": "create a rectangle-like shape record",
+          "has_examples": false,
+          "is_public": false
+        },
+        {
+          "symbol_id": 14085076414394608619,
+          "function_name": "rectangle_area",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/72_shape_contracts_and_validation.yb",
+          "signature_hash": "5a50f2a5d739011687e1aab453caec73d8a68eb0dbddb33b202d8f9b14df8f5a",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": "compute area for a valid rectangle shape",
+          "has_examples": true,
+          "is_public": false
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb": {
+      "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+      "file_hash": "d731659952c05789d627584fdf6dbcf729154da377b60f5aae9e564cccdbd9fc",
+      "symbols": [
+        {
+          "id": 11629306394600271163,
+          "name": "base_score",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 3,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 2914901952105995301,
+          "name": "raw",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 3,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 13794603279741156021,
+          "name": "apply_premium_bonus",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 1,
+            "line_end": 10,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 14232265954291057344,
+          "name": "is_premium",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 1,
+            "line_end": 10,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 6296912620805950757,
+          "name": "score",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 1,
+            "line_end": 10,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 5915492537955293502,
+          "name": "apply_risk_penalty",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 1,
+            "line_end": 17,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 7699518360984906170,
+          "name": "risk_level",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 1,
+            "line_end": 17,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 1956254249283876687,
+          "name": "score",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 1,
+            "line_end": 17,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 10648666974302324982,
+          "name": "final_score",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "span": {
+            "line_start": 19,
+            "col_start": 1,
+            "line_end": 28,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 2245897481723492457,
+          "name": "is_premium",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "span": {
+            "line_start": 19,
+            "col_start": 1,
+            "line_end": 28,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 12317982452734914704,
+          "name": "raw",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "span": {
+            "line_start": 19,
+            "col_start": 1,
+            "line_end": 28,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 2111446653820955291,
+          "name": "risk_level",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "span": {
+            "line_start": 19,
+            "col_start": 1,
+            "line_end": 28,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 532103021287209443,
+          "name": "demonstrate composition-based behavior instead of inheritance",
+          "kind": "Contract",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "span": {
+            "line_start": 20,
+            "col_start": 11,
+            "line_end": 20,
+            "col_end": 73
+          }
+        },
+        {
+          "id": 16377628680367575489,
+          "name": "@examples",
+          "kind": "Contract",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "span": {
+            "line_start": 21,
+            "col_start": 3,
+            "line_end": 21,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 12087296832301138672,
+          "name": "base",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "span": {
+            "line_start": 25,
+            "col_start": 3,
+            "line_end": 25,
+            "col_end": 6
+          }
+        },
+        {
+          "id": 4166719906730140188,
+          "name": "boosted",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "span": {
+            "line_start": 26,
+            "col_start": 3,
+            "line_end": 26,
+            "col_end": 9
+          }
+        },
+        {
+          "id": 5614321519151212497,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "span": {
+            "line_start": 30,
+            "col_start": 5,
+            "line_end": 44,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 10058687850535205328,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "span": {
+            "line_start": 31,
+            "col_start": 3,
+            "line_end": 31,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 15227485356658923422,
+          "name": "a",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "span": {
+            "line_start": 32,
+            "col_start": 3,
+            "line_end": 32,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 8652192266541786987,
+          "name": "b",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "span": {
+            "line_start": 33,
+            "col_start": 3,
+            "line_end": 33,
+            "col_end": 3
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 2914901952105995301,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 5
+          }
+        },
+        {
+          "symbol_id": 14232265954291057344,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 6,
+            "line_end": 6,
+            "col_end": 15
+          }
+        },
+        {
+          "symbol_id": 6296912620805950757,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 12,
+            "line_end": 7,
+            "col_end": 16
+          }
+        },
+        {
+          "symbol_id": 6296912620805950757,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "span": {
+            "line_start": 9,
+            "col_start": 3,
+            "line_end": 9,
+            "col_end": 7
+          }
+        },
+        {
+          "symbol_id": 7699518360984906170,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "span": {
+            "line_start": 13,
+            "col_start": 6,
+            "line_end": 13,
+            "col_end": 15
+          }
+        },
+        {
+          "symbol_id": 1956254249283876687,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "span": {
+            "line_start": 14,
+            "col_start": 12,
+            "line_end": 14,
+            "col_end": 16
+          }
+        },
+        {
+          "symbol_id": 1956254249283876687,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "span": {
+            "line_start": 16,
+            "col_start": 3,
+            "line_end": 16,
+            "col_end": 7
+          }
+        },
+        {
+          "symbol_id": 10648666974302324982,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "span": {
+            "line_start": 22,
+            "col_start": 5,
+            "line_end": 22,
+            "col_end": 15
+          }
+        },
+        {
+          "symbol_id": 10648666974302324982,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "span": {
+            "line_start": 23,
+            "col_start": 5,
+            "line_end": 23,
+            "col_end": 15
+          }
+        },
+        {
+          "symbol_id": 11629306394600271163,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "span": {
+            "line_start": 25,
+            "col_start": 11,
+            "line_end": 25,
+            "col_end": 20
+          }
+        },
+        {
+          "symbol_id": 12317982452734914704,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "span": {
+            "line_start": 25,
+            "col_start": 22,
+            "line_end": 25,
+            "col_end": 24
+          }
+        },
+        {
+          "symbol_id": 13794603279741156021,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "span": {
+            "line_start": 26,
+            "col_start": 14,
+            "line_end": 26,
+            "col_end": 32
+          }
+        },
+        {
+          "symbol_id": 12087296832301138672,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "span": {
+            "line_start": 26,
+            "col_start": 34,
+            "line_end": 26,
+            "col_end": 37
+          }
+        },
+        {
+          "symbol_id": 2245897481723492457,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "span": {
+            "line_start": 26,
+            "col_start": 40,
+            "line_end": 26,
+            "col_end": 49
+          }
+        },
+        {
+          "symbol_id": 5915492537955293502,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "span": {
+            "line_start": 27,
+            "col_start": 3,
+            "line_end": 27,
+            "col_end": 20
+          }
+        },
+        {
+          "symbol_id": 4166719906730140188,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "span": {
+            "line_start": 27,
+            "col_start": 22,
+            "line_end": 27,
+            "col_end": 28
+          }
+        },
+        {
+          "symbol_id": 2111446653820955291,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "span": {
+            "line_start": 27,
+            "col_start": 31,
+            "line_end": 27,
+            "col_end": 40
+          }
+        },
+        {
+          "symbol_id": 10648666974302324982,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "span": {
+            "line_start": 32,
+            "col_start": 8,
+            "line_end": 32,
+            "col_end": 18
+          }
+        },
+        {
+          "symbol_id": 10648666974302324982,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "span": {
+            "line_start": 33,
+            "col_start": 8,
+            "line_end": 33,
+            "col_end": 18
+          }
+        },
+        {
+          "symbol_id": 15227485356658923422,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "span": {
+            "line_start": 34,
+            "col_start": 6,
+            "line_end": 34,
+            "col_end": 6
+          }
+        },
+        {
+          "symbol_id": 8652192266541786987,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "span": {
+            "line_start": 35,
+            "col_start": 8,
+            "line_end": 35,
+            "col_end": 8
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 13794603279741156021,
+          "function_name": "apply_premium_bonus",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "signature_hash": "162f8da12dd630627ed0f9f91c1d24dda19a9a3cdd1f32da607845b6f5f4d5af",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        },
+        {
+          "symbol_id": 5915492537955293502,
+          "function_name": "apply_risk_penalty",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "signature_hash": "f4a6b5d9cdf0a5d0c2543f34be34508c51315d8084e6f1b23b386f3d6417cf4d",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        },
+        {
+          "symbol_id": 11629306394600271163,
+          "function_name": "base_score",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "signature_hash": "74f5db79440b2f2917c6bfef201ec449701cb16f9edaabf458e0ec8d1f7783bb",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        },
+        {
+          "symbol_id": 10648666974302324982,
+          "function_name": "final_score",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "signature_hash": "59e05b3a32c1fb62f723496c0656da33514a374996a86a733f36f1dc9ab6105b",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": "demonstrate composition-based behavior instead of inheritance",
+          "has_examples": true,
+          "is_public": false
+        },
+        {
+          "symbol_id": 5614321519151212497,
+          "function_name": "main",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/73_composition_over_inheritance.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "io"
+          ],
+          "effects_observed": [
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/74_type_point_basics.yb": {
+      "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/74_type_point_basics.yb",
+      "file_hash": "c74e389fc7067ecf8b2c6e90e5994b5cf1947a6b4904870307e6a24db8778c9f",
+      "symbols": [
+        {
+          "id": 10408310166691896571,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/74_type_point_basics.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 5,
+            "line_end": 17,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 4380595374124325410,
+          "name": "alloc",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/74_type_point_basics.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 3,
+            "line_end": 7,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 11099018577814766202,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/74_type_point_basics.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 3,
+            "line_end": 8,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 16959479144981191372,
+          "name": "p",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/74_type_point_basics.yb",
+          "span": {
+            "line_start": 9,
+            "col_start": 3,
+            "line_end": 9,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 1267529747308762772,
+          "name": "sum",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/74_type_point_basics.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 3,
+            "line_end": 10,
+            "col_end": 5
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 16959479144981191372,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/74_type_point_basics.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 10,
+            "line_end": 10,
+            "col_end": 10
+          }
+        },
+        {
+          "symbol_id": 16959479144981191372,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/74_type_point_basics.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 16,
+            "line_end": 10,
+            "col_end": 16
+          }
+        },
+        {
+          "symbol_id": 1267529747308762772,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/74_type_point_basics.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 6,
+            "line_end": 11,
+            "col_end": 8
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 10408310166691896571,
+          "function_name": "main",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/74_type_point_basics.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "alloc",
+            "io"
+          ],
+          "effects_observed": [
+            "alloc",
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/75_enum_match_basics.yb": {
+      "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/75_enum_match_basics.yb",
+      "file_hash": "ecdae5bcf92a198d075650e71ac50486e66b63e5d4f2ef920a532dcd6abefa33",
+      "symbols": [
+        {
+          "id": 12400575956965044341,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/75_enum_match_basics.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 5,
+            "line_end": 16,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 17559217684993866488,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/75_enum_match_basics.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 3,
+            "line_end": 8,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 3441593480310545454,
+          "name": "c",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/75_enum_match_basics.yb",
+          "span": {
+            "line_start": 9,
+            "col_start": 3,
+            "line_end": 9,
+            "col_end": 3
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 3441593480310545454,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/75_enum_match_basics.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 9,
+            "line_end": 10,
+            "col_end": 9
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 12400575956965044341,
+          "function_name": "main",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/75_enum_match_basics.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "io"
+          ],
+          "effects_observed": [],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [
+        {
+          "function_name": "main",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/75_enum_match_basics.yb",
+          "declared_only": [
+            "io"
+          ],
+          "observed_only": []
+        }
+      ],
+      "diagnostics": [
+        {
+          "code": "E3003",
+          "severity": "Info",
+          "message": "declared effect `io` was not observed",
+          "span": {
+            "line_start": 7,
+            "col_start": 5,
+            "line_end": 16,
+            "col_end": 1
+          }
+        }
+      ],
+      "dependencies": [
+        "Color"
+      ]
+    },
+    "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/76_type_mixed_fields.yb": {
+      "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/76_type_mixed_fields.yb",
+      "file_hash": "eaa88d5aa7ca537557613306d76423c1759c79faecd70746e2e3396c504686dd",
+      "symbols": [
+        {
+          "id": 14488335448737476221,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/76_type_mixed_fields.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 5,
+            "line_end": 17,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 4097037140521924553,
+          "name": "alloc",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/76_type_mixed_fields.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 3,
+            "line_end": 8,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 14247385313247812551,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/76_type_mixed_fields.yb",
+          "span": {
+            "line_start": 9,
+            "col_start": 3,
+            "line_end": 9,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 10113798563060223231,
+          "name": "p",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/76_type_mixed_fields.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 3,
+            "line_end": 10,
+            "col_end": 3
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 10113798563060223231,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/76_type_mixed_fields.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 6,
+            "line_end": 11,
+            "col_end": 6
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 14488335448737476221,
+          "function_name": "main",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/11_modeling_shapes/76_type_mixed_fields.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "alloc",
+            "io"
+          ],
+          "effects_observed": [
+            "alloc",
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
     "/home/azskdev/workspace/VibeStack/vibelang/examples/11_modeling_shapes/71_shape_with_map_record.yb": {
       "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/11_modeling_shapes/71_shape_with_map_record.yb",
       "file_hash": "39b81f22e66ed704dfe45fc1a5e3a8463ed174ac3c68588f216bbe4f2e7999ae",

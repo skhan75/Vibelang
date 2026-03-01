@@ -1,6 +1,2110 @@
 {
   "schema_version": 1,
   "files": {
+    "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/37_go_channel_basic.yb": {
+      "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/37_go_channel_basic.yb",
+      "file_hash": "84ff66fdd72db0619651aba37116191613df8701bb873ed757d45d60a4530ba8",
+      "symbols": [
+        {
+          "id": 13918786100137848457,
+          "name": "producer",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/37_go_channel_basic.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 5,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 12762744232094221925,
+          "name": "ch",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/37_go_channel_basic.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 5,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 18023042521100240685,
+          "name": "concurrency",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/37_go_channel_basic.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 8456391348305170934,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/37_go_channel_basic.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 5,
+            "line_end": 20,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 14353745605252786707,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/37_go_channel_basic.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 3,
+            "line_end": 8,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 11399368900207214972,
+          "name": "alloc",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/37_go_channel_basic.yb",
+          "span": {
+            "line_start": 9,
+            "col_start": 3,
+            "line_end": 9,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 11964543614037327549,
+          "name": "concurrency",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/37_go_channel_basic.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 3,
+            "line_end": 10,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 10187014710403173082,
+          "name": "ch",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/37_go_channel_basic.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 3,
+            "line_end": 11,
+            "col_end": 4
+          }
+        },
+        {
+          "id": 10766615196974000045,
+          "name": "value",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/37_go_channel_basic.yb",
+          "span": {
+            "line_start": 13,
+            "col_start": 3,
+            "line_end": 13,
+            "col_end": 7
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 12762744232094221925,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/37_go_channel_basic.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 4
+          }
+        },
+        {
+          "symbol_id": 13918786100137848457,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/37_go_channel_basic.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 6,
+            "line_end": 12,
+            "col_end": 13
+          }
+        },
+        {
+          "symbol_id": 10187014710403173082,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/37_go_channel_basic.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 15,
+            "line_end": 12,
+            "col_end": 16
+          }
+        },
+        {
+          "symbol_id": 10187014710403173082,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/37_go_channel_basic.yb",
+          "span": {
+            "line_start": 13,
+            "col_start": 12,
+            "line_end": 13,
+            "col_end": 13
+          }
+        },
+        {
+          "symbol_id": 10766615196974000045,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/37_go_channel_basic.yb",
+          "span": {
+            "line_start": 14,
+            "col_start": 6,
+            "line_end": 14,
+            "col_end": 10
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 8456391348305170934,
+          "function_name": "main",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/37_go_channel_basic.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "alloc",
+            "concurrency",
+            "io"
+          ],
+          "effects_observed": [
+            "alloc",
+            "concurrency",
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        },
+        {
+          "symbol_id": 13918786100137848457,
+          "function_name": "producer",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/37_go_channel_basic.yb",
+          "signature_hash": "14d403b686515ea93d3eede2a33aafc4686f3e6e86a7953eb4b18e11f6875a59",
+          "effects_declared": [
+            "concurrency"
+          ],
+          "effects_observed": [
+            "concurrency"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/38_worker_pool_minimal.yb": {
+      "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/38_worker_pool_minimal.yb",
+      "file_hash": "1d8e7f257378dadb0df813b23f1ff5304527a7a9d1c6347c9776c195e90e0604",
+      "symbols": [
+        {
+          "id": 11435592818089591303,
+          "name": "worker_a",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/38_worker_pool_minimal.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 5,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 11203877440220485171,
+          "name": "done",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/38_worker_pool_minimal.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 5,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 17915070920839896749,
+          "name": "concurrency",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/38_worker_pool_minimal.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 5829546027236913560,
+          "name": "worker_b",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/38_worker_pool_minimal.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 1,
+            "line_end": 11,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 9837469934458645850,
+          "name": "done",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/38_worker_pool_minimal.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 1,
+            "line_end": 11,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 9272142823698164094,
+          "name": "concurrency",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/38_worker_pool_minimal.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 3,
+            "line_end": 8,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 15590724103913398015,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/38_worker_pool_minimal.yb",
+          "span": {
+            "line_start": 13,
+            "col_start": 5,
+            "line_end": 27,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 11110794243850008946,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/38_worker_pool_minimal.yb",
+          "span": {
+            "line_start": 14,
+            "col_start": 3,
+            "line_end": 14,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 17344078104018548306,
+          "name": "alloc",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/38_worker_pool_minimal.yb",
+          "span": {
+            "line_start": 15,
+            "col_start": 3,
+            "line_end": 15,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 16899938422774150396,
+          "name": "concurrency",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/38_worker_pool_minimal.yb",
+          "span": {
+            "line_start": 16,
+            "col_start": 3,
+            "line_end": 16,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 1390881502445609188,
+          "name": "done",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/38_worker_pool_minimal.yb",
+          "span": {
+            "line_start": 17,
+            "col_start": 3,
+            "line_end": 17,
+            "col_end": 6
+          }
+        },
+        {
+          "id": 16615796411186221569,
+          "name": "total",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/38_worker_pool_minimal.yb",
+          "span": {
+            "line_start": 20,
+            "col_start": 3,
+            "line_end": 20,
+            "col_end": 7
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 11203877440220485171,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/38_worker_pool_minimal.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 6
+          }
+        },
+        {
+          "symbol_id": 9837469934458645850,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/38_worker_pool_minimal.yb",
+          "span": {
+            "line_start": 9,
+            "col_start": 3,
+            "line_end": 9,
+            "col_end": 6
+          }
+        },
+        {
+          "symbol_id": 11435592818089591303,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/38_worker_pool_minimal.yb",
+          "span": {
+            "line_start": 18,
+            "col_start": 6,
+            "line_end": 18,
+            "col_end": 13
+          }
+        },
+        {
+          "symbol_id": 1390881502445609188,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/38_worker_pool_minimal.yb",
+          "span": {
+            "line_start": 18,
+            "col_start": 15,
+            "line_end": 18,
+            "col_end": 18
+          }
+        },
+        {
+          "symbol_id": 5829546027236913560,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/38_worker_pool_minimal.yb",
+          "span": {
+            "line_start": 19,
+            "col_start": 6,
+            "line_end": 19,
+            "col_end": 13
+          }
+        },
+        {
+          "symbol_id": 1390881502445609188,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/38_worker_pool_minimal.yb",
+          "span": {
+            "line_start": 19,
+            "col_start": 15,
+            "line_end": 19,
+            "col_end": 18
+          }
+        },
+        {
+          "symbol_id": 1390881502445609188,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/38_worker_pool_minimal.yb",
+          "span": {
+            "line_start": 20,
+            "col_start": 12,
+            "line_end": 20,
+            "col_end": 15
+          }
+        },
+        {
+          "symbol_id": 1390881502445609188,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/38_worker_pool_minimal.yb",
+          "span": {
+            "line_start": 20,
+            "col_start": 26,
+            "line_end": 20,
+            "col_end": 29
+          }
+        },
+        {
+          "symbol_id": 16615796411186221569,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/38_worker_pool_minimal.yb",
+          "span": {
+            "line_start": 21,
+            "col_start": 6,
+            "line_end": 21,
+            "col_end": 10
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 15590724103913398015,
+          "function_name": "main",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/38_worker_pool_minimal.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "alloc",
+            "concurrency",
+            "io"
+          ],
+          "effects_observed": [
+            "alloc",
+            "concurrency",
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        },
+        {
+          "symbol_id": 11435592818089591303,
+          "function_name": "worker_a",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/38_worker_pool_minimal.yb",
+          "signature_hash": "116f3fccfe668900af39697e5945d12adfba49f127c5f4131092329b0c9332f8",
+          "effects_declared": [
+            "concurrency"
+          ],
+          "effects_observed": [
+            "concurrency"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        },
+        {
+          "symbol_id": 5829546027236913560,
+          "function_name": "worker_b",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/38_worker_pool_minimal.yb",
+          "signature_hash": "fd0f4637a07a6136fd16587a1150fc58bcdfa41d4e6fb9dd83efd70c731cfe93",
+          "effects_declared": [
+            "concurrency"
+          ],
+          "effects_observed": [
+            "concurrency"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/39_fan_in_pattern.yb": {
+      "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/39_fan_in_pattern.yb",
+      "file_hash": "b1c0d8b046c9474ca2ba701a94e04e72d3d6b8cd6d2b541163be077c4d859579",
+      "symbols": [
+        {
+          "id": 10169773812416904852,
+          "name": "source_10",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/39_fan_in_pattern.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 5,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 436315543300819844,
+          "name": "out",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/39_fan_in_pattern.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 5,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 17921941726144253601,
+          "name": "concurrency",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/39_fan_in_pattern.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 7168552281598477401,
+          "name": "source_20",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/39_fan_in_pattern.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 1,
+            "line_end": 11,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 8849092123355749882,
+          "name": "out",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/39_fan_in_pattern.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 1,
+            "line_end": 11,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 5380285609489085993,
+          "name": "concurrency",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/39_fan_in_pattern.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 3,
+            "line_end": 8,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 17632926022479026059,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/39_fan_in_pattern.yb",
+          "span": {
+            "line_start": 13,
+            "col_start": 5,
+            "line_end": 27,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 5862472805954279464,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/39_fan_in_pattern.yb",
+          "span": {
+            "line_start": 14,
+            "col_start": 3,
+            "line_end": 14,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 12105832259725823847,
+          "name": "alloc",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/39_fan_in_pattern.yb",
+          "span": {
+            "line_start": 15,
+            "col_start": 3,
+            "line_end": 15,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 18372999335587085347,
+          "name": "concurrency",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/39_fan_in_pattern.yb",
+          "span": {
+            "line_start": 16,
+            "col_start": 3,
+            "line_end": 16,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 3926674067630835735,
+          "name": "out",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/39_fan_in_pattern.yb",
+          "span": {
+            "line_start": 17,
+            "col_start": 3,
+            "line_end": 17,
+            "col_end": 5
+          }
+        },
+        {
+          "id": 15956754545203608781,
+          "name": "sum",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/39_fan_in_pattern.yb",
+          "span": {
+            "line_start": 20,
+            "col_start": 3,
+            "line_end": 20,
+            "col_end": 5
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 436315543300819844,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/39_fan_in_pattern.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 5
+          }
+        },
+        {
+          "symbol_id": 8849092123355749882,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/39_fan_in_pattern.yb",
+          "span": {
+            "line_start": 9,
+            "col_start": 3,
+            "line_end": 9,
+            "col_end": 5
+          }
+        },
+        {
+          "symbol_id": 10169773812416904852,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/39_fan_in_pattern.yb",
+          "span": {
+            "line_start": 18,
+            "col_start": 6,
+            "line_end": 18,
+            "col_end": 14
+          }
+        },
+        {
+          "symbol_id": 3926674067630835735,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/39_fan_in_pattern.yb",
+          "span": {
+            "line_start": 18,
+            "col_start": 16,
+            "line_end": 18,
+            "col_end": 18
+          }
+        },
+        {
+          "symbol_id": 7168552281598477401,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/39_fan_in_pattern.yb",
+          "span": {
+            "line_start": 19,
+            "col_start": 6,
+            "line_end": 19,
+            "col_end": 14
+          }
+        },
+        {
+          "symbol_id": 3926674067630835735,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/39_fan_in_pattern.yb",
+          "span": {
+            "line_start": 19,
+            "col_start": 16,
+            "line_end": 19,
+            "col_end": 18
+          }
+        },
+        {
+          "symbol_id": 3926674067630835735,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/39_fan_in_pattern.yb",
+          "span": {
+            "line_start": 20,
+            "col_start": 10,
+            "line_end": 20,
+            "col_end": 12
+          }
+        },
+        {
+          "symbol_id": 3926674067630835735,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/39_fan_in_pattern.yb",
+          "span": {
+            "line_start": 20,
+            "col_start": 23,
+            "line_end": 20,
+            "col_end": 25
+          }
+        },
+        {
+          "symbol_id": 15956754545203608781,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/39_fan_in_pattern.yb",
+          "span": {
+            "line_start": 21,
+            "col_start": 6,
+            "line_end": 21,
+            "col_end": 8
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 17632926022479026059,
+          "function_name": "main",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/39_fan_in_pattern.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "alloc",
+            "concurrency",
+            "io"
+          ],
+          "effects_observed": [
+            "alloc",
+            "concurrency",
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        },
+        {
+          "symbol_id": 10169773812416904852,
+          "function_name": "source_10",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/39_fan_in_pattern.yb",
+          "signature_hash": "2f2356fdd5e1992e7f1f96174d7ba040fe44f86a9676679a9700b52e906461ca",
+          "effects_declared": [
+            "concurrency"
+          ],
+          "effects_observed": [
+            "concurrency"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        },
+        {
+          "symbol_id": 7168552281598477401,
+          "function_name": "source_20",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/39_fan_in_pattern.yb",
+          "signature_hash": "d2bf78d27bf9438b50fd1c023fe3ff5d688fdd41c0c8b858b476a13730081ca8",
+          "effects_declared": [
+            "concurrency"
+          ],
+          "effects_observed": [
+            "concurrency"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/40_fan_out_pattern.yb": {
+      "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/40_fan_out_pattern.yb",
+      "file_hash": "f4a6638deb0d9f9676790eae5f9f1529ccf6daee83f754afb216493ecedfcca8",
+      "symbols": [
+        {
+          "id": 13970865464943207195,
+          "name": "worker_a",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/40_fan_out_pattern.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 5,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 2388290747083631055,
+          "name": "done",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/40_fan_out_pattern.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 5,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 4296985819257026153,
+          "name": "concurrency",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/40_fan_out_pattern.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 7709519892544685190,
+          "name": "worker_b",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/40_fan_out_pattern.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 1,
+            "line_end": 11,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 13312217515244301378,
+          "name": "done",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/40_fan_out_pattern.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 1,
+            "line_end": 11,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 3681030955281359408,
+          "name": "concurrency",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/40_fan_out_pattern.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 3,
+            "line_end": 8,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 2095040408894806331,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/40_fan_out_pattern.yb",
+          "span": {
+            "line_start": 13,
+            "col_start": 5,
+            "line_end": 27,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 9604354557314975519,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/40_fan_out_pattern.yb",
+          "span": {
+            "line_start": 14,
+            "col_start": 3,
+            "line_end": 14,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 16233040852633119030,
+          "name": "alloc",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/40_fan_out_pattern.yb",
+          "span": {
+            "line_start": 15,
+            "col_start": 3,
+            "line_end": 15,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 2720806312426354062,
+          "name": "concurrency",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/40_fan_out_pattern.yb",
+          "span": {
+            "line_start": 16,
+            "col_start": 3,
+            "line_end": 16,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 408775777369224922,
+          "name": "done",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/40_fan_out_pattern.yb",
+          "span": {
+            "line_start": 17,
+            "col_start": 3,
+            "line_end": 17,
+            "col_end": 6
+          }
+        },
+        {
+          "id": 11569230091587331310,
+          "name": "total",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/40_fan_out_pattern.yb",
+          "span": {
+            "line_start": 20,
+            "col_start": 3,
+            "line_end": 20,
+            "col_end": 7
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 2388290747083631055,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/40_fan_out_pattern.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 6
+          }
+        },
+        {
+          "symbol_id": 13312217515244301378,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/40_fan_out_pattern.yb",
+          "span": {
+            "line_start": 9,
+            "col_start": 3,
+            "line_end": 9,
+            "col_end": 6
+          }
+        },
+        {
+          "symbol_id": 13970865464943207195,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/40_fan_out_pattern.yb",
+          "span": {
+            "line_start": 18,
+            "col_start": 6,
+            "line_end": 18,
+            "col_end": 13
+          }
+        },
+        {
+          "symbol_id": 408775777369224922,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/40_fan_out_pattern.yb",
+          "span": {
+            "line_start": 18,
+            "col_start": 15,
+            "line_end": 18,
+            "col_end": 18
+          }
+        },
+        {
+          "symbol_id": 7709519892544685190,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/40_fan_out_pattern.yb",
+          "span": {
+            "line_start": 19,
+            "col_start": 6,
+            "line_end": 19,
+            "col_end": 13
+          }
+        },
+        {
+          "symbol_id": 408775777369224922,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/40_fan_out_pattern.yb",
+          "span": {
+            "line_start": 19,
+            "col_start": 15,
+            "line_end": 19,
+            "col_end": 18
+          }
+        },
+        {
+          "symbol_id": 408775777369224922,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/40_fan_out_pattern.yb",
+          "span": {
+            "line_start": 20,
+            "col_start": 12,
+            "line_end": 20,
+            "col_end": 15
+          }
+        },
+        {
+          "symbol_id": 408775777369224922,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/40_fan_out_pattern.yb",
+          "span": {
+            "line_start": 20,
+            "col_start": 26,
+            "line_end": 20,
+            "col_end": 29
+          }
+        },
+        {
+          "symbol_id": 11569230091587331310,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/40_fan_out_pattern.yb",
+          "span": {
+            "line_start": 21,
+            "col_start": 6,
+            "line_end": 21,
+            "col_end": 10
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 2095040408894806331,
+          "function_name": "main",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/40_fan_out_pattern.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "alloc",
+            "concurrency",
+            "io"
+          ],
+          "effects_observed": [
+            "alloc",
+            "concurrency",
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        },
+        {
+          "symbol_id": 13970865464943207195,
+          "function_name": "worker_a",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/40_fan_out_pattern.yb",
+          "signature_hash": "116f3fccfe668900af39697e5945d12adfba49f127c5f4131092329b0c9332f8",
+          "effects_declared": [
+            "concurrency"
+          ],
+          "effects_observed": [
+            "concurrency"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        },
+        {
+          "symbol_id": 7709519892544685190,
+          "function_name": "worker_b",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/40_fan_out_pattern.yb",
+          "signature_hash": "fd0f4637a07a6136fd16587a1150fc58bcdfa41d4e6fb9dd83efd70c731cfe93",
+          "effects_declared": [
+            "concurrency"
+          ],
+          "effects_observed": [
+            "concurrency"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/41_select_timeout_retry.yb": {
+      "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/41_select_timeout_retry.yb",
+      "file_hash": "65fc82d94e4662d0dd11a431c5997f2d9df667210b8607fcce0a553bdaa230ec",
+      "symbols": [
+        {
+          "id": 18258231551690619927,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/41_select_timeout_retry.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 5,
+            "line_end": 17,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 13853844365479103157,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/41_select_timeout_retry.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 13709432285034752827,
+          "name": "alloc",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/41_select_timeout_retry.yb",
+          "span": {
+            "line_start": 3,
+            "col_start": 3,
+            "line_end": 3,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 16240034950519838367,
+          "name": "concurrency",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/41_select_timeout_retry.yb",
+          "span": {
+            "line_start": 4,
+            "col_start": 3,
+            "line_end": 4,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 10059035196257629130,
+          "name": "nondet",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/41_select_timeout_retry.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 3,
+            "line_end": 5,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 12622179718432806019,
+          "name": "signal",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/41_select_timeout_retry.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 3,
+            "line_end": 6,
+            "col_end": 8
+          }
+        },
+        {
+          "id": 2419354165405089394,
+          "name": "value",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/41_select_timeout_retry.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 3,
+            "line_end": 7,
+            "col_end": 8
+          }
+        },
+        {
+          "id": 8537504854318660414,
+          "name": "value",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/41_select_timeout_retry.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 3,
+            "line_end": 12,
+            "col_end": 8
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 12622179718432806019,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/41_select_timeout_retry.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 19,
+            "line_end": 8,
+            "col_end": 24
+          }
+        },
+        {
+          "symbol_id": 12622179718432806019,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/41_select_timeout_retry.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 3,
+            "line_end": 11,
+            "col_end": 8
+          }
+        },
+        {
+          "symbol_id": 12622179718432806019,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/41_select_timeout_retry.yb",
+          "span": {
+            "line_start": 13,
+            "col_start": 19,
+            "line_end": 13,
+            "col_end": 24
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 18258231551690619927,
+          "function_name": "main",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/41_select_timeout_retry.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "alloc",
+            "concurrency",
+            "io",
+            "nondet"
+          ],
+          "effects_observed": [
+            "alloc",
+            "concurrency",
+            "io",
+            "nondet"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/42_async_thread_bridge.yb": {
+      "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/42_async_thread_bridge.yb",
+      "file_hash": "6d3ef51135253b59562bbfcf10348ac24ca413d2f4601df962d62e5f51bab611",
+      "symbols": [
+        {
+          "id": 12591249322669570119,
+          "name": "add",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/42_async_thread_bridge.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 3,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 5522374005928340925,
+          "name": "a",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/42_async_thread_bridge.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 3,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 13978821411439406195,
+          "name": "b",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/42_async_thread_bridge.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 3,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 8803069242092060799,
+          "name": "worker",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/42_async_thread_bridge.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 1,
+            "line_end": 7,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 220129440593958864,
+          "name": "x",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/42_async_thread_bridge.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 1,
+            "line_end": 7,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 16588060092614395918,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/42_async_thread_bridge.yb",
+          "span": {
+            "line_start": 9,
+            "col_start": 5,
+            "line_end": 21,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 779074148960689861,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/42_async_thread_bridge.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 3,
+            "line_end": 10,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 14572913823228661452,
+          "name": "concurrency",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/42_async_thread_bridge.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 3,
+            "line_end": 11,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 1792225587500510566,
+          "name": "task",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/42_async_thread_bridge.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 3,
+            "line_end": 12,
+            "col_end": 6
+          }
+        },
+        {
+          "id": 2730689858366270804,
+          "name": "value",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/42_async_thread_bridge.yb",
+          "span": {
+            "line_start": 13,
+            "col_start": 3,
+            "line_end": 13,
+            "col_end": 7
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 5522374005928340925,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/42_async_thread_bridge.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        },
+        {
+          "symbol_id": 13978821411439406195,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/42_async_thread_bridge.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 7,
+            "line_end": 2,
+            "col_end": 7
+          }
+        },
+        {
+          "symbol_id": 220129440593958864,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/42_async_thread_bridge.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 3,
+            "line_end": 6,
+            "col_end": 3
+          }
+        },
+        {
+          "symbol_id": 12591249322669570119,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/42_async_thread_bridge.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 17,
+            "line_end": 12,
+            "col_end": 19
+          }
+        },
+        {
+          "symbol_id": 1792225587500510566,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/42_async_thread_bridge.yb",
+          "span": {
+            "line_start": 13,
+            "col_start": 18,
+            "line_end": 13,
+            "col_end": 21
+          }
+        },
+        {
+          "symbol_id": 8803069242092060799,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/42_async_thread_bridge.yb",
+          "span": {
+            "line_start": 14,
+            "col_start": 10,
+            "line_end": 14,
+            "col_end": 15
+          }
+        },
+        {
+          "symbol_id": 2730689858366270804,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/42_async_thread_bridge.yb",
+          "span": {
+            "line_start": 14,
+            "col_start": 17,
+            "line_end": 14,
+            "col_end": 21
+          }
+        },
+        {
+          "symbol_id": 2730689858366270804,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/42_async_thread_bridge.yb",
+          "span": {
+            "line_start": 15,
+            "col_start": 6,
+            "line_end": 15,
+            "col_end": 10
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 12591249322669570119,
+          "function_name": "add",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/42_async_thread_bridge.yb",
+          "signature_hash": "30a2a6e0a0d8102acbc3d2353f7fc177fffd970083bc8e8988530b190eed1ebe",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        },
+        {
+          "symbol_id": 16588060092614395918,
+          "function_name": "main",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/42_async_thread_bridge.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "concurrency",
+            "io"
+          ],
+          "effects_observed": [
+            "concurrency",
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        },
+        {
+          "symbol_id": 8803069242092060799,
+          "function_name": "worker",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/42_async_thread_bridge.yb",
+          "signature_hash": "87b55019981acd90d78d7d815a657ac281f1e51d5642016d18a5f202d54d522b",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb": {
+      "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+      "file_hash": "da2599b0589ba622475f7df3d1d74e74444f35691c09a8c947fbab32855eeef2",
+      "symbols": [
+        {
+          "id": 857692136246777969,
+          "name": "add_one",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 3,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 427364251379662580,
+          "name": "x",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 3,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 1109120855298867751,
+          "name": "double_value",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 1,
+            "line_end": 7,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 11600392036021029164,
+          "name": "x",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 1,
+            "line_end": 7,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 13414419397145790851,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "span": {
+            "line_start": 9,
+            "col_start": 5,
+            "line_end": 22,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 14867753124990671003,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 3,
+            "line_end": 10,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 6330511834955096615,
+          "name": "concurrency",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 3,
+            "line_end": 11,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 11472661056666165622,
+          "name": "first_task",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 3,
+            "line_end": 12,
+            "col_end": 12
+          }
+        },
+        {
+          "id": 8515831751907736814,
+          "name": "first",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "span": {
+            "line_start": 13,
+            "col_start": 3,
+            "line_end": 13,
+            "col_end": 7
+          }
+        },
+        {
+          "id": 10697816273430036544,
+          "name": "second_task",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "span": {
+            "line_start": 14,
+            "col_start": 3,
+            "line_end": 14,
+            "col_end": 13
+          }
+        },
+        {
+          "id": 5451069846388668320,
+          "name": "second",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "span": {
+            "line_start": 15,
+            "col_start": 3,
+            "line_end": 15,
+            "col_end": 8
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 427364251379662580,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        },
+        {
+          "symbol_id": 11600392036021029164,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 3,
+            "line_end": 6,
+            "col_end": 3
+          }
+        },
+        {
+          "symbol_id": 11600392036021029164,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 7,
+            "line_end": 6,
+            "col_end": 7
+          }
+        },
+        {
+          "symbol_id": 857692136246777969,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 23,
+            "line_end": 12,
+            "col_end": 29
+          }
+        },
+        {
+          "symbol_id": 11472661056666165622,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "span": {
+            "line_start": 13,
+            "col_start": 18,
+            "line_end": 13,
+            "col_end": 27
+          }
+        },
+        {
+          "symbol_id": 1109120855298867751,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "span": {
+            "line_start": 14,
+            "col_start": 24,
+            "line_end": 14,
+            "col_end": 35
+          }
+        },
+        {
+          "symbol_id": 8515831751907736814,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "span": {
+            "line_start": 14,
+            "col_start": 37,
+            "line_end": 14,
+            "col_end": 41
+          }
+        },
+        {
+          "symbol_id": 10697816273430036544,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "span": {
+            "line_start": 15,
+            "col_start": 19,
+            "line_end": 15,
+            "col_end": 29
+          }
+        },
+        {
+          "symbol_id": 5451069846388668320,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "span": {
+            "line_start": 16,
+            "col_start": 6,
+            "line_end": 16,
+            "col_end": 11
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 857692136246777969,
+          "function_name": "add_one",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "signature_hash": "f9ab59edfec3d03368c2f17af823a44cf3a4bf81be1ee21470a12274fb85b989",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        },
+        {
+          "symbol_id": 1109120855298867751,
+          "function_name": "double_value",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "signature_hash": "c25802fc9c14221c38f809771766dd9566518f51745f6b35bb3ff2e04f3c06a9",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        },
+        {
+          "symbol_id": 13414419397145790851,
+          "function_name": "main",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/43_async_await_pipeline.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "concurrency",
+            "io"
+          ],
+          "effects_observed": [
+            "concurrency",
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
+    "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb": {
+      "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb",
+      "file_hash": "d253e7fc674447ed631040ba610799cdfda04ca4361ac9e8dc7516c8b240ad31",
+      "symbols": [
+        {
+          "id": 4737360086165335048,
+          "name": "sum",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 3,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 14144154415106919233,
+          "name": "a",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 3,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 16817561125144977369,
+          "name": "b",
+          "kind": "Param",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb",
+          "span": {
+            "line_start": 1,
+            "col_start": 1,
+            "line_end": 3,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 10422886919852965221,
+          "name": "main",
+          "kind": "Function",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb",
+          "span": {
+            "line_start": 5,
+            "col_start": 5,
+            "line_end": 18,
+            "col_end": 1
+          }
+        },
+        {
+          "id": 7147304012628353591,
+          "name": "io",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb",
+          "span": {
+            "line_start": 6,
+            "col_start": 3,
+            "line_end": 6,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 16776104187090813693,
+          "name": "concurrency",
+          "kind": "Effect",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb",
+          "span": {
+            "line_start": 7,
+            "col_start": 3,
+            "line_end": 7,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 3909990354522140453,
+          "name": "task_a",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 3,
+            "line_end": 8,
+            "col_end": 8
+          }
+        },
+        {
+          "id": 6693758359538940364,
+          "name": "task_b",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb",
+          "span": {
+            "line_start": 9,
+            "col_start": 3,
+            "line_end": 9,
+            "col_end": 8
+          }
+        },
+        {
+          "id": 16968799534283225437,
+          "name": "a",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 3,
+            "line_end": 10,
+            "col_end": 3
+          }
+        },
+        {
+          "id": 10544751037473624242,
+          "name": "b",
+          "kind": "Local",
+          "module": null,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 3,
+            "line_end": 11,
+            "col_end": 3
+          }
+        }
+      ],
+      "references": [
+        {
+          "symbol_id": 14144154415106919233,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 3,
+            "line_end": 2,
+            "col_end": 3
+          }
+        },
+        {
+          "symbol_id": 16817561125144977369,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb",
+          "span": {
+            "line_start": 2,
+            "col_start": 7,
+            "line_end": 2,
+            "col_end": 7
+          }
+        },
+        {
+          "symbol_id": 4737360086165335048,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb",
+          "span": {
+            "line_start": 8,
+            "col_start": 19,
+            "line_end": 8,
+            "col_end": 21
+          }
+        },
+        {
+          "symbol_id": 4737360086165335048,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb",
+          "span": {
+            "line_start": 9,
+            "col_start": 19,
+            "line_end": 9,
+            "col_end": 21
+          }
+        },
+        {
+          "symbol_id": 3909990354522140453,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb",
+          "span": {
+            "line_start": 10,
+            "col_start": 14,
+            "line_end": 10,
+            "col_end": 19
+          }
+        },
+        {
+          "symbol_id": 6693758359538940364,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb",
+          "span": {
+            "line_start": 11,
+            "col_start": 14,
+            "line_end": 11,
+            "col_end": 19
+          }
+        },
+        {
+          "symbol_id": 16968799534283225437,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 6,
+            "line_end": 12,
+            "col_end": 6
+          }
+        },
+        {
+          "symbol_id": 10544751037473624242,
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb",
+          "span": {
+            "line_start": 12,
+            "col_start": 10,
+            "line_end": 12,
+            "col_end": 10
+          }
+        }
+      ],
+      "function_meta": [
+        {
+          "symbol_id": 10422886919852965221,
+          "function_name": "main",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb",
+          "signature_hash": "9be8243c5f89bea3874289dab8e3e8a403b575948e004e8c9e157408bcb1cbce",
+          "effects_declared": [
+            "concurrency",
+            "io"
+          ],
+          "effects_observed": [
+            "concurrency",
+            "io"
+          ],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": true
+        },
+        {
+          "symbol_id": 4737360086165335048,
+          "function_name": "sum",
+          "file": "/Users/samiahmadkhan/workspace/Vibestack/vibelang/examples/06_concurrency_async/44_async_await_parallel_join.yb",
+          "signature_hash": "1e29ae433af9c20c2a533ae5c62df55240e388df2c1da45dba3ad9b8a257f029",
+          "effects_declared": [],
+          "effects_observed": [],
+          "intent_text": null,
+          "has_examples": false,
+          "is_public": false
+        }
+      ],
+      "effect_mismatches": [],
+      "diagnostics": [],
+      "dependencies": []
+    },
     "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/37_go_channel_basic.yb": {
       "file": "/home/azskdev/workspace/VibeStack/vibelang/examples/06_concurrency_async/37_go_channel_basic.yb",
       "file_hash": "84ff66fdd72db0619651aba37116191613df8701bb873ed757d45d60a4530ba8",
