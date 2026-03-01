@@ -776,6 +776,19 @@ jobs:
         run: |
           set -euo pipefail
           cargo test -p vibe_cli --test phase12_stdlib
+      - name: run phase12 stdlib fixture suites
+        run: |
+          set -euo pipefail
+          cargo run -q -p vibe_cli -- test compiler/tests/fixtures/stdlib/time --json
+          cargo run -q -p vibe_cli -- test compiler/tests/fixtures/stdlib/path --json
+          cargo run -q -p vibe_cli -- test compiler/tests/fixtures/stdlib/fs --json
+          cargo run -q -p vibe_cli -- test compiler/tests/fixtures/stdlib/json --json
+          cargo run -q -p vibe_cli -- test compiler/tests/fixtures/stdlib/http --json
+          cargo run -q -p vibe_cli -- test compiler/tests/fixtures/stdlib/convert --json
+          cargo run -q -p vibe_cli -- test compiler/tests/fixtures/stdlib/text --json
+          cargo run -q -p vibe_cli -- test compiler/tests/fixtures/stdlib/encoding --json
+          cargo run -q -p vibe_cli -- test compiler/tests/fixtures/stdlib/env_cli --json
+          cargo run -q -p vibe_cli -- test compiler/tests/fixtures/stdlib/log --json
       - name: verify phase12 stdlib docs exist
         run: |
           set -euo pipefail
@@ -784,8 +797,15 @@ jobs:
           test -f stdlib/time/README.md
           test -f stdlib/path/README.md
           test -f stdlib/fs/README.md
+          test -f stdlib/net/README.md
+          test -f stdlib/convert/README.md
+          test -f stdlib/text/README.md
+          test -f stdlib/encoding/README.md
           test -f stdlib/json/README.md
           test -f stdlib/http/README.md
+          test -f stdlib/log/README.md
+          test -f stdlib/env/README.md
+          test -f stdlib/cli/README.md
           test -f docs/stdlib/reference_index.md
           test -f docs/stdlib/versioning_guarantees.md
       - name: publish phase12 stdlib summary artifact
@@ -798,8 +818,9 @@ jobs:
           - status: pass
           - suites:
             - `phase12_stdlib`
+            - `vibe_cli test compiler/tests/fixtures/stdlib/{time,path,fs,json,http,convert,text,encoding,env_cli,log}`
           - docs:
-            - `stdlib/{README.md,stability_policy.md,time/README.md,path/README.md,fs/README.md,json/README.md,http/README.md}`
+            - `stdlib/{README.md,stability_policy.md,time/README.md,path/README.md,fs/README.md,net/README.md,convert/README.md,text/README.md,encoding/README.md,json/README.md,http/README.md,log/README.md,env/README.md,cli/README.md}`
             - `docs/stdlib/{reference_index.md,versioning_guarantees.md}`
           EOF
       - uses: actions/upload-artifact@v4

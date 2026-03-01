@@ -1,0 +1,11 @@
+pub main() -> Int {
+  @effect io
+  @effect nondet
+  println(env.get("HOME"))
+  if env.has("HOME") {
+    println("home-set")
+  }
+  println(json.stringify_i64(cli.args_len()))
+  println(cli.arg(0))
+  0
+}

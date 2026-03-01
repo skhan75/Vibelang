@@ -1,0 +1,9 @@
+pub main() -> Int {
+  @effect io
+  println(convert.to_str(convert.to_int("123")))
+  println(convert.to_str_f64(convert.to_float("3.5")))
+  println(convert.to_str(convert.parse_i64("7")))
+  println(convert.to_str_f64(convert.parse_f64("2.25")))
+  println(convert.to_str(convert.to_int("bad")))
+  0
+}

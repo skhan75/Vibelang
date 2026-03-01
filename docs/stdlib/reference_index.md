@@ -6,11 +6,18 @@ This index is the authoritative entry point for Phase 12 stdlib APIs.
 
 - `io` (stable): printing primitives
 - `core` (stable): deterministic utilities for examples/contracts
-- `time` (preview): `now_ms`, `sleep_ms`, `duration_ms`
+- `time` (preview): `now_ms`, `monotonic_now_ms`, `sleep_ms`, `duration_ms`
 - `path` (stable): `join`, `parent`, `basename`, `is_absolute`
 - `fs` (preview): `exists`, `read_text`, `write_text`, `create_dir`
-- `json` (preview): `is_valid`, `parse_i64`, `stringify_i64`, `minify`
-- `http` (preview): `status_text`, `default_port`, `build_request_line`
+- `net` (preview): `listen`, `listener_port`, `accept`, `connect`, `read`, `write`, `close`, `resolve`
+- `convert` (preview): `to_int`, `parse_i64`, `to_float`, `parse_f64`, `to_str`, `to_str_f64`
+- `text` (preview): `trim`, `contains`, `starts_with`, `ends_with`, `replace`, `to_lower`, `to_upper`, `byte_len`, `split_part`
+- `encoding` (preview): `hex_encode`, `hex_decode`, `base64_encode`, `base64_decode`, `url_encode`, `url_decode`
+- `json` (preview): `is_valid`, `parse`, `stringify`, `parse_i64`, `stringify_i64`, `minify`, generated typed codec entrypoints (`encode_<Type>`, `decode_<Type>`)
+- `http` (preview): `status_text`, `default_port`, `build_request_line`, `request`, `request_status`, `get`, `post`
+- `log` (preview): `info`, `warn`, `error`
+- `env` (preview): `get`, `has`, `get_required`
+- `cli` (preview): `args_len`, `arg`
 
 ## Primary module docs
 
@@ -19,5 +26,12 @@ This index is the authoritative entry point for Phase 12 stdlib APIs.
 - `stdlib/time/README.md`
 - `stdlib/path/README.md`
 - `stdlib/fs/README.md`
+- `stdlib/net/README.md`
+- `stdlib/convert/README.md`
+- `stdlib/text/README.md`
+- `stdlib/encoding/README.md`
 - `stdlib/json/README.md`
 - `stdlib/http/README.md`
+- `stdlib/log/README.md`
+- `stdlib/env/README.md`
+- `stdlib/cli/README.md`

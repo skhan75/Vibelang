@@ -74,6 +74,29 @@ Invalid escape sequences are compile-time parse errors.
   - copy-on-write vs eager copy
   - amortized complexity for append/builder operations.
 
+## Stdlib Text/Encoding Surface (Preview)
+
+`std.text` currently provides:
+
+- `trim`, `contains`, `starts_with`, `ends_with`, `replace`
+- `to_lower`, `to_upper`
+- `byte_len`, `split_part`
+
+Preview policy:
+
+- operations are UTF-8 byte-oriented for indexing/length (`byte_len`)
+- case conversion is ASCII-focused unless otherwise documented by implementation notes
+
+`std.encoding` currently provides:
+
+- `hex_encode` / `hex_decode`
+- `base64_encode` / `base64_decode`
+- `url_encode` / `url_decode`
+
+Invalid decode input currently returns sentinel values in preview mode; stable
+Result-based error surfaces remain tracked via
+`docs/checklists/features_and_optimizations.md` (`F-07`).
+
 ## Deferred Notes
 
 - Locale-sensitive collation and grapheme-aware default indexing are deferred.

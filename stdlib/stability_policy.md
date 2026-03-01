@@ -23,10 +23,17 @@ This policy defines compatibility expectations for the expanded stdlib surface.
 - `path.join`, `path.parent`, `path.basename`, `path.is_absolute`: **stable**
 - deterministic helpers in `core` (`len`, `min`, `max`, `sorted_desc`, `sort_desc`, `take`):
   **stable** for `vibe test` contract/example execution
-- `time.now_ms`, `time.sleep_ms`, `time.duration_ms`: **preview**
+- `time.now_ms`, `time.monotonic_now_ms`, `time.sleep_ms`, `time.duration_ms`: **preview**
 - `fs.exists`, `fs.read_text`, `fs.write_text`, `fs.create_dir`: **preview**
-- `json.is_valid`, `json.parse_i64`, `json.stringify_i64`, `json.minify`: **preview**
-- `http.status_text`, `http.default_port`, `http.build_request_line`: **preview**
+- `net.listen`, `net.listener_port`, `net.accept`, `net.connect`, `net.read`, `net.write`, `net.close`, `net.resolve`: **preview**
+- `convert.to_int`, `convert.parse_i64`, `convert.to_float`, `convert.parse_f64`, `convert.to_str`, `convert.to_str_f64`: **preview**
+- `text.trim`, `text.contains`, `text.starts_with`, `text.ends_with`, `text.replace`, `text.to_lower`, `text.to_upper`, `text.byte_len`, `text.split_part`: **preview**
+- `encoding.hex_encode`, `encoding.hex_decode`, `encoding.base64_encode`, `encoding.base64_decode`, `encoding.url_encode`, `encoding.url_decode`: **preview**
+- `json.is_valid`, `json.parse`, `json.stringify`, `json.parse_i64`, `json.stringify_i64`, `json.minify`, generated typed codecs (`json.encode_<Type>`, `json.decode_<Type>`): **preview**
+- `http.status_text`, `http.default_port`, `http.build_request_line`, `http.request`, `http.request_status`, `http.get`, `http.post`: **preview**
+- `log.info`, `log.warn`, `log.error`: **preview**
+- `env.get`, `env.has`, `env.get_required`: **preview**
+- `cli.args_len`, `cli.arg`: **preview**
 - runtime bridge symbols (`vibe_*` C ABI): **internal**
 
 ## Change Rules
@@ -46,4 +53,5 @@ This policy defines compatibility expectations for the expanded stdlib surface.
 - Stable and preview APIs must document:
   - deterministic behavior expectations
   - error model (`panic`, sentinel return, or explicit boolean/result contract)
-- Non-deterministic APIs (currently `time.now_ms`) must be explicitly marked.
+- Non-deterministic APIs (currently `time.now_ms`, `time.monotonic_now_ms`, `env.*`, `cli.*`)
+  must be explicitly marked.

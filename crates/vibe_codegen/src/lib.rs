@@ -80,6 +80,7 @@ struct RuntimeFunctions {
     select_cursor_fn: FuncId,
     sleep_ms_fn: FuncId,
     time_now_ms_fn: FuncId,
+    time_monotonic_now_ms_fn: FuncId,
     time_sleep_ms_fn: FuncId,
     time_duration_ms_fn: FuncId,
     path_join_fn: FuncId,
@@ -90,15 +91,58 @@ struct RuntimeFunctions {
     fs_read_text_fn: FuncId,
     fs_write_text_fn: FuncId,
     fs_create_dir_fn: FuncId,
+    net_listen_fn: FuncId,
+    net_listener_port_fn: FuncId,
+    net_accept_fn: FuncId,
+    net_connect_fn: FuncId,
+    net_read_fn: FuncId,
+    net_write_fn: FuncId,
+    net_close_fn: FuncId,
+    net_resolve_fn: FuncId,
+    convert_to_int_fn: FuncId,
+    convert_to_float_fn: FuncId,
+    convert_to_str_fn: FuncId,
+    convert_to_str_f64_fn: FuncId,
+    text_trim_fn: FuncId,
+    text_contains_fn: FuncId,
+    text_starts_with_fn: FuncId,
+    text_ends_with_fn: FuncId,
+    text_replace_fn: FuncId,
+    text_to_lower_fn: FuncId,
+    text_to_upper_fn: FuncId,
+    text_byte_len_fn: FuncId,
+    text_split_part_fn: FuncId,
+    encoding_hex_encode_fn: FuncId,
+    encoding_hex_decode_fn: FuncId,
+    encoding_base64_encode_fn: FuncId,
+    encoding_base64_decode_fn: FuncId,
+    encoding_url_encode_fn: FuncId,
+    encoding_url_decode_fn: FuncId,
+    log_info_fn: FuncId,
+    log_warn_fn: FuncId,
+    log_error_fn: FuncId,
+    env_get_fn: FuncId,
+    env_has_fn: FuncId,
+    env_get_required_fn: FuncId,
+    cli_args_len_fn: FuncId,
+    cli_arg_fn: FuncId,
     json_is_valid_fn: FuncId,
+    json_parse_fn: FuncId,
+    json_stringify_fn: FuncId,
     json_parse_i64_fn: FuncId,
     json_stringify_i64_fn: FuncId,
     json_minify_fn: FuncId,
+    json_encode_record_fn: FuncId,
+    json_decode_record_fn: FuncId,
     regex_count_fn: FuncId,
     regex_replace_all_fn: FuncId,
     http_status_text_fn: FuncId,
     http_default_port_fn: FuncId,
     http_build_request_line_fn: FuncId,
+    http_request_fn: FuncId,
+    http_request_status_fn: FuncId,
+    http_get_fn: FuncId,
+    http_post_fn: FuncId,
     #[cfg(feature = "bench-runtime")]
     bench_md5_hex_fn: FuncId,
     #[cfg(feature = "bench-runtime")]
@@ -731,6 +775,18 @@ fn declare_runtime_functions(
         .declare_function("vibe_time_now_ms", Linkage::Import, &time_now_ms_sig)
         .map_err(|e| format!("failed to declare runtime time_now_ms symbol: {e}"))?;
 
+    let mut time_monotonic_now_ms_sig = module.make_signature();
+    time_monotonic_now_ms_sig
+        .returns
+        .push(AbiParam::new(ir::types::I64));
+    let time_monotonic_now_ms_fn = module
+        .declare_function(
+            "vibe_time_monotonic_now_ms",
+            Linkage::Import,
+            &time_monotonic_now_ms_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime time_monotonic_now_ms symbol: {e}"))?;
+
     let mut time_sleep_ms_sig = module.make_signature();
     time_sleep_ms_sig.params.push(AbiParam::new(ir::types::I64));
     let time_sleep_ms_fn = module
@@ -820,6 +876,304 @@ fn declare_runtime_functions(
         .declare_function("vibe_fs_create_dir", Linkage::Import, &fs_create_dir_sig)
         .map_err(|e| format!("failed to declare runtime fs_create_dir symbol: {e}"))?;
 
+    let mut net_listen_sig = module.make_signature();
+    net_listen_sig.params.push(AbiParam::new(ptr_ty));
+    net_listen_sig.params.push(AbiParam::new(ir::types::I64));
+    net_listen_sig.returns.push(AbiParam::new(ir::types::I64));
+    let net_listen_fn = module
+        .declare_function("vibe_net_listen", Linkage::Import, &net_listen_sig)
+        .map_err(|e| format!("failed to declare runtime net_listen symbol: {e}"))?;
+
+    let mut net_listener_port_sig = module.make_signature();
+    net_listener_port_sig
+        .params
+        .push(AbiParam::new(ir::types::I64));
+    net_listener_port_sig
+        .returns
+        .push(AbiParam::new(ir::types::I64));
+    let net_listener_port_fn = module
+        .declare_function(
+            "vibe_net_listener_port",
+            Linkage::Import,
+            &net_listener_port_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime net_listener_port symbol: {e}"))?;
+
+    let mut net_accept_sig = module.make_signature();
+    net_accept_sig.params.push(AbiParam::new(ir::types::I64));
+    net_accept_sig.returns.push(AbiParam::new(ir::types::I64));
+    let net_accept_fn = module
+        .declare_function("vibe_net_accept", Linkage::Import, &net_accept_sig)
+        .map_err(|e| format!("failed to declare runtime net_accept symbol: {e}"))?;
+
+    let mut net_connect_sig = module.make_signature();
+    net_connect_sig.params.push(AbiParam::new(ptr_ty));
+    net_connect_sig.params.push(AbiParam::new(ir::types::I64));
+    net_connect_sig.returns.push(AbiParam::new(ir::types::I64));
+    let net_connect_fn = module
+        .declare_function("vibe_net_connect", Linkage::Import, &net_connect_sig)
+        .map_err(|e| format!("failed to declare runtime net_connect symbol: {e}"))?;
+
+    let mut net_read_sig = module.make_signature();
+    net_read_sig.params.push(AbiParam::new(ir::types::I64));
+    net_read_sig.params.push(AbiParam::new(ir::types::I64));
+    net_read_sig.returns.push(AbiParam::new(ptr_ty));
+    let net_read_fn = module
+        .declare_function("vibe_net_read", Linkage::Import, &net_read_sig)
+        .map_err(|e| format!("failed to declare runtime net_read symbol: {e}"))?;
+
+    let mut net_write_sig = module.make_signature();
+    net_write_sig.params.push(AbiParam::new(ir::types::I64));
+    net_write_sig.params.push(AbiParam::new(ptr_ty));
+    net_write_sig.returns.push(AbiParam::new(ir::types::I64));
+    let net_write_fn = module
+        .declare_function("vibe_net_write", Linkage::Import, &net_write_sig)
+        .map_err(|e| format!("failed to declare runtime net_write symbol: {e}"))?;
+
+    let mut net_close_sig = module.make_signature();
+    net_close_sig.params.push(AbiParam::new(ir::types::I64));
+    net_close_sig.returns.push(AbiParam::new(ir::types::I64));
+    let net_close_fn = module
+        .declare_function("vibe_net_close", Linkage::Import, &net_close_sig)
+        .map_err(|e| format!("failed to declare runtime net_close symbol: {e}"))?;
+
+    let mut net_resolve_sig = module.make_signature();
+    net_resolve_sig.params.push(AbiParam::new(ptr_ty));
+    net_resolve_sig.returns.push(AbiParam::new(ptr_ty));
+    let net_resolve_fn = module
+        .declare_function("vibe_net_resolve_first", Linkage::Import, &net_resolve_sig)
+        .map_err(|e| format!("failed to declare runtime net_resolve symbol: {e}"))?;
+
+    let mut convert_to_int_sig = module.make_signature();
+    convert_to_int_sig.params.push(AbiParam::new(ptr_ty));
+    convert_to_int_sig
+        .returns
+        .push(AbiParam::new(ir::types::I64));
+    let convert_to_int_fn = module
+        .declare_function("vibe_convert_to_int", Linkage::Import, &convert_to_int_sig)
+        .map_err(|e| format!("failed to declare runtime convert_to_int symbol: {e}"))?;
+
+    let mut convert_to_float_sig = module.make_signature();
+    convert_to_float_sig.params.push(AbiParam::new(ptr_ty));
+    convert_to_float_sig
+        .returns
+        .push(AbiParam::new(ir::types::F64));
+    let convert_to_float_fn = module
+        .declare_function("vibe_convert_to_f64", Linkage::Import, &convert_to_float_sig)
+        .map_err(|e| format!("failed to declare runtime convert_to_f64 symbol: {e}"))?;
+
+    let mut convert_to_str_sig = module.make_signature();
+    convert_to_str_sig
+        .params
+        .push(AbiParam::new(ir::types::I64));
+    convert_to_str_sig.returns.push(AbiParam::new(ptr_ty));
+    let convert_to_str_fn = module
+        .declare_function("vibe_convert_i64_to_str", Linkage::Import, &convert_to_str_sig)
+        .map_err(|e| format!("failed to declare runtime convert_i64_to_str symbol: {e}"))?;
+
+    let mut convert_to_str_f64_sig = module.make_signature();
+    convert_to_str_f64_sig
+        .params
+        .push(AbiParam::new(ir::types::F64));
+    convert_to_str_f64_sig.returns.push(AbiParam::new(ptr_ty));
+    let convert_to_str_f64_fn = module
+        .declare_function(
+            "vibe_convert_f64_to_str",
+            Linkage::Import,
+            &convert_to_str_f64_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime convert_f64_to_str symbol: {e}"))?;
+
+    let mut text_trim_sig = module.make_signature();
+    text_trim_sig.params.push(AbiParam::new(ptr_ty));
+    text_trim_sig.returns.push(AbiParam::new(ptr_ty));
+    let text_trim_fn = module
+        .declare_function("vibe_text_trim", Linkage::Import, &text_trim_sig)
+        .map_err(|e| format!("failed to declare runtime text_trim symbol: {e}"))?;
+
+    let mut text_contains_sig = module.make_signature();
+    text_contains_sig.params.push(AbiParam::new(ptr_ty));
+    text_contains_sig.params.push(AbiParam::new(ptr_ty));
+    text_contains_sig.returns.push(AbiParam::new(ir::types::I64));
+    let text_contains_fn = module
+        .declare_function("vibe_text_contains", Linkage::Import, &text_contains_sig)
+        .map_err(|e| format!("failed to declare runtime text_contains symbol: {e}"))?;
+
+    let mut text_starts_with_sig = module.make_signature();
+    text_starts_with_sig.params.push(AbiParam::new(ptr_ty));
+    text_starts_with_sig.params.push(AbiParam::new(ptr_ty));
+    text_starts_with_sig.returns.push(AbiParam::new(ir::types::I64));
+    let text_starts_with_fn = module
+        .declare_function("vibe_text_starts_with", Linkage::Import, &text_starts_with_sig)
+        .map_err(|e| format!("failed to declare runtime text_starts_with symbol: {e}"))?;
+
+    let mut text_ends_with_sig = module.make_signature();
+    text_ends_with_sig.params.push(AbiParam::new(ptr_ty));
+    text_ends_with_sig.params.push(AbiParam::new(ptr_ty));
+    text_ends_with_sig.returns.push(AbiParam::new(ir::types::I64));
+    let text_ends_with_fn = module
+        .declare_function("vibe_text_ends_with", Linkage::Import, &text_ends_with_sig)
+        .map_err(|e| format!("failed to declare runtime text_ends_with symbol: {e}"))?;
+
+    let mut text_replace_sig = module.make_signature();
+    text_replace_sig.params.push(AbiParam::new(ptr_ty));
+    text_replace_sig.params.push(AbiParam::new(ptr_ty));
+    text_replace_sig.params.push(AbiParam::new(ptr_ty));
+    text_replace_sig.returns.push(AbiParam::new(ptr_ty));
+    let text_replace_fn = module
+        .declare_function("vibe_text_replace", Linkage::Import, &text_replace_sig)
+        .map_err(|e| format!("failed to declare runtime text_replace symbol: {e}"))?;
+
+    let mut text_to_lower_sig = module.make_signature();
+    text_to_lower_sig.params.push(AbiParam::new(ptr_ty));
+    text_to_lower_sig.returns.push(AbiParam::new(ptr_ty));
+    let text_to_lower_fn = module
+        .declare_function("vibe_text_to_lower", Linkage::Import, &text_to_lower_sig)
+        .map_err(|e| format!("failed to declare runtime text_to_lower symbol: {e}"))?;
+
+    let mut text_to_upper_sig = module.make_signature();
+    text_to_upper_sig.params.push(AbiParam::new(ptr_ty));
+    text_to_upper_sig.returns.push(AbiParam::new(ptr_ty));
+    let text_to_upper_fn = module
+        .declare_function("vibe_text_to_upper", Linkage::Import, &text_to_upper_sig)
+        .map_err(|e| format!("failed to declare runtime text_to_upper symbol: {e}"))?;
+
+    let mut text_byte_len_sig = module.make_signature();
+    text_byte_len_sig.params.push(AbiParam::new(ptr_ty));
+    text_byte_len_sig.returns.push(AbiParam::new(ir::types::I64));
+    let text_byte_len_fn = module
+        .declare_function("vibe_text_byte_len", Linkage::Import, &text_byte_len_sig)
+        .map_err(|e| format!("failed to declare runtime text_byte_len symbol: {e}"))?;
+
+    let mut text_split_part_sig = module.make_signature();
+    text_split_part_sig.params.push(AbiParam::new(ptr_ty));
+    text_split_part_sig.params.push(AbiParam::new(ptr_ty));
+    text_split_part_sig.params.push(AbiParam::new(ir::types::I64));
+    text_split_part_sig.returns.push(AbiParam::new(ptr_ty));
+    let text_split_part_fn = module
+        .declare_function("vibe_text_split_part", Linkage::Import, &text_split_part_sig)
+        .map_err(|e| format!("failed to declare runtime text_split_part symbol: {e}"))?;
+
+    let mut encoding_hex_encode_sig = module.make_signature();
+    encoding_hex_encode_sig.params.push(AbiParam::new(ptr_ty));
+    encoding_hex_encode_sig.returns.push(AbiParam::new(ptr_ty));
+    let encoding_hex_encode_fn = module
+        .declare_function(
+            "vibe_encoding_hex_encode",
+            Linkage::Import,
+            &encoding_hex_encode_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime encoding_hex_encode symbol: {e}"))?;
+
+    let mut encoding_hex_decode_sig = module.make_signature();
+    encoding_hex_decode_sig.params.push(AbiParam::new(ptr_ty));
+    encoding_hex_decode_sig.returns.push(AbiParam::new(ptr_ty));
+    let encoding_hex_decode_fn = module
+        .declare_function(
+            "vibe_encoding_hex_decode",
+            Linkage::Import,
+            &encoding_hex_decode_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime encoding_hex_decode symbol: {e}"))?;
+
+    let mut encoding_base64_encode_sig = module.make_signature();
+    encoding_base64_encode_sig.params.push(AbiParam::new(ptr_ty));
+    encoding_base64_encode_sig
+        .returns
+        .push(AbiParam::new(ptr_ty));
+    let encoding_base64_encode_fn = module
+        .declare_function(
+            "vibe_encoding_base64_encode",
+            Linkage::Import,
+            &encoding_base64_encode_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime encoding_base64_encode symbol: {e}"))?;
+
+    let mut encoding_base64_decode_sig = module.make_signature();
+    encoding_base64_decode_sig.params.push(AbiParam::new(ptr_ty));
+    encoding_base64_decode_sig
+        .returns
+        .push(AbiParam::new(ptr_ty));
+    let encoding_base64_decode_fn = module
+        .declare_function(
+            "vibe_encoding_base64_decode",
+            Linkage::Import,
+            &encoding_base64_decode_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime encoding_base64_decode symbol: {e}"))?;
+
+    let mut encoding_url_encode_sig = module.make_signature();
+    encoding_url_encode_sig.params.push(AbiParam::new(ptr_ty));
+    encoding_url_encode_sig.returns.push(AbiParam::new(ptr_ty));
+    let encoding_url_encode_fn = module
+        .declare_function(
+            "vibe_encoding_url_encode",
+            Linkage::Import,
+            &encoding_url_encode_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime encoding_url_encode symbol: {e}"))?;
+
+    let mut encoding_url_decode_sig = module.make_signature();
+    encoding_url_decode_sig.params.push(AbiParam::new(ptr_ty));
+    encoding_url_decode_sig.returns.push(AbiParam::new(ptr_ty));
+    let encoding_url_decode_fn = module
+        .declare_function(
+            "vibe_encoding_url_decode",
+            Linkage::Import,
+            &encoding_url_decode_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime encoding_url_decode symbol: {e}"))?;
+
+    let mut log_sig = module.make_signature();
+    log_sig.params.push(AbiParam::new(ptr_ty));
+    let log_info_fn = module
+        .declare_function("vibe_log_info", Linkage::Import, &log_sig)
+        .map_err(|e| format!("failed to declare runtime log_info symbol: {e}"))?;
+    let log_warn_fn = module
+        .declare_function("vibe_log_warn", Linkage::Import, &log_sig)
+        .map_err(|e| format!("failed to declare runtime log_warn symbol: {e}"))?;
+    let log_error_fn = module
+        .declare_function("vibe_log_error", Linkage::Import, &log_sig)
+        .map_err(|e| format!("failed to declare runtime log_error symbol: {e}"))?;
+
+    let mut env_get_sig = module.make_signature();
+    env_get_sig.params.push(AbiParam::new(ptr_ty));
+    env_get_sig.returns.push(AbiParam::new(ptr_ty));
+    let env_get_fn = module
+        .declare_function("vibe_env_get", Linkage::Import, &env_get_sig)
+        .map_err(|e| format!("failed to declare runtime env_get symbol: {e}"))?;
+
+    let mut env_has_sig = module.make_signature();
+    env_has_sig.params.push(AbiParam::new(ptr_ty));
+    env_has_sig.returns.push(AbiParam::new(ir::types::I64));
+    let env_has_fn = module
+        .declare_function("vibe_env_has", Linkage::Import, &env_has_sig)
+        .map_err(|e| format!("failed to declare runtime env_has symbol: {e}"))?;
+
+    let mut env_get_required_sig = module.make_signature();
+    env_get_required_sig.params.push(AbiParam::new(ptr_ty));
+    env_get_required_sig.returns.push(AbiParam::new(ptr_ty));
+    let env_get_required_fn = module
+        .declare_function(
+            "vibe_env_get_required",
+            Linkage::Import,
+            &env_get_required_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime env_get_required symbol: {e}"))?;
+
+    let mut cli_args_len_sig = module.make_signature();
+    cli_args_len_sig.returns.push(AbiParam::new(ir::types::I64));
+    let cli_args_len_fn = module
+        .declare_function("vibe_cli_args_len", Linkage::Import, &cli_args_len_sig)
+        .map_err(|e| format!("failed to declare runtime cli_args_len symbol: {e}"))?;
+
+    let mut cli_arg_sig = module.make_signature();
+    cli_arg_sig.params.push(AbiParam::new(ir::types::I64));
+    cli_arg_sig.returns.push(AbiParam::new(ptr_ty));
+    let cli_arg_fn = module
+        .declare_function("vibe_cli_arg", Linkage::Import, &cli_arg_sig)
+        .map_err(|e| format!("failed to declare runtime cli_arg symbol: {e}"))?;
+
     let mut json_is_valid_sig = module.make_signature();
     json_is_valid_sig.params.push(AbiParam::new(ptr_ty));
     json_is_valid_sig
@@ -828,6 +1182,20 @@ fn declare_runtime_functions(
     let json_is_valid_fn = module
         .declare_function("vibe_json_is_valid", Linkage::Import, &json_is_valid_sig)
         .map_err(|e| format!("failed to declare runtime json_is_valid symbol: {e}"))?;
+
+    let mut json_parse_sig = module.make_signature();
+    json_parse_sig.params.push(AbiParam::new(ptr_ty));
+    json_parse_sig.returns.push(AbiParam::new(ptr_ty));
+    let json_parse_fn = module
+        .declare_function("vibe_json_parse", Linkage::Import, &json_parse_sig)
+        .map_err(|e| format!("failed to declare runtime json_parse symbol: {e}"))?;
+
+    let mut json_stringify_sig = module.make_signature();
+    json_stringify_sig.params.push(AbiParam::new(ptr_ty));
+    json_stringify_sig.returns.push(AbiParam::new(ptr_ty));
+    let json_stringify_fn = module
+        .declare_function("vibe_json_stringify", Linkage::Import, &json_stringify_sig)
+        .map_err(|e| format!("failed to declare runtime json_stringify symbol: {e}"))?;
 
     let mut json_parse_i64_sig = module.make_signature();
     json_parse_i64_sig.params.push(AbiParam::new(ptr_ty));
@@ -857,6 +1225,32 @@ fn declare_runtime_functions(
     let json_minify_fn = module
         .declare_function("vibe_json_minify", Linkage::Import, &json_minify_sig)
         .map_err(|e| format!("failed to declare runtime json_minify symbol: {e}"))?;
+
+    let mut json_encode_record_sig = module.make_signature();
+    json_encode_record_sig.params.push(AbiParam::new(ptr_ty));
+    json_encode_record_sig.params.push(AbiParam::new(ptr_ty));
+    json_encode_record_sig.returns.push(AbiParam::new(ptr_ty));
+    let json_encode_record_fn = module
+        .declare_function(
+            "vibe_json_encode_record",
+            Linkage::Import,
+            &json_encode_record_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime json_encode_record symbol: {e}"))?;
+
+    let mut json_decode_record_sig = module.make_signature();
+    json_decode_record_sig.params.push(AbiParam::new(ptr_ty)); // raw JSON
+    json_decode_record_sig.params.push(AbiParam::new(ptr_ty)); // schema
+    json_decode_record_sig.params.push(AbiParam::new(ptr_ty)); // fallback record
+    json_decode_record_sig.params.push(AbiParam::new(ptr_ty)); // out record
+    json_decode_record_sig.returns.push(AbiParam::new(ptr_ty));
+    let json_decode_record_fn = module
+        .declare_function(
+            "vibe_json_decode_record",
+            Linkage::Import,
+            &json_decode_record_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime json_decode_record symbol: {e}"))?;
 
     let mut regex_count_sig = module.make_signature();
     regex_count_sig.params.push(AbiParam::new(ptr_ty));
@@ -922,6 +1316,51 @@ fn declare_runtime_functions(
             &http_build_request_line_sig,
         )
         .map_err(|e| format!("failed to declare runtime http_build_request_line symbol: {e}"))?;
+
+    let mut http_request_sig = module.make_signature();
+    http_request_sig.params.push(AbiParam::new(ptr_ty));
+    http_request_sig.params.push(AbiParam::new(ptr_ty));
+    http_request_sig.params.push(AbiParam::new(ptr_ty));
+    http_request_sig.params.push(AbiParam::new(ir::types::I64));
+    http_request_sig.returns.push(AbiParam::new(ptr_ty));
+    let http_request_fn = module
+        .declare_function("vibe_http_request", Linkage::Import, &http_request_sig)
+        .map_err(|e| format!("failed to declare runtime http_request symbol: {e}"))?;
+
+    let mut http_request_status_sig = module.make_signature();
+    http_request_status_sig.params.push(AbiParam::new(ptr_ty));
+    http_request_status_sig.params.push(AbiParam::new(ptr_ty));
+    http_request_status_sig.params.push(AbiParam::new(ptr_ty));
+    http_request_status_sig
+        .params
+        .push(AbiParam::new(ir::types::I64));
+    http_request_status_sig
+        .returns
+        .push(AbiParam::new(ir::types::I64));
+    let http_request_status_fn = module
+        .declare_function(
+            "vibe_http_request_status",
+            Linkage::Import,
+            &http_request_status_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime http_request_status symbol: {e}"))?;
+
+    let mut http_get_sig = module.make_signature();
+    http_get_sig.params.push(AbiParam::new(ptr_ty));
+    http_get_sig.params.push(AbiParam::new(ir::types::I64));
+    http_get_sig.returns.push(AbiParam::new(ptr_ty));
+    let http_get_fn = module
+        .declare_function("vibe_http_get", Linkage::Import, &http_get_sig)
+        .map_err(|e| format!("failed to declare runtime http_get symbol: {e}"))?;
+
+    let mut http_post_sig = module.make_signature();
+    http_post_sig.params.push(AbiParam::new(ptr_ty));
+    http_post_sig.params.push(AbiParam::new(ptr_ty));
+    http_post_sig.params.push(AbiParam::new(ir::types::I64));
+    http_post_sig.returns.push(AbiParam::new(ptr_ty));
+    let http_post_fn = module
+        .declare_function("vibe_http_post", Linkage::Import, &http_post_sig)
+        .map_err(|e| format!("failed to declare runtime http_post symbol: {e}"))?;
 
     #[cfg(feature = "bench-runtime")]
     let bench_md5_hex_fn = {
@@ -1110,6 +1549,7 @@ fn declare_runtime_functions(
         select_cursor_fn,
         sleep_ms_fn,
         time_now_ms_fn,
+        time_monotonic_now_ms_fn,
         time_sleep_ms_fn,
         time_duration_ms_fn,
         path_join_fn,
@@ -1120,15 +1560,58 @@ fn declare_runtime_functions(
         fs_read_text_fn,
         fs_write_text_fn,
         fs_create_dir_fn,
+        net_listen_fn,
+        net_listener_port_fn,
+        net_accept_fn,
+        net_connect_fn,
+        net_read_fn,
+        net_write_fn,
+        net_close_fn,
+        net_resolve_fn,
+        convert_to_int_fn,
+        convert_to_float_fn,
+        convert_to_str_fn,
+        convert_to_str_f64_fn,
+        text_trim_fn,
+        text_contains_fn,
+        text_starts_with_fn,
+        text_ends_with_fn,
+        text_replace_fn,
+        text_to_lower_fn,
+        text_to_upper_fn,
+        text_byte_len_fn,
+        text_split_part_fn,
+        encoding_hex_encode_fn,
+        encoding_hex_decode_fn,
+        encoding_base64_encode_fn,
+        encoding_base64_decode_fn,
+        encoding_url_encode_fn,
+        encoding_url_decode_fn,
+        log_info_fn,
+        log_warn_fn,
+        log_error_fn,
+        env_get_fn,
+        env_has_fn,
+        env_get_required_fn,
+        cli_args_len_fn,
+        cli_arg_fn,
         json_is_valid_fn,
+        json_parse_fn,
+        json_stringify_fn,
         json_parse_i64_fn,
         json_stringify_i64_fn,
         json_minify_fn,
+        json_encode_record_fn,
+        json_decode_record_fn,
         regex_count_fn,
         regex_replace_all_fn,
         http_status_text_fn,
         http_default_port_fn,
         http_build_request_line_fn,
+        http_request_fn,
+        http_request_status_fn,
+        http_get_fn,
+        http_post_fn,
         #[cfg(feature = "bench-runtime")]
         bench_md5_hex_fn,
         #[cfg(feature = "bench-runtime")]
@@ -3157,6 +3640,10 @@ fn emit_expr(
                         module,
                         builder,
                         runtime_fns,
+                        ptr_ty,
+                        str_data_counter,
+                        owner,
+                        type_defs,
                     )? {
                         return Ok(value);
                     }
@@ -3732,6 +4219,23 @@ fn coerce_numeric_to_f64(builder: &mut FunctionBuilder<'_>, value: ir::Value) ->
     value
 }
 
+fn json_codec_schema(
+    type_name: &str,
+    type_defs: &BTreeMap<String, Vec<(String, String)>>,
+) -> Option<String> {
+    let fields = type_defs.get(type_name)?;
+    let mut schema = String::new();
+    for (idx, (field_name, field_ty)) in fields.iter().enumerate() {
+        if idx > 0 {
+            schema.push(';');
+        }
+        schema.push_str(field_name);
+        schema.push(':');
+        schema.push_str(field_ty);
+    }
+    Some(schema)
+}
+
 fn emit_stdlib_namespace_call(
     namespace: &str,
     field: &str,
@@ -3739,6 +4243,10 @@ fn emit_stdlib_namespace_call(
     module: &mut ObjectModule,
     builder: &mut FunctionBuilder<'_>,
     runtime_fns: RuntimeFunctions,
+    ptr_ty: ir::Type,
+    str_data_counter: &mut usize,
+    owner: &MirFunction,
+    type_defs: &BTreeMap<String, Vec<(String, String)>>,
 ) -> Result<Option<ir::Value>, String> {
     let call_no_args =
         |func: FuncId, module: &mut ObjectModule, builder: &mut FunctionBuilder<'_>| -> ir::Value {
@@ -3776,6 +4284,18 @@ fn emit_stdlib_namespace_call(
         let call = builder.ins().call(local, &[arg0, arg1, arg2]);
         call_result_or_zero(builder, call)
     };
+    let call_four_args = |func: FuncId,
+                          arg0: ir::Value,
+                          arg1: ir::Value,
+                          arg2: ir::Value,
+                          arg3: ir::Value,
+                          module: &mut ObjectModule,
+                          builder: &mut FunctionBuilder<'_>|
+     -> ir::Value {
+        let local = module.declare_func_in_func(func, builder.func);
+        let call = builder.ins().call(local, &[arg0, arg1, arg2, arg3]);
+        call_result_or_zero(builder, call)
+    };
 
     let expect_arity = |expected: usize| -> Result<(), String> {
         if lowered_args.len() != expected {
@@ -3787,10 +4307,50 @@ fn emit_stdlib_namespace_call(
         Ok(())
     };
 
+    if namespace == "json" {
+        if let Some(type_name) = field.strip_prefix("encode_") {
+            expect_arity(1)?;
+            let schema = json_codec_schema(type_name, type_defs).ok_or_else(|| {
+                format!("E3411: unknown json codec target type `{type_name}` for `{field}`")
+            })?;
+            let schema_ptr =
+                emit_string_data(module, builder, &schema, ptr_ty, str_data_counter, owner)?;
+            let local = module.declare_func_in_func(runtime_fns.json_encode_record_fn, builder.func);
+            let call = builder.ins().call(local, &[lowered_args[0], schema_ptr]);
+            return Ok(Some(call_result_or_zero(builder, call)));
+        }
+        if let Some(type_name) = field.strip_prefix("decode_") {
+            expect_arity(2)?;
+            let fields = type_defs.get(type_name).ok_or_else(|| {
+                format!("E3411: unknown json codec target type `{type_name}` for `{field}`")
+            })?;
+            let schema = json_codec_schema(type_name, type_defs).ok_or_else(|| {
+                format!("E3411: missing json schema for type `{type_name}`")
+            })?;
+            let schema_ptr =
+                emit_string_data(module, builder, &schema, ptr_ty, str_data_counter, owner)?;
+            let local_alloc = module.declare_func_in_func(runtime_fns.record_alloc_fn, builder.func);
+            let slot_const = builder.ins().iconst(ir::types::I64, fields.len() as i64);
+            let alloc_call = builder.ins().call(local_alloc, &[slot_const]);
+            let out_record = call_result_or_zero(builder, alloc_call);
+            let local_decode =
+                module.declare_func_in_func(runtime_fns.json_decode_record_fn, builder.func);
+            let call = builder.ins().call(
+                local_decode,
+                &[lowered_args[0], schema_ptr, lowered_args[1], out_record],
+            );
+            return Ok(Some(call_result_or_zero(builder, call)));
+        }
+    }
+
     let value = match (namespace, field) {
         ("time", "now_ms") => {
             expect_arity(0)?;
             call_no_args(runtime_fns.time_now_ms_fn, module, builder)
+        }
+        ("time", "monotonic_now_ms") => {
+            expect_arity(0)?;
+            call_no_args(runtime_fns.time_monotonic_now_ms_fn, module, builder)
         }
         ("time", "sleep_ms") => {
             expect_arity(1)?;
@@ -3875,6 +4435,215 @@ fn emit_stdlib_namespace_call(
                 builder,
             )
         }
+        ("net", "listen") => {
+            expect_arity(2)?;
+            call_two_args(
+                runtime_fns.net_listen_fn,
+                lowered_args[0],
+                lowered_args[1],
+                module,
+                builder,
+            )
+        }
+        ("net", "listener_port") => {
+            expect_arity(1)?;
+            call_one_arg(runtime_fns.net_listener_port_fn, lowered_args[0], module, builder)
+        }
+        ("net", "accept") => {
+            expect_arity(1)?;
+            call_one_arg(runtime_fns.net_accept_fn, lowered_args[0], module, builder)
+        }
+        ("net", "connect") => {
+            expect_arity(2)?;
+            call_two_args(
+                runtime_fns.net_connect_fn,
+                lowered_args[0],
+                lowered_args[1],
+                module,
+                builder,
+            )
+        }
+        ("net", "read") => {
+            expect_arity(2)?;
+            call_two_args(
+                runtime_fns.net_read_fn,
+                lowered_args[0],
+                lowered_args[1],
+                module,
+                builder,
+            )
+        }
+        ("net", "write") => {
+            expect_arity(2)?;
+            call_two_args(
+                runtime_fns.net_write_fn,
+                lowered_args[0],
+                lowered_args[1],
+                module,
+                builder,
+            )
+        }
+        ("net", "close") => {
+            expect_arity(1)?;
+            call_one_arg(runtime_fns.net_close_fn, lowered_args[0], module, builder)
+        }
+        ("net", "resolve") => {
+            expect_arity(1)?;
+            call_one_arg(runtime_fns.net_resolve_fn, lowered_args[0], module, builder)
+        }
+        ("convert", "to_int") | ("convert", "parse_i64") => {
+            expect_arity(1)?;
+            call_one_arg(runtime_fns.convert_to_int_fn, lowered_args[0], module, builder)
+        }
+        ("convert", "to_float") | ("convert", "parse_f64") => {
+            expect_arity(1)?;
+            call_one_arg(runtime_fns.convert_to_float_fn, lowered_args[0], module, builder)
+        }
+        ("convert", "to_str") => {
+            expect_arity(1)?;
+            call_one_arg(runtime_fns.convert_to_str_fn, lowered_args[0], module, builder)
+        }
+        ("convert", "to_str_f64") => {
+            expect_arity(1)?;
+            call_one_arg(runtime_fns.convert_to_str_f64_fn, lowered_args[0], module, builder)
+        }
+        ("text", "trim") => {
+            expect_arity(1)?;
+            call_one_arg(runtime_fns.text_trim_fn, lowered_args[0], module, builder)
+        }
+        ("text", "contains") => {
+            expect_arity(2)?;
+            call_two_args(
+                runtime_fns.text_contains_fn,
+                lowered_args[0],
+                lowered_args[1],
+                module,
+                builder,
+            )
+        }
+        ("text", "starts_with") => {
+            expect_arity(2)?;
+            call_two_args(
+                runtime_fns.text_starts_with_fn,
+                lowered_args[0],
+                lowered_args[1],
+                module,
+                builder,
+            )
+        }
+        ("text", "ends_with") => {
+            expect_arity(2)?;
+            call_two_args(
+                runtime_fns.text_ends_with_fn,
+                lowered_args[0],
+                lowered_args[1],
+                module,
+                builder,
+            )
+        }
+        ("text", "replace") => {
+            expect_arity(3)?;
+            call_three_args(
+                runtime_fns.text_replace_fn,
+                lowered_args[0],
+                lowered_args[1],
+                lowered_args[2],
+                module,
+                builder,
+            )
+        }
+        ("text", "to_lower") => {
+            expect_arity(1)?;
+            call_one_arg(runtime_fns.text_to_lower_fn, lowered_args[0], module, builder)
+        }
+        ("text", "to_upper") => {
+            expect_arity(1)?;
+            call_one_arg(runtime_fns.text_to_upper_fn, lowered_args[0], module, builder)
+        }
+        ("text", "byte_len") => {
+            expect_arity(1)?;
+            call_one_arg(runtime_fns.text_byte_len_fn, lowered_args[0], module, builder)
+        }
+        ("text", "split_part") => {
+            expect_arity(3)?;
+            call_three_args(
+                runtime_fns.text_split_part_fn,
+                lowered_args[0],
+                lowered_args[1],
+                lowered_args[2],
+                module,
+                builder,
+            )
+        }
+        ("encoding", "hex_encode") => {
+            expect_arity(1)?;
+            call_one_arg(runtime_fns.encoding_hex_encode_fn, lowered_args[0], module, builder)
+        }
+        ("encoding", "hex_decode") => {
+            expect_arity(1)?;
+            call_one_arg(runtime_fns.encoding_hex_decode_fn, lowered_args[0], module, builder)
+        }
+        ("encoding", "base64_encode") => {
+            expect_arity(1)?;
+            call_one_arg(
+                runtime_fns.encoding_base64_encode_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
+        }
+        ("encoding", "base64_decode") => {
+            expect_arity(1)?;
+            call_one_arg(
+                runtime_fns.encoding_base64_decode_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
+        }
+        ("encoding", "url_encode") => {
+            expect_arity(1)?;
+            call_one_arg(runtime_fns.encoding_url_encode_fn, lowered_args[0], module, builder)
+        }
+        ("encoding", "url_decode") => {
+            expect_arity(1)?;
+            call_one_arg(runtime_fns.encoding_url_decode_fn, lowered_args[0], module, builder)
+        }
+        ("log", "info") => {
+            expect_arity(1)?;
+            let _ = call_one_arg(runtime_fns.log_info_fn, lowered_args[0], module, builder);
+            builder.ins().iconst(ir::types::I64, 0)
+        }
+        ("log", "warn") => {
+            expect_arity(1)?;
+            let _ = call_one_arg(runtime_fns.log_warn_fn, lowered_args[0], module, builder);
+            builder.ins().iconst(ir::types::I64, 0)
+        }
+        ("log", "error") => {
+            expect_arity(1)?;
+            let _ = call_one_arg(runtime_fns.log_error_fn, lowered_args[0], module, builder);
+            builder.ins().iconst(ir::types::I64, 0)
+        }
+        ("env", "get") => {
+            expect_arity(1)?;
+            call_one_arg(runtime_fns.env_get_fn, lowered_args[0], module, builder)
+        }
+        ("env", "has") => {
+            expect_arity(1)?;
+            call_one_arg(runtime_fns.env_has_fn, lowered_args[0], module, builder)
+        }
+        ("env", "get_required") => {
+            expect_arity(1)?;
+            call_one_arg(runtime_fns.env_get_required_fn, lowered_args[0], module, builder)
+        }
+        ("cli", "args_len") => {
+            expect_arity(0)?;
+            call_no_args(runtime_fns.cli_args_len_fn, module, builder)
+        }
+        ("cli", "arg") => {
+            expect_arity(1)?;
+            call_one_arg(runtime_fns.cli_arg_fn, lowered_args[0], module, builder)
+        }
         ("json", "is_valid") => {
             expect_arity(1)?;
             call_one_arg(
@@ -3883,6 +4652,14 @@ fn emit_stdlib_namespace_call(
                 module,
                 builder,
             )
+        }
+        ("json", "parse") => {
+            expect_arity(1)?;
+            call_one_arg(runtime_fns.json_parse_fn, lowered_args[0], module, builder)
+        }
+        ("json", "stringify") => {
+            expect_arity(1)?;
+            call_one_arg(runtime_fns.json_stringify_fn, lowered_args[0], module, builder)
         }
         ("json", "parse_i64") => {
             expect_arity(1)?;
@@ -3951,6 +4728,51 @@ fn emit_stdlib_namespace_call(
                 runtime_fns.http_build_request_line_fn,
                 lowered_args[0],
                 lowered_args[1],
+                module,
+                builder,
+            )
+        }
+        ("http", "request") => {
+            expect_arity(4)?;
+            call_four_args(
+                runtime_fns.http_request_fn,
+                lowered_args[0],
+                lowered_args[1],
+                lowered_args[2],
+                lowered_args[3],
+                module,
+                builder,
+            )
+        }
+        ("http", "request_status") => {
+            expect_arity(4)?;
+            call_four_args(
+                runtime_fns.http_request_status_fn,
+                lowered_args[0],
+                lowered_args[1],
+                lowered_args[2],
+                lowered_args[3],
+                module,
+                builder,
+            )
+        }
+        ("http", "get") => {
+            expect_arity(2)?;
+            call_two_args(
+                runtime_fns.http_get_fn,
+                lowered_args[0],
+                lowered_args[1],
+                module,
+                builder,
+            )
+        }
+        ("http", "post") => {
+            expect_arity(3)?;
+            call_three_args(
+                runtime_fns.http_post_fn,
+                lowered_args[0],
+                lowered_args[1],
+                lowered_args[2],
                 module,
                 builder,
             )
@@ -4093,9 +4915,15 @@ fn is_known_string_expr(expr: &MirExpr) -> bool {
                 if matches!(&**object, MirExpr::Var(namespace)
                     if (namespace == "path" && (field == "join" || field == "parent" || field == "basename"))
                     || (namespace == "fs" && field == "read_text")
-                    || (namespace == "json" && (field == "stringify_i64" || field == "minify"))
+                    || (namespace == "net" && (field == "read" || field == "resolve"))
+                    || (namespace == "convert" && (field == "to_str" || field == "to_str_f64"))
+                    || (namespace == "text" && (field == "trim" || field == "replace" || field == "to_lower" || field == "to_upper" || field == "split_part"))
+                    || (namespace == "encoding" && (field == "hex_encode" || field == "hex_decode" || field == "base64_encode" || field == "base64_decode" || field == "url_encode" || field == "url_decode"))
+                    || (namespace == "env" && (field == "get" || field == "get_required"))
+                    || (namespace == "cli" && field == "arg")
+                    || (namespace == "json" && (field == "parse" || field == "stringify" || field.starts_with("encode_") || field == "stringify_i64" || field == "minify"))
                     || (namespace == "regex" && field == "replace_all")
-                    || (namespace == "http" && (field == "status_text" || field == "build_request_line"))
+                    || (namespace == "http" && (field == "status_text" || field == "build_request_line" || field == "get" || field == "post" || field == "request"))
                     || (namespace == "bench" && (field == "md5_hex" || field == "json_canonical" || field == "json_repeat_array" || field == "secp256k1" || field == "edigits" || field == "net_read"))
                 )
             ) =>
@@ -4365,6 +5193,16 @@ fn value_type_for_expr(
             ir::types::F64
         }
         MirExpr::Call { callee, .. }
+            if matches!(
+                &**callee,
+                MirExpr::Member { object, field, .. }
+                if matches!(&**object, MirExpr::Var(namespace)
+                    if namespace == "convert" && (field == "to_float" || field == "parse_f64"))
+            ) =>
+        {
+            ir::types::F64
+        }
+        MirExpr::Call { callee, .. }
             if matches!(&**callee, MirExpr::Var(name)
                 if matches!(function_returns.get(name), Some(MirType::Bool))) =>
         {
@@ -4393,10 +5231,15 @@ fn value_type_for_expr(
                 if matches!(&**object, MirExpr::Var(namespace)
                     if (namespace == "path" && (field == "join" || field == "parent" || field == "basename"))
                     || (namespace == "fs" && field == "read_text")
-                    || (namespace == "net" && field == "read")
-                    || (namespace == "json" && (field == "stringify_i64" || field == "minify" || field == "canonical" || field == "repeat_array"))
+                    || (namespace == "net" && (field == "read" || field == "resolve"))
+                    || (namespace == "convert" && (field == "to_str" || field == "to_str_f64"))
+                    || (namespace == "text" && (field == "trim" || field == "replace" || field == "to_lower" || field == "to_upper" || field == "split_part"))
+                    || (namespace == "encoding" && (field == "hex_encode" || field == "hex_decode" || field == "base64_encode" || field == "base64_decode" || field == "url_encode" || field == "url_decode"))
+                    || (namespace == "env" && (field == "get" || field == "get_required"))
+                    || (namespace == "cli" && field == "arg")
+                    || (namespace == "json" && (field == "parse" || field == "stringify" || field.starts_with("encode_") || field.starts_with("decode_") || field == "stringify_i64" || field == "minify" || field == "canonical" || field == "repeat_array"))
                     || (namespace == "regex" && field == "replace_all")
-                    || (namespace == "http" && (field == "status_text" || field == "build_request_line"))
+                    || (namespace == "http" && (field == "status_text" || field == "build_request_line" || field == "get" || field == "post" || field == "request"))
                     || (namespace == "hash" && field == "md5_hex")
                     || (namespace == "crypto" && field == "secp256k1_bench")
                     || (namespace == "math" && field == "edigits")

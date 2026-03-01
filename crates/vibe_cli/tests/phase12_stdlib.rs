@@ -1,4 +1,6 @@
 use std::fs;
+use std::io::{Read, Write};
+use std::net::TcpListener;
 use std::path::PathBuf;
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -9,12 +11,54 @@ fn phase12_stdlib_module_surface_runs_end_to_end() {
     fs::create_dir_all(&root).expect("create temp root");
     let text_file = root.join("note.txt");
     let made_dir = root.join("made");
+    let listener = TcpListener::bind("127.0.0.1:0").expect("bind local tcp test server");
+    let server_port = listener.local_addr().expect("listener addr").port();
+    let server_thread = std::thread::spawn(move || {
+        let (mut stream, _) = listener.accept().expect("accept client");
+        let mut buf = [0u8; 16];
+        let _ = stream.read(&mut buf).expect("read client payload");
+        stream.write_all(b"pong").expect("write server response");
+    });
+    let http_listener = TcpListener::bind("127.0.0.1:0").expect("bind local http test server");
+    let http_port = http_listener
+        .local_addr()
+        .expect("http listener addr")
+        .port();
+    let http_thread = std::thread::spawn(move || {
+        for _ in 0..3 {
+            let (mut stream, _) = http_listener.accept().expect("accept http client");
+            let mut req = [0u8; 4096];
+            let n = stream.read(&mut req).expect("read http request");
+            let raw = String::from_utf8_lossy(&req[..n]);
+            let body = if raw.starts_with("POST ") {
+                "posted"
+            } else {
+                "ready"
+            };
+            let response = format!(
+                "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                body.len(),
+                body
+            );
+            stream
+                .write_all(response.as_bytes())
+                .expect("write http response");
+        }
+    });
     let source = temp_source_file(
         "phase12_stdlib_surface",
         &format!(
             r#"
+type User {{
+  id: Int,
+  name: Str,
+  active: Bool
+}}
+
 pub main() -> Int {{
   @effect io
+  @effect alloc
+  @effect net
   println(path.join("/tmp", "vibe"))
   println(path.parent("/tmp/vibe/file.txt"))
   println(path.basename("/tmp/vibe/file.txt"))
@@ -22,14 +66,87 @@ pub main() -> Int {{
     println("abs")
   }}
   println(json.stringify_i64(time.duration_ms(2)))
+  println(convert.to_str(convert.to_int("123")))
+  println(convert.to_str_f64(convert.to_float("3.5")))
+  println(convert.to_str(convert.parse_i64("7")))
+  println(convert.to_str_f64(convert.parse_f64("2.25")))
+  println(text.trim("  hi  "))
+  if text.contains("abc", "b") {{
+    println("contains")
+  }}
+  if text.starts_with("abc", "a") {{
+    println("starts")
+  }}
+  if text.ends_with("abc", "c") {{
+    println("ends")
+  }}
+  println(text.replace("a-b-c", "-", "+"))
+  println(text.to_lower("HeLLo"))
+  println(text.to_upper("HeLLo"))
+  println(json.stringify_i64(text.byte_len("abc")))
+  println(text.split_part("a,b,c", ",", 1))
+  println(encoding.hex_encode("A"))
+  println(encoding.hex_decode("4142"))
+  println(encoding.base64_encode("hi"))
+  println(encoding.base64_decode("aGk="))
+  println(encoding.url_encode("a b"))
+  println(encoding.url_decode("a%20b"))
+  if time.monotonic_now_ms() > 0 {{
+    println("mono-ok")
+  }}
   println(json.stringify_i64(json.parse_i64("42")))
   println(json.minify("{{ \"a\" : 1 }}"))
+  println(json.parse("{{ \"a\" : 1 }}"))
+  println(json.stringify("{{\"b\":2}}"))
+  println(json.stringify("hello-stdlib"))
+  fallback := User {{ id: 1, name: "fallback", active: false }}
+  decoded := json.decode_User("{{\"id\":7,\"name\":\"sam\",\"active\":true}}", fallback)
+  println(json.encode_User(decoded))
+  println(json.stringify_i64(decoded.id))
+  println(decoded.name)
+  if decoded.active {{
+    println("active")
+  }}
+  decoded2 := json.decode_User("{{\"id\":2}}", fallback)
+  println(json.encode_User(decoded2))
+  println(json.stringify_i64(decoded2.id))
+  println(decoded2.name)
+  if decoded2.active {{
+    println("active-2")
+  }} else {{
+    println("inactive-2")
+  }}
   if json.is_valid("{{\"a\":1}}") {{
     println("json-ok")
   }}
   println(http.status_text(200))
   println(json.stringify_i64(http.default_port("https")))
   println(http.build_request_line("GET", "/ready"))
+  println(env.get("VIBE_PHASE12_ENV"))
+  if env.has("VIBE_PHASE12_ENV") {{
+    println("env-has")
+  }}
+  println(env.get_required("VIBE_PHASE12_ENV"))
+  println(json.stringify_i64(cli.args_len()))
+  println(cli.arg(0))
+  log.error("phase12-log")
+  println(http.get("http://127.0.0.1:{http_port}/ready", 2000))
+  println(json.stringify_i64(http.request_status("GET", "http://127.0.0.1:{http_port}/ready", "", 2000)))
+  println(http.post("http://127.0.0.1:{http_port}/submit", "payload", 2000))
+  listener := net.listen("127.0.0.1", 0)
+  if net.listener_port(listener) > 0 {{
+    println("listen-ok")
+  }}
+  if net.close(listener) {{
+    println("listen-close-ok")
+  }}
+  conn := net.connect("127.0.0.1", {server_port})
+  println(json.stringify_i64(net.write(conn, "ping")))
+  println(net.read(conn, 16))
+  if net.close(conn) {{
+    println("net-close-ok")
+  }}
+  println(net.resolve("localhost"))
   if fs.write_text("{text_file}", "hello-stdlib") {{
     println("write-ok")
   }}
@@ -43,11 +160,15 @@ pub main() -> Int {{
   0
 }}
 "#,
+            server_port = server_port,
+            http_port = http_port,
             text_file = text_file.display(),
             made_dir = made_dir.display()
         ),
     );
     let out = run_vibe(&["run", source.to_str().expect("source path str")]);
+    server_thread.join().expect("join local tcp test server");
+    http_thread.join().expect("join local http test server");
     assert!(
         out.status.success(),
         "run failed:\nstdout:\n{}\nstderr:\n{}",
@@ -56,7 +177,7 @@ pub main() -> Int {{
     );
     assert_eq!(
         out.stdout,
-        "/tmp/vibe\n/tmp/vibe\nfile.txt\nabs\n2000\n42\n{\"a\":1}\njson-ok\nOK\n443\nGET /ready HTTP/1.1\nwrite-ok\nexists-ok\nhello-stdlib\nmkdir-ok\n"
+        "/tmp/vibe\n/tmp/vibe\nfile.txt\nabs\n2000\n123\n3.5\n7\n2.25\nhi\ncontains\nstarts\nends\na+b+c\nhello\nHELLO\n3\nb\n41\nAB\naGk=\nhi\na%20b\na b\nmono-ok\n42\n{\"a\":1}\n{\"a\":1}\n{\"b\":2}\n\"hello-stdlib\"\n{\"id\":7,\"name\":\"sam\",\"active\":true}\n7\nsam\nactive\n{\"id\":2,\"name\":\"fallback\",\"active\":false}\n2\nfallback\ninactive-2\njson-ok\nOK\n443\nGET /ready HTTP/1.1\nphase12\nenv-has\nphase12\n0\n\nready\n200\nposted\nlisten-ok\nlisten-close-ok\n4\npong\nnet-close-ok\n127.0.0.1\nwrite-ok\nexists-ok\nhello-stdlib\nmkdir-ok\n"
     );
 }
 
@@ -100,7 +221,11 @@ fn phase12_stdlib_outputs_are_deterministic_across_runs() {
 pub main() -> Int {
   @effect io
   println(path.join("/a", "b"))
+  println(convert.to_str(convert.to_int("88")))
+  println(convert.to_str_f64(convert.parse_f64("1.75")))
   println(json.minify("{ \"k\" : 1 }"))
+  println(json.parse("{\"k\":1}"))
+  println(json.stringify("k=v"))
   println(http.build_request_line("POST", "/submit"))
   println(json.stringify_i64(time.duration_ms(3)))
   0
@@ -133,6 +258,8 @@ fn phase12_stdlib_error_model_is_stable() {
 pub main() -> Int {{
   @effect io
   println(json.stringify_i64(json.parse_i64("not-a-number")))
+  println(convert.to_str(convert.to_int("not-an-int")))
+  println(json.parse("not-json"))
   println(fs.read_text("{missing}"))
   if json.is_valid("nope") {{
     println("bad")
@@ -151,7 +278,7 @@ pub main() -> Int {{
         out.stdout,
         out.stderr
     );
-    assert_eq!(out.stdout, "0\n\ninvalid\n");
+    assert_eq!(out.stdout, "0\n0\n\n\ninvalid\n");
 }
 
 #[test]
@@ -199,6 +326,7 @@ fn unique_temp_dir(prefix: &str) -> PathBuf {
 fn run_vibe(args: &[&str]) -> CmdOutput {
     let output = Command::new(vibe_bin())
         .args(args)
+        .env("VIBE_PHASE12_ENV", "phase12")
         .current_dir(workspace_root())
         .output()
         .expect("run vibe command");

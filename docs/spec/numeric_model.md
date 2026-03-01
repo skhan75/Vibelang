@@ -118,6 +118,22 @@ Numeric diagnostics SHOULD include:
 - overflow/divide-by-zero context
 - suggested fix (change type, explicit conversion, policy-aware helper)
 
+## Stdlib Conversion Surface (Preview)
+
+`std.convert` currently provides:
+
+- `to_int` / `parse_i64`
+- `to_float` / `parse_f64`
+- `to_str` / `to_str_f64`
+
+Current preview behavior:
+
+- parse failures use sentinel returns (`0` / `0.0`)
+- formatting is deterministic (decimal / shortest-roundtrip for `f64`)
+
+Result-based parse/cast contracts are tracked for promotion in:
+`docs/checklists/features_and_optimizations.md` (`F-05`).
+
 ## Deferred Notes
 
 - Decimal fixed-point and big-integer types are deferred beyond v1 target unless

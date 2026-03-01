@@ -90,11 +90,9 @@ Closure evidence:
 
 Only mark benchmark evidence as public-ready when all of the following are true:
 
-- [ ] B1 through B5 are closed.
-- [ ] Report generated in strict publication mode.
-- [ ] All required lanes are present and validated.
-- [ ] Delta report compares two strict publication runs.
-- [ ] Cloud reproducibility rerun reproduces the same conclusion envelope.
+The canonical checklist for benchmark execution + publication readiness is:
+
+- `docs/checklists/benchmarks.md`
 
 ## Current status
 

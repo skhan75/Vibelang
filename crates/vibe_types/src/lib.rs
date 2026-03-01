@@ -1651,6 +1651,7 @@ fn infer_expr(
                             field,
                             args,
                             &arg_types,
+                            ctx.type_defs,
                             diagnostics,
                             observed_effects,
                             callee.span(),
@@ -2372,19 +2373,56 @@ fn is_known_effect(e: &str) -> bool {
 
 fn stdlib_namespace_return_hint(namespace: &str, field: &str) -> Option<TypeKind> {
     match (namespace, field) {
-        ("time", "now_ms") | ("time", "duration_ms") => Some(TypeKind::Int),
+        ("time", "now_ms") | ("time", "monotonic_now_ms") | ("time", "duration_ms") => {
+            Some(TypeKind::Int)
+        }
         ("time", "sleep_ms") => Some(TypeKind::Void),
         ("path", "join") | ("path", "parent") | ("path", "basename") => Some(TypeKind::Str),
         ("path", "is_absolute") => Some(TypeKind::Bool),
         ("fs", "exists") | ("fs", "write_text") | ("fs", "create_dir") => Some(TypeKind::Bool),
         ("fs", "read_text") => Some(TypeKind::Str),
+        ("net", "listen")
+        | ("net", "listener_port")
+        | ("net", "accept")
+        | ("net", "connect")
+        | ("net", "write") => Some(TypeKind::Int),
+        ("net", "read") | ("net", "resolve") => Some(TypeKind::Str),
+        ("net", "close") => Some(TypeKind::Bool),
+        ("convert", "to_int") | ("convert", "parse_i64") => Some(TypeKind::Int),
+        ("convert", "to_float") | ("convert", "parse_f64") => Some(TypeKind::Float),
+        ("convert", "to_str") | ("convert", "to_str_f64") => Some(TypeKind::Str),
+        ("text", "trim")
+        | ("text", "replace")
+        | ("text", "to_lower")
+        | ("text", "to_upper")
+        | ("text", "split_part") => Some(TypeKind::Str),
+        ("text", "contains") | ("text", "starts_with") | ("text", "ends_with") => {
+            Some(TypeKind::Bool)
+        }
+        ("text", "byte_len") => Some(TypeKind::Int),
+        ("encoding", "hex_encode")
+        | ("encoding", "hex_decode")
+        | ("encoding", "base64_encode")
+        | ("encoding", "base64_decode")
+        | ("encoding", "url_encode")
+        | ("encoding", "url_decode") => Some(TypeKind::Str),
+        ("log", "info") | ("log", "warn") | ("log", "error") => Some(TypeKind::Void),
+        ("env", "get") | ("env", "get_required") => Some(TypeKind::Str),
+        ("env", "has") => Some(TypeKind::Bool),
+        ("cli", "args_len") => Some(TypeKind::Int),
+        ("cli", "arg") => Some(TypeKind::Str),
         ("json", "is_valid") => Some(TypeKind::Bool),
+        ("json", "parse") | ("json", "stringify") => Some(TypeKind::Str),
         ("json", "parse_i64") => Some(TypeKind::Int),
         ("json", "stringify_i64") | ("json", "minify") => Some(TypeKind::Str),
         ("regex", "count") => Some(TypeKind::Int),
         ("regex", "replace_all") => Some(TypeKind::Str),
-        ("http", "status_text") | ("http", "build_request_line") => Some(TypeKind::Str),
-        ("http", "default_port") => Some(TypeKind::Int),
+        ("http", "status_text")
+        | ("http", "build_request_line")
+        | ("http", "get")
+        | ("http", "post")
+        | ("http", "request") => Some(TypeKind::Str),
+        ("http", "default_port") | ("http", "request_status") => Some(TypeKind::Int),
         #[cfg(feature = "bench-runtime")]
         ("bench", "md5_hex")
         | ("bench", "json_canonical")
@@ -2411,13 +2449,104 @@ fn infer_stdlib_namespace_call(
     field: &str,
     args: &[Expr],
     arg_types: &[TypeKind],
+    type_defs: &BTreeMap<String, Vec<(String, TypeKind)>>,
     diagnostics: &mut Diagnostics,
     observed_effects: &mut BTreeSet<String>,
     call_span: Span,
 ) -> Option<TypeKind> {
+    if namespace == "json" {
+        if let Some(target_type_name) = field.strip_prefix("encode_") {
+            if !type_defs.contains_key(target_type_name) {
+                diagnostics.push(Diagnostic::new(
+                    "E2239",
+                    Severity::Error,
+                    format!("unknown json codec target type `{target_type_name}`"),
+                    call_span,
+                ));
+                return Some(TypeKind::Unknown);
+            }
+            if args.len() != 1 {
+                diagnostics.push(Diagnostic::new(
+                    "E2237",
+                    Severity::Error,
+                    format!("`json.{field}` expects 1 argument(s), got {}", args.len()),
+                    call_span,
+                ));
+                return Some(TypeKind::Unknown);
+            }
+            if let Some(actual) = arg_types.first() {
+                if !matches!(actual, TypeKind::Unknown)
+                    && !type_compatible(actual, &TypeKind::UserType(target_type_name.to_string()))
+                {
+                    diagnostics.push(Diagnostic::new(
+                        "E2238",
+                        Severity::Error,
+                        format!(
+                            "`json.{field}` argument 1 expects `{}`, got `{}`",
+                            target_type_name,
+                            type_name(actual)
+                        ),
+                        args.first().map(|arg| arg.span()).unwrap_or(call_span),
+                    ));
+                }
+            }
+            return Some(TypeKind::Str);
+        }
+        if let Some(target_type_name) = field.strip_prefix("decode_") {
+            if !type_defs.contains_key(target_type_name) {
+                diagnostics.push(Diagnostic::new(
+                    "E2239",
+                    Severity::Error,
+                    format!("unknown json codec target type `{target_type_name}`"),
+                    call_span,
+                ));
+                return Some(TypeKind::Unknown);
+            }
+            if args.len() != 2 {
+                diagnostics.push(Diagnostic::new(
+                    "E2237",
+                    Severity::Error,
+                    format!("`json.{field}` expects 2 argument(s), got {}", args.len()),
+                    call_span,
+                ));
+                return Some(TypeKind::Unknown);
+            }
+            if let Some(actual) = arg_types.first() {
+                if !matches!(actual, TypeKind::Str | TypeKind::Unknown) {
+                    diagnostics.push(Diagnostic::new(
+                        "E2238",
+                        Severity::Error,
+                        format!(
+                            "`json.{field}` argument 1 expects `Str`, got `{}`",
+                            type_name(actual)
+                        ),
+                        args.first().map(|arg| arg.span()).unwrap_or(call_span),
+                    ));
+                }
+            }
+            if let Some(actual) = arg_types.get(1) {
+                if !matches!(actual, TypeKind::Unknown)
+                    && !type_compatible(actual, &TypeKind::UserType(target_type_name.to_string()))
+                {
+                    diagnostics.push(Diagnostic::new(
+                        "E2238",
+                        Severity::Error,
+                        format!(
+                            "`json.{field}` argument 2 expects `{}`, got `{}`",
+                            target_type_name,
+                            type_name(actual)
+                        ),
+                        args.get(1).map(|arg| arg.span()).unwrap_or(call_span),
+                    ));
+                }
+            }
+            return Some(TypeKind::UserType(target_type_name.to_string()));
+        }
+    }
+
     let ret = stdlib_namespace_return_hint(namespace, field)?;
     let expected = match (namespace, field) {
-        ("time", "now_ms") => Some((&[][..], "nondet")),
+        ("time", "now_ms") | ("time", "monotonic_now_ms") => Some((&[][..], "nondet")),
         ("time", "duration_ms") => Some((&["Int"][..], "")),
         ("time", "sleep_ms") => Some((&["Int"][..], "io")),
         ("path", "join") => Some((&["Str", "Str"][..], "")),
@@ -2426,7 +2555,43 @@ fn infer_stdlib_namespace_call(
         }
         ("fs", "exists") | ("fs", "read_text") | ("fs", "create_dir") => Some((&["Str"][..], "io")),
         ("fs", "write_text") => Some((&["Str", "Str"][..], "io")),
-        ("json", "is_valid") | ("json", "parse_i64") | ("json", "minify") => {
+        ("net", "listen") | ("net", "connect") => Some((&["Str", "Int"][..], "net")),
+        ("net", "listener_port") | ("net", "accept") | ("net", "close") => {
+            Some((&["Int"][..], "net"))
+        }
+        ("net", "read") => Some((&["Int", "Int"][..], "net")),
+        ("net", "write") => Some((&["Int", "Str"][..], "net")),
+        ("net", "resolve") => Some((&["Str"][..], "net")),
+        ("convert", "to_int") | ("convert", "parse_i64") => Some((&["Str"][..], "")),
+        ("convert", "to_float") | ("convert", "parse_f64") => Some((&["Str"][..], "")),
+        ("convert", "to_str") => Some((&["Int"][..], "")),
+        ("convert", "to_str_f64") => Some((&["Float"][..], "")),
+        ("text", "trim")
+        | ("text", "to_lower")
+        | ("text", "to_upper")
+        | ("encoding", "hex_encode")
+        | ("encoding", "hex_decode")
+        | ("encoding", "base64_encode")
+        | ("encoding", "base64_decode")
+        | ("encoding", "url_encode")
+        | ("encoding", "url_decode")
+        | ("env", "get")
+        | ("env", "get_required") => Some((&["Str"][..], "")),
+        ("text", "contains") | ("text", "starts_with") | ("text", "ends_with") => {
+            Some((&["Str", "Str"][..], ""))
+        }
+        ("text", "replace") => Some((&["Str", "Str", "Str"][..], "")),
+        ("text", "byte_len") => Some((&["Str"][..], "")),
+        ("text", "split_part") => Some((&["Str", "Str", "Int"][..], "")),
+        ("log", "info") | ("log", "warn") | ("log", "error") => Some((&["Str"][..], "io")),
+        ("env", "has") => Some((&["Str"][..], "nondet")),
+        ("cli", "args_len") => Some((&[][..], "nondet")),
+        ("cli", "arg") => Some((&["Int"][..], "nondet")),
+        ("json", "is_valid")
+        | ("json", "parse")
+        | ("json", "stringify")
+        | ("json", "parse_i64")
+        | ("json", "minify") => {
             Some((&["Str"][..], ""))
         }
         ("json", "stringify_i64") => Some((&["Int"][..], "")),
@@ -2435,6 +2600,11 @@ fn infer_stdlib_namespace_call(
         ("http", "status_text") => Some((&["Int"][..], "")),
         ("http", "default_port") => Some((&["Str"][..], "")),
         ("http", "build_request_line") => Some((&["Str", "Str"][..], "")),
+        ("http", "get") => Some((&["Str", "Int"][..], "net")),
+        ("http", "post") => Some((&["Str", "Str", "Int"][..], "net")),
+        ("http", "request") | ("http", "request_status") => {
+            Some((&["Str", "Str", "Str", "Int"][..], "net"))
+        }
         #[cfg(feature = "bench-runtime")]
         ("bench", "md5_hex") | ("bench", "json_canonical") => Some((&["Str"][..], "")),
         #[cfg(feature = "bench-runtime")]
@@ -2478,6 +2648,7 @@ fn infer_stdlib_namespace_call(
             let expect_match = match *expected_ty {
                 "Int" => matches!(actual, TypeKind::Int | TypeKind::Unknown),
                 "Str" => matches!(actual, TypeKind::Str | TypeKind::Unknown),
+                "Float" => matches!(actual, TypeKind::Float | TypeKind::Unknown),
                 _ => true,
             };
             if !expect_match {
@@ -2524,6 +2695,13 @@ fn is_builtin_ident(name: &str) -> bool {
             | "time"
             | "path"
             | "fs"
+            | "net"
+            | "convert"
+            | "text"
+            | "encoding"
+            | "log"
+            | "env"
+            | "cli"
             | "json"
             | "regex"
             | "http"

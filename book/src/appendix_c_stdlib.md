@@ -218,12 +218,45 @@ json.is_valid("{\"name\": \"vibe\"}")  // true
 json.is_valid("not json")              // false
 ```
 
-### `parse_i64(s: Str) -> Result<Int, Error>`
+### `parse(s: Str) -> Str`
+
+Returns canonicalized JSON text when input is valid JSON, otherwise returns `""`.
+
+```vibe
+json.parse("{ \"a\" : 1 }")  // "{\"a\":1}"
+json.parse("nope")           // ""
+```
+
+### `stringify(s: Str) -> Str`
+
+If input is already valid JSON, returns canonicalized JSON text. Otherwise returns
+a quoted JSON string.
+
+```vibe
+json.stringify("{\"a\":1}")  // "{\"a\":1}"
+json.stringify("hello")      // "\"hello\""
+```
+
+### Generated typed codecs: `encode_<Type>` / `decode_<Type>`
+
+For nominal `type` declarations, the compiler exposes typed JSON codec entrypoints
+under `json.*`:
+
+```vibe
+type User { id: Int, name: Str, active: Bool }
+
+fallback := User { id: 1, name: "fallback", active: false }
+decoded := json.decode_User("{\"id\":7,\"name\":\"sam\",\"active\":true}", fallback)
+wire := json.encode_User(decoded)
+```
+
+### `parse_i64(s: Str) -> Int`
 
 Parses a JSON string containing a single integer value.
 
 ```vibe
-val := json.parse_i64("42")?  // 42
+val := json.parse_i64("42")  // 42
+json.parse_i64("bad")        // 0
 ```
 
 ### `stringify_i64(n: Int) -> Str`
@@ -235,23 +268,23 @@ json.stringify_i64(42)   // "42"
 json.stringify_i64(-1)   // "-1"
 ```
 
-### `minify(s: Str) -> Result<Str, Error>`
+### `minify(s: Str) -> Str`
 
 Removes insignificant whitespace from a JSON string.
 
 ```vibe
-compact := json.minify("{ \"a\" : 1 }")?  // "{\"a\":1}"
+compact := json.minify("{ \"a\" : 1 }")  // "{\"a\":1}"
 ```
 
 ---
 
 ## C.7 `http` — HTTP Utilities (Preview)
 
-Helper functions for working with the HTTP protocol. These are protocol-level
-utilities; actual network I/O is handled by runtime HTTP client/server APIs.
+Sync-first HTTP client helpers plus protocol utilities.
 Import: `import std.http`
 
-All functions are pure (no effects).
+`status_text/default_port/build_request_line` are pure helpers.
+`request/request_status/get/post` require `@effect net`.
 
 ### `status_text(code: Int) -> Str`
 
@@ -282,6 +315,30 @@ http.build_request_line("GET", "/api/users")
 // "GET /api/users HTTP/1.1"
 ```
 
+### `request(method: Str, url: Str, body: Str, timeout_ms: Int) -> Str`
+
+Performs a sync HTTP request and returns response body text.
+
+```vibe
+resp := http.request("POST", "http://127.0.0.1:8080/api", "{\"ok\":true}", 2000)
+```
+
+### `request_status(method: Str, url: Str, body: Str, timeout_ms: Int) -> Int`
+
+Returns only the HTTP status code for the request.
+
+```vibe
+status := http.request_status("GET", "http://127.0.0.1:8080/health", "", 2000)
+```
+
+### `get(url: Str, timeout_ms: Int) -> Str`
+
+Convenience wrapper around `request("GET", ...)`.
+
+### `post(url: Str, body: Str, timeout_ms: Int) -> Str`
+
+Convenience wrapper around `request("POST", ...)`.
+
 ---
 
 ## C.8 Module Summary
@@ -290,11 +347,18 @@ http.build_request_line("GET", "/api/users")
 |--------|-------------|------------------|:---------:|
 | `io`   | **Stable**  | `io`             | 3         |
 | `core` | **Stable**  | None             | —         |
-| `time` | **Preview** | `nondet`         | 3         |
+| `time` | **Preview** | `nondet`         | 4         |
 | `path` | **Stable**  | None             | 4         |
 | `fs`   | **Preview** | `io`             | 4         |
-| `json` | **Preview** | None             | 4         |
-| `http` | **Preview** | None             | 3         |
+| `net`  | **Preview** | `net`            | 8         |
+| `convert` | **Preview** | None          | 6         |
+| `text` | **Preview** | None             | 9         |
+| `encoding` | **Preview** | None         | 6         |
+| `json` | **Preview** | None             | 6         |
+| `http` | **Preview** | `net` (client ops) | 7      |
+| `log`  | **Preview** | `io`             | 3         |
+| `env`  | **Preview** | `nondet`         | 3         |
+| `cli`  | **Preview** | `nondet`         | 2         |
 
 ---
 
@@ -306,8 +370,15 @@ import std.core    // deterministic utilities
 import std.time    // now_ms, sleep_ms, duration_ms
 import std.path    // join, parent, basename, is_absolute
 import std.fs      // exists, read_text, write_text, create_dir
-import std.json    // is_valid, parse_i64, stringify_i64, minify
-import std.http    // status_text, default_port, build_request_line
+import std.net     // listen, listener_port, accept, connect, read, write, close, resolve
+import std.convert // to_int, parse_i64, to_float, parse_f64, to_str, to_str_f64
+import std.text    // trim, contains, starts_with, ends_with, replace, to_lower, to_upper, byte_len, split_part
+import std.encoding // hex/base64/url encode/decode
+import std.json    // is_valid, parse, stringify, parse_i64, stringify_i64, minify
+import std.http    // status_text, default_port, build_request_line, request, request_status, get, post
+import std.log     // info, warn, error
+import std.env     // get, has, get_required
+import std.cli     // args_len, arg
 ```
 
 ---
@@ -320,6 +391,7 @@ import std.http    // status_text, default_port, build_request_line
 | `print(Str)`                   | io     | `io`     |
 | `eprintln(Str)`                | io     | `io`     |
 | `now_ms()`                     | time   | `nondet` |
+| `monotonic_now_ms()`           | time   | `nondet` |
 | `sleep_ms(Int)`                | time   | `nondet` |
 | `duration_ms(Int)`             | time   | None     |
 | `join(Str, Str)`               | path   | None     |
@@ -330,10 +402,53 @@ import std.http    // status_text, default_port, build_request_line
 | `read_text(Str)`               | fs     | `io`     |
 | `write_text(Str, Str)`         | fs     | `io`     |
 | `create_dir(Str)`              | fs     | `io`     |
+| `listen(Str, Int)`             | net    | `net`    |
+| `listener_port(Int)`           | net    | `net`    |
+| `accept(Int)`                  | net    | `net`    |
+| `connect(Str, Int)`            | net    | `net`    |
+| `read(Int, Int)`               | net    | `net`    |
+| `write(Int, Str)`              | net    | `net`    |
+| `close(Int)`                   | net    | `net`    |
+| `resolve(Str)`                 | net    | `net`    |
+| `to_int(Str)`                  | convert | None    |
+| `parse_i64(Str)`               | convert | None    |
+| `to_float(Str)`                | convert | None    |
+| `parse_f64(Str)`               | convert | None    |
+| `to_str(Int)`                  | convert | None    |
+| `to_str_f64(Float)`            | convert | None    |
+| `trim(Str)`                    | text   | None     |
+| `contains(Str, Str)`           | text   | None     |
+| `starts_with(Str, Str)`        | text   | None     |
+| `ends_with(Str, Str)`          | text   | None     |
+| `replace(Str, Str, Str)`       | text   | None     |
+| `to_lower(Str)`                | text   | None     |
+| `to_upper(Str)`                | text   | None     |
+| `byte_len(Str)`                | text   | None     |
+| `split_part(Str, Str, Int)`    | text   | None     |
+| `hex_encode(Str)`              | encoding | None   |
+| `hex_decode(Str)`              | encoding | None   |
+| `base64_encode(Str)`           | encoding | None   |
+| `base64_decode(Str)`           | encoding | None   |
+| `url_encode(Str)`              | encoding | None   |
+| `url_decode(Str)`              | encoding | None   |
 | `is_valid(Str)`                | json   | None     |
+| `parse(Str)`                   | json   | None     |
+| `stringify(Str)`               | json   | None     |
 | `parse_i64(Str)`               | json   | None     |
 | `stringify_i64(Int)`           | json   | None     |
 | `minify(Str)`                  | json   | None     |
 | `status_text(Int)`             | http   | None     |
 | `default_port(Str)`            | http   | None     |
 | `build_request_line(Str, Str)` | http   | None     |
+| `request(Str, Str, Str, Int)`  | http   | `net`    |
+| `request_status(Str, Str, Str, Int)` | http | `net` |
+| `get(Str, Int)`                | http   | `net`    |
+| `post(Str, Str, Int)`          | http   | `net`    |
+| `info(Str)`                    | log    | `io`     |
+| `warn(Str)`                    | log    | `io`     |
+| `error(Str)`                   | log    | `io`     |
+| `get(Str)`                     | env    | `nondet` |
+| `has(Str)`                     | env    | `nondet` |
+| `get_required(Str)`            | env    | `nondet` |
+| `args_len()`                   | cli    | `nondet` |
+| `arg(Int)`                     | cli    | `nondet` |

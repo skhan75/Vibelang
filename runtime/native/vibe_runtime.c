@@ -15,8 +15,10 @@
 #else
 #include <regex.h>
 #include <arpa/inet.h>
+#include <netdb.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #endif
 
 typedef struct vibe_chan_i64 {
@@ -1368,6 +1370,358 @@ void *vibe_str_concat(const char *left, const char *right) {
     return (void *)out;
 }
 
+char *vibe_text_trim(const char *raw) {
+    const char *text = raw == NULL ? "" : raw;
+    const char *start = text;
+    while (*start != '\0' && isspace((unsigned char)*start)) {
+        start += 1;
+    }
+    const char *end = text + strlen(text);
+    while (end > start && isspace((unsigned char)*(end - 1))) {
+        end -= 1;
+    }
+    size_t len = (size_t)(end - start);
+    char *out = (char *)calloc(len + 1, sizeof(char));
+    if (out == NULL) {
+        vibe_panic("failed to allocate text.trim output");
+    }
+    if (len > 0) {
+        memcpy(out, start, len);
+    }
+    out[len] = '\0';
+    return out;
+}
+
+int64_t vibe_text_contains(const char *text, const char *needle) {
+    const char *hay = text == NULL ? "" : text;
+    const char *pat = needle == NULL ? "" : needle;
+    if (pat[0] == '\0') {
+        return 1;
+    }
+    return strstr(hay, pat) != NULL ? 1 : 0;
+}
+
+int64_t vibe_text_starts_with(const char *text, const char *prefix) {
+    const char *hay = text == NULL ? "" : text;
+    const char *pre = prefix == NULL ? "" : prefix;
+    size_t pre_len = strlen(pre);
+    size_t hay_len = strlen(hay);
+    if (pre_len > hay_len) {
+        return 0;
+    }
+    return strncmp(hay, pre, pre_len) == 0 ? 1 : 0;
+}
+
+int64_t vibe_text_ends_with(const char *text, const char *suffix) {
+    const char *hay = text == NULL ? "" : text;
+    const char *suf = suffix == NULL ? "" : suffix;
+    size_t suf_len = strlen(suf);
+    size_t hay_len = strlen(hay);
+    if (suf_len > hay_len) {
+        return 0;
+    }
+    return strncmp(hay + (hay_len - suf_len), suf, suf_len) == 0 ? 1 : 0;
+}
+
+char *vibe_text_replace(const char *text, const char *from, const char *to) {
+    const char *src = text == NULL ? "" : text;
+    const char *needle = from == NULL ? "" : from;
+    const char *replacement = to == NULL ? "" : to;
+    if (needle[0] == '\0') {
+        return vibe_strdup_or_panic(src);
+    }
+    size_t src_len = strlen(src);
+    size_t needle_len = strlen(needle);
+    size_t replacement_len = strlen(replacement);
+    vibe_string_builder builder;
+    vibe_builder_init(&builder, src_len + 1);
+    const char *cursor = src;
+    while (*cursor != '\0') {
+        const char *match = strstr(cursor, needle);
+        if (match == NULL) {
+            vibe_builder_append_bytes(&builder, cursor, strlen(cursor));
+            break;
+        }
+        size_t prefix_len = (size_t)(match - cursor);
+        if (prefix_len > 0) {
+            vibe_builder_append_bytes(&builder, cursor, prefix_len);
+        }
+        if (replacement_len > 0) {
+            vibe_builder_append_bytes(&builder, replacement, replacement_len);
+        }
+        cursor = match + needle_len;
+    }
+    return builder.data;
+}
+
+char *vibe_text_to_lower(const char *text) {
+    const char *src = text == NULL ? "" : text;
+    size_t len = strlen(src);
+    char *out = (char *)calloc(len + 1, sizeof(char));
+    if (out == NULL) {
+        vibe_panic("failed to allocate text.to_lower output");
+    }
+    for (size_t i = 0; i < len; i++) {
+        out[i] = (char)tolower((unsigned char)src[i]);
+    }
+    out[len] = '\0';
+    return out;
+}
+
+char *vibe_text_to_upper(const char *text) {
+    const char *src = text == NULL ? "" : text;
+    size_t len = strlen(src);
+    char *out = (char *)calloc(len + 1, sizeof(char));
+    if (out == NULL) {
+        vibe_panic("failed to allocate text.to_upper output");
+    }
+    for (size_t i = 0; i < len; i++) {
+        out[i] = (char)toupper((unsigned char)src[i]);
+    }
+    out[len] = '\0';
+    return out;
+}
+
+int64_t vibe_text_byte_len(const char *text) {
+    return (int64_t)strlen(text == NULL ? "" : text);
+}
+
+char *vibe_text_split_part(const char *text, const char *sep, int64_t index) {
+    const char *src = text == NULL ? "" : text;
+    const char *delim = sep == NULL ? "" : sep;
+    if (index < 0) {
+        return vibe_strdup_or_panic("");
+    }
+    if (delim[0] == '\0') {
+        return index == 0 ? vibe_strdup_or_panic(src) : vibe_strdup_or_panic("");
+    }
+    size_t delim_len = strlen(delim);
+    int64_t current = 0;
+    const char *cursor = src;
+    while (1) {
+        const char *match = strstr(cursor, delim);
+        const char *part_end = match == NULL ? (cursor + strlen(cursor)) : match;
+        if (current == index) {
+            size_t len = (size_t)(part_end - cursor);
+            char *out = (char *)calloc(len + 1, sizeof(char));
+            if (out == NULL) {
+                vibe_panic("failed to allocate text.split_part output");
+            }
+            if (len > 0) {
+                memcpy(out, cursor, len);
+            }
+            out[len] = '\0';
+            return out;
+        }
+        if (match == NULL) {
+            break;
+        }
+        cursor = match + delim_len;
+        current += 1;
+    }
+    return vibe_strdup_or_panic("");
+}
+
+static int vibe_hex_value(char ch) {
+    if (ch >= '0' && ch <= '9') {
+        return (int)(ch - '0');
+    }
+    if (ch >= 'a' && ch <= 'f') {
+        return (int)(ch - 'a' + 10);
+    }
+    if (ch >= 'A' && ch <= 'F') {
+        return (int)(ch - 'A' + 10);
+    }
+    return -1;
+}
+
+char *vibe_encoding_hex_encode(const char *text) {
+    static const char hex[] = "0123456789abcdef";
+    const unsigned char *src = (const unsigned char *)(text == NULL ? "" : text);
+    size_t len = strlen((const char *)src);
+    char *out = (char *)calloc(len * 2 + 1, sizeof(char));
+    if (out == NULL) {
+        vibe_panic("failed to allocate hex_encode output");
+    }
+    for (size_t i = 0; i < len; i++) {
+        out[i * 2] = hex[(src[i] >> 4) & 0x0f];
+        out[i * 2 + 1] = hex[src[i] & 0x0f];
+    }
+    out[len * 2] = '\0';
+    return out;
+}
+
+char *vibe_encoding_hex_decode(const char *hex_text) {
+    const char *src = hex_text == NULL ? "" : hex_text;
+    size_t len = strlen(src);
+    if ((len % 2) != 0) {
+        return vibe_strdup_or_panic("");
+    }
+    char *out = (char *)calloc(len / 2 + 1, sizeof(char));
+    if (out == NULL) {
+        vibe_panic("failed to allocate hex_decode output");
+    }
+    for (size_t i = 0; i < len; i += 2) {
+        int hi = vibe_hex_value(src[i]);
+        int lo = vibe_hex_value(src[i + 1]);
+        if (hi < 0 || lo < 0) {
+            free(out);
+            return vibe_strdup_or_panic("");
+        }
+        out[i / 2] = (char)((hi << 4) | lo);
+    }
+    out[len / 2] = '\0';
+    return out;
+}
+
+char *vibe_encoding_base64_encode(const char *text) {
+    static const char b64[] =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    const unsigned char *src = (const unsigned char *)(text == NULL ? "" : text);
+    size_t len = strlen((const char *)src);
+    size_t out_len = ((len + 2) / 3) * 4;
+    char *out = (char *)calloc(out_len + 1, sizeof(char));
+    if (out == NULL) {
+        vibe_panic("failed to allocate base64_encode output");
+    }
+    size_t in_idx = 0;
+    size_t out_idx = 0;
+    while (in_idx < len) {
+        size_t rem = len - in_idx;
+        uint32_t octet_a = src[in_idx++];
+        uint32_t octet_b = rem > 1 ? src[in_idx++] : 0;
+        uint32_t octet_c = rem > 2 ? src[in_idx++] : 0;
+        uint32_t triple = (octet_a << 16) | (octet_b << 8) | octet_c;
+        out[out_idx++] = b64[(triple >> 18) & 0x3f];
+        out[out_idx++] = b64[(triple >> 12) & 0x3f];
+        out[out_idx++] = rem > 1 ? b64[(triple >> 6) & 0x3f] : '=';
+        out[out_idx++] = rem > 2 ? b64[triple & 0x3f] : '=';
+    }
+    out[out_len] = '\0';
+    return out;
+}
+
+static int vibe_base64_value(char ch) {
+    if (ch >= 'A' && ch <= 'Z') {
+        return ch - 'A';
+    }
+    if (ch >= 'a' && ch <= 'z') {
+        return ch - 'a' + 26;
+    }
+    if (ch >= '0' && ch <= '9') {
+        return ch - '0' + 52;
+    }
+    if (ch == '+') {
+        return 62;
+    }
+    if (ch == '/') {
+        return 63;
+    }
+    return -1;
+}
+
+char *vibe_encoding_base64_decode(const char *base64_text) {
+    const char *src = base64_text == NULL ? "" : base64_text;
+    size_t len = strlen(src);
+    if (len == 0) {
+        return vibe_strdup_or_panic("");
+    }
+    if ((len % 4) != 0) {
+        return vibe_strdup_or_panic("");
+    }
+    size_t out_cap = (len / 4) * 3;
+    char *out = (char *)calloc(out_cap + 1, sizeof(char));
+    if (out == NULL) {
+        vibe_panic("failed to allocate base64_decode output");
+    }
+    size_t out_idx = 0;
+    for (size_t i = 0; i < len; i += 4) {
+        int vals[4];
+        for (int j = 0; j < 4; j++) {
+            char ch = src[i + (size_t)j];
+            vals[j] = (ch == '=') ? -2 : vibe_base64_value(ch);
+            if (vals[j] < -1) {
+                // -2 is valid padding
+                continue;
+            }
+            if (vals[j] < 0) {
+                free(out);
+                return vibe_strdup_or_panic("");
+            }
+        }
+        uint32_t triple = 0;
+        int pad = 0;
+        for (int j = 0; j < 4; j++) {
+            if (vals[j] == -2) {
+                vals[j] = 0;
+                pad += 1;
+            }
+            triple = (triple << 6) | (uint32_t)(vals[j] & 0x3f);
+        }
+        out[out_idx++] = (char)((triple >> 16) & 0xff);
+        if (pad < 2) {
+            out[out_idx++] = (char)((triple >> 8) & 0xff);
+        }
+        if (pad < 1) {
+            out[out_idx++] = (char)(triple & 0xff);
+        }
+    }
+    out[out_idx] = '\0';
+    return out;
+}
+
+char *vibe_encoding_url_encode(const char *text) {
+    static const char hex[] = "0123456789ABCDEF";
+    const unsigned char *src = (const unsigned char *)(text == NULL ? "" : text);
+    size_t len = strlen((const char *)src);
+    vibe_string_builder builder;
+    vibe_builder_init(&builder, len * 3 + 1);
+    for (size_t i = 0; i < len; i++) {
+        unsigned char ch = src[i];
+        int safe = (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') ||
+                   (ch >= '0' && ch <= '9') || ch == '-' || ch == '_' || ch == '.' || ch == '~';
+        if (safe) {
+            char c = (char)ch;
+            vibe_builder_append_bytes(&builder, &c, 1);
+        } else {
+            char esc[3];
+            esc[0] = '%';
+            esc[1] = hex[(ch >> 4) & 0x0f];
+            esc[2] = hex[ch & 0x0f];
+            vibe_builder_append_bytes(&builder, esc, 3);
+        }
+    }
+    return builder.data;
+}
+
+char *vibe_encoding_url_decode(const char *text) {
+    const char *src = text == NULL ? "" : text;
+    size_t len = strlen(src);
+    char *out = (char *)calloc(len + 1, sizeof(char));
+    if (out == NULL) {
+        vibe_panic("failed to allocate url_decode output");
+    }
+    size_t out_idx = 0;
+    for (size_t i = 0; i < len; i++) {
+        if (src[i] == '%' && i + 2 < len) {
+            int hi = vibe_hex_value(src[i + 1]);
+            int lo = vibe_hex_value(src[i + 2]);
+            if (hi >= 0 && lo >= 0) {
+                out[out_idx++] = (char)((hi << 4) | lo);
+                i += 2;
+                continue;
+            }
+        }
+        if (src[i] == '+') {
+            out[out_idx++] = ' ';
+        } else {
+            out[out_idx++] = src[i];
+        }
+    }
+    out[out_idx] = '\0';
+    return out;
+}
+
 int64_t vibe_regex_count(const char *text, const char *pattern) {
 #ifdef _WIN32
     (void)text;
@@ -1855,6 +2209,14 @@ int64_t vibe_time_now_ms(void) {
     return (int64_t)ts.tv_sec * 1000 + (int64_t)(ts.tv_nsec / 1000000);
 }
 
+int64_t vibe_time_monotonic_now_ms(void) {
+    struct timespec ts;
+    if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0) {
+        return vibe_time_now_ms();
+    }
+    return (int64_t)ts.tv_sec * 1000 + (int64_t)(ts.tv_nsec / 1000000);
+}
+
 void vibe_time_sleep_ms(int64_t ms) {
     vibe_sleep_ms(ms);
 }
@@ -2024,6 +2386,143 @@ int64_t vibe_fs_create_dir(const char *path) {
     return errno == EEXIST ? 1 : 0;
 }
 
+void vibe_log_info(const char *msg) {
+    fprintf(stdout, "[info] %s\n", msg == NULL ? "" : msg);
+    fflush(stdout);
+}
+
+void vibe_log_warn(const char *msg) {
+    fprintf(stdout, "[warn] %s\n", msg == NULL ? "" : msg);
+    fflush(stdout);
+}
+
+void vibe_log_error(const char *msg) {
+    fprintf(stderr, "[error] %s\n", msg == NULL ? "" : msg);
+    fflush(stderr);
+}
+
+char *vibe_env_get(const char *key) {
+    if (key == NULL || key[0] == '\0') {
+        return vibe_strdup_or_panic("");
+    }
+    const char *value = getenv(key);
+    return vibe_strdup_or_panic(value == NULL ? "" : value);
+}
+
+int64_t vibe_env_has(const char *key) {
+    if (key == NULL || key[0] == '\0') {
+        return 0;
+    }
+    return getenv(key) == NULL ? 0 : 1;
+}
+
+char *vibe_env_get_required(const char *key) {
+    return vibe_env_get(key);
+}
+
+static char *vibe_cli_read_cmdline_blob(size_t *out_len) {
+#ifdef __linux__
+    FILE *f = fopen("/proc/self/cmdline", "rb");
+    if (f == NULL) {
+        if (out_len != NULL) {
+            *out_len = 0;
+        }
+        return vibe_strdup_or_panic("");
+    }
+    vibe_string_builder builder;
+    vibe_builder_init(&builder, 256);
+    char chunk[256];
+    while (1) {
+        size_t n = fread(chunk, 1, sizeof(chunk), f);
+        if (n > 0) {
+            vibe_builder_append_bytes(&builder, chunk, n);
+        }
+        if (n < sizeof(chunk)) {
+            if (feof(f) != 0 || ferror(f) != 0) {
+                break;
+            }
+        }
+    }
+    fclose(f);
+    if (out_len != NULL) {
+        *out_len = builder.len;
+    }
+    return builder.data;
+#else
+    if (out_len != NULL) {
+        *out_len = 0;
+    }
+    return vibe_strdup_or_panic("");
+#endif
+}
+
+int64_t vibe_cli_args_len(void) {
+    size_t len = 0;
+    char *blob = vibe_cli_read_cmdline_blob(&len);
+    if (blob == NULL || len == 0) {
+        free(blob);
+        return 0;
+    }
+    int64_t count = 0;
+    size_t i = 0;
+    while (i < len) {
+        size_t start = i;
+        while (i < len && blob[i] != '\0') {
+            i += 1;
+        }
+        if (i > start) {
+            count += 1;
+        }
+        i += 1;
+    }
+    free(blob);
+    if (count <= 1) {
+        return 0;
+    }
+    return count - 1; // exclude argv[0]
+}
+
+char *vibe_cli_arg(int64_t index) {
+    if (index < 0) {
+        return vibe_strdup_or_panic("");
+    }
+    size_t len = 0;
+    char *blob = vibe_cli_read_cmdline_blob(&len);
+    if (blob == NULL || len == 0) {
+        free(blob);
+        return vibe_strdup_or_panic("");
+    }
+    int64_t target = index + 1; // skip argv[0]
+    int64_t current = 0;
+    size_t i = 0;
+    while (i < len) {
+        size_t start = i;
+        while (i < len && blob[i] != '\0') {
+            i += 1;
+        }
+        if (current == target) {
+            size_t arg_len = i - start;
+            char *out = (char *)calloc(arg_len + 1, sizeof(char));
+            if (out == NULL) {
+                free(blob);
+                vibe_panic("failed to allocate cli.arg output");
+            }
+            if (arg_len > 0) {
+                memcpy(out, blob + start, arg_len);
+            }
+            out[arg_len] = '\0';
+            free(blob);
+            return out;
+        }
+        if (i > start) {
+            current += 1;
+        }
+        i += 1;
+    }
+    free(blob);
+    return vibe_strdup_or_panic("");
+}
+
 int64_t vibe_net_listen(const char *host, int64_t port) {
 #ifdef _WIN32
     (void)host;
@@ -2176,6 +2675,39 @@ int64_t vibe_net_close(int64_t fd_raw) {
 #endif
 }
 
+char *vibe_net_resolve_first(const char *host) {
+#ifdef _WIN32
+    (void)host;
+    return vibe_strdup_or_panic("");
+#else
+    const char *query = (host == NULL || host[0] == '\0') ? "localhost" : host;
+    struct addrinfo hints;
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+    struct addrinfo *results = NULL;
+    if (getaddrinfo(query, NULL, &hints, &results) != 0 || results == NULL) {
+        return vibe_strdup_or_panic("");
+    }
+    char ip[INET_ADDRSTRLEN];
+    ip[0] = '\0';
+    for (struct addrinfo *it = results; it != NULL; it = it->ai_next) {
+        if (it->ai_family != AF_INET || it->ai_addr == NULL) {
+            continue;
+        }
+        struct sockaddr_in *sa = (struct sockaddr_in *)it->ai_addr;
+        if (inet_ntop(AF_INET, &sa->sin_addr, ip, sizeof(ip)) != NULL) {
+            break;
+        }
+    }
+    freeaddrinfo(results);
+    if (ip[0] == '\0') {
+        return vibe_strdup_or_panic("");
+    }
+    return vibe_strdup_or_panic(ip);
+#endif
+}
+
 static const char *vibe_trim_start(const char *raw) {
     while (raw != NULL && *raw != '\0' && isspace((unsigned char)*raw)) {
         raw += 1;
@@ -2256,6 +2788,54 @@ static void vibe_format_shortest_f64(double value, char out[64]) {
         }
     }
     (void)snprintf(out, 64, "%.17g", value);
+}
+
+int64_t vibe_convert_to_int(const char *raw) {
+    if (raw == NULL) {
+        return 0;
+    }
+    const char *start = vibe_trim_start(raw);
+    const char *end = vibe_trim_end_ptr(start);
+    int64_t value = 0;
+    if (!vibe_parse_i64_strict(start, end, &value)) {
+        return 0;
+    }
+    return value;
+}
+
+double vibe_convert_to_f64(const char *raw) {
+    if (raw == NULL) {
+        return 0.0;
+    }
+    const char *start = vibe_trim_start(raw);
+    const char *end = vibe_trim_end_ptr(start);
+    if (end <= start) {
+        return 0.0;
+    }
+    size_t len = (size_t)(end - start);
+    char *buf = (char *)calloc(len + 1, sizeof(char));
+    if (buf == NULL) {
+        vibe_panic("failed to allocate convert.to_float buffer");
+    }
+    memcpy(buf, start, len);
+    buf[len] = '\0';
+    char *tail = NULL;
+    double value = strtod(buf, &tail);
+    int ok = tail != NULL && *tail == '\0';
+    free(buf);
+    return ok ? value : 0.0;
+}
+
+char *vibe_convert_i64_to_str(int64_t value) {
+    char buffer[64];
+    snprintf(buffer, sizeof(buffer), "%lld", (long long)value);
+    return vibe_strdup_or_panic(buffer);
+}
+
+char *vibe_convert_f64_to_str(double value) {
+    char out[64];
+    vibe_format_shortest_f64(value, out);
+    return vibe_strdup_or_panic(out);
 }
 
 static uint32_t vibe_md5_left_rotate(uint32_t x, uint32_t c) {
@@ -2515,6 +3095,365 @@ int64_t vibe_json_is_valid(const char *raw) {
     return vibe_parse_i64_strict(start, end, &parsed);
 }
 
+static char *vibe_json_quote_string(const char *raw) {
+    const char *text = raw == NULL ? "" : raw;
+    vibe_string_builder builder;
+    vibe_builder_init(&builder, strlen(text) + 16);
+    vibe_builder_append_bytes(&builder, "\"", 1);
+    for (const unsigned char *p = (const unsigned char *)text; *p != '\0'; p++) {
+        switch (*p) {
+            case '"':
+                vibe_builder_append_bytes(&builder, "\\\"", 2);
+                break;
+            case '\\':
+                vibe_builder_append_bytes(&builder, "\\\\", 2);
+                break;
+            case '\n':
+                vibe_builder_append_bytes(&builder, "\\n", 2);
+                break;
+            case '\r':
+                vibe_builder_append_bytes(&builder, "\\r", 2);
+                break;
+            case '\t':
+                vibe_builder_append_bytes(&builder, "\\t", 2);
+                break;
+            default:
+                if (*p < 0x20) {
+                    char escaped[7];
+                    snprintf(escaped, sizeof(escaped), "\\u%04x", (unsigned int)*p);
+                    vibe_builder_append_bytes(&builder, escaped, 6);
+                } else {
+                    char ch = (char)*p;
+                    vibe_builder_append_bytes(&builder, &ch, 1);
+                }
+                break;
+        }
+    }
+    vibe_builder_append_bytes(&builder, "\"", 1);
+    vibe_counter_inc(&vibe_json_allocations);
+    return builder.data;
+}
+
+char *vibe_json_parse(const char *raw) {
+    vibe_counter_inc(&vibe_json_parse_calls);
+    if (raw == NULL) {
+        vibe_counter_inc(&vibe_json_allocations);
+        return vibe_strdup_or_panic("");
+    }
+    if (!vibe_json_is_valid(raw)) {
+        vibe_counter_inc(&vibe_json_allocations);
+        return vibe_strdup_or_panic("");
+    }
+    return vibe_json_canonical(raw);
+}
+
+char *vibe_json_stringify(const char *raw) {
+    vibe_counter_inc(&vibe_json_stringify_calls);
+    if (raw == NULL) {
+        vibe_counter_inc(&vibe_json_allocations);
+        return vibe_strdup_or_panic("null");
+    }
+    if (vibe_json_is_valid(raw)) {
+        return vibe_json_canonical(raw);
+    }
+    return vibe_json_quote_string(raw);
+}
+
+static const char *vibe_json_skip_ws(const char *p) {
+    while (p != NULL && *p != '\0' && isspace((unsigned char)*p)) {
+        p += 1;
+    }
+    return p;
+}
+
+static int64_t vibe_json_find_key_value(
+    const char *raw,
+    const char *key,
+    const char **out_start,
+    const char **out_end
+) {
+    if (raw == NULL || key == NULL || key[0] == '\0' || out_start == NULL || out_end == NULL) {
+        return 0;
+    }
+    size_t key_len = strlen(key);
+    size_t pattern_len = key_len + 2;
+    char *pattern = (char *)calloc(pattern_len + 1, sizeof(char));
+    if (pattern == NULL) {
+        vibe_panic("failed to allocate json key pattern");
+    }
+    pattern[0] = '"';
+    memcpy(pattern + 1, key, key_len);
+    pattern[key_len + 1] = '"';
+    pattern[pattern_len] = '\0';
+
+    const char *cursor = raw;
+    while (cursor != NULL && *cursor != '\0') {
+        const char *match = strstr(cursor, pattern);
+        if (match == NULL) {
+            break;
+        }
+        const char *after_key = vibe_json_skip_ws(match + pattern_len);
+        if (after_key != NULL && *after_key == ':') {
+            const char *value_start = vibe_json_skip_ws(after_key + 1);
+            if (value_start == NULL || *value_start == '\0') {
+                break;
+            }
+            const char *value_end = value_start;
+            if (*value_start == '"') {
+                int escaped = 0;
+                value_end = value_start + 1;
+                while (*value_end != '\0') {
+                    if (escaped) {
+                        escaped = 0;
+                    } else if (*value_end == '\\') {
+                        escaped = 1;
+                    } else if (*value_end == '"') {
+                        value_end += 1;
+                        break;
+                    }
+                    value_end += 1;
+                }
+            } else {
+                while (*value_end != '\0' && *value_end != ',' && *value_end != '}') {
+                    value_end += 1;
+                }
+                while (value_end > value_start && isspace((unsigned char)*(value_end - 1))) {
+                    value_end -= 1;
+                }
+            }
+            *out_start = value_start;
+            *out_end = value_end;
+            free(pattern);
+            return 1;
+        }
+        cursor = match + 1;
+    }
+
+    free(pattern);
+    return 0;
+}
+
+static char *vibe_json_unquote_string(const char *start, const char *end) {
+    if (start == NULL || end == NULL || end <= start || *start != '"') {
+        vibe_counter_inc(&vibe_json_allocations);
+        return vibe_strdup_or_panic("");
+    }
+    vibe_string_builder builder;
+    vibe_builder_init(&builder, (size_t)(end - start) + 1);
+    const char *p = start + 1;
+    const char *limit = end - 1;
+    while (p < limit) {
+        char ch = *p;
+        if (ch == '\\' && (p + 1) < limit) {
+            char next = *(p + 1);
+            switch (next) {
+                case 'n':
+                    ch = '\n';
+                    p += 2;
+                    break;
+                case 'r':
+                    ch = '\r';
+                    p += 2;
+                    break;
+                case 't':
+                    ch = '\t';
+                    p += 2;
+                    break;
+                case '\\':
+                case '"':
+                case '/':
+                    ch = next;
+                    p += 2;
+                    break;
+                default:
+                    // Keep unknown escape payload as-is for deterministic fallback.
+                    p += 1;
+                    break;
+            }
+        } else {
+            p += 1;
+        }
+        vibe_builder_append_bytes(&builder, &ch, 1);
+    }
+    vibe_counter_inc(&vibe_json_allocations);
+    return builder.data;
+}
+
+char *vibe_json_stringify_i64(int64_t value);
+
+int64_t vibe_json_get_i64(const char *raw, const char *key, int64_t fallback) {
+    const char *start = NULL;
+    const char *end = NULL;
+    if (!vibe_json_find_key_value(raw, key, &start, &end) || start == NULL || end == NULL) {
+        return fallback;
+    }
+    const char *parse_start = start;
+    const char *parse_end = end;
+    if (*start == '"' && end > start + 1 && *(end - 1) == '"') {
+        parse_start = start + 1;
+        parse_end = end - 1;
+    }
+    int64_t out = 0;
+    if (!vibe_parse_i64_strict(parse_start, parse_end, &out)) {
+        return fallback;
+    }
+    return out;
+}
+
+int64_t vibe_json_get_bool(const char *raw, const char *key, int64_t fallback) {
+    const char *start = NULL;
+    const char *end = NULL;
+    if (!vibe_json_find_key_value(raw, key, &start, &end) || start == NULL || end == NULL) {
+        return fallback ? 1 : 0;
+    }
+    size_t len = (size_t)(end - start);
+    if (len == 4 && strncmp(start, "true", 4) == 0) {
+        return 1;
+    }
+    if (len == 5 && strncmp(start, "false", 5) == 0) {
+        return 0;
+    }
+    return fallback ? 1 : 0;
+}
+
+char *vibe_json_get_str(const char *raw, const char *key, const char *fallback) {
+    const char *start = NULL;
+    const char *end = NULL;
+    if (!vibe_json_find_key_value(raw, key, &start, &end) || start == NULL || end == NULL) {
+        vibe_counter_inc(&vibe_json_allocations);
+        return vibe_strdup_or_panic(fallback == NULL ? "" : fallback);
+    }
+    if (*start == '"' && end > start + 1 && *(end - 1) == '"') {
+        return vibe_json_unquote_string(start, end);
+    }
+    size_t len = (size_t)(end - start);
+    char *out = (char *)calloc(len + 1, sizeof(char));
+    if (out == NULL) {
+        vibe_panic("failed to allocate json string field");
+    }
+    memcpy(out, start, len);
+    out[len] = '\0';
+    vibe_counter_inc(&vibe_json_allocations);
+    return out;
+}
+
+char *vibe_json_encode_record(void *record, const char *schema) {
+    if (record == NULL || schema == NULL || schema[0] == '\0') {
+        vibe_counter_inc(&vibe_json_allocations);
+        return vibe_strdup_or_panic("{}");
+    }
+    const int64_t *slots = (const int64_t *)record;
+    vibe_string_builder builder;
+    vibe_builder_init(&builder, strlen(schema) + 32);
+    vibe_builder_append_bytes(&builder, "{", 1);
+    const char *cursor = schema;
+    int first = 1;
+    int64_t slot_index = 0;
+    while (*cursor != '\0') {
+        const char *entry_start = cursor;
+        while (*cursor != '\0' && *cursor != ';') {
+            cursor += 1;
+        }
+        const char *entry_end = cursor;
+        if (*cursor == ';') {
+            cursor += 1;
+        }
+        if (entry_end <= entry_start) {
+            continue;
+        }
+        const char *colon = memchr(entry_start, ':', (size_t)(entry_end - entry_start));
+        if (colon == NULL || colon <= entry_start || colon >= entry_end - 1) {
+            slot_index += 1;
+            continue;
+        }
+        const char *key_start = entry_start;
+        const char *key_end = colon;
+        const char *type_start = colon + 1;
+        size_t key_len = (size_t)(key_end - key_start);
+        size_t type_len = (size_t)(entry_end - type_start);
+        if (!first) {
+            vibe_builder_append_bytes(&builder, ",", 1);
+        }
+        first = 0;
+        vibe_builder_append_bytes(&builder, "\"", 1);
+        vibe_builder_append_bytes(&builder, key_start, key_len);
+        vibe_builder_append_bytes(&builder, "\":", 2);
+        int64_t slot_value = slots[slot_index];
+        char *encoded = NULL;
+        if (type_len == 3 && strncmp(type_start, "Int", 3) == 0) {
+            encoded = vibe_json_stringify_i64(slot_value);
+        } else if (type_len == 4 && strncmp(type_start, "Bool", 4) == 0) {
+            encoded = vibe_strdup_or_panic(slot_value != 0 ? "true" : "false");
+            vibe_counter_inc(&vibe_json_allocations);
+        } else if (type_len == 3 && strncmp(type_start, "Str", 3) == 0) {
+            encoded = vibe_json_quote_string((const char *)(intptr_t)slot_value);
+        } else {
+            encoded = vibe_strdup_or_panic("null");
+            vibe_counter_inc(&vibe_json_allocations);
+        }
+        vibe_builder_append_bytes(&builder, encoded, strlen(encoded));
+        free(encoded);
+        slot_index += 1;
+    }
+    vibe_builder_append_bytes(&builder, "}", 1);
+    vibe_counter_inc(&vibe_json_allocations);
+    return builder.data;
+}
+
+void *vibe_json_decode_record(const char *raw, const char *schema, void *fallback, void *out_record) {
+    if (schema == NULL || out_record == NULL) {
+        return out_record;
+    }
+    const int64_t *fallback_slots = (const int64_t *)fallback;
+    int64_t *out_slots = (int64_t *)out_record;
+    const char *cursor = schema;
+    int64_t slot_index = 0;
+    while (*cursor != '\0') {
+        const char *entry_start = cursor;
+        while (*cursor != '\0' && *cursor != ';') {
+            cursor += 1;
+        }
+        const char *entry_end = cursor;
+        if (*cursor == ';') {
+            cursor += 1;
+        }
+        if (entry_end <= entry_start) {
+            continue;
+        }
+        const char *colon = memchr(entry_start, ':', (size_t)(entry_end - entry_start));
+        if (colon == NULL || colon <= entry_start || colon >= entry_end - 1) {
+            slot_index += 1;
+            continue;
+        }
+        const char *key_start = entry_start;
+        const char *key_end = colon;
+        const char *type_start = colon + 1;
+        size_t key_len = (size_t)(key_end - key_start);
+        size_t type_len = (size_t)(entry_end - type_start);
+        char *key = (char *)calloc(key_len + 1, sizeof(char));
+        if (key == NULL) {
+            vibe_panic("failed to allocate json codec key");
+        }
+        memcpy(key, key_start, key_len);
+        key[key_len] = '\0';
+        int64_t fallback_value = fallback_slots == NULL ? 0 : fallback_slots[slot_index];
+        if (type_len == 3 && strncmp(type_start, "Int", 3) == 0) {
+            out_slots[slot_index] = vibe_json_get_i64(raw, key, fallback_value);
+        } else if (type_len == 4 && strncmp(type_start, "Bool", 4) == 0) {
+            out_slots[slot_index] = vibe_json_get_bool(raw, key, fallback_value != 0);
+        } else if (type_len == 3 && strncmp(type_start, "Str", 3) == 0) {
+            const char *fallback_str = (const char *)(intptr_t)fallback_value;
+            char *decoded = vibe_json_get_str(raw, key, fallback_str == NULL ? "" : fallback_str);
+            out_slots[slot_index] = (int64_t)(intptr_t)decoded;
+        } else {
+            out_slots[slot_index] = fallback_value;
+        }
+        free(key);
+        slot_index += 1;
+    }
+    return out_record;
+}
+
 int64_t vibe_json_parse_i64(const char *raw) {
     vibe_counter_inc(&vibe_json_parse_calls);
     if (raw == NULL) {
@@ -2691,6 +3630,347 @@ char *vibe_http_build_request_line(const char *method, const char *path) {
     }
     snprintf(out, len + 1, "%s %s HTTP/1.1", verb, target);
     return out;
+}
+
+static const char *vibe_http_find_body(const char *req);
+
+static char *vibe_shell_single_quote(const char *raw) {
+    const char *text = raw == NULL ? "" : raw;
+    vibe_string_builder builder;
+    vibe_builder_init(&builder, strlen(text) + 8);
+    vibe_builder_append_bytes(&builder, "'", 1);
+    for (const char *p = text; *p != '\0'; p++) {
+        if (*p == '\'') {
+            vibe_builder_append_bytes(&builder, "'\\''", 4);
+        } else {
+            vibe_builder_append_bytes(&builder, p, 1);
+        }
+    }
+    vibe_builder_append_bytes(&builder, "'", 1);
+    return builder.data;
+}
+
+static char *vibe_exec_capture_stdout(const char *cmd) {
+    if (cmd == NULL || cmd[0] == '\0') {
+        return vibe_strdup_or_panic("");
+    }
+    FILE *pipe = popen(cmd, "r");
+    if (pipe == NULL) {
+        return vibe_strdup_or_panic("");
+    }
+    vibe_string_builder builder;
+    vibe_builder_init(&builder, 1024);
+    char chunk[2048];
+    while (1) {
+        size_t n = fread(chunk, 1, sizeof(chunk), pipe);
+        if (n > 0) {
+            vibe_builder_append_bytes(&builder, chunk, n);
+        }
+        if (n < sizeof(chunk)) {
+            if (feof(pipe) != 0 || ferror(pipe) != 0) {
+                break;
+            }
+        }
+    }
+    (void)pclose(pipe);
+    return builder.data;
+}
+
+static int64_t vibe_http_parse_url(
+    const char *url,
+    char *host_out,
+    size_t host_cap,
+    int64_t *port_out,
+    const char **path_out,
+    int *is_https_out
+) {
+    if (url == NULL || host_out == NULL || host_cap == 0 || port_out == NULL || path_out == NULL ||
+        is_https_out == NULL) {
+        return 0;
+    }
+    const char *rest = NULL;
+    int is_https = 0;
+    if (strncmp(url, "http://", 7) == 0) {
+        rest = url + 7;
+        is_https = 0;
+    } else if (strncmp(url, "https://", 8) == 0) {
+        rest = url + 8;
+        is_https = 1;
+    } else {
+        return 0;
+    }
+    const char *path = strchr(rest, '/');
+    const char *host_end = path == NULL ? (rest + strlen(rest)) : path;
+    if (host_end <= rest) {
+        return 0;
+    }
+    size_t host_port_len = (size_t)(host_end - rest);
+    if (host_port_len >= host_cap) {
+        return 0;
+    }
+    char host_port[512];
+    memset(host_port, 0, sizeof(host_port));
+    memcpy(host_port, rest, host_port_len);
+    host_port[host_port_len] = '\0';
+
+    int64_t port = is_https ? 443 : 80;
+    char *colon = strrchr(host_port, ':');
+    if (colon != NULL && *(colon + 1) != '\0') {
+        char *end = NULL;
+        long parsed = strtol(colon + 1, &end, 10);
+        if (end != NULL && *end == '\0' && parsed > 0 && parsed <= 65535) {
+            port = (int64_t)parsed;
+            *colon = '\0';
+        }
+    }
+    if (host_port[0] == '\0') {
+        return 0;
+    }
+    snprintf(host_out, host_cap, "%s", host_port);
+    *port_out = port;
+    *path_out = path == NULL ? "/" : path;
+    *is_https_out = is_https;
+    return 1;
+}
+
+static void vibe_http_apply_timeout(int fd, int64_t timeout_ms) {
+    if (fd <= 0 || timeout_ms <= 0) {
+        return;
+    }
+#ifdef _WIN32
+    (void)fd;
+    (void)timeout_ms;
+#else
+    struct timeval tv;
+    tv.tv_sec = (time_t)(timeout_ms / 1000);
+    tv.tv_usec = (suseconds_t)((timeout_ms % 1000) * 1000);
+    (void)setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+    (void)setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
+#endif
+}
+
+static char *vibe_http_read_all_response(int fd, int64_t max_bytes) {
+    if (fd <= 0 || max_bytes <= 0) {
+        return vibe_strdup_or_panic("");
+    }
+    if (max_bytes > 4 * 1024 * 1024) {
+        max_bytes = 4 * 1024 * 1024;
+    }
+    vibe_string_builder builder;
+    vibe_builder_init(&builder, 4096);
+    while ((int64_t)builder.len < max_bytes) {
+        char tmp[4096];
+        size_t remain = (size_t)(max_bytes - (int64_t)builder.len);
+        size_t to_read = remain < sizeof(tmp) ? remain : sizeof(tmp);
+        ssize_t n = recv(fd, tmp, to_read, 0);
+        if (n <= 0) {
+            break;
+        }
+        vibe_builder_append_bytes(&builder, tmp, (size_t)n);
+    }
+    return builder.data;
+}
+
+static int64_t vibe_http_parse_status_code(const char *raw_response) {
+    if (raw_response == NULL) {
+        return 0;
+    }
+    const char *space = strchr(raw_response, ' ');
+    if (space == NULL) {
+        return 0;
+    }
+    while (*space == ' ') {
+        space += 1;
+    }
+    if (*space < '0' || *space > '9') {
+        return 0;
+    }
+    char *end = NULL;
+    long code = strtol(space, &end, 10);
+    if (end == space || code < 0) {
+        return 0;
+    }
+    return (int64_t)code;
+}
+
+static char *vibe_http_request_body_curl(
+    const char *method,
+    const char *url,
+    const char *body,
+    int64_t timeout_ms
+) {
+    const char *verb = (method == NULL || method[0] == '\0') ? "GET" : method;
+    const char *payload = body == NULL ? "" : body;
+    double timeout_sec = timeout_ms > 0 ? ((double)timeout_ms / 1000.0) : 10.0;
+    if (timeout_sec < 0.001) {
+        timeout_sec = 0.001;
+    }
+    char timeout_buf[32];
+    snprintf(timeout_buf, sizeof(timeout_buf), "%.3f", timeout_sec);
+    char *q_method = vibe_shell_single_quote(verb);
+    char *q_url = vibe_shell_single_quote(url == NULL ? "" : url);
+    char *q_body = vibe_shell_single_quote(payload);
+    vibe_string_builder cmd;
+    vibe_builder_init(&cmd, strlen(url == NULL ? "" : url) + strlen(payload) + 128);
+    vibe_builder_append_bytes(&cmd, "curl -sS -L --max-time ", 24);
+    vibe_builder_append_bytes(&cmd, timeout_buf, strlen(timeout_buf));
+    vibe_builder_append_bytes(&cmd, " -X ", 4);
+    vibe_builder_append_bytes(&cmd, q_method, strlen(q_method));
+    if (payload[0] != '\0') {
+        vibe_builder_append_bytes(&cmd, " --data-binary ", 14);
+        vibe_builder_append_bytes(&cmd, q_body, strlen(q_body));
+    }
+    vibe_builder_append_bytes(&cmd, " ", 1);
+    vibe_builder_append_bytes(&cmd, q_url, strlen(q_url));
+    vibe_builder_append_bytes(&cmd, " 2>/dev/null", 11);
+    char *out = vibe_exec_capture_stdout(cmd.data);
+    free(q_method);
+    free(q_url);
+    free(q_body);
+    free(cmd.data);
+    return out;
+}
+
+static int64_t vibe_http_request_status_curl(
+    const char *method,
+    const char *url,
+    const char *body,
+    int64_t timeout_ms
+) {
+    const char *verb = (method == NULL || method[0] == '\0') ? "GET" : method;
+    const char *payload = body == NULL ? "" : body;
+    double timeout_sec = timeout_ms > 0 ? ((double)timeout_ms / 1000.0) : 10.0;
+    if (timeout_sec < 0.001) {
+        timeout_sec = 0.001;
+    }
+    char timeout_buf[32];
+    snprintf(timeout_buf, sizeof(timeout_buf), "%.3f", timeout_sec);
+    char *q_method = vibe_shell_single_quote(verb);
+    char *q_url = vibe_shell_single_quote(url == NULL ? "" : url);
+    char *q_body = vibe_shell_single_quote(payload);
+    vibe_string_builder cmd;
+    vibe_builder_init(&cmd, strlen(url == NULL ? "" : url) + strlen(payload) + 160);
+    vibe_builder_append_bytes(&cmd, "curl -sS -L --max-time ", 24);
+    vibe_builder_append_bytes(&cmd, timeout_buf, strlen(timeout_buf));
+    vibe_builder_append_bytes(&cmd, " -o /dev/null -w '%{http_code}' -X ", 35);
+    vibe_builder_append_bytes(&cmd, q_method, strlen(q_method));
+    if (payload[0] != '\0') {
+        vibe_builder_append_bytes(&cmd, " --data-binary ", 14);
+        vibe_builder_append_bytes(&cmd, q_body, strlen(q_body));
+    }
+    vibe_builder_append_bytes(&cmd, " ", 1);
+    vibe_builder_append_bytes(&cmd, q_url, strlen(q_url));
+    vibe_builder_append_bytes(&cmd, " 2>/dev/null", 11);
+    char *raw = vibe_exec_capture_stdout(cmd.data);
+    char *end = NULL;
+    long code = strtol(raw == NULL ? "" : raw, &end, 10);
+    free(raw);
+    free(q_method);
+    free(q_url);
+    free(q_body);
+    free(cmd.data);
+    if (end == NULL) {
+        return 0;
+    }
+    return code <= 0 ? 0 : (int64_t)code;
+}
+
+static char *vibe_http_request_raw_plain(
+    const char *method,
+    const char *url,
+    const char *body,
+    int64_t timeout_ms
+) {
+    char host[256];
+    memset(host, 0, sizeof(host));
+    int64_t port = 0;
+    const char *path = "/";
+    int is_https = 0;
+    if (!vibe_http_parse_url(url, host, sizeof(host), &port, &path, &is_https) || is_https) {
+        return vibe_strdup_or_panic("");
+    }
+    int64_t conn = vibe_net_connect(host, port);
+    if (conn == 0) {
+        char *resolved = vibe_net_resolve_first(host);
+        if (resolved != NULL && resolved[0] != '\0') {
+            conn = vibe_net_connect(resolved, port);
+        }
+        free(resolved);
+    }
+    if (conn == 0) {
+        return vibe_strdup_or_panic("");
+    }
+
+    int fd = (int)conn;
+    vibe_http_apply_timeout(fd, timeout_ms);
+    const char *verb = (method == NULL || method[0] == '\0') ? "GET" : method;
+    const char *payload = body == NULL ? "" : body;
+    size_t payload_len = strlen(payload);
+    size_t cap = strlen(verb) + strlen(path) + strlen(host) + payload_len + 256;
+    char *req = (char *)calloc(cap, sizeof(char));
+    if (req == NULL) {
+        (void)vibe_net_close(conn);
+        vibe_panic("failed to allocate http request buffer");
+    }
+    snprintf(
+        req,
+        cap,
+        "%s %s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\nContent-Length: %zu\r\n\r\n%s",
+        verb,
+        path,
+        host,
+        payload_len,
+        payload
+    );
+    (void)vibe_net_write(conn, req);
+    free(req);
+    char *raw_response = vibe_http_read_all_response(fd, 4 * 1024 * 1024);
+    (void)vibe_net_close(conn);
+    return raw_response;
+}
+
+char *vibe_http_request(const char *method, const char *url, const char *body, int64_t timeout_ms) {
+    if (url == NULL || url[0] == '\0') {
+        return vibe_strdup_or_panic("");
+    }
+    if (strncmp(url, "https://", 8) == 0) {
+        return vibe_http_request_body_curl(method, url, body, timeout_ms);
+    }
+    char *raw_response = vibe_http_request_raw_plain(method, url, body, timeout_ms);
+    if (raw_response == NULL || raw_response[0] == '\0') {
+        free(raw_response);
+        return vibe_strdup_or_panic("");
+    }
+    const char *body_ptr = vibe_http_find_body(raw_response);
+    char *out = NULL;
+    if (body_ptr == NULL) {
+        out = vibe_strdup_or_panic(raw_response);
+    } else {
+        out = vibe_strdup_or_panic(body_ptr);
+    }
+    free(raw_response);
+    return out;
+}
+
+int64_t vibe_http_request_status(const char *method, const char *url, const char *body, int64_t timeout_ms) {
+    if (url == NULL || url[0] == '\0') {
+        return 0;
+    }
+    if (strncmp(url, "https://", 8) == 0) {
+        return vibe_http_request_status_curl(method, url, body, timeout_ms);
+    }
+    char *raw_response = vibe_http_request_raw_plain(method, url, body, timeout_ms);
+    int64_t code = vibe_http_parse_status_code(raw_response);
+    free(raw_response);
+    return code;
+}
+
+char *vibe_http_get(const char *url, int64_t timeout_ms) {
+    return vibe_http_request("GET", url, "", timeout_ms);
+}
+
+char *vibe_http_post(const char *url, const char *body, int64_t timeout_ms) {
+    return vibe_http_request("POST", url, body, timeout_ms);
 }
 
 static int64_t vibe_http_extract_i64(const char *text) {

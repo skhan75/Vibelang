@@ -10,8 +10,15 @@ keeping deterministic behavior and local-first validation.
 - `time` (preview): clock + duration helpers
 - `path` (stable): path composition/introspection helpers
 - `fs` (preview): filesystem read/write/exists/directory helpers
-- `json` (preview): parse/validate/minify/stringify primitives
-- `http` (preview): protocol helper primitives (status text, default ports, request lines)
+- `net` (preview): TCP + DNS primitives (`listen/connect/read/write/close/resolve`)
+- `convert` (preview): parsing + formatting conversions (`to_int/to_float/to_str`)
+- `text` (preview): text utilities (`trim/contains/replace/case/split_part`)
+- `encoding` (preview): hex/base64/url encode/decode helpers
+- `json` (preview): validate/canonical parse/stringify + numeric helpers
+- `http` (preview): sync request client + protocol helpers
+- `log` (preview): structured-ish log primitives (`info/warn/error`)
+- `env` (preview): environment variable accessors
+- `cli` (preview): process argument helpers
 - `bench` (benchmark-only): gated benchmark parity APIs (requires `bench-runtime`)
 
 Detailed module references:
@@ -21,19 +28,26 @@ Detailed module references:
 - `stdlib/time/README.md`
 - `stdlib/path/README.md`
 - `stdlib/fs/README.md`
+- `stdlib/net/README.md`
+- `stdlib/convert/README.md`
+- `stdlib/text/README.md`
+- `stdlib/encoding/README.md`
 - `stdlib/json/README.md`
 - `stdlib/http/README.md`
+- `stdlib/log/README.md`
+- `stdlib/env/README.md`
+- `stdlib/cli/README.md`
 - `stdlib/bench/README.md`
 
 ## Compiler/runtime contract
 
-- Typechecker recognizes stdlib namespace calls (`time.*`, `path.*`, `fs.*`, `json.*`, `http.*`)
+- Typechecker recognizes stdlib namespace calls (`time.*`, `path.*`, `fs.*`, `net.*`, `convert.*`, `text.*`, `encoding.*`, `json.*`, `http.*`, `log.*`, `env.*`, `cli.*`)
   and enforces argument/return contracts.
 - With `bench-runtime`, typechecker/codegen also recognize `bench.*` and lower those calls to
   `vibe_bench_*` symbols in `runtime/native/vibe_runtime_bench.c`.
 - Codegen lowers the default stdlib calls to runtime `vibe_*` symbols in `runtime/native/vibe_runtime.c`.
 - Runtime implementations are deterministic for equal inputs except explicitly nondeterministic
-  APIs (`time.now_ms`).
+  APIs (`time.now_ms`, `time.monotonic_now_ms`, `env.*`, `cli.*`).
 
 ## Versioning and compatibility
 

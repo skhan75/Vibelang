@@ -51,6 +51,20 @@ Error types SHOULD provide:
 - human-readable message
 - contextual metadata where safe
 
+## Canonical Stdlib Error Type Names
+
+For public stdlib APIs, error type names SHOULD remain stable and explicit so
+users can reason about boundary failures consistently across modules.
+
+Preferred names:
+
+- `JsonError` (`std.json`)
+- `HttpError` (`std.http`)
+- `NetError` (`std.net`)
+- `ParseError` (string/numeric parsing helpers)
+- `EncodingError` (`std.encoding`)
+- `ConfigError` (`std.env`/configuration loading)
+
 ## Diagnostics and Reporting
 
 Error diagnostics SHOULD include:
