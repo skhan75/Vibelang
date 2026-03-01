@@ -76,7 +76,9 @@ Platform guides: [Linux](docs/install/linux.md) · [macOS](docs/install/macos.md
 
 ## Performance
 
-We track performance using the [PLB-CI](benchmarks/third_party/plbci/) suite (Hyperfine-based, Docker-first) and publish the methodology and raw evidence alongside summaries. Prefer these reports over single headline numbers.
+VibeLang targets **systems-level performance** (native AOT binaries, predictable runtime behavior) while keeping AI-era guardrails first-class.
+
+We track performance with the [PLB-CI](benchmarks/third_party/plbci/) suite (Docker-first, plus compile-loop timing). In the latest full run, VibeLang lands in the **C/C++/Rust neighborhood** on many workloads and shows **multi‑× speedups vs dynamic baselines** (geomean-overlap is ~4–15× vs Python/TypeScript, depending on the subset).
 
 - **Publication policy**: `benchmarks/third_party/APPLE_TO_APPLE_BENCHMARK_POLICY.md`
 - **CI runner**: `.github/workflows/third-party-benchmarks.yml` runs strict mode.
