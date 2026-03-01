@@ -1,0 +1,3 @@
+# GitHub Linguist fallback highlighting until native VibeLang support lands.
+*.yb linguist-language=Rust
+*.vibe linguist-language=Rust
