@@ -1,9 +1,9 @@
 
-<p align="center">
-  <img src="assets/branding/vibelang-chevron-stack.png" alt="VibeLang icon" width="132" />
+<p align="left">
+  <img src="assets/branding/vibelang-logo.png" alt="VibeLang wordmark" width="560" />
 </p>
 
-<h1 align="center">VibeLang</h1>
+<h1 align="right">VibeLang</h1>
 
 <p align="center">
   <strong>Code with Intent.</strong><br />
