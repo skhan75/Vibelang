@@ -7,8 +7,8 @@
 
 
 <p align="center">
-  <h1>Code with Intent.</h1><br />
-  <sub>Native AOT compilation · First-class contracts · Structured concurrency · AI-era guardrails</sub>
+  <span style="font-size: 1.6em; font-weight: 800;">Code with Intent.</span><br />
+  <span style="font-size: 1.1em;">Native AOT compilation · First-class contracts · Structured concurrency · AI-era guardrails</span>
 </p>
 
 <p align="center">
