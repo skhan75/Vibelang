@@ -2,8 +2,9 @@
 <p align="center">
   <img src="assets/branding/vibelang-logo.png" alt="VibeLang icon" height="84" style="vertical-align: middle;" />
   &nbsp;&nbsp;&nbsp;
-  <img src="assets/branding/vibelang-text-logo.png" alt="VibeLang" height="84" style="vertical-align: middle;" />
+  <img src="assets/branding/vibelang-text-logo.svg" alt="VibeLang" height="84" style="vertical-align: middle;" />
 </p>
+
 
 <p align="center">
   <strong>Code with Intent.</strong><br />
