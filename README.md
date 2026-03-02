@@ -5,10 +5,10 @@
   <img src="assets/branding/vibelang-text-logo.svg" alt="VibeLang" height="104" style="vertical-align: middle;" />
 </p>
 
+<h2 align="center">Code with Intent.</h2>
 
 <p align="center">
-  <span style="font-size: 1.6em; font-weight: 800;">Code with Intent.</span><br />
-  <span style="font-size: 1.1em;">Native AOT compilation · First-class contracts · Structured concurrency · AI-era guardrails</span>
+  Native AOT compilation · First-class contracts · Structured concurrency · AI-era guardrails
 </p>
 
 <p align="center">
