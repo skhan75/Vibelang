@@ -1,31 +1,31 @@
 
-<p align="center">
+<p align="left">
   <img src="assets/branding/vibelang-logo.png" alt="VibeLang icon" height="104" style="vertical-align: middle;" />
   &nbsp;&nbsp;&nbsp;
   <img src="assets/branding/vibelang-text-logo.svg" alt="VibeLang" height="104" style="vertical-align: middle;" />
 </p>
 
 
-<p align="center">
+<p align="left">
   <strong>Code with Intent.</strong><br />
   <sub>Native AOT compilation · First-class contracts · Structured concurrency · AI-era guardrails</sub>
 </p>
 
-<p align="center">
+<p align="left">
   <a href="https://github.com/skhan75/VibeLang/releases/tag/v1.0.0"><img src="https://img.shields.io/badge/release-v1.0.0-22c55e?style=for-the-badge" alt="release" /></a>
   <a href="#performance"><img src="https://img.shields.io/badge/benchmarked-PLB--CI-0ea5e9?style=for-the-badge" alt="benchmarked" /></a>
   <a href="#performance"><img src="https://img.shields.io/badge/benchmarks-docker--first-9333ea?style=for-the-badge" alt="benchmarks" /></a>
   <a href="#performance"><img src="https://img.shields.io/badge/performance-transparent_reports-f97316?style=for-the-badge" alt="performance reports" /></a>
 </p>
 
-<p align="center">
+<p align="left">
   <a href="https://github.com/skhan75/VibeLang/stargazers"><img src="https://img.shields.io/github/stars/skhan75/VibeLang?style=for-the-badge&color=8b5cf6" alt="stars" /></a>
   <a href="https://github.com/skhan75/VibeLang/commits/main"><img src="https://img.shields.io/github/last-commit/skhan75/VibeLang?style=for-the-badge&color=f59e0b" alt="last commit" /></a>
   <a href="https://github.com/skhan75/VibeLang/issues"><img src="https://img.shields.io/github/issues/skhan75/VibeLang?style=for-the-badge&color=ec4899" alt="issues" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache_2.0-2563eb?style=for-the-badge" alt="license" /></a>
 </p>
 
-<p align="center">
+<p align="left">
   <a href="https://www.thevibelang.org">Website</a> ·
   <a href="https://www.thevibelang.org/documentation">Documentation</a> ·
   <a href="#quickstart">Quickstart</a> ·
