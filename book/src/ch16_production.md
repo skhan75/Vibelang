@@ -161,7 +161,11 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install VibeLang
-        run: curl -sSf https://vibelang.org/install.sh | sh
+        run: |
+          # Prefer pinning your toolchain in CI (release artifact or source build).
+          # This example builds the VibeLang CLI from source at the checked-out revision.
+          cargo build --release -p vibe_cli
+          sudo install -m 0755 target/release/vibe /usr/local/bin/vibe
 
       - name: Format check
         run: vibe fmt --check .

@@ -16,9 +16,9 @@ If you have Rust installed (via [rustup](https://rustup.rs/)), building VibeLang
 from source is straightforward:
 
 ```bash
-git clone https://github.com/nicholasgasior/vibelang.git
-cd vibelang
-cargo build --release
+git clone https://github.com/skhan75/VibeLang.git
+cd VibeLang
+cargo build --release -p vibe_cli
 ```
 
 This produces the `vibe` binary in `target/release/`. Add it to your PATH:
@@ -44,31 +44,30 @@ vibe 0.1.0
 
 ### Packaged Install (Linux)
 
-On Linux systems with a package manager, you can install VibeLang directly:
+Prebuilt binaries are published for major platforms. For the canonical install
+guide, follow the official documentation:
 
 ```bash
-curl -sSf https://vibelang.org/install.sh | sh
+# See the latest install guide:
+# https://www.thevibelang.org/documentation
 ```
 
-This script downloads the latest release binary, places it in `~/.vibelang/bin/`,
-and adds it to your PATH. Run `vibe --version` to confirm.
+If you are reading the book from a checkout of the repository, you can also use
+the in-repo platform guides (including verification steps):
+
+- `docs/install/linux.md`
+- `docs/install/macos.md`
+- `docs/install/windows.md`
 
 ### Packaged Install (macOS)
 
-On macOS with Homebrew:
-
-```bash
-brew install vibelang
-```
+See the official documentation (and/or `docs/install/macos.md` when reading from
+this repository checkout).
 
 ### Packaged Install (Windows)
 
-On Windows, download the installer from the
-[releases page](https://github.com/nicholasgasior/vibelang/releases) or use:
-
-```bash
-winget install vibelang
-```
+See the official documentation (and/or `docs/install/windows.md` when reading
+from this repository checkout).
 
 ### Editor Support
 

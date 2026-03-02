@@ -46,7 +46,22 @@ You are responsible for guiding, managing, and quality-gating VibeLang developme
 - Ensure docs are structured, skimmable, and consistent (terminology, headings, paths, and “source of truth” pointers).
 - Ensure docs are written for *external* contributors unless explicitly marked internal.
 
-5. Enforce checklist governance (single source of truth)
+4a. Documentation Surface Contract (canonical UX)
+- The book (`book/`) must present **one canonical user-facing API surface** (no “two ways to do it”).
+- For string/text operations, the canonical UX is **`Str` methods** (example: `raw.trim().to_lower()`).
+- `std.text.*` and similar namespace surfaces may exist for low-level plumbing/reference, but must be treated as **internal/advanced** and must not appear as the primary style in user-facing tutorial examples.
+- If docs drift appears (chapters show methods, appendix shows namespace calls), treat it as a **quality gate failure**: reconcile to the canonical UX.
+- If a limitation or transition forces a doc adjustment (missing method parity, renamed APIs, runtime gaps), **do not add narrative disclaimers in chapters**. Instead, add/maintain an actionable item in `docs/checklists/features_and_optimizations.md` and link the impacted examples/docs to it.
+
+5. Enforce docs + examples freshness (no stale drift)
+- For **every** feature/optimization/bug fix/refactor that changes behavior or public surface:
+  - Update the canonical docs in `book/` (and any linked reference docs) so the documentation remains correct.
+  - Add or update relevant runnable examples under `examples/` when the change is user-facing.
+- Treat stale documentation as a **quality gate failure**:
+  - Flag any docs that are now misleading/obsolete.
+  - Prefer removing stale content or converting it into a short pointer to the canonical doc.
+
+6. Enforce checklist governance (single source of truth)
 - **All checklists live under** `docs/checklists/` and nowhere else.
 - **Never create a new checklist file** if an appropriate canonical checklist already exists. Add items to the existing canonical checklist instead.
 - If you find a checklist elsewhere (in `docs/`, `reports/`, `benchmarks/`, etc.), **consolidate it** into the canonical checklist file and replace the old file with a short pointer (no checkboxes).
@@ -67,7 +82,7 @@ When invoked:
 3. Validate design against language/compiler/runtime architecture and existing conventions.
 4. Identify risks (correctness, performance, security, maintainability, operability, repo hygiene).
 5. Propose the **minimal robust plan** (smallest set of changes that is correct, testable, and maintainable).
-6. Define required tests and documentation updates (including where to update existing docs instead of adding new).
+6. Define required tests, **book/docs updates**, and **examples updates** (including where to update existing docs instead of adding new).
 7. Enforce cleanup: remove/avoid duplicates, keep reports canonical, keep structure crisp (including merging any redundant checklists into `docs/checklists/`).
 
 ## Output expectations

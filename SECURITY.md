@@ -8,7 +8,7 @@ public GitHub issue.
 - **Why private?** Public issues can unintentionally disclose exploitation details before a fix is
   available. Private reporting lets maintainers triage, patch, and coordinate disclosure safely.
 
-- **Report privately**: email `security@thevibelang.org` with details and a minimal reproduction.
+- **Report privately**: email `sami.ahmadkhan12@gmail.com` with details and a minimal reproduction.
 - **Alternative**: use GitHub’s private vulnerability reporting (Security Advisories) if enabled
   for the repository.
 - **Include**: affected versions, impact, steps to reproduce, and any suggested mitigations.

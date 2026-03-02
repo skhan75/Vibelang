@@ -137,6 +137,18 @@ Benchmark publication and benchmarking execution checklists are maintained in on
 
 ## C) Core Language Surface Gaps (Spec vs Executable Surface)
 
+### C-00a (P1) Canonical text UX: `Str` methods are the public surface
+- [ ] Lock the canonical, user-facing text API to method-style `Str` calls (one way to write real code).
+- **Why**: if we document/ship multiple competing styles (methods vs `std.text.*`), users will fork conventions and docs will drift.
+- **Policy**:
+  - The book (`book/`) and examples (`examples/`) must use **method-style** text operations (`raw.trim().to_lower()`, `s.contains(x)`, etc.).
+  - If a limitation/transition exists (missing method parity, runtime gaps, naming changes), track it here as an actionable item instead of adding narrative disclaimers inside chapters.
+  - Low-level primitives under `std.text` may exist, but are treated as internal/advanced reference—not the primary UX.
+- **Acceptance**:
+  - Book chapters do not include `std.text.*` call-style examples.
+  - Appendix/reference docs do not present `std.text.*` as an “alternate style” for app code.
+  - Any missing method parity vs text primitives is explicitly tracked as a checklist item (with example coverage).
+
 ### C-00 (P0) Data-modeling direction lock (types-first)
 - [x] Lock and publish the canonical data-modeling direction:
   - first-class nominal `type` declarations are the primary model for related mixed-type data

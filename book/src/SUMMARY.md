@@ -32,6 +32,7 @@
 ## Advanced Topics
 
 - [Advanced Patterns and Real-World Programs](ch13_advanced_patterns.md)
+- [Building Real Apps (CLI + Services)](ch17_building_real_apps.md)
 - [The Compiler: How VibeLang Works](ch14_compiler_internals.md)
 - [Toolchain Deep Dive](ch15_toolchain.md)
 - [Production and Release Engineering](ch16_production.md)
