@@ -235,6 +235,7 @@ def preflight_checks(
         "elixir": ["elixir", "mix"],
         "python": ["python3", "pypy3", "pyston3"],
         "typescript": ["deno"],
+        "php": ["php"],
     }
 
     language_checks: dict[str, list[dict[str, Any]]] = {}

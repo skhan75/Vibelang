@@ -1146,6 +1146,10 @@ char *vibe_bench_secp256k1(int64_t n) {
 
 // --- edigits (bench) ---
 
+#ifdef VIBE_USE_GMP
+#include <gmp.h>
+#endif
+
 #define VIBE_BENCH_BIG_BASE 1000000000u
 
 typedef struct vibe_bench_big {
@@ -1296,11 +1300,7 @@ static uint32_t vibe_bench_big_div_small_inplace(vibe_bench_big *a, uint32_t v) 
     return (uint32_t)rem;
 }
 
-static void vibe_bench_big_mul(vibe_bench_big *out, const vibe_bench_big *a, const vibe_bench_big *b) {
-    if (a->len == 0 || b->len == 0) {
-        out->len = 0;
-        return;
-    }
+static void vibe_bench_big_mul_schoolbook(vibe_bench_big *out, const vibe_bench_big *a, const vibe_bench_big *b) {
     vibe_bench_big_reserve(out, a->len + b->len);
     memset(out->d, 0, (a->len + b->len) * sizeof(uint32_t));
     for (size_t i = 0; i < a->len; i++) {
@@ -1314,6 +1314,54 @@ static void vibe_bench_big_mul(vibe_bench_big *out, const vibe_bench_big *a, con
     }
     out->len = a->len + b->len;
     vibe_bench_big_trim(out);
+}
+
+static void vibe_bench_big_add_offset(vibe_bench_big *out, const vibe_bench_big *a, size_t offset) {
+    size_t n = a->len + offset;
+    if (n > out->len) {
+        vibe_bench_big_reserve(out, n);
+        memset(out->d + out->len, 0, (n - out->len) * sizeof(uint32_t));
+        out->len = n;
+    }
+    uint64_t carry = 0;
+    for (size_t i = 0; i < a->len || carry; i++) {
+        uint64_t cur = (uint64_t)out->d[i + offset] + carry;
+        if (i < a->len) cur += a->d[i];
+        out->d[i + offset] = (uint32_t)(cur % VIBE_BENCH_BIG_BASE);
+        carry = cur / VIBE_BENCH_BIG_BASE;
+        if (i + offset + 1 >= out->len && carry) {
+            vibe_bench_big_reserve(out, out->len + 1);
+            out->d[out->len] = 0;
+            out->len++;
+        }
+    }
+}
+
+static void vibe_bench_big_sub_abs(vibe_bench_big *out, const vibe_bench_big *a, const vibe_bench_big *b) {
+    size_t n = a->len > b->len ? a->len : b->len;
+    vibe_bench_big_reserve(out, n);
+    uint64_t borrow = 0;
+    for (size_t i = 0; i < n; i++) {
+        uint64_t av = i < a->len ? a->d[i] : 0;
+        uint64_t bv = (i < b->len ? b->d[i] : 0) + borrow;
+        if (av < bv) {
+            out->d[i] = (uint32_t)(VIBE_BENCH_BIG_BASE + av - bv);
+            borrow = 1;
+        } else {
+            out->d[i] = (uint32_t)(av - bv);
+            borrow = 0;
+        }
+    }
+    out->len = n;
+    vibe_bench_big_trim(out);
+}
+
+static void vibe_bench_big_mul(vibe_bench_big *out, const vibe_bench_big *a, const vibe_bench_big *b) {
+    if (a->len == 0 || b->len == 0) {
+        out->d = NULL; out->len = 0; out->cap = 0;
+        return;
+    }
+    vibe_bench_big_mul_schoolbook(out, a, b);
 }
 
 static void vibe_bench_big_mul_small(vibe_bench_big *out, const vibe_bench_big *a, uint32_t m) {
@@ -1482,6 +1530,78 @@ static uint32_t vibe_bench_edigits_find_k(int64_t n) {
     return b;
 }
 
+#ifdef VIBE_USE_GMP
+
+typedef struct vibe_bench_gmp_pq {
+    mpz_t p;
+    mpz_t q;
+} vibe_bench_gmp_pq;
+
+static void vibe_bench_gmp_sum_terms(vibe_bench_gmp_pq *result, uint32_t a, uint32_t b) {
+    if (b == a + 1) {
+        mpz_init_set_ui(result->p, 1);
+        mpz_init_set_ui(result->q, b);
+        return;
+    }
+    uint32_t mid = (a + b) / 2;
+    vibe_bench_gmp_pq left, right;
+    vibe_bench_gmp_sum_terms(&left, a, mid);
+    vibe_bench_gmp_sum_terms(&right, mid, b);
+
+    mpz_init(result->p);
+    mpz_mul(result->p, left.p, right.q);
+    mpz_add(result->p, result->p, right.p);
+
+    mpz_init(result->q);
+    mpz_mul(result->q, left.q, right.q);
+
+    mpz_clear(left.p);
+    mpz_clear(left.q);
+    mpz_clear(right.p);
+    mpz_clear(right.q);
+}
+
+static char *vibe_bench_edigits_calculate_gmp(int64_t n) {
+    if (n <= 0) {
+        return vibe_bench_strdup_or_panic("");
+    }
+    uint32_t k = vibe_bench_edigits_find_k(n);
+    vibe_bench_gmp_pq pq;
+    vibe_bench_gmp_sum_terms(&pq, 0, k - 1);
+    mpz_add(pq.p, pq.p, pq.q);
+
+    mpz_t pow10;
+    mpz_init(pow10);
+    mpz_ui_pow_ui(pow10, 10, (unsigned long)(n - 1));
+    mpz_mul(pq.p, pq.p, pow10);
+    mpz_clear(pow10);
+
+    mpz_t answer;
+    mpz_init(answer);
+    mpz_tdiv_q(answer, pq.p, pq.q);
+
+    char *gmp_str = mpz_get_str(NULL, 10, answer);
+    size_t slen = strlen(gmp_str);
+    char *s;
+    if ((int64_t)slen >= n) {
+        s = vibe_bench_strdup_or_panic(gmp_str);
+    } else {
+        size_t pad = (size_t)(n - (int64_t)slen);
+        s = (char *)calloc((size_t)n + 1, sizeof(char));
+        if (s == NULL) vibe_panic("failed to allocate edigits string");
+        memset(s, '0', pad);
+        memcpy(s + pad, gmp_str, slen);
+        s[n] = '\0';
+    }
+    free(gmp_str);
+    mpz_clear(answer);
+    mpz_clear(pq.p);
+    mpz_clear(pq.q);
+    return s;
+}
+
+#endif
+
 static char *vibe_bench_edigits_calculate(int64_t n) {
     if (n <= 0) {
         return vibe_bench_strdup_or_panic("");
@@ -1534,7 +1654,11 @@ char *vibe_bench_edigits(int64_t n) {
     if (n <= 0) {
         n = 27;
     }
+#ifdef VIBE_USE_GMP
+    char *digits = vibe_bench_edigits_calculate_gmp(n);
+#else
     char *digits = vibe_bench_edigits_calculate(n);
+#endif
     vibe_bench_string_builder builder;
     vibe_bench_builder_init(&builder, (size_t)n + 64);
     for (int64_t i = 0; i < n; i += 10) {

@@ -54,12 +54,19 @@ pub fn bench_runtime_source_path() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../runtime/native/vibe_runtime_bench.c")
 }
 
+fn gmp_available() -> bool {
+    Path::new("/usr/include/gmp.h").exists()
+        || Path::new("/usr/local/include/gmp.h").exists()
+        || std::env::var("VIBE_USE_GMP").map_or(false, |v| v == "1")
+}
+
 fn compile_runtime_c_object(
     out_obj: &Path,
     source_for_compile: &Path,
     stamp_path: &Path,
     stamp_tag: &str,
     options: &RuntimeBuildOptions,
+    #[allow(unused_variables)] extra_defines: &[&str],
 ) -> Result<(), String> {
     let current_stamp = format!(
         "tag={stamp_tag}\ntarget={}\nprofile={}\ndebuginfo={}\n",
@@ -93,6 +100,9 @@ fn compile_runtime_c_object(
         .arg("-ffunction-sections")
         .arg("-fdata-sections")
         .arg("-std=c11");
+    for def in extra_defines {
+        cmd.arg(def);
+    }
     if !is_windows_target(&options.target) {
         cmd.arg("-pthread");
     }
@@ -154,6 +164,7 @@ pub fn compile_runtime_object(
         &stamp_path,
         "core",
         options,
+        &[],
     )?;
 
     #[cfg(feature = "bench-runtime")]
@@ -173,12 +184,16 @@ pub fn compile_runtime_object(
             embedded_src
         };
         let stamp_path = output_dir.join("vibe_runtime_bench.build.stamp");
+        let use_gmp = gmp_available();
+        let bench_stamp_tag = if use_gmp { "bench-gmp" } else { "bench" };
+        let bench_defines: Vec<&str> = if use_gmp { vec!["-DVIBE_USE_GMP"] } else { vec![] };
         compile_runtime_c_object(
             &bench_obj,
             &source_for_compile,
             &stamp_path,
-            "bench",
+            bench_stamp_tag,
             options,
+            &bench_defines,
         )?;
     }
 
@@ -240,6 +255,10 @@ pub fn link_executable(
     if !is_windows_target(&options.target) {
         cmd.arg("-pthread");
         cmd.arg("-lm");
+    }
+    #[cfg(feature = "bench-runtime")]
+    if gmp_available() {
+        cmd.arg("-lgmp");
     }
     if is_linux_gnu_target(&options.target) {
         cmd.arg("-Wl,--build-id=none").arg("-Wl,--gc-sections");

@@ -2396,6 +2396,12 @@ fn stdlib_namespace_return_hint(namespace: &str, field: &str) -> Option<TypeKind
         ("convert", "to_str") | ("convert", "to_str_f64") | ("convert", "format_f64") => Some(TypeKind::Str),
         ("convert", "f64_to_bits") => Some(TypeKind::Int),
         ("math", "sqrt") => Some(TypeKind::Float),
+        ("str_builder", "new") | ("str_builder", "append") | ("str_builder", "append_char") => Some(TypeKind::Int),
+        ("str_builder", "finish") => Some(TypeKind::Str),
+        ("simd", "f64x2_splat") | ("simd", "f64x2_make") | ("simd", "f64x2_add")
+        | ("simd", "f64x2_sub") | ("simd", "f64x2_mul") => Some(TypeKind::Int),
+        ("simd", "f64x2_gt") => Some(TypeKind::Int),
+        ("simd", "f64x2_extract") => Some(TypeKind::Float),
         ("text", "trim")
         | ("text", "replace")
         | ("text", "to_lower")
@@ -2576,6 +2582,15 @@ fn infer_stdlib_namespace_call(
         ("convert", "to_str_f64") => Some((&["Float"][..], "")),
         ("convert", "format_f64") => Some((&["Float", "Int"][..], "")),
         ("math", "sqrt") => Some((&["Float"][..], "")),
+        ("str_builder", "new") => Some((&["Int"][..], "")),
+        ("str_builder", "append") => Some((&["Int", "Str"][..], "")),
+        ("str_builder", "append_char") => Some((&["Int", "Int"][..], "")),
+        ("str_builder", "finish") => Some((&["Int"][..], "")),
+        ("simd", "f64x2_splat") => Some((&["Float"][..], "")),
+        ("simd", "f64x2_make") => Some((&["Float", "Float"][..], "")),
+        ("simd", "f64x2_add") | ("simd", "f64x2_sub") | ("simd", "f64x2_mul")
+        | ("simd", "f64x2_gt") => Some((&["Int", "Int"][..], "")),
+        ("simd", "f64x2_extract") => Some((&["Int", "Int"][..], "")),
         ("text", "trim")
         | ("text", "to_lower")
         | ("text", "to_upper")
@@ -2708,6 +2723,8 @@ fn is_builtin_ident(name: &str) -> bool {
             | "net"
             | "convert"
             | "math"
+            | "str_builder"
+            | "simd"
             | "text"
             | "encoding"
             | "log"

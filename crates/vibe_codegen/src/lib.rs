@@ -3941,16 +3941,71 @@ fn emit_expr(
                                 "E3404: `.set()` currently supports Int values only".to_string()
                             );
                         }
-                        let local_set = module.declare_func_in_func(
-                            runtime_fns.container_set_auto_i64_fn,
-                            builder.func,
+
+                        let tag = builder.ins().load(
+                            ir::types::I64,
+                            MemFlags::trusted(),
+                            object_value,
+                            Offset32::new(0),
                         );
-                        let call = builder.ins().call(local_set, &[object_value, key, value]);
-                        return Ok(builder
-                            .inst_results(call)
-                            .first()
-                            .copied()
-                            .unwrap_or_else(|| builder.ins().iconst(ir::types::I64, 0)));
+                        let is_list = builder.ins().icmp_imm(IntCC::Equal, tag, 1);
+
+                        let list_block = builder.create_block();
+                        let map_block = builder.create_block();
+                        let merge_block = builder.create_block();
+
+                        builder.ins().brif(is_list, list_block, &[], map_block, &[]);
+
+                        builder.switch_to_block(list_block);
+                        builder.seal_block(list_block);
+                        {
+                            let len = builder.ins().load(
+                                ir::types::I64,
+                                MemFlags::trusted(),
+                                object_value,
+                                Offset32::new(8),
+                            );
+                            let oob_block = builder.create_block();
+                            let ok_block = builder.create_block();
+                            let in_bounds = builder.ins().icmp(IntCC::UnsignedLessThan, key, len);
+                            builder.ins().brif(in_bounds, ok_block, &[], oob_block, &[]);
+
+                            builder.switch_to_block(oob_block);
+                            builder.seal_block(oob_block);
+                            let local_panic =
+                                module.declare_func_in_func(runtime_fns.panic_fn, builder.func);
+                            let oob_msg = emit_string_data(module, builder, "list.set index out of bounds", ptr_ty, str_data_counter, owner)?;
+                            builder.ins().call(local_panic, &[oob_msg]);
+                            builder.ins().trap(cranelift_codegen::ir::TrapCode::unwrap_user(1));
+
+                            builder.switch_to_block(ok_block);
+                            builder.seal_block(ok_block);
+                            let items_ptr = builder.ins().load(
+                                ptr_ty,
+                                MemFlags::trusted(),
+                                object_value,
+                                Offset32::new(24),
+                            );
+                            let byte_offset = builder.ins().imul_imm(key, 8);
+                            let elem_addr = builder.ins().iadd(items_ptr, byte_offset);
+                            builder.ins().store(MemFlags::trusted(), value, elem_addr, Offset32::new(0));
+                            builder.ins().jump(merge_block, &[]);
+                        }
+
+                        builder.switch_to_block(map_block);
+                        builder.seal_block(map_block);
+                        {
+                            let local_set = module.declare_func_in_func(
+                                runtime_fns.container_set_auto_i64_fn,
+                                builder.func,
+                            );
+                            builder.ins().call(local_set, &[object_value, key, value]);
+                            builder.ins().jump(merge_block, &[]);
+                        }
+
+                        builder.switch_to_block(merge_block);
+                        builder.seal_block(merge_block);
+                        return Ok(builder.ins().iconst(ir::types::I64, 0));
                     }
                     "contains" => {
                         if lowered_args.len() != 1 {
@@ -4662,15 +4717,106 @@ fn emit_stdlib_namespace_call(
         }
         ("convert", "f64_to_bits") => {
             expect_arity(1)?;
-            call_one_arg(runtime_fns.f64_to_bits_fn, lowered_args[0], module, builder)
+            builder.ins().bitcast(ir::types::I64, MemFlags::new(), lowered_args[0])
         }
         ("convert", "f64_from_bits") => {
             expect_arity(1)?;
-            call_one_arg(runtime_fns.f64_from_bits_fn, lowered_args[0], module, builder)
+            builder.ins().bitcast(ir::types::F64, MemFlags::new(), lowered_args[0])
         }
         ("math", "sqrt") => {
             expect_arity(1)?;
             builder.ins().sqrt(lowered_args[0])
+        }
+        ("str_builder", "new") => {
+            expect_arity(1)?;
+            call_one_arg(runtime_fns.str_builder_new_fn, lowered_args[0], module, builder)
+        }
+        ("str_builder", "append") => {
+            expect_arity(2)?;
+            call_two_args(runtime_fns.str_builder_append_fn, lowered_args[0], lowered_args[1], module, builder)
+        }
+        ("str_builder", "append_char") => {
+            expect_arity(2)?;
+            call_two_args(runtime_fns.str_builder_append_char_fn, lowered_args[0], lowered_args[1], module, builder)
+        }
+        ("str_builder", "finish") => {
+            expect_arity(1)?;
+            call_one_arg(runtime_fns.str_builder_finish_fn, lowered_args[0], module, builder)
+        }
+        ("simd", "f64x2_splat") => {
+            expect_arity(1)?;
+            let scalar = lowered_args[0];
+            let vec = builder.ins().splat(ir::types::F64X2, scalar);
+            let slot = builder.create_sized_stack_slot(cranelift_codegen::ir::StackSlotData::new(
+                cranelift_codegen::ir::StackSlotKind::ExplicitSlot, 16, 16,
+            ));
+            builder.ins().stack_store(vec, slot, Offset32::new(0));
+            builder.ins().stack_addr(ptr_ty, slot, Offset32::new(0))
+        }
+        ("simd", "f64x2_make") => {
+            expect_arity(2)?;
+            let vec = builder.ins().splat(ir::types::F64X2, lowered_args[0]);
+            let vec = builder.ins().insertlane(vec, lowered_args[1], 1);
+            let slot = builder.create_sized_stack_slot(cranelift_codegen::ir::StackSlotData::new(
+                cranelift_codegen::ir::StackSlotKind::ExplicitSlot, 16, 16,
+            ));
+            builder.ins().stack_store(vec, slot, Offset32::new(0));
+            builder.ins().stack_addr(ptr_ty, slot, Offset32::new(0))
+        }
+        ("simd", "f64x2_add") => {
+            expect_arity(2)?;
+            let a = builder.ins().load(ir::types::F64X2, MemFlags::trusted(), lowered_args[0], Offset32::new(0));
+            let b = builder.ins().load(ir::types::F64X2, MemFlags::trusted(), lowered_args[1], Offset32::new(0));
+            let result = builder.ins().fadd(a, b);
+            let slot = builder.create_sized_stack_slot(cranelift_codegen::ir::StackSlotData::new(
+                cranelift_codegen::ir::StackSlotKind::ExplicitSlot, 16, 16,
+            ));
+            builder.ins().stack_store(result, slot, Offset32::new(0));
+            builder.ins().stack_addr(ptr_ty, slot, Offset32::new(0))
+        }
+        ("simd", "f64x2_sub") => {
+            expect_arity(2)?;
+            let a = builder.ins().load(ir::types::F64X2, MemFlags::trusted(), lowered_args[0], Offset32::new(0));
+            let b = builder.ins().load(ir::types::F64X2, MemFlags::trusted(), lowered_args[1], Offset32::new(0));
+            let result = builder.ins().fsub(a, b);
+            let slot = builder.create_sized_stack_slot(cranelift_codegen::ir::StackSlotData::new(
+                cranelift_codegen::ir::StackSlotKind::ExplicitSlot, 16, 16,
+            ));
+            builder.ins().stack_store(result, slot, Offset32::new(0));
+            builder.ins().stack_addr(ptr_ty, slot, Offset32::new(0))
+        }
+        ("simd", "f64x2_mul") => {
+            expect_arity(2)?;
+            let a = builder.ins().load(ir::types::F64X2, MemFlags::trusted(), lowered_args[0], Offset32::new(0));
+            let b = builder.ins().load(ir::types::F64X2, MemFlags::trusted(), lowered_args[1], Offset32::new(0));
+            let result = builder.ins().fmul(a, b);
+            let slot = builder.create_sized_stack_slot(cranelift_codegen::ir::StackSlotData::new(
+                cranelift_codegen::ir::StackSlotKind::ExplicitSlot, 16, 16,
+            ));
+            builder.ins().stack_store(result, slot, Offset32::new(0));
+            builder.ins().stack_addr(ptr_ty, slot, Offset32::new(0))
+        }
+        ("simd", "f64x2_gt") => {
+            expect_arity(2)?;
+            let a = builder.ins().load(ir::types::F64X2, MemFlags::trusted(), lowered_args[0], Offset32::new(0));
+            let b = builder.ins().load(ir::types::F64X2, MemFlags::trusted(), lowered_args[1], Offset32::new(0));
+            let cmp = builder.ins().fcmp(ir::condcodes::FloatCC::GreaterThan, a, b);
+            let lane0 = builder.ins().extractlane(cmp, 0);
+            let lane1 = builder.ins().extractlane(cmp, 1);
+            let l0_i64 = builder.ins().sextend(ir::types::I64, lane0);
+            let l1_i64 = builder.ins().sextend(ir::types::I64, lane1);
+            let shifted = builder.ins().ishl_imm(l1_i64, 1);
+            builder.ins().bor(l0_i64, shifted)
+        }
+        ("simd", "f64x2_extract") => {
+            expect_arity(2)?;
+            let vec = builder.ins().load(ir::types::F64X2, MemFlags::trusted(), lowered_args[0], Offset32::new(0));
+            let lane_idx = lowered_args[1];
+            let zero = builder.ins().iconst(ir::types::I64, 0);
+            let is_zero = builder.ins().icmp(IntCC::Equal, lane_idx, zero);
+            let lane0 = builder.ins().extractlane(vec, 0);
+            let lane1 = builder.ins().extractlane(vec, 1);
+            builder.ins().select(is_zero, lane0, lane1)
         }
         ("text", "trim") => {
             expect_arity(1)?;
@@ -5336,6 +5482,9 @@ fn infer_mir_expr_type(
                     if ns == "math" && field == "sqrt" {
                         return MirType::F64;
                     }
+                    if ns == "simd" && field == "f64x2_extract" {
+                        return MirType::F64;
+                    }
                     if ns == "convert" && (field == "to_str" || field == "to_str_f64" || field == "format_f64") {
                         return MirType::Str;
                     }
@@ -5490,7 +5639,8 @@ fn value_type_for_expr(
                 MirExpr::Member { object, field, .. }
                 if matches!(&**object, MirExpr::Var(namespace)
                     if (namespace == "convert" && (field == "to_float" || field == "parse_f64" || field == "i64_to_f64" || field == "f64_from_bits"))
-                    || (namespace == "math" && field == "sqrt"))
+                    || (namespace == "math" && field == "sqrt")
+                    || (namespace == "simd" && field == "f64x2_extract"))
             ) =>
         {
             ir::types::F64

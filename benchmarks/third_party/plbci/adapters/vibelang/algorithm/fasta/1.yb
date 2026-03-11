@@ -26,15 +26,15 @@ emit_repeat_fasta(src: Str, n: Int) -> Void {
     if remaining < width {
       line_len = remaining
     }
-    line := ""
+    sb := str_builder.new(line_len)
     j := 0
     while j < line_len {
       idx_abs := i + j
       idx := mod_int(idx_abs, r)
-      line = line + src[idx:idx + 1]
+      sb = str_builder.append_char(sb, src[idx])
       j = j + 1
     }
-    println(line)
+    println(str_builder.finish(sb))
     i = i + line_len
   }
 }
@@ -50,53 +50,53 @@ emit_random_fasta_iub(n: Int, seed_start: Int) -> Int {
     if remaining < width {
       line_len = remaining
     }
-    line := ""
+    sb := str_builder.new(line_len)
     j := 0
     while j < line_len {
       seed = next_seed(seed)
       r := seed
-      ch := "Y"
+      ch := 89
       if r <= 37791 {
-        ch = "a"
+        ch = 97
       } else {
         if r <= 54587 {
-          ch = "c"
+          ch = 99
         } else {
           if r <= 71383 {
-            ch = "g"
+            ch = 103
           } else {
             if r <= 109175 {
-              ch = "t"
+              ch = 116
             } else {
               if r <= 111974 {
-                ch = "B"
+                ch = 66
               } else {
                 if r <= 114773 {
-                  ch = "D"
+                  ch = 68
                 } else {
                   if r <= 117573 {
-                    ch = "H"
+                    ch = 72
                   } else {
                     if r <= 120372 {
-                      ch = "K"
+                      ch = 75
                     } else {
                       if r <= 123171 {
-                        ch = "M"
+                        ch = 77
                       } else {
                         if r <= 125971 {
-                          ch = "N"
+                          ch = 78
                         } else {
                           if r <= 128770 {
-                            ch = "R"
+                            ch = 82
                           } else {
                             if r <= 131569 {
-                              ch = "S"
+                              ch = 83
                             } else {
                               if r <= 134369 {
-                                ch = "V"
+                                ch = 86
                               } else {
                                 if r <= 137168 {
-                                  ch = "W"
+                                  ch = 87
                                 }
                               }
                             }
@@ -111,10 +111,10 @@ emit_random_fasta_iub(n: Int, seed_start: Int) -> Int {
           }
         }
       }
-      line = line + ch
+      sb = str_builder.append_char(sb, ch)
       j = j + 1
     }
-    println(line)
+    println(str_builder.finish(sb))
     i = i + line_len
   }
   return seed
@@ -131,27 +131,27 @@ emit_random_fasta_hs(n: Int, seed_start: Int) -> Int {
     if remaining < width {
       line_len = remaining
     }
-    line := ""
+    sb := str_builder.new(line_len)
     j := 0
     while j < line_len {
       seed = next_seed(seed)
       r := seed
-      ch := "t"
+      ch := 116
       if r <= 42403 {
-        ch = "a"
+        ch = 97
       } else {
         if r <= 70115 {
-          ch = "c"
+          ch = 99
         } else {
           if r <= 97765 {
-            ch = "g"
+            ch = 103
           }
         }
       }
-      line = line + ch
+      sb = str_builder.append_char(sb, ch)
       j = j + 1
     }
-    println(line)
+    println(str_builder.finish(sb))
     i = i + line_len
   }
   return seed

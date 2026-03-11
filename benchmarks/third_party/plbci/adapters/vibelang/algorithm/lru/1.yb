@@ -47,47 +47,45 @@ next_lcg(seed: Int) -> Int {
   return mod_int(seed * 1103515245 + 12345, 2147483648)
 }
 
-evict_oldest(cache: Map<Int, Int>, mod: Int) -> Void {
+put_lru(cache: Map<Int, Int>, key: Int, tick: Int, size: Int,
+        order: List<Int>, order_tick: List<Int>, head: Int) -> Int {
   @effect mut_state
-  oldest_key := -1
-  oldest_time := 0
-  k := 0
-  while k < mod {
-    if cache.contains(k) {
-      ts := cache.get(k)
-      if oldest_key == -1 {
-        oldest_key = k
-        oldest_time = ts
-      } else {
-        if ts < oldest_time {
-          oldest_key = k
-          oldest_time = ts
+  if cache.contains(key) {
+    cache.set(key, tick)
+    order.append(key)
+    order_tick.append(tick)
+    return head
+  }
+  if cache.len() == size {
+    h := head
+    evicted := 0
+    while evicted == 0 {
+      cand_key := order[h]
+      cand_tick := order_tick[h]
+      h = h + 1
+      if cache.contains(cand_key) {
+        cur := cache.get(cand_key)
+        if cur == cand_tick {
+          cache.remove(cand_key)
+          evicted = 1
         }
       }
     }
-    k = k + 1
+    head = h
   }
-  if oldest_key != -1 {
-    cache.remove(oldest_key)
-  }
+  cache.set(key, tick)
+  order.append(key)
+  order_tick.append(tick)
+  return head
 }
 
-put_lru(cache: Map<Int, Int>, key: Int, tick: Int, size: Int, mod: Int) -> Void {
+get_lru(cache: Map<Int, Int>, key: Int, tick: Int,
+        order: List<Int>, order_tick: List<Int>) -> Int {
   @effect mut_state
   if cache.contains(key) {
     cache.set(key, tick)
-  } else {
-    if cache.len() == size {
-      evict_oldest(cache, mod)
-    }
-    cache.set(key, tick)
-  }
-}
-
-get_lru(cache: Map<Int, Int>, key: Int, tick: Int) -> Int {
-  @effect mut_state
-  if cache.contains(key) {
-    cache.set(key, tick)
+    order.append(key)
+    order_tick.append(tick)
     return 1
   }
   return 0
@@ -106,6 +104,11 @@ pub main() -> Int {
 
   cache := {0: 0}
   cache.remove(0)
+
+  order := []
+  order_tick := []
+  head := 0
+
   seed0 := 0
   seed1 := 1
   tick := 0
@@ -115,12 +118,12 @@ pub main() -> Int {
   while i < n {
     seed0 = next_lcg(seed0)
     key0 := mod_int(seed0, mod)
-    put_lru(cache, key0, tick, size, mod)
+    head = put_lru(cache, key0, tick, size, order, order_tick, head)
     tick = tick + 1
 
     seed1 = next_lcg(seed1)
     key1 := mod_int(seed1, mod)
-    if get_lru(cache, key1, tick) == 1 {
+    if get_lru(cache, key1, tick, order, order_tick) == 1 {
       hit = hit + 1
     } else {
       missed = missed + 1

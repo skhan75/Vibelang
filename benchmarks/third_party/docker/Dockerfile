@@ -19,7 +19,9 @@ RUN apt-get update -y && \
       elixir \
       openjdk-21-jdk-headless \
       kotlin \
-      docker.io && \
+      docker.io \
+      libgmp-dev \
+      php-cli && \
     rm -rf /var/lib/apt/lists/*
 
 RUN curl -fsSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --channel 9.0 --install-dir /root/.dotnet
@@ -61,8 +63,13 @@ RUN set -euo pipefail; \
     rm -f /tmp/zig.tar.xz
 
 RUN set -euo pipefail; \
-    curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/opt/deno sh; \
-    ln -sf /opt/deno/bin/deno /usr/local/bin/deno
+    (curl -fsSL --connect-timeout 30 https://deno.land/install.sh | DENO_INSTALL=/opt/deno sh \
+     && ln -sf /opt/deno/bin/deno /usr/local/bin/deno) \
+    || echo "WARNING: Deno install failed (network?), TypeScript benchmarks will be skipped"
+
+RUN if [ -x /opt/swift/usr/bin/swift ]; then echo "Swift OK"; \
+    elif [ -x /opt/swift/bin/swift ]; then ln -sf /opt/swift/bin /opt/swift/usr/bin; echo "Swift symlinked"; \
+    else echo "WARNING: Swift binary not found"; fi
 
 ENV PATH="/opt/swift/usr/bin:/root/.dotnet:/root/.cargo/bin:${PATH}"
 RUN cargo install hyperfine --version 1.19.0

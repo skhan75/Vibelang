@@ -7,6 +7,25 @@ read_input_n() -> Int {
   return json.parse_i64(raw)
 }
 
+mandelbrot_pixel(cr: Float, ci: Float) -> Int {
+  zr := 0.0
+  zi := 0.0
+  tr := 0.0
+  ti := 0.0
+  iter := 0
+  while iter < 50 {
+    if tr + ti > 4.0 {
+      return 0
+    }
+    zi = 2.0 * zr * zi + ci
+    zr = tr - ti + cr
+    tr = zr * zr
+    ti = zi * zi
+    iter = iter + 1
+  }
+  return 1
+}
+
 pub main() -> Int {
   @effect io
   @effect alloc
@@ -30,28 +49,7 @@ pub main() -> Int {
       bit := 0
       while bit < 8 {
         cr := convert.i64_to_f64(x + bit) * inv - 1.5
-        zr := 0.0
-        zi := 0.0
-        tr := 0.0
-        ti := 0.0
-        escaped := 0
-        iter := 0
-        while iter < 50 {
-          if tr + ti > 4.0 {
-            escaped = 1
-            iter = 50
-          } else {
-            zi = 2.0 * zr * zi + ci
-            zr = tr - ti + cr
-            tr = zr * zr
-            ti = zi * zi
-            iter = iter + 1
-          }
-        }
-        byte_val = byte_val * 2
-        if escaped == 0 {
-          byte_val = byte_val + 1
-        }
+        byte_val = byte_val * 2 + mandelbrot_pixel(cr, ci)
         bit = bit + 1
       }
       row_bytes.append(byte_val)

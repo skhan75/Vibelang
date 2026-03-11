@@ -10,7 +10,8 @@
     "kotlin": 25.0,
     "elixir": 2.0,
     "python": 0.45,
-    "typescript": 0.35
+    "typescript": 0.35,
+    "php": 0.3
   },
   "compile_cold_ratio_max": {
     "c": 8.0,
@@ -22,7 +23,8 @@
     "kotlin": 10.0,
     "elixir": 4.0,
     "python": 1.5,
-    "typescript": 1.8
+    "typescript": 1.8,
+    "php": 1.5
   },
   "required_runtime_languages": [
     "vibelang",
@@ -35,7 +37,8 @@
     "kotlin",
     "elixir",
     "python",
-    "typescript"
+    "typescript",
+    "php"
   ],
   "required_compile_languages": [
     "vibelang",
@@ -48,17 +51,20 @@
     "kotlin",
     "elixir",
     "python",
-    "typescript"
+    "typescript",
+    "php"
   ],
   "allow_unavailable_runtime_languages": [
     "swift",
     "kotlin",
-    "elixir"
+    "elixir",
+    "php"
   ],
   "allow_unavailable_compile_languages": [
     "swift",
     "kotlin",
-    "elixir"
+    "elixir",
+    "php"
   ],
   "required_problems": [
     "helloworld",
