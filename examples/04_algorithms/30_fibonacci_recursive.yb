@@ -1,4 +1,9 @@
 fib(n: Int) -> Int {
+  @examples {
+    fib(0) => 0
+    fib(1) => 1
+    fib(5) => 5
+  }
   if n <= 1 {
     return n
   }

@@ -1,8 +1,16 @@
 add_one(x: Int) -> Int {
+  @examples {
+    add_one(5) => 6
+    add_one(0) => 1
+  }
   x + 1
 }
 
 double_value(x: Int) -> Int {
+  @examples {
+    double_value(6) => 12
+    double_value(0) => 0
+  }
   x + x
 }
 

@@ -1,4 +1,9 @@
 add(a: Int, b: Int) -> Int {
+  @examples {
+    add(2, 3) => 5
+    add(0, 0) => 0
+    add(-1, 1) => 0
+  }
   a + b
 }
 

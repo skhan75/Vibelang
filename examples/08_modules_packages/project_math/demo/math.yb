@@ -1,5 +1,10 @@
 module demo.math
 
 pub add(a: Int, b: Int) -> Int {
+  @examples {
+    add(4, 5) => 9
+    add(0, 0) => 0
+    add(-3, 3) => 0
+  }
   a + b
 }

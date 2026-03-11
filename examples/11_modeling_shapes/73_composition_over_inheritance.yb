@@ -1,8 +1,16 @@
 base_score(raw: Int) -> Int {
+  @examples {
+    base_score(10) => 20
+    base_score(0) => 10
+  }
   raw + 10
 }
 
 apply_premium_bonus(score: Int, is_premium: Int) -> Int {
+  @examples {
+    apply_premium_bonus(20, 1) => 25
+    apply_premium_bonus(20, 0) => 20
+  }
   if is_premium == 1 {
     return score + 5
   }
@@ -10,6 +18,10 @@ apply_premium_bonus(score: Int, is_premium: Int) -> Int {
 }
 
 apply_risk_penalty(score: Int, risk_level: Int) -> Int {
+  @examples {
+    apply_risk_penalty(25, 2) => 25
+    apply_risk_penalty(20, 5) => 16
+  }
   if risk_level > 3 {
     return score - 4
   }

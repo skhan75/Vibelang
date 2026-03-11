@@ -1,5 +1,10 @@
 score(x: Int) -> Int {
   @intent "increase score deterministically"
+  @examples {
+    score(4) => 5
+    score(0) => 1
+    score(-1) => 0
+  }
   x + 1
 }
 

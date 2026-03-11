@@ -1,4 +1,10 @@
 fib_iter(n: Int) -> Int {
+  @examples {
+    fib_iter(0) => 0
+    fib_iter(1) => 1
+    fib_iter(5) => 5
+    fib_iter(10) => 55
+  }
   if n <= 1 {
     return n
   }

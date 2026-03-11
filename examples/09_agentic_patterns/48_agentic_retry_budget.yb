@@ -1,4 +1,10 @@
 attempt_action(attempt: Int) -> Int {
+  @examples {
+    attempt_action(1) => 0
+    attempt_action(2) => 0
+    attempt_action(3) => 1
+    attempt_action(5) => 1
+  }
   if attempt >= 3 {
     return 1
   }

@@ -4,17 +4,64 @@ This directory contains runnable sample programs that cover VibeLang from basic 
 
 ## How to run
 
-- From repo root:
+- Run a single example:
   - `vibe run examples/01_basics/01_hello_world.yb`
-- Static validation for all examples:
-  - `rg --files examples -g '*.yb' | while read -r f; do vibe check "$f" || exit 1; done`
+- Run `@examples` assertions for a file:
+  - `vibe test examples/04_algorithms/28_gcd_euclid.yb`
+- Run the full test suite against the manifest:
+  - `bash tooling/test_all_examples.sh`
+  - `bash tooling/test_all_examples.sh --json`
 - For module-import projects, run the entry file:
   - `vibe run examples/08_modules_packages/project_math/demo/main.yb`
   - `vibe run examples/08_modules_packages/project_pipeline/app/main.yb`
-- Running helper module files directly (for example `math.yb`, `parser.yb`, `formatter.yb`) is expected to fail with an entrypoint diagnostic because those files do not define `main`.
-- For contract/example execution:
-  - `vibe test examples/10_contracts_intent/63_all_annotations_combo.yb`
-- If a released binary is behind current language/runtime surface, use `vibe check` first and consult `examples/FEATURE_GAPS_CHECKLIST.md`.
+- Running helper module files directly (e.g. `math.yb`, `parser.yb`, `formatter.yb`) is expected to fail because those files do not define `main`.
+
+## Assertions
+
+Examples use two complementary assertion patterns:
+
+**1. `@examples` annotations** (preferred for pure functions):
+
+```vibelang
+gcd(a: Int, b: Int) -> Int {
+  @examples {
+    gcd(84, 18) => 6
+    gcd(12, 8) => 4
+    gcd(7, 1) => 1
+  }
+  // ... implementation
+}
+```
+
+Run with `vibe test <file>` -- each `call => expected` pair is evaluated and
+compared. Failures are reported with expected vs actual values.
+
+**2. `if/else` checks in `main()`** (for IO, concurrency, or main-only examples):
+
+```vibelang
+pub main() -> Int {
+  @effect io
+  if some_condition {
+    println("test-name-ok")
+  } else {
+    println("test-name-bad")
+  }
+  0
+}
+```
+
+These are validated by the test runner checking that `vibe run` exits with code 0.
+
+## Test manifest
+
+`examples/examples_manifest.json` records the expected outcome for every example:
+- `pass` -- `vibe run` exits 0
+- `compile-fail` -- known compiler gap, expected to fail at compile time
+- `runtime-fail` -- known runtime gap or intentional failure demo
+
+The test runner (`tooling/test_all_examples.sh`) compares actual outcomes against
+the manifest and reports regressions (unexpected failures) and fixes (unexpected
+passes). When a compiler gap is fixed, update the manifest entry to `pass`.
 
 ## Coverage map
 

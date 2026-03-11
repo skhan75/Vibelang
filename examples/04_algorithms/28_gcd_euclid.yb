@@ -1,4 +1,10 @@
 gcd(a: Int, b: Int) -> Int {
+  @examples {
+    gcd(84, 18) => 6
+    gcd(12, 8) => 4
+    gcd(7, 1) => 1
+    gcd(0, 5) => 5
+  }
   x := a
   y := b
   while y != 0 {
