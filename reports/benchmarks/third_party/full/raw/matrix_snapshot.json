@@ -123,6 +123,11 @@
       "id": "typescript",
       "bench_file": "bench_typescript_deno.yaml",
       "source": "plbci"
+    },
+    {
+      "id": "php",
+      "bench_file": "bench_php.yaml",
+      "source": "plbci"
     }
   ]
 }

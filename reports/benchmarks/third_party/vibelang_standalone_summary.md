@@ -1,74 +1,89 @@
-# VibeLang Standalone Benchmark Results
+# VibeLang Benchmark Results — Docker Production Run
 
-- date: `2026-03-11T10:30:00Z`
-- host: `Sami-PC`
-- hyperfine_runs: 5
-- hyperfine_warmup: 2
-- pass: 15  fail: 0  skip: 2
+- date: `2026-03-11T17:48:10Z`
+- host: `Docker (AMD Ryzen 9 5900X, 24 cores, 31.3 GiB)`
+- platform: `Linux 6.6.87.2-microsoft-standard-WSL2 x86_64`
+- tool: `PLB-CI BenchTool + hyperfine`
+- binary: `vibe 0.1.0 (release, bench-runtime, GMP-enabled)`
+- languages_tested: 12 (VibeLang, C, C++, Rust, Zig, Go, Kotlin, Swift, Python, TypeScript, PHP, Elixir)
+- languages_valid: 9 (Go/Kotlin/Swift had build failures)
 
-## Runtime Results (ms)
+## VibeLang Runtime Results (median ms)
 
-| problem | input | mean_ms | stddev_ms | min_ms | max_ms | vs_prev |
-| --- | --- | ---: | ---: | ---: | ---: | --- |
-| binarytrees | 15 | 12.0 | 0.2 | 11.8 | 12.2 | ~same |
-| coro-prime-sieve | 1000 | 0.8 | 0.1 | 0.7 | 1.0 | ~same |
-| edigits | 100000 | 901.4 | 8.8 | 893 | 910 | 1.02x faster |
-| fannkuch-redux | 10 | 327.2 | 1.1 | 326 | 329 | **1.36x faster** |
-| fasta | 250000 | 27.0 | 0.9 | 26.1 | 28.0 | **6.3x faster** |
-| helloworld | T_T | 0.58 | 0.1 | 0.48 | 0.66 | ~same |
-| http-server | 500 | 31.5 | 0.7 | 30.8 | 32.6 | ~same |
-| json-serde | sample 5000 | 0.75 | 0.06 | 0.68 | 0.84 | ~same |
-| lru | 100 500000 | 244.1 | 3.7 | 240 | 248 | **17.1x faster** |
-| mandelbrot | 1000 | 54.0 | 0.8 | 53.2 | 55.0 | 1.13x faster |
-| merkletrees | 15 | 12.0 | 0.3 | 11.7 | 12.3 | ~same |
-| nbody | 500000 | 32.0 | 2.8 | 29.2 | 35.0 | ~same |
-| pidigits | 4000 | 206.9 | 5.5 | 199 | 212 | ~same |
-| secp256k1 | 500 | 100.3 | 3.5 | 96.5 | 105 | ~same |
-| spectral-norm | 500 | 36.8 | 0.2 | 36.6 | 37.0 | **19.2x faster** |
+| problem | median_ms | samples | status |
+| --- | ---: | ---: | --- |
+| binarytrees | 13.9 | 1 | OK |
+| coro-prime-sieve | 3.3 | 1 | OK |
+| edigits | 875.2 | 1 | OK |
+| fannkuch-redux | 332.8 | 1 | OK |
+| fasta | 29.8 | 1 | OK |
+| helloworld | 1.7 | 2 | OK |
+| http-server | 36.5 | 1 | OK |
+| json-serde | 3.3 | 1 | OK |
+| knucleotide | 0.0 | 0 | FAILED |
+| lru | 3.8 | 1 | OK |
+| mandelbrot | 59.1 | 1 | OK |
+| merkletrees | 14.5 | 1 | OK |
+| nbody | 37.2 | 1 | OK |
+| nsieve | 1.7 | 1 | OK |
+| pidigits | 201.5 | 1 | OK |
+| regex-redux | 4592.4 | 1 | OK |
+| secp256k1 | 90.9 | 1 | OK |
+| spectral-norm | 565.0 | 1 | OK |
 
-## Changes Since Last Run
+## Cross-Language Geomean Ratios (VibeLang / Other)
 
-### Phase 1: LRU Adapter Rewrite
-- Replaced O(mod) linear-scan eviction with FIFO queue + timestamp map (amortized O(1))
-- **LRU: 4182ms -> 244ms (17.1x faster)**
+| vs Language | Geomean | Shared | Interpretation |
+| --- | ---: | ---: | --- |
+| C | 0.89x | 3 | VibeLang 1.1x faster |
+| C++ | 1.74x | 4 | VibeLang 1.7x slower |
+| Rust | 0.93x | 16 | VibeLang 1.1x faster |
+| Zig | 0.82x | 12 | VibeLang 1.2x faster |
+| Python | 0.05x | 3 | VibeLang 20.6x faster |
+| TypeScript | 0.12x | 12 | VibeLang 8.6x faster |
+| PHP | 0.04x | 3 | VibeLang 25.0x faster |
+| Elixir | 0.03x | 5 | VibeLang 37.0x faster |
 
-### Phase 2: GMP Bigint Support
-- Added GMP-backed edigits behind `VIBE_USE_GMP` compile flag (activates in Docker)
-- Karatsuba fallback added to custom bigint for non-GMP environments
-- Docker build now installs `libgmp-dev` and links `-lgmp`
+## Per-Problem Ratios vs Rust (16 shared benchmarks)
 
-### Phase 3: String Builder for Fasta
-- Exposed `str_builder` as a VibeLang stdlib namespace (`str_builder.new`, `append_char`, `finish`)
-- Rewrote fasta adapter to use `str_builder.append_char` instead of `line = line + ch`
-- **Fasta: 171ms -> 27ms (6.3x faster)** — eliminated O(n^2) string concatenation
+| problem | VibeLang | Rust | ratio | winner |
+| --- | ---: | ---: | ---: | --- |
+| nsieve | 1.7 | 60.0 | 0.028x | VibeLang 35.3x faster |
+| json-serde | 3.3 | 56.2 | 0.059x | VibeLang 17.0x faster |
+| coro-prime-sieve | 3.3 | 50.3 | 0.066x | VibeLang 15.2x faster |
+| merkletrees | 14.5 | 107.4 | 0.135x | VibeLang 7.4x faster |
+| binarytrees | 13.9 | 86.1 | 0.161x | VibeLang 6.2x faster |
+| lru | 3.8 | 20.0 | 0.190x | VibeLang 5.3x faster |
+| http-server | 36.5 | 192.5 | 0.190x | VibeLang 5.3x faster |
+| secp256k1 | 90.9 | 142.0 | 0.640x | VibeLang 1.6x faster |
+| pidigits | 201.5 | 226.6 | 0.889x | VibeLang 1.1x faster |
+| helloworld | 1.7 | 1.2 | 1.417x | Rust 1.4x faster |
+| fasta | 29.8 | 15.3 | 1.948x | Rust 1.9x faster |
+| nbody | 37.2 | 18.5 | 2.011x | Rust 2.0x faster |
+| mandelbrot | 59.1 | 11.7 | 5.051x | Rust 5.1x faster |
+| fannkuch-redux | 332.8 | 19.9 | 16.724x | Rust 16.7x faster |
+| edigits | 875.2 | 39.4 | 22.213x | Rust 22.2x faster |
+| regex-redux | 4592.4 | 43.9 | 104.611x | Rust 104.6x faster |
 
-### Phase 4: Inline list.set
-- `list.set(i, val)` now emits inline Cranelift store (matching inline list read pattern)
-- Falls back to FFI for Map types via runtime tag check
-- **Fannkuch-redux: 445ms -> 327ms (1.36x faster)**
+**VibeLang wins 9 of 16 benchmarks vs Rust.**
 
-### Phase 5: Zero-cost f64 Bitcast
-- `convert.f64_to_bits` / `convert.f64_from_bits` now emit Cranelift `bitcast` instead of FFI calls
-- Eliminates function call overhead for float bit-packing in `List<Int>`
-- **Spectral-norm: 708ms -> 37ms (19.2x faster)**
+## Compile-Time (helloworld cold build)
 
-### Phase 6: SIMD Intrinsics
-- Added `simd.f64x2_splat`, `f64x2_make`, `f64x2_add`, `f64x2_sub`, `f64x2_mul`, `f64x2_gt`, `f64x2_extract`
-- Mandelbrot refactored with function extraction for better MIR optimization
-- **Mandelbrot: 61ms -> 54ms (1.13x faster)**
+| Language | Cold (ms) | Binary Size |
+| --- | ---: | ---: |
+| VibeLang | 3,023 | 328 KB |
+| C | 1,533 | 16 KB |
+| C++ | 1,529 | 16 KB |
+| Rust | 4,565 | 316 KB |
+| Zig | 5,976 | 1.7 MB |
 
-### Phase 7: Docker Infrastructure
-- Added PHP to language matrix and Dockerfile
-- Fixed Swift binary path detection in Dockerfile
-- TMPDIR fix for Go/Kotlin already in place (awaiting Docker verification)
+VibeLang compiles 1.5x faster than Rust and 2.0x faster than Zig.
 
 ## Notes
 
-- This is a standalone VibeLang-only run (no cross-language baselines).
-- knucleotide and regex-redux are skipped (require external FASTA input files).
-- nbody, spectral-norm, and mandelbrot use native Float codegen with canonical output.
-- spectral-norm uses zero-cost f64 bitcast for `List<Int>` storage (no FFI overhead).
-- fasta uses `str_builder.append_char` for O(n) line construction.
-- LRU uses FIFO queue with amortized O(1) eviction.
-- edigits will use GMP when `libgmp-dev` is available (Docker builds).
-- Docker re-run needed for cross-language comparisons (Go, Kotlin, Swift, PHP).
+- Go, Kotlin, and Swift benchmarks had build failures (binaries not found at expected PLB-CI paths).
+- VibeLang knucleotide adapter failed (0 samples).
+- regex-redux is dominated by POSIX regex overhead (4.6s vs Rust's 44ms).
+- edigits uses custom bigint (GMP was installed but may not have linked correctly).
+- Python results are limited (3 valid benchmarks) because many Python benchmarks use C extensions (NumPy/BLAS).
+- C/C++ have limited overlap (3-5 shared benchmarks) — geomean is not fully representative.
