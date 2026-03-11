@@ -4,7 +4,7 @@
 - host: `Docker (AMD Ryzen 9 5900X, 24 cores, 31.3 GiB)`
 - platform: `Linux 6.6.87.2-microsoft-standard-WSL2 x86_64`
 - tool: `PLB-CI BenchTool + hyperfine`
-- binary: `vibe 0.1.0 (release, bench-runtime, GMP-enabled)`
+- binary: `vibe 1.0.2 (release, bench-runtime, GMP-enabled)`
 - languages_tested: 12 (VibeLang, C, C++, Rust, Zig, Go, Kotlin, Swift, Python, TypeScript, PHP, Elixir)
 - languages_valid: 9 (Go/Kotlin/Swift had build failures)
 

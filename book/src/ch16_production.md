@@ -424,7 +424,7 @@ language, adopt gradually:
 
 - Require contracts on all functions (public and private)
 - Use `vibe lint --intent` on all files
-- Enforce contract quality rubric in code review (see Chapter 20)
+- Enforce contract quality rubric in code review
 - Monitor contract violations in production
 
 Each phase builds on the previous one. Don't skip to Phase 4 — the team needs
@@ -478,5 +478,5 @@ codebases evolve.
 
 ---
 
-Next: Chapter 17 explores advanced topics in VibeLang's type system and
-generics.
+Next: Chapter 17 covers building real applications — CLI tools and services —
+using VibeLang's standard library.

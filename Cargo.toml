@@ -21,7 +21,7 @@ resolver = "2"
 
 [workspace.package]
 edition = "2021"
-version = "0.1.0"
+version = "1.0.2"
 license = "Apache-2.0"
 authors = ["VibeLang Contributors"]
 description = "A statically typed, natively compiled language with first-class contracts and intent"

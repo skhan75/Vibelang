@@ -4,7 +4,7 @@
 
 **Environment**: AMD Ryzen 9 5900X (24 logical cores), 31.3 GiB RAM, Ubuntu 24.04 (WSL2)
 **Container**: `vibelang-third-party-bench:latest` (Docker)
-**Binary**: vibe 0.1.0 (release, bench-runtime, GMP-enabled)
+**Binary**: vibe 1.0.2 (release, bench-runtime, GMP-enabled)
 **Tool**: PLB-CI BenchTool + hyperfine
 **Languages**: VibeLang, C, C++, Rust, Zig, Python, TypeScript, PHP, Elixir (Go/Kotlin/Swift: build failures)
 

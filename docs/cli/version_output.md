@@ -36,7 +36,7 @@ Required fields:
 Example shape:
 
 ```json
-{"name":"vibe","version":"0.1.0","commit":"unknown","target":"x86_64-linux","profile":"release"}
+{"name":"vibe","version":"1.0.2","commit":"unknown","target":"x86_64-linux","profile":"release"}
 ```
 
 ## Stability Rules

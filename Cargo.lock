@@ -717,14 +717,14 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "vibe_ast"
-version = "0.1.0"
+version = "1.0.2"
 dependencies = [
  "vibe_diagnostics",
 ]
 
 [[package]]
 name = "vibe_cli"
-version = "0.1.0"
+version = "1.0.2"
 dependencies = [
  "vibe_ast",
  "vibe_codegen",
@@ -744,7 +744,7 @@ dependencies = [
 
 [[package]]
 name = "vibe_codegen"
-version = "0.1.0"
+version = "1.0.2"
 dependencies = [
  "cranelift-codegen",
  "cranelift-frontend",
@@ -757,29 +757,29 @@ dependencies = [
 
 [[package]]
 name = "vibe_diagnostics"
-version = "0.1.0"
+version = "1.0.2"
 
 [[package]]
 name = "vibe_doc"
-version = "0.1.0"
+version = "1.0.2"
 dependencies = [
  "regex",
 ]
 
 [[package]]
 name = "vibe_fmt"
-version = "0.1.0"
+version = "1.0.2"
 
 [[package]]
 name = "vibe_hir"
-version = "0.1.0"
+version = "1.0.2"
 dependencies = [
  "vibe_ast",
 ]
 
 [[package]]
 name = "vibe_indexer"
-version = "0.1.0"
+version = "1.0.2"
 dependencies = [
  "serde",
  "serde_json",
@@ -794,14 +794,14 @@ dependencies = [
 
 [[package]]
 name = "vibe_lexer"
-version = "0.1.0"
+version = "1.0.2"
 dependencies = [
  "vibe_diagnostics",
 ]
 
 [[package]]
 name = "vibe_lsp"
-version = "0.1.0"
+version = "1.0.2"
 dependencies = [
  "serde",
  "serde_json",
@@ -815,14 +815,14 @@ dependencies = [
 
 [[package]]
 name = "vibe_mir"
-version = "0.1.0"
+version = "1.0.2"
 dependencies = [
  "vibe_hir",
 ]
 
 [[package]]
 name = "vibe_parser"
-version = "0.1.0"
+version = "1.0.2"
 dependencies = [
  "vibe_ast",
  "vibe_diagnostics",
@@ -831,7 +831,7 @@ dependencies = [
 
 [[package]]
 name = "vibe_pkg"
-version = "0.1.0"
+version = "1.0.2"
 dependencies = [
  "semver",
  "serde",
@@ -841,11 +841,11 @@ dependencies = [
 
 [[package]]
 name = "vibe_runtime"
-version = "0.1.0"
+version = "1.0.2"
 
 [[package]]
 name = "vibe_sidecar"
-version = "0.1.0"
+version = "1.0.2"
 dependencies = [
  "serde",
  "serde_json",
@@ -854,7 +854,7 @@ dependencies = [
 
 [[package]]
 name = "vibe_types"
-version = "0.1.0"
+version = "1.0.2"
 dependencies = [
  "vibe_ast",
  "vibe_diagnostics",

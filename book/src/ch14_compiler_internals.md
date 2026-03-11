@@ -284,13 +284,12 @@ The MIR is designed for optimization and analysis:
 **Control flow graph:** Functions become graphs of basic blocks connected by
 branches, making control flow analysis straightforward.
 
-**Optimization passes:**
+**Optimization passes (opt level 2):**
 
-- Dead code elimination
-- Constant folding and propagation
-- Function inlining (small pure functions)
-- Loop-invariant code motion
-- Common subexpression elimination
+- Constant folding and propagation (Int, Float, Bool, Str literals)
+- Dead code elimination (removes unused bindings)
+- Function inlining (non-recursive functions with ≤12 statements)
+- Loop-invariant code motion (hoists invariant `let` bindings out of loops)
 
 **Contract optimization (release mode):**
 

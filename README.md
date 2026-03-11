@@ -13,7 +13,7 @@
 
 <p align="center">
   <a href="https://github.com/skhan75/VibeLang/actions"><img src="https://img.shields.io/github/actions/workflow/status/skhan75/VibeLang/phase1-frontend.yml?branch=main&style=for-the-badge&label=CI" alt="CI" /></a>
-  <a href="https://github.com/skhan75/VibeLang/releases/tag/v1.0.1"><img src="https://img.shields.io/badge/release-v1.0.1-22c55e?style=for-the-badge" alt="release" /></a>
+  <a href="https://github.com/skhan75/VibeLang/releases/tag/v1.0.2"><img src="https://img.shields.io/badge/release-v1.0.2-22c55e?style=for-the-badge" alt="release" /></a>
   <a href="https://github.com/skhan75/VibeLang/issues"><img src="https://img.shields.io/github/issues/skhan75/VibeLang?style=for-the-badge&color=ec4899" alt="issues" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache_2.0-2563eb?style=for-the-badge" alt="license" /></a>
 </p>
@@ -23,6 +23,7 @@
   <a href="https://www.thevibelang.org/documentation">Documentation</a> ·
   <a href="#quickstart">Quickstart</a> ·
   <a href="#performance">Performance</a> ·
+  <a href="https://www.thevibelang.org/benchmarks">Benchmarks</a> ·
   <a href="CONTRIBUTING.md">Contributing</a>
 </p>
 
@@ -92,13 +93,26 @@ Platform guides: [Linux](docs/install/linux.md) · [macOS](docs/install/macos.md
 
 ## Performance
 
-VibeLang targets **systems-level performance** (native AOT binaries, predictable runtime behavior) while keeping AI-era guardrails first-class.
+VibeLang compiles to native AOT binaries with zero runtime dependencies. We benchmark against 8 languages using the [PLB-CI](benchmarks/third_party/plbci/) suite in Docker.
 
-We track performance with the [PLB-CI](benchmarks/third_party/plbci/) suite (Docker-first, plus compile-loop timing). In the latest full run, VibeLang lands in the **C/C++/Rust neighborhood** on many workloads and shows **multi‑× speedups vs dynamic baselines** (geomean-overlap is ~4–15× vs Python/TypeScript, depending on the subset).
+**Geomean ratios** (Docker-verified, March 2026):
 
-- **Publication policy**: `benchmarks/third_party/APPLE_TO_APPLE_BENCHMARK_POLICY.md`
-- **CI runner**: `.github/workflows/third-party-benchmarks.yml` runs strict mode.
-- **Reports**: [`reports/benchmarks/`](reports/benchmarks/third_party/full/summary.md)
+| vs Language | Geomean | Shared Benchmarks | Result |
+|---|---:|---:|---|
+| C | 0.89x | 3 | VibeLang 1.1x faster |
+| Rust | 0.93x | 16 | VibeLang 1.1x faster (wins 9 of 16) |
+| Zig | 0.82x | 12 | VibeLang 1.2x faster |
+| C++ | 1.74x | 4 | VibeLang 1.7x slower |
+| Python | 0.05x | 3 | VibeLang ~20x faster |
+| TypeScript | 0.12x | 12 | VibeLang ~8.6x faster |
+| PHP | 0.04x | 3 | VibeLang ~25x faster |
+
+VibeLang compiles **1.5x faster than Rust** and produces a **328 KB** binary for hello-world.
+
+- **Full results**: [benchmarks/third_party/local_full_run_report.md](benchmarks/third_party/local_full_run_report.md)
+- **Interactive dashboard**: [thevibelang.org/benchmarks](https://www.thevibelang.org/benchmarks)
+- **Publication policy**: [benchmarks/third_party/APPLE_TO_APPLE_BENCHMARK_POLICY.md](benchmarks/third_party/APPLE_TO_APPLE_BENCHMARK_POLICY.md)
+- **CI runner**: `.github/workflows/third-party-benchmarks.yml` runs strict mode
 
 ## Contracts & Intent
 

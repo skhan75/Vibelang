@@ -341,7 +341,117 @@ Convenience wrapper around `request("POST", ...)`.
 
 ---
 
-## C.8 Module Summary
+## C.8 `convert` — Additional Conversion Functions (Preview)
+
+The core `convert` functions (`to_int`, `parse_i64`, `to_float`, `parse_f64`,
+`to_str`, `to_str_f64`) are listed above. The following functions were added
+to support Float codegen and bit-level operations.
+
+### `format_f64(value: Float, precision: Int) -> Str`
+
+Formats a float with a fixed number of decimal places.
+
+```vibe
+convert.format_f64(3.14159, 2)   // "3.14"
+convert.format_f64(1.0, 6)       // "1.000000"
+```
+
+### `i64_to_f64(n: Int) -> Float`
+
+Converts an integer to a float.
+
+```vibe
+f := convert.i64_to_f64(42)   // 42.0
+```
+
+### `f64_to_bits(f: Float) -> Int`
+
+Returns the IEEE 754 bit representation of a float as an integer. Useful for
+bit-level manipulation (e.g. hash functions, serialization).
+
+```vibe
+bits := convert.f64_to_bits(1.0)   // 4607182418800017408
+```
+
+### `f64_from_bits(bits: Int) -> Float`
+
+Reconstructs a float from its IEEE 754 bit representation.
+
+```vibe
+f := convert.f64_from_bits(4607182418800017408)   // 1.0
+```
+
+---
+
+## C.9 `str_builder` — String Builder (Preview)
+
+Efficient mutable string construction. Use when building strings incrementally
+in a loop to avoid O(n²) concatenation. Import: `import std.str_builder`
+
+All functions are pure (no effects).
+
+### `new(capacity: Int) -> Int`
+
+Creates a new string builder with the given initial capacity. Returns a handle.
+
+```vibe
+sb := str_builder.new(1024)
+```
+
+### `append(handle: Int, s: Str) -> Int`
+
+Appends a string to the builder. Returns the handle.
+
+```vibe
+str_builder.append(sb, "Hello, ")
+str_builder.append(sb, "world!")
+```
+
+### `append_char(handle: Int, ch: Int) -> Int`
+
+Appends a single byte (as an ASCII code point) to the builder. Returns the handle.
+
+```vibe
+str_builder.append_char(sb, 10)   // newline
+```
+
+### `finish(handle: Int) -> Str`
+
+Finalizes the builder and returns the built string. The handle is invalidated.
+
+```vibe
+result := str_builder.finish(sb)
+println(result)   // "Hello, world!\n"
+```
+
+---
+
+## C.10 `regex` — Regular Expressions (Preview)
+
+POSIX extended regular expression matching. Import: `import std.regex`
+
+All functions are pure (no effects).
+
+### `count(text: Str, pattern: Str) -> Int`
+
+Returns the number of non-overlapping matches of `pattern` in `text`.
+
+```vibe
+regex.count("abcabc", "abc")   // 2
+regex.count("hello", "x")      // 0
+```
+
+### `replace_all(text: Str, pattern: Str, replacement: Str) -> Str`
+
+Replaces all non-overlapping matches of `pattern` in `text` with `replacement`.
+
+```vibe
+regex.replace_all("foo bar foo", "foo", "baz")   // "baz bar baz"
+```
+
+---
+
+## C.11 Module Summary
 
 | Module | Stability   | Effects Required | Functions |
 |--------|-------------|------------------|:---------:|
@@ -351,7 +461,7 @@ Convenience wrapper around `request("POST", ...)`.
 | `path` | **Stable**  | None             | 4         |
 | `fs`   | **Preview** | `io`             | 4         |
 | `net`  | **Preview** | `net`            | 8         |
-| `convert` | **Preview** | None          | 6         |
+| `convert` | **Preview** | None          | 10        |
 | `text` | **Preview** | None             | 9         |
 | `encoding` | **Preview** | None         | 6         |
 | `json` | **Preview** | None             | 6         |
@@ -359,31 +469,35 @@ Convenience wrapper around `request("POST", ...)`.
 | `log`  | **Preview** | `io`             | 3         |
 | `env`  | **Preview** | `nondet`         | 3         |
 | `cli`  | **Preview** | `nondet`         | 2         |
+| `str_builder` | **Preview** | None      | 4         |
+| `regex` | **Preview** | None            | 2         |
 
 ---
 
-## C.9 Import Quick Reference
+## C.12 Import Quick Reference
 
 ```vibe
-import std.io      // println, print, eprintln
-import std.core    // deterministic utilities
-import std.time    // now_ms, sleep_ms, duration_ms
-import std.path    // join, parent, basename, is_absolute
-import std.fs      // exists, read_text, write_text, create_dir
-import std.net     // listen, listener_port, accept, connect, read, write, close, resolve
-import std.convert // to_int, parse_i64, to_float, parse_f64, to_str, to_str_f64
-import std.text    // trim, contains, starts_with, ends_with, replace, to_lower, to_upper, byte_len, split_part
-import std.encoding // hex/base64/url encode/decode
-import std.json    // is_valid, parse, stringify, parse_i64, stringify_i64, minify
-import std.http    // status_text, default_port, build_request_line, request, request_status, get, post
-import std.log     // info, warn, error
-import std.env     // get, has, get_required
-import std.cli     // args_len, arg
+import std.io          // println, print, eprintln
+import std.core        // deterministic utilities
+import std.time        // now_ms, sleep_ms, duration_ms
+import std.path        // join, parent, basename, is_absolute
+import std.fs          // exists, read_text, write_text, create_dir
+import std.net         // listen, listener_port, accept, connect, read, write, close, resolve
+import std.convert     // to_int, parse_i64, to_float, parse_f64, to_str, to_str_f64, format_f64, i64_to_f64, f64_to_bits, f64_from_bits
+import std.text        // trim, contains, starts_with, ends_with, replace, to_lower, to_upper, byte_len, split_part
+import std.encoding    // hex/base64/url encode/decode
+import std.json        // is_valid, parse, stringify, parse_i64, stringify_i64, minify
+import std.http        // status_text, default_port, build_request_line, request, request_status, get, post
+import std.log         // info, warn, error
+import std.env         // get, has, get_required
+import std.cli         // args_len, arg
+import std.str_builder // new, append, append_char, finish
+import std.regex       // count, replace_all
 ```
 
 ---
 
-## C.10 Effects by Function
+## C.13 Effects by Function
 
 | Function                       | Module | Effects  |
 |--------------------------------|--------|----------|
@@ -416,6 +530,10 @@ import std.cli     // args_len, arg
 | `parse_f64(Str)`               | convert | None    |
 | `to_str(Int)`                  | convert | None    |
 | `to_str_f64(Float)`            | convert | None    |
+| `format_f64(Float, Int)`       | convert | None    |
+| `i64_to_f64(Int)`              | convert | None    |
+| `f64_to_bits(Float)`           | convert | None    |
+| `f64_from_bits(Int)`           | convert | None    |
 | `trim(Str)`                    | text   | None     |
 | `contains(Str, Str)`           | text   | None     |
 | `starts_with(Str, Str)`        | text   | None     |
@@ -452,3 +570,9 @@ import std.cli     // args_len, arg
 | `get_required(Str)`            | env    | `nondet` |
 | `args_len()`                   | cli    | `nondet` |
 | `arg(Int)`                     | cli    | `nondet` |
+| `new(Int)`                     | str_builder | None |
+| `append(Int, Str)`             | str_builder | None |
+| `append_char(Int, Int)`        | str_builder | None |
+| `finish(Int)`                  | str_builder | None |
+| `count(Str, Str)`              | regex  | None     |
+| `replace_all(Str, Str, Str)`   | regex  | None     |

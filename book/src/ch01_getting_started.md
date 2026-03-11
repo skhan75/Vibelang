@@ -39,7 +39,7 @@ vibe --version
 You should see output like:
 
 ```
-vibe 0.1.0
+vibe 1.0.2
 ```
 
 ### Packaged Install (Linux)
