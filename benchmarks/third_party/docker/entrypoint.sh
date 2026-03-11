@@ -18,6 +18,10 @@ if [[ -d ".cache/third_party/plbci/.git" ]]; then
   git config --global --add safe.directory "$(pwd)/.cache/third_party/plbci" || true
 fi
 
+export TMPDIR="/workspace/VibeStack/vibelang/.cache/third_party_bench/plbci_tmp"
+mkdir -p "$TMPDIR"
+echo "TMPDIR set to $TMPDIR for nested Docker path visibility"
+
 echo "Building bench-enabled vibe binary..."
 cargo build --release -p vibe_cli --features bench-runtime
 cp target/release/vibe /usr/local/bin/vibe

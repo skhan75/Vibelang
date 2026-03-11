@@ -1,6 +1,7 @@
 {
   "format": "vibe-plbci-parity-manifest-v1",
-  "version": 1,
+  "version": 2,
+  "notes": "Updated 2026-03-11. Float codegen landed; nbody, spectral-norm, mandelbrot rewritten with native Float and produce canonical output.",
   "problems": [
     {
       "name": "helloworld",
@@ -8,10 +9,9 @@
       "owner": "benchmarking",
       "evidence": "benchmarks/third_party/plbci/adapters/vibelang/algorithm/helloworld/1.yb",
       "exit_criteria": [
-        "implementation consumes canonical PLB-CI input contract",
-        "implementation performs expected workload semantics"
+        "reads .benchmark_input and prints canonical greeting with input string"
       ],
-      "notes": "Trivial benchmark; canonical output-only behavior is expected."
+      "notes": "Reads input; prints 'Hello world <input>!'."
     },
     {
       "name": "nsieve",
@@ -19,9 +19,10 @@
       "owner": "benchmarking",
       "evidence": "benchmarks/third_party/plbci/adapters/vibelang/algorithm/nsieve/1.yb",
       "exit_criteria": [
-        "sieve implementation consumes benchmark input and computes prime counts canonically"
+        "reads .benchmark_input for N",
+        "sieve implementation computes prime counts canonically for 10000*2^(N), 10000*2^(N-1), 10000*2^(N-2)"
       ],
-      "notes": "Canonical sieve implementation; hardcoded outputs removed."
+      "notes": "Full canonical sieve; reads input; computes and prints results."
     },
     {
       "name": "binarytrees",
@@ -29,9 +30,11 @@
       "owner": "benchmarking",
       "evidence": "benchmarks/third_party/plbci/adapters/vibelang/algorithm/binarytrees/1.yb",
       "exit_criteria": [
-        "tree construction and checks remain workload-equivalent"
+        "reads .benchmark_input for depth N",
+        "builds stretch tree at depth N+1, iterates trees at depths 4..N step 2, long-lived tree at depth N",
+        "output matches canonical format"
       ],
-      "notes": ""
+      "notes": "Reads input; canonical tree construction and check sums."
     },
     {
       "name": "merkletrees",
@@ -39,9 +42,11 @@
       "owner": "benchmarking",
       "evidence": "benchmarks/third_party/plbci/adapters/vibelang/algorithm/merkletrees/1.yb",
       "exit_criteria": [
-        "tree construction and hashing remain workload-equivalent"
+        "reads .benchmark_input for depth N",
+        "builds stretch tree, iterates depths, long-lived tree",
+        "output matches canonical format"
       ],
-      "notes": ""
+      "notes": "Reads input; canonical hash-tree construction."
     },
     {
       "name": "nbody",
@@ -49,9 +54,11 @@
       "owner": "benchmarking",
       "evidence": "benchmarks/third_party/plbci/adapters/vibelang/algorithm/nbody/1.yb",
       "exit_criteria": [
-        "body-step simulation logic remains workload-equivalent"
+        "reads .benchmark_input for iteration count N",
+        "performs N-body advance loop with 5 bodies for N iterations using native Float",
+        "output matches canonical f64 energy values to 9 decimal places"
       ],
-      "notes": ""
+      "notes": "Uses native Float codegen. Canonical algorithm with same constants as reference Rust/C implementations. Output verified against PLB-CI expected output."
     },
     {
       "name": "spectral-norm",
@@ -59,9 +66,11 @@
       "owner": "benchmarking",
       "evidence": "benchmarks/third_party/plbci/adapters/vibelang/algorithm/spectral-norm/1.yb",
       "exit_criteria": [
-        "matrix-vector kernel remains workload-equivalent"
+        "reads .benchmark_input for matrix dimension N",
+        "performs 10 iterations of A^T*A*u power method with N-dimensional vectors using native Float",
+        "output matches canonical floating-point value to 9 decimal places"
       ],
-      "notes": ""
+      "notes": "Uses native Float codegen with f64 bit-packing in List<Int> for vector storage. Canonical algorithm matching Go/Rust reference implementations."
     },
     {
       "name": "pidigits",
@@ -69,9 +78,11 @@
       "owner": "benchmarking",
       "evidence": "benchmarks/third_party/plbci/adapters/vibelang/algorithm/pidigits/1.yb",
       "exit_criteria": [
-        "digit-generation algorithm computes benchmark output groups from input digits count"
+        "reads .benchmark_input for digit count N",
+        "computes N digits of pi via spigot algorithm",
+        "output matches canonical format"
       ],
-      "notes": "Canonical spigot-style digit generation implemented."
+      "notes": "Integer-only algorithm; fully canonical."
     },
     {
       "name": "edigits",
@@ -79,9 +90,10 @@
       "owner": "benchmarking",
       "evidence": "benchmarks/third_party/plbci/adapters/vibelang/algorithm/edigits/1.yb",
       "exit_criteria": [
-        "implementation consumes canonical PLB-CI input contract and prints computed digits of e"
+        "reads .benchmark_input for digit count N",
+        "delegates to bench.edigits(N) runtime"
       ],
-      "notes": "Canonical implementation delegates heavy bigint arithmetic to runtime `math.edigits`."
+      "notes": "Runtime-backed (C implementation). Canonical output."
     },
     {
       "name": "mandelbrot",
@@ -89,9 +101,11 @@
       "owner": "benchmarking",
       "evidence": "benchmarks/third_party/plbci/adapters/vibelang/algorithm/mandelbrot/1.yb",
       "exit_criteria": [
-        "fractal kernel remains workload-equivalent"
+        "reads .benchmark_input for dimension N",
+        "computes Mandelbrot set for N x N grid with 50 iterations using native Float",
+        "output format is P4 header + dimensions + MD5 hash of pixel bitmap matching canonical output"
       ],
-      "notes": ""
+      "notes": "Uses native Float codegen. Canonical Mandelbrot iteration with same escape radius and iteration count as reference implementations. MD5 hash verified against PLB-CI expected output."
     },
     {
       "name": "fannkuch-redux",
@@ -99,9 +113,11 @@
       "owner": "benchmarking",
       "evidence": "benchmarks/third_party/plbci/adapters/vibelang/algorithm/fannkuch-redux/1.yb",
       "exit_criteria": [
-        "flip/count kernel remains workload-equivalent"
+        "reads .benchmark_input for permutation size N",
+        "enumerates all N! permutations, counts pancake flips",
+        "output matches canonical checksum and Pfannkuchen(N) = max_flips"
       ],
-      "notes": ""
+      "notes": "Integer-only algorithm; fully canonical."
     },
     {
       "name": "fasta",
@@ -109,9 +125,11 @@
       "owner": "benchmarking",
       "evidence": "benchmarks/third_party/plbci/adapters/vibelang/algorithm/fasta/1.yb",
       "exit_criteria": [
-        "FASTA repeat + random sequence generation uses benchmark RNG/probability model"
+        "reads .benchmark_input for N",
+        "generates ALU repeat (2N), IUB random (3N), Homo sapiens random (5N) sequences",
+        "uses canonical LCG RNG and probability tables"
       ],
-      "notes": "Canonical sequence generator implemented from benchmark workload."
+      "notes": "Reads input; canonical FASTA generation."
     },
     {
       "name": "knucleotide",
@@ -119,9 +137,10 @@
       "owner": "benchmarking",
       "evidence": "benchmarks/third_party/plbci/adapters/vibelang/algorithm/knucleotide/1.yb",
       "exit_criteria": [
-        "k-mer frequency counting and fixed probe counts are computed from input corpus"
+        "reads .benchmark_input for FASTA file path",
+        "computes mono/dinucleotide frequencies and fixed subsequence counts"
       ],
-      "notes": "Algorithmic counting implementation replaces fixed output blocks."
+      "notes": "Reads input; canonical k-mer counting."
     },
     {
       "name": "regex-redux",
@@ -129,9 +148,10 @@
       "owner": "benchmarking",
       "evidence": "benchmarks/third_party/plbci/adapters/vibelang/algorithm/regex-redux/1.yb",
       "exit_criteria": [
-        "regex count and substitution pipeline is computed from input DNA corpus using runtime regex APIs"
+        "reads .benchmark_input for FASTA file path",
+        "performs canonical regex count and substitution pipeline"
       ],
-      "notes": "Canonical regex-redux implementation powered by runtime regex.count/regex.replace_all."
+      "notes": "Reads input; uses runtime regex.count/regex.replace_all."
     },
     {
       "name": "json-serde",
@@ -139,9 +159,10 @@
       "owner": "benchmarking",
       "evidence": "benchmarks/third_party/plbci/adapters/vibelang/algorithm/json-serde/1.yb",
       "exit_criteria": [
-        "canonicalize JSON parse/serialize workload and compute output MD5 digests from input"
+        "reads .benchmark_input for 'filename N'",
+        "canonicalizes JSON, computes MD5 digest"
       ],
-      "notes": "Implements canonical JSON canonicalization + MD5 in runtime; removes fixed-output proxy."
+      "notes": "Reads input; uses runtime bench.json_canonical/bench.md5_hex."
     },
     {
       "name": "coro-prime-sieve",
@@ -149,9 +170,11 @@
       "owner": "benchmarking",
       "evidence": "benchmarks/third_party/plbci/adapters/vibelang/algorithm/coro-prime-sieve/1.yb",
       "exit_criteria": [
-        "prime generation logic remains workload-equivalent"
+        "reads .benchmark_input for prime count N",
+        "generates N primes via trial division",
+        "output matches canonical prime list"
       ],
-      "notes": ""
+      "notes": "Reads input. Uses trial division (no coroutines yet). Workload is equivalent for prime generation."
     },
     {
       "name": "http-server",
@@ -159,9 +182,10 @@
       "owner": "benchmarking",
       "evidence": "benchmarks/third_party/plbci/adapters/vibelang/algorithm/http-server/1.yb",
       "exit_criteria": [
-        "execute canonical HTTP server/client workload and print computed sum"
+        "reads .benchmark_input for request count N",
+        "delegates to bench.http_server_bench(N) runtime"
       ],
-      "notes": "Adds `net.*` primitives and a runtime-backed `http.server_bench` for parity."
+      "notes": "Runtime-backed (C implementation). Canonical output."
     },
     {
       "name": "lru",
@@ -169,9 +193,10 @@
       "owner": "benchmarking",
       "evidence": "benchmarks/third_party/plbci/adapters/vibelang/algorithm/lru/1.yb",
       "exit_criteria": [
-        "LRU workload executes cache hit/miss behavior based on benchmark input parameters"
+        "reads .benchmark_input for 'size N'",
+        "performs N LRU put/get operations with LCG-generated keys"
       ],
-      "notes": "Canonical LRU access/update loop implemented; fixed outputs removed."
+      "notes": "Reads input; canonical LRU cache workload."
     },
     {
       "name": "secp256k1",
@@ -179,9 +204,10 @@
       "owner": "benchmarking",
       "evidence": "benchmarks/third_party/plbci/adapters/vibelang/algorithm/secp256k1/1.yb",
       "exit_criteria": [
-        "perform canonical secp256k1 scalar multiplication workload and print affine coordinates"
+        "reads .benchmark_input for iteration count N",
+        "delegates to bench.secp256k1(N) runtime"
       ],
-      "notes": "Runtime implements field arithmetic + Jacobian scalar multiplication via `crypto.secp256k1_bench`."
+      "notes": "Runtime-backed (C implementation). Canonical output."
     }
   ]
 }

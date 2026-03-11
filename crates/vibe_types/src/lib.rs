@@ -2392,8 +2392,10 @@ fn stdlib_namespace_return_hint(namespace: &str, field: &str) -> Option<TypeKind
         ("net", "read") | ("net", "resolve") => Some(TypeKind::Str),
         ("net", "close") => Some(TypeKind::Bool),
         ("convert", "to_int") | ("convert", "parse_i64") => Some(TypeKind::Int),
-        ("convert", "to_float") | ("convert", "parse_f64") => Some(TypeKind::Float),
-        ("convert", "to_str") | ("convert", "to_str_f64") => Some(TypeKind::Str),
+        ("convert", "to_float") | ("convert", "parse_f64") | ("convert", "i64_to_f64") | ("convert", "f64_from_bits") => Some(TypeKind::Float),
+        ("convert", "to_str") | ("convert", "to_str_f64") | ("convert", "format_f64") => Some(TypeKind::Str),
+        ("convert", "f64_to_bits") => Some(TypeKind::Int),
+        ("math", "sqrt") => Some(TypeKind::Float),
         ("text", "trim")
         | ("text", "replace")
         | ("text", "to_lower")
@@ -2567,8 +2569,13 @@ fn infer_stdlib_namespace_call(
         ("net", "resolve") => Some((&["Str"][..], "net")),
         ("convert", "to_int") | ("convert", "parse_i64") => Some((&["Str"][..], "")),
         ("convert", "to_float") | ("convert", "parse_f64") => Some((&["Str"][..], "")),
+        ("convert", "i64_to_f64") => Some((&["Int"][..], "")),
+        ("convert", "f64_to_bits") => Some((&["Float"][..], "")),
+        ("convert", "f64_from_bits") => Some((&["Int"][..], "")),
         ("convert", "to_str") => Some((&["Int"][..], "")),
         ("convert", "to_str_f64") => Some((&["Float"][..], "")),
+        ("convert", "format_f64") => Some((&["Float", "Int"][..], "")),
+        ("math", "sqrt") => Some((&["Float"][..], "")),
         ("text", "trim")
         | ("text", "to_lower")
         | ("text", "to_upper")
@@ -2700,6 +2707,7 @@ fn is_builtin_ident(name: &str) -> bool {
             | "fs"
             | "net"
             | "convert"
+            | "math"
             | "text"
             | "encoding"
             | "log"

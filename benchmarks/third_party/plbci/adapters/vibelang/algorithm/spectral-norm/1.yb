@@ -1,25 +1,97 @@
-mul_kernel(n: Int) -> Int {
+read_input_n() -> Int {
+  @effect io
+  raw := fs.read_text(".benchmark_input")
+  if raw == "" {
+    return 100
+  }
+  return json.parse_i64(raw)
+}
+
+eval_a(i: Int, j: Int) -> Int {
+  (i + j) * (i + j + 1) / 2 + i + 1
+}
+
+fget(arr: List<Int>, idx: Int) -> Float {
+  convert.f64_from_bits(arr[idx])
+}
+
+fset(arr: List<Int>, idx: Int, val: Float) -> Void {
+  @effect mut_state
+  arr.set(idx, convert.f64_to_bits(val))
+}
+
+eval_a_times_u(n: Int, u: List<Int>, au: List<Int>) -> Void {
+  @effect mut_state
   i := 0
-  acc := 0
   while i < n {
+    sum := 0.0
     j := 0
-    row := 0
     while j < n {
-      row = row + ((i + j + 1) * (i + 1))
+      sum = sum + fget(u, j) / convert.i64_to_f64(eval_a(i, j))
       j = j + 1
     }
-    acc = acc + row
+    fset(au, i, sum)
     i = i + 1
   }
-  acc
+}
+
+eval_at_times_u(n: Int, u: List<Int>, atu: List<Int>) -> Void {
+  @effect mut_state
+  i := 0
+  while i < n {
+    sum := 0.0
+    j := 0
+    while j < n {
+      sum = sum + fget(u, j) / convert.i64_to_f64(eval_a(j, i))
+      j = j + 1
+    }
+    fset(atu, i, sum)
+    i = i + 1
+  }
+}
+
+eval_ata_times_u(n: Int, u: List<Int>, atau: List<Int>, tmp: List<Int>) -> Void {
+  @effect mut_state
+  eval_a_times_u(n, u, tmp)
+  eval_at_times_u(n, tmp, atau)
 }
 
 pub main() -> Int {
   @effect io
-  x := mul_kernel(120)
-  if x == -1 {
-    println("unreachable")
+  @effect alloc
+  @effect mut_state
+
+  n := read_input_n()
+
+  u := []
+  v := []
+  tmp := []
+  i := 0
+  while i < n {
+    u.append(convert.f64_to_bits(1.0))
+    v.append(0)
+    tmp.append(0)
+    i = i + 1
   }
-  println("1.274219991")
+
+  step := 0
+  while step < 10 {
+    eval_ata_times_u(n, u, v, tmp)
+    eval_ata_times_u(n, v, u, tmp)
+    step = step + 1
+  }
+
+  vbv := 0.0
+  vv := 0.0
+  i = 0
+  while i < n {
+    ui := fget(u, i)
+    vi := fget(v, i)
+    vbv = vbv + ui * vi
+    vv = vv + vi * vi
+    i = i + 1
+  }
+
+  println(convert.format_f64(math.sqrt(vbv / vv), 9))
   0
 }

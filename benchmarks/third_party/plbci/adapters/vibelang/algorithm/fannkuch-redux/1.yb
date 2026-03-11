@@ -1,24 +1,105 @@
-flip_work(n: Int) -> Int {
-  i := 0
-  acc := 0
-  while i < n {
+read_input_n() -> Int {
+  @effect io
+  raw := fs.read_text(".benchmark_input")
+  if raw == "" {
+    return 7
+  }
+  return json.parse_i64(raw)
+}
+
+count_flips(perm: List<Int>, n: Int) -> Int {
+  @effect mut_state
+  flips := 0
+  first := perm[0]
+  while first != 0 {
+    half := (first + 1) / 2
     j := 0
-    while j < n {
-      acc = acc + ((i + j) * (n - j))
+    while j < half {
+      tmp := perm[j]
+      perm.set(j, perm[first - j])
+      perm.set(first - j, tmp)
       j = j + 1
     }
-    i = i + 1
+    flips = flips + 1
+    first = perm[0]
   }
-  acc
+  flips
 }
 
 pub main() -> Int {
   @effect io
-  f := flip_work(450)
-  if f == -1 {
-    println("unreachable")
+  @effect alloc
+  @effect mut_state
+
+  n := read_input_n()
+
+  perm := []
+  perm1 := []
+  count := []
+  i := 0
+  while i < n {
+    perm.append(i)
+    perm1.append(i)
+    count.append(0)
+    i = i + 1
   }
-  println("228")
-  println("Pfannkuchen(7) = 16")
+
+  max_flips := 0
+  checksum := 0
+  perm_count := 0
+  r := n
+
+  done := 0
+  while done == 0 {
+    while r > 1 {
+      count.set(r - 1, r)
+      r = r - 1
+    }
+
+    i = 0
+    while i < n {
+      perm.set(i, perm1[i])
+      i = i + 1
+    }
+
+    flips := count_flips(perm, n)
+
+    if flips > max_flips {
+      max_flips = flips
+    }
+    rem := perm_count - (perm_count / 2) * 2
+    if rem == 0 {
+      checksum = checksum + flips
+    } else {
+      checksum = checksum - flips
+    }
+    perm_count = perm_count + 1
+
+    go_next := 1
+    while go_next == 1 {
+      if r == n {
+        done = 1
+        go_next = 0
+      } else {
+        perm0 := perm1[0]
+        i = 0
+        while i < r {
+          perm1.set(i, perm1[i + 1])
+          i = i + 1
+        }
+        perm1.set(r, perm0)
+
+        count.set(r, count[r] - 1)
+        if count[r] > 0 {
+          go_next = 0
+        } else {
+          r = r + 1
+        }
+      }
+    }
+  }
+
+  println(json.stringify_i64(checksum))
+  println("Pfannkuchen(" + json.stringify_i64(n) + ") = " + json.stringify_i64(max_flips))
   0
 }

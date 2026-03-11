@@ -1159,6 +1159,9 @@ def main() -> None:
     plbci_logs: dict[str, Any] = {}
     build_output = cache_root / args.profile / "plbci_build"
     if not args.skip_runtime:
+        plbci_tmpdir = cache_root / "plbci_tmp"
+        plbci_tmpdir.mkdir(parents=True, exist_ok=True)
+        os.environ["TMPDIR"] = str(plbci_tmpdir)
         plbci_logs = run_plbci_suite(
             bench_tool_cwd=bench_tool_cwd,
             bench_yaml=bench_yaml,

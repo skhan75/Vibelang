@@ -1,25 +1,65 @@
-fractal_work(n: Int) -> Int {
-  y := 0
-  acc := 0
-  while y < n {
-    x := 0
-    while x < n {
-      acc = acc + ((x * x + y * y) / (x + y + 1))
-      x = x + 1
-    }
-    y = y + 1
+read_input_n() -> Int {
+  @effect io
+  raw := fs.read_text(".benchmark_input")
+  if raw == "" {
+    return 1
   }
-  acc
+  return json.parse_i64(raw)
 }
 
 pub main() -> Int {
   @effect io
-  f := fractal_work(220)
-  if f == -1 {
-    println("unreachable")
-  }
+  @effect alloc
+  @effect mut_state
+
+  raw_n := read_input_n()
+  n := (raw_n + 7) / 8 * 8
+  inv := 2.0 / convert.i64_to_f64(n)
+
   println("P4")
-  println("8 8")
-  println("345a5154c0ca99c0bb0a2c25713771b5")
+  println(json.stringify_i64(n) + " " + json.stringify_i64(n))
+
+  row_bytes := []
+
+  y := 0
+  while y < n {
+    ci := convert.i64_to_f64(y) * inv - 1.0
+    x := 0
+    while x < n {
+      byte_val := 0
+      bit := 0
+      while bit < 8 {
+        cr := convert.i64_to_f64(x + bit) * inv - 1.5
+        zr := 0.0
+        zi := 0.0
+        tr := 0.0
+        ti := 0.0
+        escaped := 0
+        iter := 0
+        while iter < 50 {
+          if tr + ti > 4.0 {
+            escaped = 1
+            iter = 50
+          } else {
+            zi = 2.0 * zr * zi + ci
+            zr = tr - ti + cr
+            tr = zr * zr
+            ti = zi * zi
+            iter = iter + 1
+          }
+        }
+        byte_val = byte_val * 2
+        if escaped == 0 {
+          byte_val = byte_val + 1
+        }
+        bit = bit + 1
+      }
+      row_bytes.append(byte_val)
+      x = x + 8
+    }
+    y = y + 1
+  }
+
+  println(bench.md5_bytes_hex(row_bytes))
   0
 }

@@ -215,6 +215,35 @@ static void vibe_bench_md5_final(vibe_bench_md5_ctx *ctx, unsigned char out[16])
     }
 }
 
+char *vibe_bench_md5_bytes_hex(void *handle) {
+    if (handle == NULL) vibe_panic("md5_bytes_hex: null handle");
+    int64_t *header = (int64_t *)handle;
+    int64_t len = header[1];
+    int64_t *items = *(int64_t **)(header + 3);
+    size_t byte_len = (size_t)len;
+    unsigned char *buf = (unsigned char *)malloc(byte_len);
+    if (buf == NULL) vibe_panic("md5_bytes_hex: alloc failed");
+    for (size_t i = 0; i < byte_len; i++) {
+        buf[i] = (unsigned char)(items[i] & 0xff);
+    }
+    vibe_bench_md5_ctx ctx;
+    vibe_bench_md5_init(&ctx);
+    vibe_bench_md5_update(&ctx, buf, byte_len);
+    unsigned char digest[16];
+    vibe_bench_md5_final(&ctx, digest);
+    free(buf);
+
+    static const char hex[] = "0123456789abcdef";
+    char *out = (char *)calloc(33, sizeof(char));
+    if (out == NULL) vibe_panic("md5_bytes_hex: alloc failed");
+    for (int i = 0; i < 16; i++) {
+        out[i * 2] = hex[(digest[i] >> 4) & 0x0f];
+        out[i * 2 + 1] = hex[digest[i] & 0x0f];
+    }
+    out[32] = '\0';
+    return out;
+}
+
 char *vibe_bench_md5_hex(const char *raw) {
     const unsigned char *bytes = (const unsigned char *)(raw == NULL ? "" : raw);
     size_t len = strlen((const char *)bytes);

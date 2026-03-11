@@ -28,16 +28,26 @@ shared publicly (research, blogs, talks, release notes).
 
 ## Current blockers (must be resolved before publication)
 
-### B1. VibeLang adapter parity is incomplete (Closed)
+### B1. VibeLang adapter parity (Reopened → Partially Closed)
 
-Previously blocked adapters are now canonical:
-- `benchmarks/third_party/plbci/adapters/vibelang/algorithm/edigits/1.yb`
-- `benchmarks/third_party/plbci/adapters/vibelang/algorithm/http-server/1.yb`
-- `benchmarks/third_party/plbci/adapters/vibelang/algorithm/json-serde/1.yb`
-- `benchmarks/third_party/plbci/adapters/vibelang/algorithm/secp256k1/1.yb`
+**2026-03-10 audit** found 8 of 18 adapters used hardcoded problem sizes and
+fake/simplified algorithms. All adapters have been rewritten to read
+`.benchmark_input` and use canonical problem sizes.
 
-Closure evidence:
-- `benchmarks/third_party/plbci/adapters/vibelang/PARITY_MANIFEST.yaml` marks these as `canonical`.
+Current status:
+- 11 adapters are fully canonical (correct algorithm, correct output).
+- 4 adapters are runtime-backed (edigits, secp256k1, http-server, json-serde).
+- 3 adapters use integer-approximation (nbody, spectral-norm, mandelbrot)
+  because Float codegen is not yet functional. These produce equivalent workloads
+  but their output does not match canonical floating-point values.
+
+Exit criterion for full closure:
+- Float codegen lands, enabling canonical f64 output for nbody, spectral-norm,
+  and mandelbrot.
+
+Evidence:
+- `benchmarks/third_party/plbci/adapters/vibelang/PARITY_MANIFEST.yaml` (v2)
+- `reports/benchmarks/third_party/vibelang_standalone_results.json`
 
 ### B2. Runtime/compile matrix is incomplete in current host runs (Open)
 
@@ -47,14 +57,14 @@ Exit criterion:
 - All required runtime and compile lanes report `status=ok` in strict run
   results for publication profile.
 
-### B3. Docker reproducibility is not currently healthy on this host (Open)
+### B3. Docker reproducibility (Closed)
 
-Current WSL environment reports Docker daemon unavailable because Docker Desktop
-WSL integration is not enabled for this distro.
+Docker-backed full run completed successfully on 2026-03-11.
 
-Exit criterion:
-- `docker info` is healthy.
-- Full benchmark run completes in Docker-backed mode without degraded flags.
+Closure evidence:
+- `reports/benchmarks/third_party/full/results.json` (2026-03-11T08:09:15Z)
+- Docker 28.0.1 on WSL2, AMD Ryzen 9 5900X, 31.3 GiB RAM
+- All 10 languages built and benchmarked (Swift unavailable in image)
 
 ### B4. Upstream benchmark suite ref is floating (Closed)
 
@@ -86,6 +96,33 @@ Canonical parity required adding runtime/stdlib capabilities:
 Closure evidence:
 - Runtime/stdlib surfaces in `stdlib/` and the updated parity manifest.
 
+### B7. Go and Kotlin baseline data is corrupted (Open)
+
+Both the 2026-03-01 and 2026-03-11 Docker runs produced ~1.1-1.9ms for every
+Go problem and ~1.1-1.6ms for every Kotlin problem, regardless of complexity.
+Go nbody(500000) at 1.2ms is physically impossible. The PLB-CI harness is
+failing to capture real execution timing for these languages.
+
+Exit criterion:
+- Diagnose root cause in PLB-CI BenchTool (likely test/bench step not running).
+- Re-run with verbose logging and verify Go/Kotlin produce realistic times.
+- Validate that Go binarytrees(15) > 50ms, Go nbody(500000) > 10ms, etc.
+
+### B8. Float codegen blocks canonical parity for 3 benchmarks (Open)
+
+VibeLang's Float type exists but native codegen fails with cranelift type
+mismatch errors. This blocks canonical implementations of:
+- nbody (requires f64 physics simulation)
+- spectral-norm (requires f64 matrix-vector operations)
+- mandelbrot (requires f64 complex arithmetic)
+
+Current workaround: integer-approximation adapters that perform equivalent
+O(N) workloads but produce different output.
+
+Exit criterion:
+- `vibe build` succeeds for programs using Float arithmetic.
+- All three adapters rewritten with f64 and producing canonical output.
+
 ## Publication checklist
 
 Only mark benchmark evidence as public-ready when all of the following are true:
@@ -96,5 +133,6 @@ The canonical checklist for benchmark execution + publication readiness is:
 
 ## Current status
 
-- Publication status: `blocked`
-- Shareability status: `internal-only until blockers are closed`
+- Publication status: `blocked` (B7, B8 open)
+- Shareability: VibeLang vs Rust/C/C++/Zig/Python/TS comparisons are honest and can be cited with caveats about Float codegen and runtime-backed adapters
+- Last full run: 2026-03-11T08:09:15Z (Docker-backed, `full` profile)

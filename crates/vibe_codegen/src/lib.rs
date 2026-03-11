@@ -106,6 +106,10 @@ struct RuntimeFunctions {
     convert_to_float_fn: FuncId,
     convert_to_str_fn: FuncId,
     convert_to_str_f64_fn: FuncId,
+    format_f64_fn: FuncId,
+    i64_to_f64_fn: FuncId,
+    f64_to_bits_fn: FuncId,
+    f64_from_bits_fn: FuncId,
     text_trim_fn: FuncId,
     text_contains_fn: FuncId,
     text_starts_with_fn: FuncId,
@@ -149,7 +153,10 @@ struct RuntimeFunctions {
     #[cfg(feature = "bench-runtime")]
     bench_md5_hex_fn: FuncId,
     #[cfg(feature = "bench-runtime")]
+    bench_md5_bytes_hex_fn: FuncId,
+    #[cfg(feature = "bench-runtime")]
     bench_json_canonical_fn: FuncId,
+
     #[cfg(feature = "bench-runtime")]
     bench_json_repeat_array_fn: FuncId,
     #[cfg(feature = "bench-runtime")]
@@ -173,6 +180,10 @@ struct RuntimeFunctions {
     #[cfg(feature = "bench-runtime")]
     bench_net_close_fn: FuncId,
     record_alloc_fn: FuncId,
+    str_builder_new_fn: FuncId,
+    str_builder_append_fn: FuncId,
+    str_builder_append_char_fn: FuncId,
+    str_builder_finish_fn: FuncId,
 }
 
 #[derive(Clone, Copy)]
@@ -987,6 +998,35 @@ fn declare_runtime_functions(
         )
         .map_err(|e| format!("failed to declare runtime convert_f64_to_str symbol: {e}"))?;
 
+    let mut format_f64_sig = module.make_signature();
+    format_f64_sig.params.push(AbiParam::new(ir::types::F64));
+    format_f64_sig.params.push(AbiParam::new(ir::types::I64));
+    format_f64_sig.returns.push(AbiParam::new(ptr_ty));
+    let format_f64_fn = module
+        .declare_function("vibe_format_f64", Linkage::Import, &format_f64_sig)
+        .map_err(|e| format!("failed to declare runtime format_f64 symbol: {e}"))?;
+
+    let mut i64_to_f64_sig = module.make_signature();
+    i64_to_f64_sig.params.push(AbiParam::new(ir::types::I64));
+    i64_to_f64_sig.returns.push(AbiParam::new(ir::types::F64));
+    let i64_to_f64_fn = module
+        .declare_function("vibe_i64_to_f64", Linkage::Import, &i64_to_f64_sig)
+        .map_err(|e| format!("failed to declare runtime i64_to_f64 symbol: {e}"))?;
+
+    let mut f64_to_bits_sig = module.make_signature();
+    f64_to_bits_sig.params.push(AbiParam::new(ir::types::F64));
+    f64_to_bits_sig.returns.push(AbiParam::new(ir::types::I64));
+    let f64_to_bits_fn = module
+        .declare_function("vibe_f64_to_bits", Linkage::Import, &f64_to_bits_sig)
+        .map_err(|e| format!("failed to declare runtime f64_to_bits symbol: {e}"))?;
+
+    let mut f64_from_bits_sig = module.make_signature();
+    f64_from_bits_sig.params.push(AbiParam::new(ir::types::I64));
+    f64_from_bits_sig.returns.push(AbiParam::new(ir::types::F64));
+    let f64_from_bits_fn = module
+        .declare_function("vibe_f64_from_bits", Linkage::Import, &f64_from_bits_sig)
+        .map_err(|e| format!("failed to declare runtime f64_from_bits symbol: {e}"))?;
+
     let mut text_trim_sig = module.make_signature();
     text_trim_sig.params.push(AbiParam::new(ptr_ty));
     text_trim_sig.returns.push(AbiParam::new(ptr_ty));
@@ -1376,6 +1416,16 @@ fn declare_runtime_functions(
     };
 
     #[cfg(feature = "bench-runtime")]
+    let bench_md5_bytes_hex_fn = {
+        let mut sig = module.make_signature();
+        sig.params.push(AbiParam::new(ptr_ty));
+        sig.returns.push(AbiParam::new(ptr_ty));
+        module
+            .declare_function("vibe_bench_md5_bytes_hex", Linkage::Import, &sig)
+            .map_err(|e| format!("failed to declare bench runtime md5_bytes_hex symbol: {e}"))?
+    };
+
+    #[cfg(feature = "bench-runtime")]
     let bench_json_canonical_fn = {
         let mut sig = module.make_signature();
         sig.params.push(AbiParam::new(ptr_ty));
@@ -1507,6 +1557,36 @@ fn declare_runtime_functions(
         .declare_function("vibe_record_alloc", Linkage::Import, &record_alloc_sig)
         .map_err(|e| format!("failed to declare runtime vibe_record_alloc symbol: {e}"))?;
 
+    let mut sb_new_sig = module.make_signature();
+    sb_new_sig.params.push(AbiParam::new(ir::types::I64));
+    sb_new_sig.returns.push(AbiParam::new(ptr_ty));
+    let str_builder_new_fn = module
+        .declare_function("vibe_str_builder_new", Linkage::Import, &sb_new_sig)
+        .map_err(|e| format!("failed to declare runtime vibe_str_builder_new: {e}"))?;
+
+    let mut sb_append_sig = module.make_signature();
+    sb_append_sig.params.push(AbiParam::new(ptr_ty));
+    sb_append_sig.params.push(AbiParam::new(ptr_ty));
+    sb_append_sig.returns.push(AbiParam::new(ptr_ty));
+    let str_builder_append_fn = module
+        .declare_function("vibe_str_builder_append", Linkage::Import, &sb_append_sig)
+        .map_err(|e| format!("failed to declare runtime vibe_str_builder_append: {e}"))?;
+
+    let mut sb_append_char_sig = module.make_signature();
+    sb_append_char_sig.params.push(AbiParam::new(ptr_ty));
+    sb_append_char_sig.params.push(AbiParam::new(ir::types::I64));
+    sb_append_char_sig.returns.push(AbiParam::new(ptr_ty));
+    let str_builder_append_char_fn = module
+        .declare_function("vibe_str_builder_append_char", Linkage::Import, &sb_append_char_sig)
+        .map_err(|e| format!("failed to declare runtime vibe_str_builder_append_char: {e}"))?;
+
+    let mut sb_finish_sig = module.make_signature();
+    sb_finish_sig.params.push(AbiParam::new(ptr_ty));
+    sb_finish_sig.returns.push(AbiParam::new(ptr_ty));
+    let str_builder_finish_fn = module
+        .declare_function("vibe_str_builder_finish", Linkage::Import, &sb_finish_sig)
+        .map_err(|e| format!("failed to declare runtime vibe_str_builder_finish: {e}"))?;
+
     Ok(RuntimeFunctions {
         print_fn,
         panic_fn,
@@ -1575,6 +1655,10 @@ fn declare_runtime_functions(
         convert_to_float_fn,
         convert_to_str_fn,
         convert_to_str_f64_fn,
+        format_f64_fn,
+        i64_to_f64_fn,
+        f64_to_bits_fn,
+        f64_from_bits_fn,
         text_trim_fn,
         text_contains_fn,
         text_starts_with_fn,
@@ -1618,6 +1702,8 @@ fn declare_runtime_functions(
         #[cfg(feature = "bench-runtime")]
         bench_md5_hex_fn,
         #[cfg(feature = "bench-runtime")]
+        bench_md5_bytes_hex_fn,
+        #[cfg(feature = "bench-runtime")]
         bench_json_canonical_fn,
         #[cfg(feature = "bench-runtime")]
         bench_json_repeat_array_fn,
@@ -1642,6 +1728,10 @@ fn declare_runtime_functions(
         #[cfg(feature = "bench-runtime")]
         bench_net_close_fn,
         record_alloc_fn,
+        str_builder_new_fn,
+        str_builder_append_fn,
+        str_builder_append_char_fn,
+        str_builder_finish_fn,
     })
 }
 
@@ -1670,6 +1760,12 @@ fn define_function(
     builder.seal_block(entry);
 
     let mut locals: BTreeMap<String, Variable> = BTreeMap::new();
+    let mut locals_ty: BTreeMap<String, MirType> = BTreeMap::new();
+    for param in &function.params {
+        locals_ty.insert(param.name.clone(), param.ty.clone());
+    }
+    collect_local_types(&function.body, function, function_returns, &mut locals_ty);
+
     for (idx, param) in function.params.iter().enumerate() {
         let var = Variable::from_u32(idx as u32);
         let ty = mir_ty_to_clif(&param.ty, ptr_ty);
@@ -1701,6 +1797,7 @@ fn define_function(
             None,
             type_defs,
             enum_defs,
+            &locals_ty,
         )?;
     }
 
@@ -1736,6 +1833,7 @@ fn emit_stmt(
     loop_ctx: Option<LoopContext>,
     type_defs: &BTreeMap<String, Vec<(String, String)>>,
     enum_defs: &BTreeMap<String, Vec<String>>,
+    locals_ty: &BTreeMap<String, MirType>,
 ) -> Result<bool, String> {
     match stmt {
         MirStmt::Let { name, expr } => {
@@ -1757,7 +1855,7 @@ fn emit_stmt(
             *next_var += 1;
             builder.declare_var(
                 var,
-                value_type_for_expr(expr, owner, function_returns, ptr_ty),
+                value_type_for_expr(expr, owner, function_returns, ptr_ty, locals_ty),
             );
             builder.def_var(var, value);
             locals.insert(name.clone(), var);
@@ -1785,7 +1883,7 @@ fn emit_stmt(
                 *next_var += 1;
                 builder.declare_var(
                     v,
-                    value_type_for_expr(expr, owner, function_returns, ptr_ty),
+                    value_type_for_expr(expr, owner, function_returns, ptr_ty, locals_ty),
                 );
                 locals.insert(name.clone(), v);
                 v
@@ -1892,6 +1990,7 @@ fn emit_stmt(
                 owner,
                 type_defs,
                 enum_defs,
+                locals_ty,
             )?;
             Ok(false)
         }
@@ -1962,6 +2061,7 @@ fn emit_stmt(
                     loop_ctx,
                     type_defs,
                     enum_defs,
+                    locals_ty,
                 )?;
             }
             if !then_terminated {
@@ -1990,6 +2090,7 @@ fn emit_stmt(
                     loop_ctx,
                     type_defs,
                     enum_defs,
+                    locals_ty,
                 )?;
             }
             if !else_terminated {
@@ -2056,6 +2157,7 @@ fn emit_stmt(
                 owner,
                 type_defs,
                 enum_defs,
+                locals_ty,
             )?;
             Ok(false)
         }
@@ -2075,6 +2177,7 @@ fn emit_stmt(
                 owner,
                 type_defs,
                 enum_defs,
+                locals_ty,
             )?;
             Ok(false)
         }
@@ -2323,6 +2426,7 @@ fn emit_for_stmt(
     owner: &MirFunction,
     type_defs: &BTreeMap<String, Vec<(String, String)>>,
     enum_defs: &BTreeMap<String, Vec<String>>,
+    locals_ty: &BTreeMap<String, MirType>,
 ) -> Result<(), String> {
     if matches!(iter_kind, MirForIterKind::Unknown) {
         return Err(
@@ -2468,6 +2572,7 @@ fn emit_for_stmt(
             }),
             type_defs,
             enum_defs,
+            locals_ty,
         )?;
     }
     if !body_terminated {
@@ -2507,6 +2612,7 @@ fn emit_while_stmt(
     owner: &MirFunction,
     type_defs: &BTreeMap<String, Vec<(String, String)>>,
     enum_defs: &BTreeMap<String, Vec<String>>,
+    locals_ty: &BTreeMap<String, MirType>,
 ) -> Result<(), String> {
     let header_block = builder.create_block();
     let body_block = builder.create_block();
@@ -2557,6 +2663,7 @@ fn emit_while_stmt(
             }),
             type_defs,
             enum_defs,
+            locals_ty,
         )?;
     }
     if !body_terminated {
@@ -2586,6 +2693,7 @@ fn emit_repeat_stmt(
     owner: &MirFunction,
     type_defs: &BTreeMap<String, Vec<(String, String)>>,
     enum_defs: &BTreeMap<String, Vec<String>>,
+    locals_ty: &BTreeMap<String, MirType>,
 ) -> Result<(), String> {
     let loop_count = emit_expr(
         count,
@@ -2650,6 +2758,7 @@ fn emit_repeat_stmt(
             }),
             type_defs,
             enum_defs,
+            locals_ty,
         )?;
     }
     if !body_terminated {
@@ -3285,10 +3394,43 @@ fn emit_expr(
                     .call(local_get_byte, &[object_value, index_value]);
                 call_result_or_zero(builder, call)
             } else {
-                let local_get =
-                    module.declare_func_in_func(runtime_fns.container_get_i64_fn, builder.func);
-                let call = builder.ins().call(local_get, &[object_value, index_value]);
-                call_result_or_zero(builder, call)
+                // Inline list access: struct { tag:i64, len:i64, cap:i64, items:*i64 }
+                let len = builder.ins().load(
+                    ir::types::I64,
+                    MemFlags::trusted(),
+                    object_value,
+                    Offset32::new(8),
+                );
+                let oob_block = builder.create_block();
+                let ok_block = builder.create_block();
+
+                let in_bounds = builder.ins().icmp(IntCC::UnsignedLessThan, index_value, len);
+                builder.ins().brif(in_bounds, ok_block, &[], oob_block, &[]);
+
+                builder.switch_to_block(oob_block);
+                builder.seal_block(oob_block);
+                let local_panic =
+                    module.declare_func_in_func(runtime_fns.panic_fn, builder.func);
+                let oob_msg = emit_string_data(module, builder, "list index out of bounds", ptr_ty, str_data_counter, owner)?;
+                builder.ins().call(local_panic, &[oob_msg]);
+                builder.ins().trap(cranelift_codegen::ir::TrapCode::unwrap_user(1));
+
+                builder.switch_to_block(ok_block);
+                builder.seal_block(ok_block);
+                let items_ptr = builder.ins().load(
+                    ptr_ty,
+                    MemFlags::trusted(),
+                    object_value,
+                    Offset32::new(24),
+                );
+                let byte_offset = builder.ins().imul_imm(index_value, 8);
+                let elem_addr = builder.ins().iadd(items_ptr, byte_offset);
+                builder.ins().load(
+                    ir::types::I64,
+                    MemFlags::trusted(),
+                    elem_addr,
+                    Offset32::new(0),
+                )
             }
         }
         MirExpr::Slice {
@@ -4510,6 +4652,26 @@ fn emit_stdlib_namespace_call(
             expect_arity(1)?;
             call_one_arg(runtime_fns.convert_to_str_f64_fn, lowered_args[0], module, builder)
         }
+        ("convert", "format_f64") => {
+            expect_arity(2)?;
+            call_two_args(runtime_fns.format_f64_fn, lowered_args[0], lowered_args[1], module, builder)
+        }
+        ("convert", "i64_to_f64") => {
+            expect_arity(1)?;
+            call_one_arg(runtime_fns.i64_to_f64_fn, lowered_args[0], module, builder)
+        }
+        ("convert", "f64_to_bits") => {
+            expect_arity(1)?;
+            call_one_arg(runtime_fns.f64_to_bits_fn, lowered_args[0], module, builder)
+        }
+        ("convert", "f64_from_bits") => {
+            expect_arity(1)?;
+            call_one_arg(runtime_fns.f64_from_bits_fn, lowered_args[0], module, builder)
+        }
+        ("math", "sqrt") => {
+            expect_arity(1)?;
+            builder.ins().sqrt(lowered_args[0])
+        }
         ("text", "trim") => {
             expect_arity(1)?;
             call_one_arg(runtime_fns.text_trim_fn, lowered_args[0], module, builder)
@@ -4786,6 +4948,11 @@ fn emit_stdlib_namespace_call(
             call_one_arg(runtime_fns.bench_md5_hex_fn, lowered_args[0], module, builder)
         }
         #[cfg(feature = "bench-runtime")]
+        ("bench", "md5_bytes_hex") => {
+            expect_arity(1)?;
+            call_one_arg(runtime_fns.bench_md5_bytes_hex_fn, lowered_args[0], module, builder)
+        }
+        #[cfg(feature = "bench-runtime")]
         ("bench", "json_canonical") => {
             expect_arity(1)?;
             call_one_arg(
@@ -4919,7 +5086,7 @@ fn is_known_string_expr(expr: &MirExpr) -> bool {
                     if (namespace == "path" && (field == "join" || field == "parent" || field == "basename"))
                     || (namespace == "fs" && field == "read_text")
                     || (namespace == "net" && (field == "read" || field == "resolve"))
-                    || (namespace == "convert" && (field == "to_str" || field == "to_str_f64"))
+                    || (namespace == "convert" && (field == "to_str" || field == "to_str_f64" || field == "format_f64"))
                     || (namespace == "text" && (field == "trim" || field == "replace" || field == "to_lower" || field == "to_upper" || field == "split_part"))
                     || (namespace == "encoding" && (field == "hex_encode" || field == "hex_decode" || field == "base64_encode" || field == "base64_decode" || field == "url_encode" || field == "url_decode"))
                     || (namespace == "env" && (field == "get" || field == "get_required"))
@@ -4927,7 +5094,7 @@ fn is_known_string_expr(expr: &MirExpr) -> bool {
                     || (namespace == "json" && (field == "parse" || field == "stringify" || field.starts_with("encode_") || field == "stringify_i64" || field == "minify"))
                     || (namespace == "regex" && field == "replace_all")
                     || (namespace == "http" && (field == "status_text" || field == "build_request_line" || field == "get" || field == "post" || field == "request"))
-                    || (namespace == "bench" && (field == "md5_hex" || field == "json_canonical" || field == "json_repeat_array" || field == "secp256k1" || field == "edigits" || field == "net_read"))
+                    || (namespace == "bench" && (field == "md5_hex" || field == "md5_bytes_hex" || field == "json_canonical" || field == "json_repeat_array" || field == "secp256k1" || field == "edigits" || field == "net_read"))
                 )
             ) =>
         {
@@ -5093,17 +5260,139 @@ fn is_known_container_expr(expr: &MirExpr) -> bool {
         )
 }
 
+fn infer_mir_expr_type(
+    expr: &MirExpr,
+    owner: &MirFunction,
+    function_returns: &BTreeMap<String, MirType>,
+    locals_ty: &BTreeMap<String, MirType>,
+) -> MirType {
+    match expr {
+        MirExpr::Float(_) => MirType::F64,
+        MirExpr::Bool(_) => MirType::Bool,
+        MirExpr::Str(_) => MirType::Str,
+        MirExpr::Int(_) => MirType::I64,
+        MirExpr::Var(name) => {
+            if let Some(ty) = locals_ty.get(name) {
+                return ty.clone();
+            }
+            for param in &owner.params {
+                if param.name == *name {
+                    return param.ty.clone();
+                }
+            }
+            MirType::I64
+        }
+        MirExpr::Binary { left, op, right } if op == "Add" => {
+            let lt = infer_mir_expr_type(left, owner, function_returns, locals_ty);
+            let rt = infer_mir_expr_type(right, owner, function_returns, locals_ty);
+            if lt == MirType::Str || rt == MirType::Str {
+                MirType::Str
+            } else if lt == MirType::F64 || rt == MirType::F64 {
+                MirType::F64
+            } else {
+                MirType::I64
+            }
+        }
+        MirExpr::Binary { left, op, right }
+            if op == "Sub" || op == "Mul" || op == "Div" || op == "Mod" =>
+        {
+            let lt = infer_mir_expr_type(left, owner, function_returns, locals_ty);
+            let rt = infer_mir_expr_type(right, owner, function_returns, locals_ty);
+            if lt == MirType::F64 || rt == MirType::F64 {
+                MirType::F64
+            } else {
+                MirType::I64
+            }
+        }
+        MirExpr::Binary { op, .. }
+            if op == "Lt" || op == "Le" || op == "Gt" || op == "Ge"
+                || op == "Eq" || op == "Ne" || op == "And" || op == "Or" =>
+        {
+            MirType::I64
+        }
+        MirExpr::Unary { op, expr } if op == "Neg" => {
+            infer_mir_expr_type(expr, owner, function_returns, locals_ty)
+        }
+        MirExpr::Call { callee, args } => {
+            if let MirExpr::Var(name) = &**callee {
+                if let Some(ret) = function_returns.get(name) {
+                    return ret.clone();
+                }
+                if name == "min" || name == "max" {
+                    if args.iter().any(|a| {
+                        infer_mir_expr_type(a, owner, function_returns, locals_ty)
+                            == MirType::F64
+                    }) {
+                        return MirType::F64;
+                    }
+                    return MirType::I64;
+                }
+            }
+            if let MirExpr::Member { object, field, .. } = &**callee {
+                if let MirExpr::Var(ns) = &**object {
+                    if ns == "convert" && (field == "to_float" || field == "parse_f64" || field == "i64_to_f64" || field == "f64_from_bits") {
+                        return MirType::F64;
+                    }
+                    if ns == "math" && field == "sqrt" {
+                        return MirType::F64;
+                    }
+                    if ns == "convert" && (field == "to_str" || field == "to_str_f64" || field == "format_f64") {
+                        return MirType::Str;
+                    }
+                }
+            }
+            MirType::I64
+        }
+        MirExpr::List(_) | MirExpr::Map(_) => MirType::Unknown,
+        _ => MirType::I64,
+    }
+}
+
+fn collect_local_types(
+    stmts: &[MirStmt],
+    owner: &MirFunction,
+    function_returns: &BTreeMap<String, MirType>,
+    locals_ty: &mut BTreeMap<String, MirType>,
+) {
+    for stmt in stmts {
+        match stmt {
+            MirStmt::Let { name, expr } | MirStmt::Assign { name, expr } => {
+                let ty = infer_mir_expr_type(expr, owner, function_returns, locals_ty);
+                locals_ty.insert(name.clone(), ty);
+            }
+            MirStmt::If {
+                then_body,
+                else_body,
+                ..
+            } => {
+                collect_local_types(then_body, owner, function_returns, locals_ty);
+                collect_local_types(else_body, owner, function_returns, locals_ty);
+            }
+            MirStmt::While { body, .. }
+            | MirStmt::Repeat { body, .. }
+            | MirStmt::For { body, .. } => {
+                collect_local_types(body, owner, function_returns, locals_ty);
+            }
+            _ => {}
+        }
+    }
+}
+
 fn value_type_for_expr(
     expr: &MirExpr,
     owner: &MirFunction,
     function_returns: &BTreeMap<String, MirType>,
     ptr_ty: ir::Type,
+    locals_ty: &BTreeMap<String, MirType>,
 ) -> ir::Type {
     match expr {
         MirExpr::Float(_) => ir::types::F64,
         MirExpr::Bool(_) => ir::types::I8,
         MirExpr::Str(_) => ptr_ty,
         MirExpr::Var(name) => {
+            if let Some(ty) = locals_ty.get(name) {
+                return mir_ty_to_clif(ty, ptr_ty);
+            }
             if is_var_known_string_in_owner(owner, name) {
                 ptr_ty
             } else if owner
@@ -5128,8 +5417,8 @@ fn value_type_for_expr(
             {
                 ptr_ty
             } else {
-                let left_ty = value_type_for_expr(left, owner, function_returns, ptr_ty);
-                let right_ty = value_type_for_expr(right, owner, function_returns, ptr_ty);
+                let left_ty = value_type_for_expr(left, owner, function_returns, ptr_ty, locals_ty);
+                let right_ty = value_type_for_expr(right, owner, function_returns, ptr_ty, locals_ty);
                 if left_ty == ir::types::F64 || right_ty == ir::types::F64 {
                     ir::types::F64
                 } else {
@@ -5146,8 +5435,8 @@ fn value_type_for_expr(
                 || op == "Gt"
                 || op == "Ge" =>
         {
-            let left_ty = value_type_for_expr(left, owner, function_returns, ptr_ty);
-            let right_ty = value_type_for_expr(right, owner, function_returns, ptr_ty);
+            let left_ty = value_type_for_expr(left, owner, function_returns, ptr_ty, locals_ty);
+            let right_ty = value_type_for_expr(right, owner, function_returns, ptr_ty, locals_ty);
             if op == "Lt" || op == "Le" || op == "Gt" || op == "Ge" {
                 ir::types::I64
             } else if left_ty == ir::types::F64 || right_ty == ir::types::F64 {
@@ -5161,7 +5450,7 @@ fn value_type_for_expr(
         MirExpr::Index { .. } => ir::types::I64,
         MirExpr::Slice { object_is_str, .. } if *object_is_str => ptr_ty,
         MirExpr::Async { expr } | MirExpr::Await { expr } => {
-            value_type_for_expr(expr, owner, function_returns, ptr_ty)
+            value_type_for_expr(expr, owner, function_returns, ptr_ty, locals_ty)
         }
         MirExpr::Call { callee, .. } if matches!(&**callee, MirExpr::Var(name) if name == "chan") => {
             ptr_ty
@@ -5176,7 +5465,7 @@ fn value_type_for_expr(
         }
         MirExpr::Call { callee, args } if matches!(&**callee, MirExpr::Var(name) if name == "min" || name == "max") => {
             if args.iter().any(|arg| {
-                value_type_for_expr(arg, owner, function_returns, ptr_ty) == ir::types::F64
+                value_type_for_expr(arg, owner, function_returns, ptr_ty, locals_ty) == ir::types::F64
             }) {
                 ir::types::F64
             } else {
@@ -5200,7 +5489,8 @@ fn value_type_for_expr(
                 &**callee,
                 MirExpr::Member { object, field, .. }
                 if matches!(&**object, MirExpr::Var(namespace)
-                    if namespace == "convert" && (field == "to_float" || field == "parse_f64"))
+                    if (namespace == "convert" && (field == "to_float" || field == "parse_f64" || field == "i64_to_f64" || field == "f64_from_bits"))
+                    || (namespace == "math" && field == "sqrt"))
             ) =>
         {
             ir::types::F64
@@ -5235,7 +5525,7 @@ fn value_type_for_expr(
                     if (namespace == "path" && (field == "join" || field == "parent" || field == "basename"))
                     || (namespace == "fs" && field == "read_text")
                     || (namespace == "net" && (field == "read" || field == "resolve"))
-                    || (namespace == "convert" && (field == "to_str" || field == "to_str_f64"))
+                    || (namespace == "convert" && (field == "to_str" || field == "to_str_f64" || field == "format_f64"))
                     || (namespace == "text" && (field == "trim" || field == "replace" || field == "to_lower" || field == "to_upper" || field == "split_part"))
                     || (namespace == "encoding" && (field == "hex_encode" || field == "hex_decode" || field == "base64_encode" || field == "base64_decode" || field == "url_encode" || field == "url_decode"))
                     || (namespace == "env" && (field == "get" || field == "get_required"))
@@ -5252,11 +5542,11 @@ fn value_type_for_expr(
             ptr_ty
         }
         MirExpr::Unary { op, expr } if op == "Neg" => {
-            value_type_for_expr(expr, owner, function_returns, ptr_ty)
+            value_type_for_expr(expr, owner, function_returns, ptr_ty, locals_ty)
         }
         MirExpr::Unary { .. } => ir::types::I64,
         MirExpr::Question { expr } | MirExpr::Old { expr } => {
-            value_type_for_expr(expr, owner, function_returns, ptr_ty)
+            value_type_for_expr(expr, owner, function_returns, ptr_ty, locals_ty)
         }
         MirExpr::DotResult => ir::types::I64,
         _ => ir::types::I64,

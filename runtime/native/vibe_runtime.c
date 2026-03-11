@@ -1,3 +1,4 @@
+#define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -1370,6 +1371,66 @@ void *vibe_str_concat(const char *left, const char *right) {
     return (void *)out;
 }
 
+typedef struct vibe_str_builder {
+    char *buf;
+    size_t len;
+    size_t cap;
+} vibe_str_builder;
+
+void *vibe_str_builder_new(int64_t initial_cap) {
+    size_t cap = initial_cap > 0 ? (size_t)initial_cap : 64;
+    vibe_str_builder *sb = (vibe_str_builder *)calloc(1, sizeof(vibe_str_builder));
+    if (sb == NULL) vibe_panic("failed to allocate string builder");
+    sb->buf = (char *)calloc(cap + 1, sizeof(char));
+    if (sb->buf == NULL) vibe_panic("failed to allocate string builder buffer");
+    sb->len = 0;
+    sb->cap = cap;
+    return (void *)sb;
+}
+
+void *vibe_str_builder_append(void *handle, const char *str) {
+    vibe_str_builder *sb = (vibe_str_builder *)handle;
+    if (sb == NULL) vibe_panic("string builder append on null");
+    const char *safe_str = str == NULL ? "" : str;
+    size_t slen = strlen(safe_str);
+    if (sb->len + slen > sb->cap) {
+        size_t new_cap = sb->cap * 2;
+        while (new_cap < sb->len + slen) new_cap *= 2;
+        char *new_buf = (char *)realloc(sb->buf, new_cap + 1);
+        if (new_buf == NULL) vibe_panic("failed to grow string builder");
+        sb->buf = new_buf;
+        sb->cap = new_cap;
+    }
+    memcpy(sb->buf + sb->len, safe_str, slen);
+    sb->len += slen;
+    sb->buf[sb->len] = '\0';
+    return handle;
+}
+
+void *vibe_str_builder_append_char(void *handle, int64_t ch) {
+    vibe_str_builder *sb = (vibe_str_builder *)handle;
+    if (sb == NULL) vibe_panic("string builder append_char on null");
+    if (sb->len + 1 > sb->cap) {
+        size_t new_cap = sb->cap * 2;
+        char *new_buf = (char *)realloc(sb->buf, new_cap + 1);
+        if (new_buf == NULL) vibe_panic("failed to grow string builder");
+        sb->buf = new_buf;
+        sb->cap = new_cap;
+    }
+    sb->buf[sb->len] = (char)ch;
+    sb->len += 1;
+    sb->buf[sb->len] = '\0';
+    return handle;
+}
+
+void *vibe_str_builder_finish(void *handle) {
+    vibe_str_builder *sb = (vibe_str_builder *)handle;
+    if (sb == NULL) return (void *)"";
+    char *result = sb->buf;
+    free(sb);
+    return (void *)result;
+}
+
 char *vibe_text_trim(const char *raw) {
     const char *text = raw == NULL ? "" : raw;
     const char *start = text;
@@ -1722,6 +1783,42 @@ char *vibe_encoding_url_decode(const char *text) {
     return out;
 }
 
+#ifndef _WIN32
+#define VIBE_REGEX_CACHE_SIZE 32
+
+typedef struct vibe_regex_cache_entry {
+    char *pattern;
+    regex_t compiled;
+    int in_use;
+} vibe_regex_cache_entry;
+
+static vibe_regex_cache_entry vibe_regex_cache[VIBE_REGEX_CACHE_SIZE];
+static int vibe_regex_cache_next = 0;
+
+static regex_t *vibe_regex_get_cached(const char *pattern) {
+    for (int i = 0; i < VIBE_REGEX_CACHE_SIZE; i++) {
+        if (vibe_regex_cache[i].in_use && strcmp(vibe_regex_cache[i].pattern, pattern) == 0) {
+            return &vibe_regex_cache[i].compiled;
+        }
+    }
+    int slot = vibe_regex_cache_next;
+    vibe_regex_cache_next = (vibe_regex_cache_next + 1) % VIBE_REGEX_CACHE_SIZE;
+    if (vibe_regex_cache[slot].in_use) {
+        regfree(&vibe_regex_cache[slot].compiled);
+        free(vibe_regex_cache[slot].pattern);
+    }
+    vibe_regex_cache[slot].pattern = vibe_strdup_or_panic(pattern);
+    int rc = regcomp(&vibe_regex_cache[slot].compiled, pattern, REG_EXTENDED | REG_NEWLINE);
+    if (rc != 0) {
+        free(vibe_regex_cache[slot].pattern);
+        vibe_regex_cache[slot].in_use = 0;
+        return NULL;
+    }
+    vibe_regex_cache[slot].in_use = 1;
+    return &vibe_regex_cache[slot].compiled;
+}
+#endif
+
 int64_t vibe_regex_count(const char *text, const char *pattern) {
 #ifdef _WIN32
     (void)text;
@@ -1734,9 +1831,8 @@ int64_t vibe_regex_count(const char *text, const char *pattern) {
     if (safe_pattern[0] == '\0') {
         return 0;
     }
-    regex_t compiled;
-    int compile_rc = regcomp(&compiled, safe_pattern, REG_EXTENDED | REG_NEWLINE);
-    if (compile_rc != 0) {
+    regex_t *compiled = vibe_regex_get_cached(safe_pattern);
+    if (compiled == NULL) {
         vibe_panic("regex.count failed to compile pattern");
     }
 
@@ -1745,12 +1841,11 @@ int64_t vibe_regex_count(const char *text, const char *pattern) {
     size_t remaining = strlen(safe_text);
     while (remaining > 0) {
         regmatch_t match;
-        int exec_rc = regexec(&compiled, cursor, 1, &match, 0);
+        int exec_rc = regexec(compiled, cursor, 1, &match, 0);
         if (exec_rc == REG_NOMATCH) {
             break;
         }
         if (exec_rc != 0) {
-            regfree(&compiled);
             vibe_panic("regex.count execution failed");
         }
         if (match.rm_so < 0 || match.rm_eo < 0) {
@@ -1759,7 +1854,6 @@ int64_t vibe_regex_count(const char *text, const char *pattern) {
         size_t start = (size_t)match.rm_so;
         size_t end = (size_t)match.rm_eo;
         if (end < start || end > remaining) {
-            regfree(&compiled);
             vibe_panic("regex.count produced invalid match bounds");
         }
         count += 1;
@@ -1770,7 +1864,6 @@ int64_t vibe_regex_count(const char *text, const char *pattern) {
         cursor += advance;
         remaining -= advance;
     }
-    regfree(&compiled);
     return count;
 #endif
 }
@@ -1790,9 +1883,8 @@ char *vibe_regex_replace_all(const char *text, const char *pattern, const char *
         return vibe_strdup_or_panic(safe_text);
     }
 
-    regex_t compiled;
-    int compile_rc = regcomp(&compiled, safe_pattern, REG_EXTENDED | REG_NEWLINE);
-    if (compile_rc != 0) {
+    regex_t *compiled = vibe_regex_get_cached(safe_pattern);
+    if (compiled == NULL) {
         vibe_panic("regex.replace_all failed to compile pattern");
     }
 
@@ -1804,12 +1896,11 @@ char *vibe_regex_replace_all(const char *text, const char *pattern, const char *
     size_t remaining = text_len;
     while (remaining > 0) {
         regmatch_t match;
-        int exec_rc = regexec(&compiled, cursor, 1, &match, 0);
+        int exec_rc = regexec(compiled, cursor, 1, &match, 0);
         if (exec_rc == REG_NOMATCH) {
             break;
         }
         if (exec_rc != 0) {
-            regfree(&compiled);
             free(builder.data);
             vibe_panic("regex.replace_all execution failed");
         }
@@ -1819,7 +1910,6 @@ char *vibe_regex_replace_all(const char *text, const char *pattern, const char *
         size_t start = (size_t)match.rm_so;
         size_t end = (size_t)match.rm_eo;
         if (end < start || end > remaining) {
-            regfree(&compiled);
             free(builder.data);
             vibe_panic("regex.replace_all produced invalid match bounds");
         }
@@ -1837,7 +1927,6 @@ char *vibe_regex_replace_all(const char *text, const char *pattern, const char *
     if (remaining > 0) {
         vibe_builder_append_bytes(&builder, cursor, remaining);
     }
-    regfree(&compiled);
     return builder.data;
 #endif
 }
@@ -2838,6 +2927,30 @@ char *vibe_convert_f64_to_str(double value) {
     return vibe_strdup_or_panic(out);
 }
 
+double vibe_i64_to_f64(int64_t value) {
+    return (double)value;
+}
+
+int64_t vibe_f64_to_bits(double value) {
+    int64_t bits;
+    memcpy(&bits, &value, sizeof(bits));
+    return bits;
+}
+
+double vibe_f64_from_bits(int64_t bits) {
+    double value;
+    memcpy(&value, &bits, sizeof(value));
+    return value;
+}
+
+char *vibe_format_f64(double value, int64_t precision) {
+    if (precision < 0) precision = 0;
+    if (precision > 20) precision = 20;
+    char out[64];
+    snprintf(out, sizeof(out), "%.*f", (int)precision, value);
+    return vibe_strdup_or_panic(out);
+}
+
 static uint32_t vibe_md5_left_rotate(uint32_t x, uint32_t c) {
     return (x << c) | (x >> (32u - c));
 }
@@ -2962,6 +3075,35 @@ static void vibe_md5_final(vibe_md5_ctx *ctx, unsigned char out[16]) {
         out[i * 4 + 2] = (unsigned char)((ctx->state[i] >> 16u) & 0xffu);
         out[i * 4 + 3] = (unsigned char)((ctx->state[i] >> 24u) & 0xffu);
     }
+}
+
+char *vibe_md5_bytes_hex(void *handle) {
+    vibe_list_i64 *list = (vibe_list_i64 *)handle;
+    if (list == NULL || list->tag != VIBE_CONTAINER_LIST_I64) {
+        vibe_panic("md5_bytes_hex called on non-list handle");
+    }
+    size_t len = (size_t)list->len;
+    unsigned char *buf = (unsigned char *)malloc(len);
+    if (buf == NULL) vibe_panic("md5_bytes_hex: alloc failed");
+    for (size_t i = 0; i < len; i++) {
+        buf[i] = (unsigned char)(list->items[i] & 0xff);
+    }
+    vibe_md5_ctx ctx;
+    vibe_md5_init(&ctx);
+    vibe_md5_update(&ctx, buf, len);
+    unsigned char digest[16];
+    vibe_md5_final(&ctx, digest);
+    free(buf);
+
+    static const char hex[] = "0123456789abcdef";
+    char *out = (char *)calloc(33, sizeof(char));
+    if (out == NULL) vibe_panic("md5_bytes_hex: alloc failed");
+    for (int i = 0; i < 16; i++) {
+        out[i * 2] = hex[(digest[i] >> 4) & 0x0f];
+        out[i * 2 + 1] = hex[digest[i] & 0x0f];
+    }
+    out[32] = '\0';
+    return out;
 }
 
 char *vibe_md5_hex(const char *raw) {

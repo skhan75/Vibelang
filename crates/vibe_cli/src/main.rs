@@ -2188,8 +2188,10 @@ fn build_source(args: &BuildArgs) -> Result<BuildArtifacts, String> {
     } else {
         None
     };
-    let mir =
+    let mut mir =
         lower_hir_to_mir(&checked.hir).map_err(|e| format!("HIR->MIR lowering failed: {e}"))?;
+    let opt_level: u8 = if args.profile == "release" { 2 } else { 0 };
+    vibe_mir::optimize::optimize_mir(&mut mir, opt_level);
     let mir_lower_ms = mir_lower_start
         .as_ref()
         .map(|start| start.elapsed().as_millis())

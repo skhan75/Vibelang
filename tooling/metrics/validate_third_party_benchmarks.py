@@ -495,6 +495,37 @@ def main() -> None:
     if budgets.get("format") != "vibe-third-party-performance-budget-v1":
         fail("budget file format mismatch")
 
+    runtime_raw = report.get("runtime", {})
+    if isinstance(runtime_raw, dict):
+        runtime_langs = runtime_raw.get("languages", {})
+        if isinstance(runtime_langs, dict):
+            for lang_id, lang_data in runtime_langs.items():
+                if not isinstance(lang_data, dict):
+                    continue
+                pm = lang_data.get("problem_metrics", {})
+                if not isinstance(pm, dict) or len(pm) < 3:
+                    continue
+                times = [
+                    float(m.get("mean_time_ms", 0.0))
+                    for m in pm.values()
+                    if isinstance(m, dict) and float(m.get("mean_time_ms", 0.0)) > 0.0
+                ]
+                stddevs = [
+                    float(m.get("time_stddev_ms", 0.0))
+                    for m in pm.values()
+                    if isinstance(m, dict)
+                ]
+                if (
+                    len(times) >= 3
+                    and all(t < 5.0 for t in times)
+                    and all(s == 0.0 for s in stddevs)
+                ):
+                    print(
+                        f"WARNING: language `{lang_id}` has likely corrupted timing data "
+                        f"(all {len(times)} problems < 5ms with 0 stddev). "
+                        f"Times: {times}"
+                    )
+
     enforcement_mode = "strict" if args.publication_mode else args.enforcement_mode
     budget_result = evaluate_budget(
         report=report,

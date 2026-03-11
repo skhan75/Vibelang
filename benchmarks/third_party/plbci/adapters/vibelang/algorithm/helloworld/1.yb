@@ -1,5 +1,15 @@
+read_input() -> Str {
+  @effect io
+  raw := fs.read_text(".benchmark_input")
+  if raw == "" {
+    return "T_T"
+  }
+  return raw
+}
+
 pub main() -> Int {
   @effect io
-  println("Hello world T_T!")
+  input := read_input()
+  println("Hello world " + input + "!")
   0
 }

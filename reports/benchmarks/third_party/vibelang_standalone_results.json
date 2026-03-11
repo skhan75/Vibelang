@@ -1,0 +1,148 @@
+{
+    "benchmarks": [
+        {
+            "problem": "binarytrees",
+            "input": "15",
+            "mean_ms": 13.023,
+            "stddev_ms": 0.772,
+            "min_ms": 11.77,
+            "max_ms": 13.788,
+            "runs": 5
+        },
+        {
+            "problem": "coro-prime-sieve",
+            "input": "1000",
+            "mean_ms": 0.803,
+            "stddev_ms": 0.111,
+            "min_ms": 0.687,
+            "max_ms": 0.955,
+            "runs": 5
+        },
+        {
+            "problem": "edigits",
+            "input": "100000",
+            "mean_ms": 923.475,
+            "stddev_ms": 17.145,
+            "min_ms": 908.562,
+            "max_ms": 951.828,
+            "runs": 5
+        },
+        {
+            "problem": "fannkuch-redux",
+            "input": "10",
+            "mean_ms": 444.766,
+            "stddev_ms": 3.106,
+            "min_ms": 440.651,
+            "max_ms": 448.486,
+            "runs": 5
+        },
+        {
+            "problem": "fasta",
+            "input": "250000",
+            "mean_ms": 171.148,
+            "stddev_ms": 2.582,
+            "min_ms": 168.171,
+            "max_ms": 174.491,
+            "runs": 5
+        },
+        {
+            "problem": "helloworld",
+            "input": "T_T",
+            "mean_ms": 0.57,
+            "stddev_ms": 0.068,
+            "min_ms": 0.477,
+            "max_ms": 0.655,
+            "runs": 5
+        },
+        {
+            "problem": "http-server",
+            "input": "500",
+            "mean_ms": 31.46,
+            "stddev_ms": 0.724,
+            "min_ms": 30.786,
+            "max_ms": 32.574,
+            "runs": 5
+        },
+        {
+            "problem": "json-serde",
+            "input": "sample 5000",
+            "mean_ms": 0.749,
+            "stddev_ms": 0.064,
+            "min_ms": 0.679,
+            "max_ms": 0.835,
+            "runs": 5
+        },
+        {
+            "problem": "lru",
+            "input": "100 500000",
+            "mean_ms": 4181.653,
+            "stddev_ms": 87.736,
+            "min_ms": 4121.191,
+            "max_ms": 4325.252,
+            "runs": 5
+        },
+        {
+            "problem": "mandelbrot",
+            "input": "1000",
+            "mean_ms": 60.824,
+            "stddev_ms": 0.205,
+            "min_ms": 60.586,
+            "max_ms": 60.991,
+            "runs": 5
+        },
+        {
+            "problem": "merkletrees",
+            "input": "15",
+            "mean_ms": 11.423,
+            "stddev_ms": 0.32,
+            "min_ms": 11.21,
+            "max_ms": 11.983,
+            "runs": 5
+        },
+        {
+            "problem": "nbody",
+            "input": "500000",
+            "mean_ms": 29.7,
+            "stddev_ms": 0.215,
+            "min_ms": 29.46,
+            "max_ms": 30.0,
+            "runs": 5
+        },
+        {
+            "problem": "pidigits",
+            "input": "4000",
+            "mean_ms": 206.906,
+            "stddev_ms": 5.514,
+            "min_ms": 198.925,
+            "max_ms": 212.048,
+            "runs": 5
+        },
+        {
+            "problem": "secp256k1",
+            "input": "500",
+            "mean_ms": 100.338,
+            "stddev_ms": 3.478,
+            "min_ms": 96.46,
+            "max_ms": 105.135,
+            "runs": 5
+        },
+        {
+            "problem": "spectral-norm",
+            "input": "2000",
+            "mean_ms": 707.994,
+            "stddev_ms": 12.012,
+            "min_ms": 695.994,
+            "max_ms": 720.803,
+            "runs": 5
+        }
+    ],
+    "metadata": {
+        "date": "2026-03-11T10:06:52Z",
+        "hyperfine_runs": 5,
+        "hyperfine_warmup": 2,
+        "host": "Sami-PC",
+        "pass": 15,
+        "fail": 1,
+        "skip": 2
+    }
+}
