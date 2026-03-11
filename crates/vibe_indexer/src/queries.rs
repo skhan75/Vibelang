@@ -1,3 +1,6 @@
+// Copyright 2025-2026 VibeLang Contributors
+// SPDX-License-Identifier: Apache-2.0
+
 use std::cmp::Ordering;
 
 use crate::model::{EffectMismatch, FunctionMeta, IndexSnapshot, Reference, Symbol, SymbolId};

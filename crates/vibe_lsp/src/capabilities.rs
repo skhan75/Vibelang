@@ -1,3 +1,6 @@
+// Copyright 2025-2026 VibeLang Contributors
+// SPDX-License-Identifier: Apache-2.0
+
 use serde_json::{json, Value};
 
 pub fn initialize_result() -> Value {

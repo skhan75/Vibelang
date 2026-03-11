@@ -12,6 +12,7 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/skhan75/VibeLang/actions"><img src="https://img.shields.io/github/actions/workflow/status/skhan75/VibeLang/phase1-frontend.yml?branch=main&style=for-the-badge&label=CI" alt="CI" /></a>
   <a href="https://github.com/skhan75/VibeLang/releases/tag/v1.0.1"><img src="https://img.shields.io/badge/release-v1.0.1-22c55e?style=for-the-badge" alt="release" /></a>
   <a href="https://github.com/skhan75/VibeLang/issues"><img src="https://img.shields.io/github/issues/skhan75/VibeLang?style=for-the-badge&color=ec4899" alt="issues" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache_2.0-2563eb?style=for-the-badge" alt="license" /></a>
@@ -77,6 +78,18 @@ vibe lint . --intent      # AI-powered drift detection (optional)
 
 Platform guides: [Linux](docs/install/linux.md) · [macOS](docs/install/macos.md) · [Windows](docs/install/windows.md)
 
+## Supported Platforms
+
+| Platform | Architecture | Tier |
+|---|---|---|
+| Linux | x86_64 | 1 (CI-tested, prebuilt binaries) |
+| macOS | ARM64 (Apple Silicon) | 1 |
+| macOS | x86_64 | 2 (builds, not all CI lanes) |
+| Windows | x86_64 | 2 |
+
+**Tier 1**: full CI coverage, prebuilt release binaries, actively tested.
+**Tier 2**: builds from source, community-tested, best-effort support.
+
 ## Performance
 
 VibeLang targets **systems-level performance** (native AOT binaries, predictable runtime behavior) while keeping AI-era guardrails first-class.
@@ -140,6 +153,11 @@ VS Code extension: [`editor-support/vscode/`](editor-support/vscode/)
 | [CLI Manual](docs/cli/help_manual.md) | Commands, flags, and exit codes |
 | [Stdlib Reference](docs/stdlib/reference_index.md) | Module index with stability tiers |
 | [Examples](examples/) | 87 programs across 11 categories |
+
+## Roadmap
+
+Development is tracked in the [development checklist](docs/development_checklist.md) and
+the [features and optimizations backlog](docs/checklists/features_and_optimizations.md).
 
 ## Contributing
 

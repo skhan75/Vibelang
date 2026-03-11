@@ -66,3 +66,11 @@ python3 tooling/phase13/check_diagnostics_parity.py
 python3 tooling/phase13/benchmark_editor_ux.py --enforce
 ```
 
+## Cursor agent profiles (optional)
+
+This repo intentionally does **not** version editor state under `.cursor/` (it is ignored via `.gitignore`),
+but we do keep **public templates** for agent profiles that contributors can opt into locally.
+
+- **Template location**: `docs/ide/cursor_agents/vibelang-lead.md`
+- **To use in Cursor**: copy it to `.cursor/agents/vibelang-lead.md` in your working tree.
+

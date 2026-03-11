@@ -1,3 +1,6 @@
+// Copyright 2025-2026 VibeLang Contributors
+// SPDX-License-Identifier: Apache-2.0
+
 pub mod index_access;
 pub mod models;
 pub mod policy;

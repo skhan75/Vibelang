@@ -1,6 +1,7 @@
 # VibeLang AI Contributor Guide
 
-This file is the root-level master prompt for AI contributors working in this repository.
+This file is the root-level master prompt for AI contributors working in this
+repository. Human contributors should start with [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Primary goal
 

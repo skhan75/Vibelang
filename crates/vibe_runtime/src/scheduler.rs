@@ -1,3 +1,6 @@
+// Copyright 2025-2026 VibeLang Contributors
+// SPDX-License-Identifier: Apache-2.0
+
 use std::collections::VecDeque;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Condvar, Mutex};

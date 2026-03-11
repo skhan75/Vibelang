@@ -24,6 +24,9 @@ edition = "2021"
 version = "0.1.0"
 license = "Apache-2.0"
 authors = ["VibeLang Contributors"]
+description = "A statically typed, natively compiled language with first-class contracts and intent"
+repository = "https://github.com/skhan75/VibeLang"
+homepage = "https://www.thevibelang.org"
 
 [workspace.dependencies]
 vibe_ast = { path = "crates/vibe_ast" }

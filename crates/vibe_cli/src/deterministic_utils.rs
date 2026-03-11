@@ -1,3 +1,6 @@
+// Copyright 2025-2026 VibeLang Contributors
+// SPDX-License-Identifier: Apache-2.0
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum DeterministicValue {
     Int(i64),

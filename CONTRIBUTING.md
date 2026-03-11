@@ -3,6 +3,9 @@
 Thank you for your interest in contributing to VibeLang. This guide covers
 everything you need to get started.
 
+All participants in this project are expected to follow our
+[Code of Conduct](CODE_OF_CONDUCT.md). Please read it before contributing.
+
 ## Prerequisites
 
 - [Rust](https://rustup.rs/) (stable toolchain)
@@ -69,11 +72,22 @@ vibe run examples/01_basics/01_hello_world.yb
    - Any breaking changes or migration notes
 3. Ensure CI passes — all checks must be green before merge
 
+### Review process
+
+- A maintainer will review your PR, typically within a few business days.
+- Small, focused PRs are reviewed faster than large ones. Prefer splitting
+  unrelated changes into separate PRs.
+- Reviewers may request changes. Push follow-up commits to the same branch;
+  do not force-push during review unless asked.
+- Once approved and CI is green, a maintainer will merge the PR.
+- For design-level questions or larger features, open an issue first so the
+  approach can be discussed before significant implementation work.
+
 ## Project Structure
 
 ```
 vibelang/
-├── crates/              # Rust compiler crates (17 crates)
+├── crates/              # Rust compiler crates (16 crates)
 │   ├── vibe_lexer/      # Tokenization
 │   ├── vibe_parser/     # Parsing
 │   ├── vibe_ast/        # AST definitions
@@ -87,7 +101,7 @@ vibelang/
 ├── compiler/            # Compiler documentation and test fixtures
 ├── runtime/             # Runtime system (native, concurrency, GC)
 ├── stdlib/              # Standard library modules
-├── examples/            # 70 example programs across 10 categories
+├── examples/            # 87 example programs across 11 categories
 ├── docs/                # Documentation
 ├── book/                # The VibeLang Book (mdBook)
 ├── editor-support/      # VS Code extension

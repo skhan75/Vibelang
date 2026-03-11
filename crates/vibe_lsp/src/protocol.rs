@@ -1,3 +1,6 @@
+// Copyright 2025-2026 VibeLang Contributors
+// SPDX-License-Identifier: Apache-2.0
+
 use std::io::{self, BufRead, BufReader, BufWriter, Write};
 use std::path::PathBuf;
 

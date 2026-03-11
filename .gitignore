@@ -1,9 +1,35 @@
+# Build outputs
 /target/
 **/.yb/artifacts/
+**/.yb/index/
 **/.vibe/artifacts/
+**/.vibe/index/
+
+# Runtime caches
 **/__pycache__/
 /.cache/
+
+# IDE / editor
+.cursor/
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Secrets and local config
 .env
 .env.*
 *.env
 *.env.*
+
+# Benchmark raw outputs (not publication-ready; see APPLE_TO_APPLE_BENCHMARK_POLICY.md)
+reports/benchmarks/third_party/full/raw/
+reports/benchmarks/third_party/full/results.json
+reports/benchmarks/third_party/history/
+reports/benchmarks/third_party/analysis/deltas/*.json
+reports/benchmarks/third_party/analysis/baseline_pointer.json

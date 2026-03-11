@@ -1,3 +1,6 @@
+// Copyright 2025-2026 VibeLang Contributors
+// SPDX-License-Identifier: Apache-2.0
+
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 

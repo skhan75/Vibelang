@@ -1,3 +1,6 @@
+// Copyright 2025-2026 VibeLang Contributors
+// SPDX-License-Identifier: Apache-2.0
+
 use vibe_ast::{
     BinaryOp, Contract, Declaration, EnumDecl, ExampleCase, Expr, FileAst, FunctionDecl, MatchArm,
     Param, SelectCase, SelectPattern, Stmt, TypeDecl, TypeField, TypeRef, UnaryOp,

@@ -1,3 +1,6 @@
+// Copyright 2025-2026 VibeLang Contributors
+// SPDX-License-Identifier: Apache-2.0
+
 pub fn format_source(input: &str) -> String {
     let normalized = input.replace("\r\n", "\n").replace('\r', "\n");
     let mut lines = Vec::new();

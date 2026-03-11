@@ -1,3 +1,6 @@
+// Copyright 2025-2026 VibeLang Contributors
+// SPDX-License-Identifier: Apache-2.0
+
 use vibe_diagnostics::{Diagnostic, Diagnostics, Severity, Span};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

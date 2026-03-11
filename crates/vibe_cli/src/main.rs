@@ -1,3 +1,6 @@
+// Copyright 2025-2026 VibeLang Contributors
+// SPDX-License-Identifier: Apache-2.0
+
 mod deterministic_utils;
 mod example_runner;
 mod module_resolver;
