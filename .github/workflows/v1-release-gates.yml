@@ -1292,16 +1292,27 @@ jobs:
           test -f docs/usability/docs_walkthrough_checklist.md
           test -f book/book.toml
           test -f book/src/SUMMARY.md
+          test -f book/src/preface.md
           test -f book/src/ch01_getting_started.md
-          test -f book/src/ch02_core_syntax_semantics.md
-          test -f book/src/ch03_types_functions_errors.md
-          test -f book/src/ch04_contracts_examples.md
-          test -f book/src/ch05_effects_performance.md
-          test -f book/src/ch06_concurrency.md
-          test -f book/src/ch07_tooling.md
-          test -f book/src/ch08_intent_sidecar.md
-          test -f book/src/ch09_migration_compatibility.md
-          test -f book/src/ch10_advanced_internals.md
+          test -f book/src/ch02_first_program.md
+          test -f book/src/ch03_syntax_and_semantics.md
+          test -f book/src/ch04_types_and_functions.md
+          test -f book/src/ch05_control_flow.md
+          test -f book/src/ch06_contracts_and_intent.md
+          test -f book/src/ch07_effects_system.md
+          test -f book/src/ch08_error_handling.md
+          test -f book/src/ch09_collections.md
+          test -f book/src/ch10_modules_and_packages.md
+          test -f book/src/ch11_concurrency.md
+          test -f book/src/ch12_ownership_and_memory.md
+          test -f book/src/ch13_advanced_patterns.md
+          test -f book/src/ch14_compiler_internals.md
+          test -f book/src/ch15_toolchain.md
+          test -f book/src/ch16_production.md
+          test -f book/src/ch17_building_real_apps.md
+          test -f book/src/appendix_a_keywords.md
+          test -f book/src/appendix_b_operators.md
+          test -f book/src/appendix_c_stdlib.md
       - name: run docs quality automation
         run: |
           set -euo pipefail

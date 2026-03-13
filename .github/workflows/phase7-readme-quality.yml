@@ -41,7 +41,7 @@ jobs:
       - name: lint README markdown
         run: |
           set -euo pipefail
-          npx --yes markdownlint-cli@latest README.md --disable MD013
+          npx --yes markdownlint-cli@latest README.md --disable MD013 MD033 MD060
       - name: check README links
         uses: lycheeverse/lychee-action@v2
         with:

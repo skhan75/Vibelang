@@ -186,7 +186,11 @@ pub fn compile_runtime_object(
         let stamp_path = output_dir.join("vibe_runtime_bench.build.stamp");
         let use_gmp = gmp_available();
         let bench_stamp_tag = if use_gmp { "bench-gmp" } else { "bench" };
-        let bench_defines: Vec<&str> = if use_gmp { vec!["-DVIBE_USE_GMP"] } else { vec![] };
+        let bench_defines: Vec<&str> = if use_gmp {
+            vec!["-DVIBE_USE_GMP"]
+        } else {
+            vec![]
+        };
         compile_runtime_c_object(
             &bench_obj,
             &source_for_compile,

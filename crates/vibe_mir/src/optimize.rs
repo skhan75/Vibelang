@@ -106,9 +106,7 @@ fn constant_fold_expr(expr: &MirExpr) -> MirExpr {
             field: field.clone(),
             object_type: object_type.clone(),
         },
-        MirExpr::List(items) => {
-            MirExpr::List(items.iter().map(constant_fold_expr).collect())
-        }
+        MirExpr::List(items) => MirExpr::List(items.iter().map(constant_fold_expr).collect()),
         MirExpr::Map(pairs) => MirExpr::Map(
             pairs
                 .iter()
@@ -155,7 +153,9 @@ fn constant_fold_stmts(stmts: &mut Vec<MirStmt>) {
             MirStmt::Let { expr, .. } | MirStmt::Assign { expr, .. } => {
                 *expr = constant_fold_expr(expr);
             }
-            MirStmt::Expr(expr) | MirStmt::Return(expr) | MirStmt::Go(expr)
+            MirStmt::Expr(expr)
+            | MirStmt::Return(expr)
+            | MirStmt::Go(expr)
             | MirStmt::Thread(expr) => {
                 *expr = constant_fold_expr(expr);
             }
@@ -277,7 +277,9 @@ fn collect_used_vars_stmts(stmts: &[MirStmt], used: &mut BTreeSet<String>) {
             MirStmt::Let { expr, .. } | MirStmt::Assign { expr, .. } => {
                 collect_used_vars_expr(expr, used);
             }
-            MirStmt::Expr(expr) | MirStmt::Return(expr) | MirStmt::Go(expr)
+            MirStmt::Expr(expr)
+            | MirStmt::Return(expr)
+            | MirStmt::Go(expr)
             | MirStmt::Thread(expr) => {
                 collect_used_vars_expr(expr, used);
             }
@@ -333,8 +335,13 @@ fn collect_used_vars_stmts(stmts: &[MirStmt], used: &mut BTreeSet<String>) {
 
 fn expr_has_side_effects(expr: &MirExpr) -> bool {
     match expr {
-        MirExpr::Int(_) | MirExpr::Float(_) | MirExpr::Bool(_) | MirExpr::Str(_)
-        | MirExpr::Var(_) | MirExpr::DotResult | MirExpr::EnumVariant { .. } => false,
+        MirExpr::Int(_)
+        | MirExpr::Float(_)
+        | MirExpr::Bool(_)
+        | MirExpr::Str(_)
+        | MirExpr::Var(_)
+        | MirExpr::DotResult
+        | MirExpr::EnumVariant { .. } => false,
         MirExpr::Binary { left, right, .. } => {
             expr_has_side_effects(left) || expr_has_side_effects(right)
         }
@@ -343,9 +350,7 @@ fn expr_has_side_effects(expr: &MirExpr) -> bool {
         MirExpr::Map(pairs) => pairs
             .iter()
             .any(|(k, v)| expr_has_side_effects(k) || expr_has_side_effects(v)),
-        MirExpr::Constructor { fields, .. } => {
-            fields.iter().any(|(_, e)| expr_has_side_effects(e))
-        }
+        MirExpr::Constructor { fields, .. } => fields.iter().any(|(_, e)| expr_has_side_effects(e)),
         MirExpr::Call { .. }
         | MirExpr::Index { .. }
         | MirExpr::Slice { .. }
@@ -767,8 +772,12 @@ fn collect_modified_vars(stmts: &[MirStmt], modified: &mut BTreeSet<String>) {
 
 fn expr_is_loop_invariant(expr: &MirExpr, modified: &BTreeSet<String>) -> bool {
     match expr {
-        MirExpr::Int(_) | MirExpr::Float(_) | MirExpr::Bool(_) | MirExpr::Str(_)
-        | MirExpr::DotResult | MirExpr::EnumVariant { .. } => true,
+        MirExpr::Int(_)
+        | MirExpr::Float(_)
+        | MirExpr::Bool(_)
+        | MirExpr::Str(_)
+        | MirExpr::DotResult
+        | MirExpr::EnumVariant { .. } => true,
         MirExpr::Var(name) => !modified.contains(name),
         MirExpr::Binary { left, right, .. } => {
             expr_is_loop_invariant(left, modified) && expr_is_loop_invariant(right, modified)

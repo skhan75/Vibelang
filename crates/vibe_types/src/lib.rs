@@ -2392,14 +2392,24 @@ fn stdlib_namespace_return_hint(namespace: &str, field: &str) -> Option<TypeKind
         ("net", "read") | ("net", "resolve") => Some(TypeKind::Str),
         ("net", "close") => Some(TypeKind::Bool),
         ("convert", "to_int") | ("convert", "parse_i64") => Some(TypeKind::Int),
-        ("convert", "to_float") | ("convert", "parse_f64") | ("convert", "i64_to_f64") | ("convert", "f64_from_bits") => Some(TypeKind::Float),
-        ("convert", "to_str") | ("convert", "to_str_f64") | ("convert", "format_f64") => Some(TypeKind::Str),
+        ("convert", "to_float")
+        | ("convert", "parse_f64")
+        | ("convert", "i64_to_f64")
+        | ("convert", "f64_from_bits") => Some(TypeKind::Float),
+        ("convert", "to_str") | ("convert", "to_str_f64") | ("convert", "format_f64") => {
+            Some(TypeKind::Str)
+        }
         ("convert", "f64_to_bits") => Some(TypeKind::Int),
         ("math", "sqrt") => Some(TypeKind::Float),
-        ("str_builder", "new") | ("str_builder", "append") | ("str_builder", "append_char") => Some(TypeKind::Int),
+        ("str_builder", "new") | ("str_builder", "append") | ("str_builder", "append_char") => {
+            Some(TypeKind::Int)
+        }
         ("str_builder", "finish") => Some(TypeKind::Str),
-        ("simd", "f64x2_splat") | ("simd", "f64x2_make") | ("simd", "f64x2_add")
-        | ("simd", "f64x2_sub") | ("simd", "f64x2_mul") => Some(TypeKind::Int),
+        ("simd", "f64x2_splat")
+        | ("simd", "f64x2_make")
+        | ("simd", "f64x2_add")
+        | ("simd", "f64x2_sub")
+        | ("simd", "f64x2_mul") => Some(TypeKind::Int),
         ("simd", "f64x2_gt") => Some(TypeKind::Int),
         ("simd", "f64x2_extract") => Some(TypeKind::Float),
         ("text", "trim")
@@ -2588,7 +2598,9 @@ fn infer_stdlib_namespace_call(
         ("str_builder", "finish") => Some((&["Int"][..], "")),
         ("simd", "f64x2_splat") => Some((&["Float"][..], "")),
         ("simd", "f64x2_make") => Some((&["Float", "Float"][..], "")),
-        ("simd", "f64x2_add") | ("simd", "f64x2_sub") | ("simd", "f64x2_mul")
+        ("simd", "f64x2_add")
+        | ("simd", "f64x2_sub")
+        | ("simd", "f64x2_mul")
         | ("simd", "f64x2_gt") => Some((&["Int", "Int"][..], "")),
         ("simd", "f64x2_extract") => Some((&["Int", "Int"][..], "")),
         ("text", "trim")
@@ -2616,9 +2628,7 @@ fn infer_stdlib_namespace_call(
         | ("json", "parse")
         | ("json", "stringify")
         | ("json", "parse_i64")
-        | ("json", "minify") => {
-            Some((&["Str"][..], ""))
-        }
+        | ("json", "minify") => Some((&["Str"][..], "")),
         ("json", "stringify_i64") => Some((&["Int"][..], "")),
         ("regex", "count") => Some((&["Str", "Str"][..], "")),
         ("regex", "replace_all") => Some((&["Str", "Str", "Str"][..], "")),

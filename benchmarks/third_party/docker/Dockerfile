@@ -74,8 +74,8 @@ RUN if [ -x /opt/swift/usr/bin/swift ]; then echo "Swift OK"; \
 ENV PATH="/opt/swift/usr/bin:/root/.dotnet:/root/.cargo/bin:${PATH}"
 RUN cargo install hyperfine --version 1.19.0
 
-WORKDIR /workspace/VibeStack/vibelang
-COPY vibelang/benchmarks/third_party/docker/entrypoint.sh /usr/local/bin/vibe-third-party-bench
+WORKDIR /workspace/vibelang
+COPY benchmarks/third_party/docker/entrypoint.sh /usr/local/bin/vibe-third-party-bench
 RUN chmod +x /usr/local/bin/vibe-third-party-bench
 
 ENTRYPOINT ["/usr/local/bin/vibe-third-party-bench"]

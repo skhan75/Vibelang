@@ -18,7 +18,7 @@ if [[ -d ".cache/third_party/plbci/.git" ]]; then
   git config --global --add safe.directory "$(pwd)/.cache/third_party/plbci" || true
 fi
 
-export TMPDIR="/workspace/VibeStack/vibelang/.cache/third_party_bench/plbci_tmp"
+export TMPDIR="/workspace/vibelang/.cache/third_party_bench/plbci_tmp"
 mkdir -p "$TMPDIR"
 echo "TMPDIR set to $TMPDIR for nested Docker path visibility"
 

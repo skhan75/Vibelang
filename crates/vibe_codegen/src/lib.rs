@@ -973,7 +973,11 @@ fn declare_runtime_functions(
         .returns
         .push(AbiParam::new(ir::types::F64));
     let convert_to_float_fn = module
-        .declare_function("vibe_convert_to_f64", Linkage::Import, &convert_to_float_sig)
+        .declare_function(
+            "vibe_convert_to_f64",
+            Linkage::Import,
+            &convert_to_float_sig,
+        )
         .map_err(|e| format!("failed to declare runtime convert_to_f64 symbol: {e}"))?;
 
     let mut convert_to_str_sig = module.make_signature();
@@ -982,7 +986,11 @@ fn declare_runtime_functions(
         .push(AbiParam::new(ir::types::I64));
     convert_to_str_sig.returns.push(AbiParam::new(ptr_ty));
     let convert_to_str_fn = module
-        .declare_function("vibe_convert_i64_to_str", Linkage::Import, &convert_to_str_sig)
+        .declare_function(
+            "vibe_convert_i64_to_str",
+            Linkage::Import,
+            &convert_to_str_sig,
+        )
         .map_err(|e| format!("failed to declare runtime convert_i64_to_str symbol: {e}"))?;
 
     let mut convert_to_str_f64_sig = module.make_signature();
@@ -1022,7 +1030,9 @@ fn declare_runtime_functions(
 
     let mut f64_from_bits_sig = module.make_signature();
     f64_from_bits_sig.params.push(AbiParam::new(ir::types::I64));
-    f64_from_bits_sig.returns.push(AbiParam::new(ir::types::F64));
+    f64_from_bits_sig
+        .returns
+        .push(AbiParam::new(ir::types::F64));
     let f64_from_bits_fn = module
         .declare_function("vibe_f64_from_bits", Linkage::Import, &f64_from_bits_sig)
         .map_err(|e| format!("failed to declare runtime f64_from_bits symbol: {e}"))?;
@@ -1037,7 +1047,9 @@ fn declare_runtime_functions(
     let mut text_contains_sig = module.make_signature();
     text_contains_sig.params.push(AbiParam::new(ptr_ty));
     text_contains_sig.params.push(AbiParam::new(ptr_ty));
-    text_contains_sig.returns.push(AbiParam::new(ir::types::I64));
+    text_contains_sig
+        .returns
+        .push(AbiParam::new(ir::types::I64));
     let text_contains_fn = module
         .declare_function("vibe_text_contains", Linkage::Import, &text_contains_sig)
         .map_err(|e| format!("failed to declare runtime text_contains symbol: {e}"))?;
@@ -1045,15 +1057,23 @@ fn declare_runtime_functions(
     let mut text_starts_with_sig = module.make_signature();
     text_starts_with_sig.params.push(AbiParam::new(ptr_ty));
     text_starts_with_sig.params.push(AbiParam::new(ptr_ty));
-    text_starts_with_sig.returns.push(AbiParam::new(ir::types::I64));
+    text_starts_with_sig
+        .returns
+        .push(AbiParam::new(ir::types::I64));
     let text_starts_with_fn = module
-        .declare_function("vibe_text_starts_with", Linkage::Import, &text_starts_with_sig)
+        .declare_function(
+            "vibe_text_starts_with",
+            Linkage::Import,
+            &text_starts_with_sig,
+        )
         .map_err(|e| format!("failed to declare runtime text_starts_with symbol: {e}"))?;
 
     let mut text_ends_with_sig = module.make_signature();
     text_ends_with_sig.params.push(AbiParam::new(ptr_ty));
     text_ends_with_sig.params.push(AbiParam::new(ptr_ty));
-    text_ends_with_sig.returns.push(AbiParam::new(ir::types::I64));
+    text_ends_with_sig
+        .returns
+        .push(AbiParam::new(ir::types::I64));
     let text_ends_with_fn = module
         .declare_function("vibe_text_ends_with", Linkage::Import, &text_ends_with_sig)
         .map_err(|e| format!("failed to declare runtime text_ends_with symbol: {e}"))?;
@@ -1083,7 +1103,9 @@ fn declare_runtime_functions(
 
     let mut text_byte_len_sig = module.make_signature();
     text_byte_len_sig.params.push(AbiParam::new(ptr_ty));
-    text_byte_len_sig.returns.push(AbiParam::new(ir::types::I64));
+    text_byte_len_sig
+        .returns
+        .push(AbiParam::new(ir::types::I64));
     let text_byte_len_fn = module
         .declare_function("vibe_text_byte_len", Linkage::Import, &text_byte_len_sig)
         .map_err(|e| format!("failed to declare runtime text_byte_len symbol: {e}"))?;
@@ -1091,10 +1113,16 @@ fn declare_runtime_functions(
     let mut text_split_part_sig = module.make_signature();
     text_split_part_sig.params.push(AbiParam::new(ptr_ty));
     text_split_part_sig.params.push(AbiParam::new(ptr_ty));
-    text_split_part_sig.params.push(AbiParam::new(ir::types::I64));
+    text_split_part_sig
+        .params
+        .push(AbiParam::new(ir::types::I64));
     text_split_part_sig.returns.push(AbiParam::new(ptr_ty));
     let text_split_part_fn = module
-        .declare_function("vibe_text_split_part", Linkage::Import, &text_split_part_sig)
+        .declare_function(
+            "vibe_text_split_part",
+            Linkage::Import,
+            &text_split_part_sig,
+        )
         .map_err(|e| format!("failed to declare runtime text_split_part symbol: {e}"))?;
 
     let mut encoding_hex_encode_sig = module.make_signature();
@@ -1120,7 +1148,9 @@ fn declare_runtime_functions(
         .map_err(|e| format!("failed to declare runtime encoding_hex_decode symbol: {e}"))?;
 
     let mut encoding_base64_encode_sig = module.make_signature();
-    encoding_base64_encode_sig.params.push(AbiParam::new(ptr_ty));
+    encoding_base64_encode_sig
+        .params
+        .push(AbiParam::new(ptr_ty));
     encoding_base64_encode_sig
         .returns
         .push(AbiParam::new(ptr_ty));
@@ -1133,7 +1163,9 @@ fn declare_runtime_functions(
         .map_err(|e| format!("failed to declare runtime encoding_base64_encode symbol: {e}"))?;
 
     let mut encoding_base64_decode_sig = module.make_signature();
-    encoding_base64_decode_sig.params.push(AbiParam::new(ptr_ty));
+    encoding_base64_decode_sig
+        .params
+        .push(AbiParam::new(ptr_ty));
     encoding_base64_decode_sig
         .returns
         .push(AbiParam::new(ptr_ty));
@@ -1574,10 +1606,16 @@ fn declare_runtime_functions(
 
     let mut sb_append_char_sig = module.make_signature();
     sb_append_char_sig.params.push(AbiParam::new(ptr_ty));
-    sb_append_char_sig.params.push(AbiParam::new(ir::types::I64));
+    sb_append_char_sig
+        .params
+        .push(AbiParam::new(ir::types::I64));
     sb_append_char_sig.returns.push(AbiParam::new(ptr_ty));
     let str_builder_append_char_fn = module
-        .declare_function("vibe_str_builder_append_char", Linkage::Import, &sb_append_char_sig)
+        .declare_function(
+            "vibe_str_builder_append_char",
+            Linkage::Import,
+            &sb_append_char_sig,
+        )
         .map_err(|e| format!("failed to declare runtime vibe_str_builder_append_char: {e}"))?;
 
     let mut sb_finish_sig = module.make_signature();
@@ -3404,16 +3442,26 @@ fn emit_expr(
                 let oob_block = builder.create_block();
                 let ok_block = builder.create_block();
 
-                let in_bounds = builder.ins().icmp(IntCC::UnsignedLessThan, index_value, len);
+                let in_bounds = builder
+                    .ins()
+                    .icmp(IntCC::UnsignedLessThan, index_value, len);
                 builder.ins().brif(in_bounds, ok_block, &[], oob_block, &[]);
 
                 builder.switch_to_block(oob_block);
                 builder.seal_block(oob_block);
-                let local_panic =
-                    module.declare_func_in_func(runtime_fns.panic_fn, builder.func);
-                let oob_msg = emit_string_data(module, builder, "list index out of bounds", ptr_ty, str_data_counter, owner)?;
+                let local_panic = module.declare_func_in_func(runtime_fns.panic_fn, builder.func);
+                let oob_msg = emit_string_data(
+                    module,
+                    builder,
+                    "list index out of bounds",
+                    ptr_ty,
+                    str_data_counter,
+                    owner,
+                )?;
                 builder.ins().call(local_panic, &[oob_msg]);
-                builder.ins().trap(cranelift_codegen::ir::TrapCode::unwrap_user(1));
+                builder
+                    .ins()
+                    .trap(cranelift_codegen::ir::TrapCode::unwrap_user(1));
 
                 builder.switch_to_block(ok_block);
                 builder.seal_block(ok_block);
@@ -3974,9 +4022,18 @@ fn emit_expr(
                             builder.seal_block(oob_block);
                             let local_panic =
                                 module.declare_func_in_func(runtime_fns.panic_fn, builder.func);
-                            let oob_msg = emit_string_data(module, builder, "list.set index out of bounds", ptr_ty, str_data_counter, owner)?;
+                            let oob_msg = emit_string_data(
+                                module,
+                                builder,
+                                "list.set index out of bounds",
+                                ptr_ty,
+                                str_data_counter,
+                                owner,
+                            )?;
                             builder.ins().call(local_panic, &[oob_msg]);
-                            builder.ins().trap(cranelift_codegen::ir::TrapCode::unwrap_user(1));
+                            builder
+                                .ins()
+                                .trap(cranelift_codegen::ir::TrapCode::unwrap_user(1));
 
                             builder.switch_to_block(ok_block);
                             builder.seal_block(ok_block);
@@ -3988,7 +4045,12 @@ fn emit_expr(
                             );
                             let byte_offset = builder.ins().imul_imm(key, 8);
                             let elem_addr = builder.ins().iadd(items_ptr, byte_offset);
-                            builder.ins().store(MemFlags::trusted(), value, elem_addr, Offset32::new(0));
+                            builder.ins().store(
+                                MemFlags::trusted(),
+                                value,
+                                elem_addr,
+                                Offset32::new(0),
+                            );
                             builder.ins().jump(merge_block, &[]);
                         }
 
@@ -4515,7 +4577,8 @@ fn emit_stdlib_namespace_call(
             })?;
             let schema_ptr =
                 emit_string_data(module, builder, &schema, ptr_ty, str_data_counter, owner)?;
-            let local = module.declare_func_in_func(runtime_fns.json_encode_record_fn, builder.func);
+            let local =
+                module.declare_func_in_func(runtime_fns.json_encode_record_fn, builder.func);
             let call = builder.ins().call(local, &[lowered_args[0], schema_ptr]);
             return Ok(Some(call_result_or_zero(builder, call)));
         }
@@ -4524,12 +4587,12 @@ fn emit_stdlib_namespace_call(
             let fields = type_defs.get(type_name).ok_or_else(|| {
                 format!("E3411: unknown json codec target type `{type_name}` for `{field}`")
             })?;
-            let schema = json_codec_schema(type_name, type_defs).ok_or_else(|| {
-                format!("E3411: missing json schema for type `{type_name}`")
-            })?;
+            let schema = json_codec_schema(type_name, type_defs)
+                .ok_or_else(|| format!("E3411: missing json schema for type `{type_name}`"))?;
             let schema_ptr =
                 emit_string_data(module, builder, &schema, ptr_ty, str_data_counter, owner)?;
-            let local_alloc = module.declare_func_in_func(runtime_fns.record_alloc_fn, builder.func);
+            let local_alloc =
+                module.declare_func_in_func(runtime_fns.record_alloc_fn, builder.func);
             let slot_const = builder.ins().iconst(ir::types::I64, fields.len() as i64);
             let alloc_call = builder.ins().call(local_alloc, &[slot_const]);
             let out_record = call_result_or_zero(builder, alloc_call);
@@ -4647,7 +4710,12 @@ fn emit_stdlib_namespace_call(
         }
         ("net", "listener_port") => {
             expect_arity(1)?;
-            call_one_arg(runtime_fns.net_listener_port_fn, lowered_args[0], module, builder)
+            call_one_arg(
+                runtime_fns.net_listener_port_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
         }
         ("net", "accept") => {
             expect_arity(1)?;
@@ -4693,23 +4761,49 @@ fn emit_stdlib_namespace_call(
         }
         ("convert", "to_int") | ("convert", "parse_i64") => {
             expect_arity(1)?;
-            call_one_arg(runtime_fns.convert_to_int_fn, lowered_args[0], module, builder)
+            call_one_arg(
+                runtime_fns.convert_to_int_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
         }
         ("convert", "to_float") | ("convert", "parse_f64") => {
             expect_arity(1)?;
-            call_one_arg(runtime_fns.convert_to_float_fn, lowered_args[0], module, builder)
+            call_one_arg(
+                runtime_fns.convert_to_float_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
         }
         ("convert", "to_str") => {
             expect_arity(1)?;
-            call_one_arg(runtime_fns.convert_to_str_fn, lowered_args[0], module, builder)
+            call_one_arg(
+                runtime_fns.convert_to_str_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
         }
         ("convert", "to_str_f64") => {
             expect_arity(1)?;
-            call_one_arg(runtime_fns.convert_to_str_f64_fn, lowered_args[0], module, builder)
+            call_one_arg(
+                runtime_fns.convert_to_str_f64_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
         }
         ("convert", "format_f64") => {
             expect_arity(2)?;
-            call_two_args(runtime_fns.format_f64_fn, lowered_args[0], lowered_args[1], module, builder)
+            call_two_args(
+                runtime_fns.format_f64_fn,
+                lowered_args[0],
+                lowered_args[1],
+                module,
+                builder,
+            )
         }
         ("convert", "i64_to_f64") => {
             expect_arity(1)?;
@@ -4717,11 +4811,15 @@ fn emit_stdlib_namespace_call(
         }
         ("convert", "f64_to_bits") => {
             expect_arity(1)?;
-            builder.ins().bitcast(ir::types::I64, MemFlags::new(), lowered_args[0])
+            builder
+                .ins()
+                .bitcast(ir::types::I64, MemFlags::new(), lowered_args[0])
         }
         ("convert", "f64_from_bits") => {
             expect_arity(1)?;
-            builder.ins().bitcast(ir::types::F64, MemFlags::new(), lowered_args[0])
+            builder
+                .ins()
+                .bitcast(ir::types::F64, MemFlags::new(), lowered_args[0])
         }
         ("math", "sqrt") => {
             expect_arity(1)?;
@@ -4729,26 +4827,50 @@ fn emit_stdlib_namespace_call(
         }
         ("str_builder", "new") => {
             expect_arity(1)?;
-            call_one_arg(runtime_fns.str_builder_new_fn, lowered_args[0], module, builder)
+            call_one_arg(
+                runtime_fns.str_builder_new_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
         }
         ("str_builder", "append") => {
             expect_arity(2)?;
-            call_two_args(runtime_fns.str_builder_append_fn, lowered_args[0], lowered_args[1], module, builder)
+            call_two_args(
+                runtime_fns.str_builder_append_fn,
+                lowered_args[0],
+                lowered_args[1],
+                module,
+                builder,
+            )
         }
         ("str_builder", "append_char") => {
             expect_arity(2)?;
-            call_two_args(runtime_fns.str_builder_append_char_fn, lowered_args[0], lowered_args[1], module, builder)
+            call_two_args(
+                runtime_fns.str_builder_append_char_fn,
+                lowered_args[0],
+                lowered_args[1],
+                module,
+                builder,
+            )
         }
         ("str_builder", "finish") => {
             expect_arity(1)?;
-            call_one_arg(runtime_fns.str_builder_finish_fn, lowered_args[0], module, builder)
+            call_one_arg(
+                runtime_fns.str_builder_finish_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
         }
         ("simd", "f64x2_splat") => {
             expect_arity(1)?;
             let scalar = lowered_args[0];
             let vec = builder.ins().splat(ir::types::F64X2, scalar);
             let slot = builder.create_sized_stack_slot(cranelift_codegen::ir::StackSlotData::new(
-                cranelift_codegen::ir::StackSlotKind::ExplicitSlot, 16, 16,
+                cranelift_codegen::ir::StackSlotKind::ExplicitSlot,
+                16,
+                16,
             ));
             builder.ins().stack_store(vec, slot, Offset32::new(0));
             builder.ins().stack_addr(ptr_ty, slot, Offset32::new(0))
@@ -4758,49 +4880,99 @@ fn emit_stdlib_namespace_call(
             let vec = builder.ins().splat(ir::types::F64X2, lowered_args[0]);
             let vec = builder.ins().insertlane(vec, lowered_args[1], 1);
             let slot = builder.create_sized_stack_slot(cranelift_codegen::ir::StackSlotData::new(
-                cranelift_codegen::ir::StackSlotKind::ExplicitSlot, 16, 16,
+                cranelift_codegen::ir::StackSlotKind::ExplicitSlot,
+                16,
+                16,
             ));
             builder.ins().stack_store(vec, slot, Offset32::new(0));
             builder.ins().stack_addr(ptr_ty, slot, Offset32::new(0))
         }
         ("simd", "f64x2_add") => {
             expect_arity(2)?;
-            let a = builder.ins().load(ir::types::F64X2, MemFlags::trusted(), lowered_args[0], Offset32::new(0));
-            let b = builder.ins().load(ir::types::F64X2, MemFlags::trusted(), lowered_args[1], Offset32::new(0));
+            let a = builder.ins().load(
+                ir::types::F64X2,
+                MemFlags::trusted(),
+                lowered_args[0],
+                Offset32::new(0),
+            );
+            let b = builder.ins().load(
+                ir::types::F64X2,
+                MemFlags::trusted(),
+                lowered_args[1],
+                Offset32::new(0),
+            );
             let result = builder.ins().fadd(a, b);
             let slot = builder.create_sized_stack_slot(cranelift_codegen::ir::StackSlotData::new(
-                cranelift_codegen::ir::StackSlotKind::ExplicitSlot, 16, 16,
+                cranelift_codegen::ir::StackSlotKind::ExplicitSlot,
+                16,
+                16,
             ));
             builder.ins().stack_store(result, slot, Offset32::new(0));
             builder.ins().stack_addr(ptr_ty, slot, Offset32::new(0))
         }
         ("simd", "f64x2_sub") => {
             expect_arity(2)?;
-            let a = builder.ins().load(ir::types::F64X2, MemFlags::trusted(), lowered_args[0], Offset32::new(0));
-            let b = builder.ins().load(ir::types::F64X2, MemFlags::trusted(), lowered_args[1], Offset32::new(0));
+            let a = builder.ins().load(
+                ir::types::F64X2,
+                MemFlags::trusted(),
+                lowered_args[0],
+                Offset32::new(0),
+            );
+            let b = builder.ins().load(
+                ir::types::F64X2,
+                MemFlags::trusted(),
+                lowered_args[1],
+                Offset32::new(0),
+            );
             let result = builder.ins().fsub(a, b);
             let slot = builder.create_sized_stack_slot(cranelift_codegen::ir::StackSlotData::new(
-                cranelift_codegen::ir::StackSlotKind::ExplicitSlot, 16, 16,
+                cranelift_codegen::ir::StackSlotKind::ExplicitSlot,
+                16,
+                16,
             ));
             builder.ins().stack_store(result, slot, Offset32::new(0));
             builder.ins().stack_addr(ptr_ty, slot, Offset32::new(0))
         }
         ("simd", "f64x2_mul") => {
             expect_arity(2)?;
-            let a = builder.ins().load(ir::types::F64X2, MemFlags::trusted(), lowered_args[0], Offset32::new(0));
-            let b = builder.ins().load(ir::types::F64X2, MemFlags::trusted(), lowered_args[1], Offset32::new(0));
+            let a = builder.ins().load(
+                ir::types::F64X2,
+                MemFlags::trusted(),
+                lowered_args[0],
+                Offset32::new(0),
+            );
+            let b = builder.ins().load(
+                ir::types::F64X2,
+                MemFlags::trusted(),
+                lowered_args[1],
+                Offset32::new(0),
+            );
             let result = builder.ins().fmul(a, b);
             let slot = builder.create_sized_stack_slot(cranelift_codegen::ir::StackSlotData::new(
-                cranelift_codegen::ir::StackSlotKind::ExplicitSlot, 16, 16,
+                cranelift_codegen::ir::StackSlotKind::ExplicitSlot,
+                16,
+                16,
             ));
             builder.ins().stack_store(result, slot, Offset32::new(0));
             builder.ins().stack_addr(ptr_ty, slot, Offset32::new(0))
         }
         ("simd", "f64x2_gt") => {
             expect_arity(2)?;
-            let a = builder.ins().load(ir::types::F64X2, MemFlags::trusted(), lowered_args[0], Offset32::new(0));
-            let b = builder.ins().load(ir::types::F64X2, MemFlags::trusted(), lowered_args[1], Offset32::new(0));
-            let cmp = builder.ins().fcmp(ir::condcodes::FloatCC::GreaterThan, a, b);
+            let a = builder.ins().load(
+                ir::types::F64X2,
+                MemFlags::trusted(),
+                lowered_args[0],
+                Offset32::new(0),
+            );
+            let b = builder.ins().load(
+                ir::types::F64X2,
+                MemFlags::trusted(),
+                lowered_args[1],
+                Offset32::new(0),
+            );
+            let cmp = builder
+                .ins()
+                .fcmp(ir::condcodes::FloatCC::GreaterThan, a, b);
             let lane0 = builder.ins().extractlane(cmp, 0);
             let lane1 = builder.ins().extractlane(cmp, 1);
             let l0_i64 = builder.ins().sextend(ir::types::I64, lane0);
@@ -4810,7 +4982,12 @@ fn emit_stdlib_namespace_call(
         }
         ("simd", "f64x2_extract") => {
             expect_arity(2)?;
-            let vec = builder.ins().load(ir::types::F64X2, MemFlags::trusted(), lowered_args[0], Offset32::new(0));
+            let vec = builder.ins().load(
+                ir::types::F64X2,
+                MemFlags::trusted(),
+                lowered_args[0],
+                Offset32::new(0),
+            );
             let lane_idx = lowered_args[1];
             let zero = builder.ins().iconst(ir::types::I64, 0);
             let is_zero = builder.ins().icmp(IntCC::Equal, lane_idx, zero);
@@ -4865,15 +5042,30 @@ fn emit_stdlib_namespace_call(
         }
         ("text", "to_lower") => {
             expect_arity(1)?;
-            call_one_arg(runtime_fns.text_to_lower_fn, lowered_args[0], module, builder)
+            call_one_arg(
+                runtime_fns.text_to_lower_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
         }
         ("text", "to_upper") => {
             expect_arity(1)?;
-            call_one_arg(runtime_fns.text_to_upper_fn, lowered_args[0], module, builder)
+            call_one_arg(
+                runtime_fns.text_to_upper_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
         }
         ("text", "byte_len") => {
             expect_arity(1)?;
-            call_one_arg(runtime_fns.text_byte_len_fn, lowered_args[0], module, builder)
+            call_one_arg(
+                runtime_fns.text_byte_len_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
         }
         ("text", "split_part") => {
             expect_arity(3)?;
@@ -4888,11 +5080,21 @@ fn emit_stdlib_namespace_call(
         }
         ("encoding", "hex_encode") => {
             expect_arity(1)?;
-            call_one_arg(runtime_fns.encoding_hex_encode_fn, lowered_args[0], module, builder)
+            call_one_arg(
+                runtime_fns.encoding_hex_encode_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
         }
         ("encoding", "hex_decode") => {
             expect_arity(1)?;
-            call_one_arg(runtime_fns.encoding_hex_decode_fn, lowered_args[0], module, builder)
+            call_one_arg(
+                runtime_fns.encoding_hex_decode_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
         }
         ("encoding", "base64_encode") => {
             expect_arity(1)?;
@@ -4914,11 +5116,21 @@ fn emit_stdlib_namespace_call(
         }
         ("encoding", "url_encode") => {
             expect_arity(1)?;
-            call_one_arg(runtime_fns.encoding_url_encode_fn, lowered_args[0], module, builder)
+            call_one_arg(
+                runtime_fns.encoding_url_encode_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
         }
         ("encoding", "url_decode") => {
             expect_arity(1)?;
-            call_one_arg(runtime_fns.encoding_url_decode_fn, lowered_args[0], module, builder)
+            call_one_arg(
+                runtime_fns.encoding_url_decode_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
         }
         ("log", "info") => {
             expect_arity(1)?;
@@ -4945,7 +5157,12 @@ fn emit_stdlib_namespace_call(
         }
         ("env", "get_required") => {
             expect_arity(1)?;
-            call_one_arg(runtime_fns.env_get_required_fn, lowered_args[0], module, builder)
+            call_one_arg(
+                runtime_fns.env_get_required_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
         }
         ("cli", "args_len") => {
             expect_arity(0)?;
@@ -4970,7 +5187,12 @@ fn emit_stdlib_namespace_call(
         }
         ("json", "stringify") => {
             expect_arity(1)?;
-            call_one_arg(runtime_fns.json_stringify_fn, lowered_args[0], module, builder)
+            call_one_arg(
+                runtime_fns.json_stringify_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
         }
         ("json", "parse_i64") => {
             expect_arity(1)?;
@@ -5091,12 +5313,22 @@ fn emit_stdlib_namespace_call(
         #[cfg(feature = "bench-runtime")]
         ("bench", "md5_hex") => {
             expect_arity(1)?;
-            call_one_arg(runtime_fns.bench_md5_hex_fn, lowered_args[0], module, builder)
+            call_one_arg(
+                runtime_fns.bench_md5_hex_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
         }
         #[cfg(feature = "bench-runtime")]
         ("bench", "md5_bytes_hex") => {
             expect_arity(1)?;
-            call_one_arg(runtime_fns.bench_md5_bytes_hex_fn, lowered_args[0], module, builder)
+            call_one_arg(
+                runtime_fns.bench_md5_bytes_hex_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
         }
         #[cfg(feature = "bench-runtime")]
         ("bench", "json_canonical") => {
@@ -5132,12 +5364,22 @@ fn emit_stdlib_namespace_call(
         #[cfg(feature = "bench-runtime")]
         ("bench", "secp256k1") => {
             expect_arity(1)?;
-            call_one_arg(runtime_fns.bench_secp256k1_fn, lowered_args[0], module, builder)
+            call_one_arg(
+                runtime_fns.bench_secp256k1_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
         }
         #[cfg(feature = "bench-runtime")]
         ("bench", "edigits") => {
             expect_arity(1)?;
-            call_one_arg(runtime_fns.bench_edigits_fn, lowered_args[0], module, builder)
+            call_one_arg(
+                runtime_fns.bench_edigits_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
         }
         #[cfg(feature = "bench-runtime")]
         ("bench", "net_listen") => {
@@ -5163,7 +5405,12 @@ fn emit_stdlib_namespace_call(
         #[cfg(feature = "bench-runtime")]
         ("bench", "net_accept") => {
             expect_arity(1)?;
-            call_one_arg(runtime_fns.bench_net_accept_fn, lowered_args[0], module, builder)
+            call_one_arg(
+                runtime_fns.bench_net_accept_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
         }
         #[cfg(feature = "bench-runtime")]
         ("bench", "net_connect") => {
@@ -5201,7 +5448,12 @@ fn emit_stdlib_namespace_call(
         #[cfg(feature = "bench-runtime")]
         ("bench", "net_close") => {
             expect_arity(1)?;
-            call_one_arg(runtime_fns.bench_net_close_fn, lowered_args[0], module, builder)
+            call_one_arg(
+                runtime_fns.bench_net_close_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
         }
         _ => return Ok(None),
     };
@@ -5451,8 +5703,14 @@ fn infer_mir_expr_type(
             }
         }
         MirExpr::Binary { op, .. }
-            if op == "Lt" || op == "Le" || op == "Gt" || op == "Ge"
-                || op == "Eq" || op == "Ne" || op == "And" || op == "Or" =>
+            if op == "Lt"
+                || op == "Le"
+                || op == "Gt"
+                || op == "Ge"
+                || op == "Eq"
+                || op == "Ne"
+                || op == "And"
+                || op == "Or" =>
         {
             MirType::I64
         }
@@ -5466,8 +5724,7 @@ fn infer_mir_expr_type(
                 }
                 if name == "min" || name == "max" {
                     if args.iter().any(|a| {
-                        infer_mir_expr_type(a, owner, function_returns, locals_ty)
-                            == MirType::F64
+                        infer_mir_expr_type(a, owner, function_returns, locals_ty) == MirType::F64
                     }) {
                         return MirType::F64;
                     }
@@ -5476,7 +5733,12 @@ fn infer_mir_expr_type(
             }
             if let MirExpr::Member { object, field, .. } = &**callee {
                 if let MirExpr::Var(ns) = &**object {
-                    if ns == "convert" && (field == "to_float" || field == "parse_f64" || field == "i64_to_f64" || field == "f64_from_bits") {
+                    if ns == "convert"
+                        && (field == "to_float"
+                            || field == "parse_f64"
+                            || field == "i64_to_f64"
+                            || field == "f64_from_bits")
+                    {
                         return MirType::F64;
                     }
                     if ns == "math" && field == "sqrt" {
@@ -5485,7 +5747,9 @@ fn infer_mir_expr_type(
                     if ns == "simd" && field == "f64x2_extract" {
                         return MirType::F64;
                     }
-                    if ns == "convert" && (field == "to_str" || field == "to_str_f64" || field == "format_f64") {
+                    if ns == "convert"
+                        && (field == "to_str" || field == "to_str_f64" || field == "format_f64")
+                    {
                         return MirType::Str;
                     }
                 }
@@ -5567,7 +5831,8 @@ fn value_type_for_expr(
                 ptr_ty
             } else {
                 let left_ty = value_type_for_expr(left, owner, function_returns, ptr_ty, locals_ty);
-                let right_ty = value_type_for_expr(right, owner, function_returns, ptr_ty, locals_ty);
+                let right_ty =
+                    value_type_for_expr(right, owner, function_returns, ptr_ty, locals_ty);
                 if left_ty == ir::types::F64 || right_ty == ir::types::F64 {
                     ir::types::F64
                 } else {
@@ -5614,7 +5879,8 @@ fn value_type_for_expr(
         }
         MirExpr::Call { callee, args } if matches!(&**callee, MirExpr::Var(name) if name == "min" || name == "max") => {
             if args.iter().any(|arg| {
-                value_type_for_expr(arg, owner, function_returns, ptr_ty, locals_ty) == ir::types::F64
+                value_type_for_expr(arg, owner, function_returns, ptr_ty, locals_ty)
+                    == ir::types::F64
             }) {
                 ir::types::F64
             } else {
