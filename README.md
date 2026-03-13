@@ -5,7 +5,7 @@
   <img src="assets/branding/vibelang-text-logo.svg" alt="VibeLang" height="104" style="vertical-align: middle;" />
 </p>
 
-<h2 align="center">Code with Intent.</h2>
+<h2 align="center">Code with Intent. Ship with Confidence!</h2>
 
 <p align="center">
   Native AOT compilation · First-class contracts · Structured concurrency · AI-era guardrails
