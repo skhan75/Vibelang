@@ -165,9 +165,15 @@ describes an implementation.
 
 ### How the AI Sidecar Uses Intents
 
-The `vibe lint --intent` command invokes the AI sidecar to compare each
-function's `@intent` string against its actual implementation. The sidecar
-reports when it detects semantic drift:
+The `vibe lint --intent` command runs two layers of analysis:
+
+1. **Local heuristic checks** (always run, no API key needed) — detect missing
+   `@intent` on public functions (I5001), vague intent text (I5002), effect
+   mismatches (I5003), and missing `@examples` (I5004).
+
+2. **AI-powered semantic analysis** (requires an Anthropic API key) — uses
+   Claude to compare each function's `@intent` against its implementation and
+   flag semantic drift (W0801).
 
 ```bash
 $ vibe lint --intent --changed
@@ -188,6 +194,25 @@ warning[W0801]: possible intent drift in `top_k`
 This is not a compiler error — it is a lint warning powered by semantic analysis.
 The sidecar cannot prove correctness, but it can flag suspicious mismatches that
 a human reviewer should investigate.
+
+#### BYOK (Bring Your Own Key)
+
+VibeLang does not operate a centralized API proxy. You provide your own
+Anthropic API key and all LLM traffic goes directly from your machine to the
+Anthropic API. Set the key via environment variable:
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
+```
+
+Or in your global config at `~/.config/vibe/sidecar.toml`:
+
+```toml
+api_key = "sk-ant-..."
+```
+
+Without a key, `vibe lint --intent` still runs all local heuristic checks — AI
+analysis is silently skipped with no error or degraded exit code.
 
 ### Multiple Intents
 

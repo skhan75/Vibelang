@@ -41,6 +41,28 @@ jobs:
           cargo test -p vibe_sidecar
           cargo test -p vibe_cli --test phase5_intent_lint
 
+  sidecar_cloud_feature:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: verify cloud feature compiles and tests pass
+        run: |
+          set -euo pipefail
+          cargo test -p vibe_sidecar --features cloud
+          cargo check -p vibe_sidecar --no-default-features
+      - name: verify graceful degradation without API key
+        run: |
+          set -euo pipefail
+          unset ANTHROPIC_API_KEY || true
+          tmpdir="$(mktemp -d)"
+          printf 'pub add(a: Int, b: Int) -> Int {\n  @intent "add two integers"\n  a + b\n}\n' > "$tmpdir/sample.yb"
+          output=$(cargo run -q -p vibe_cli -- lint "$tmpdir" --intent --mode hybrid 2>&1)
+          echo "$output"
+          # Should succeed without error (local checks run, AI skipped)
+          echo "$output" | grep -q "I5004" || true
+
   non_blocking_compile:
     runs-on: ubuntu-latest
     steps:

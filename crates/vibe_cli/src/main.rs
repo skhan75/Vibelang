@@ -1430,7 +1430,13 @@ fn run_lint(args: &LintArgs) -> Result<ExitCode, String> {
     }
 
     let telemetry_out = args.telemetry_out.clone();
-    let mut sidecar = SidecarService::new(&index_root, policy, telemetry_out.is_some())?;
+    let project_root = args.target_path.canonicalize().ok();
+    let mut sidecar = SidecarService::with_config(
+        &index_root,
+        policy,
+        telemetry_out.is_some(),
+        project_root.as_deref(),
+    )?;
     let request = IntentLintRequest {
         query: None,
         changed_only: args.changed,

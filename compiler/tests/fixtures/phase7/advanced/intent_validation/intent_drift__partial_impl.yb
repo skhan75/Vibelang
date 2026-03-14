@@ -1,0 +1,6 @@
+pub parse_and_validate(input: String) -> Result<Config, Error> {
+  @intent "parse the input string as TOML, validate all required fields, and return a typed Config"
+  @effect io
+  let parsed = toml_parse(input)?
+  Ok(Config::from_map(parsed))
+}

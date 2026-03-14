@@ -77,6 +77,13 @@ vibe fmt . --check        # check formatting
 vibe lint . --intent      # AI-powered drift detection (optional)
 ```
 
+**Enable AI-powered intent analysis** (optional — local heuristic checks work without a key):
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."   # your own Anthropic key (BYOK)
+vibe lint . --intent --mode hybrid      # local checks + AI drift detection
+```
+
 Platform guides: [Linux](docs/install/linux.md) · [macOS](docs/install/macos.md) · [Windows](docs/install/windows.md)
 
 ## Supported Platforms
@@ -152,7 +159,7 @@ One binary, nine commands:
 | `vibe test` | Run tests including `@examples` |
 | `vibe fmt` | Format source code |
 | `vibe doc` | Generate API documentation |
-| `vibe lint` | Intent drift detection (optional AI sidecar) |
+| `vibe lint` | Intent drift detection (local heuristics + optional AI via Claude) |
 | `vibe pkg` | Dependency management |
 | `vibe lsp` | Language server for editors |
 

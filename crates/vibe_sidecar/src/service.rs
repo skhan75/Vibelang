@@ -5,6 +5,7 @@ use std::collections::BTreeSet;
 use std::path::Path;
 use std::time::Instant;
 
+use crate::config::SidecarConfig;
 use crate::index_access::ReadOnlyIndex;
 use crate::models::{
     CandidateSuggestion, EvidenceRef, FindingSeverity, IntentFinding, IntentLintRequest,
@@ -19,6 +20,10 @@ pub struct SidecarService {
     policy: BudgetPolicy,
     budget_state: BudgetState,
     telemetry: TelemetrySink,
+    #[allow(dead_code)]
+    config: SidecarConfig,
+    #[allow(dead_code)]
+    ai_skipped_message_shown: bool,
 }
 
 impl SidecarService {
@@ -27,11 +32,23 @@ impl SidecarService {
         policy: BudgetPolicy,
         telemetry_enabled: bool,
     ) -> Result<Self, String> {
+        Self::with_config(index_root, policy, telemetry_enabled, None)
+    }
+
+    pub fn with_config(
+        index_root: &Path,
+        policy: BudgetPolicy,
+        telemetry_enabled: bool,
+        project_root: Option<&Path>,
+    ) -> Result<Self, String> {
+        let config = SidecarConfig::resolve(project_root);
         Ok(Self {
             index: ReadOnlyIndex::open(index_root)?,
             policy,
             budget_state: BudgetState::default(),
             telemetry: TelemetrySink::new(telemetry_enabled),
+            config,
+            ai_skipped_message_shown: false,
         })
     }
 
@@ -80,7 +97,12 @@ impl SidecarService {
             .map(|f| f.as_str())
             .collect::<BTreeSet<_>>();
 
-        for meta in self.index.all_functions() {
+        // --- Phase 1: Local heuristic checks (always run) ---
+        let all_functions = self.index.all_functions();
+        let mut functions_with_intent = Vec::new();
+        let mut functions_missing_intent = Vec::new();
+
+        for meta in &all_functions {
             if request.changed_only && !changed_file_set.contains(meta.file.as_str()) {
                 continue;
             }
@@ -101,22 +123,7 @@ impl SidecarService {
                     }],
                     incomplete: false,
                 });
-                if request.include_suggestions {
-                    suggestions.push(CandidateSuggestion {
-                        id: format!("intent:{}:{}", meta.file, meta.function_name),
-                        title: format!("Add @intent for `{}`", meta.function_name),
-                        summary:
-                            "Add a single-sentence behavior intent before executable statements."
-                                .to_string(),
-                        confidence: 0.78,
-                        evidence: vec![EvidenceRef {
-                            file: meta.file.clone(),
-                            symbol: Some(meta.function_name.clone()),
-                            detail: "missing intent on public function".to_string(),
-                        }],
-                        verified: false,
-                    });
-                }
+                functions_missing_intent.push(meta.clone());
             }
 
             if let Some(intent) = &meta.intent_text {
@@ -137,6 +144,7 @@ impl SidecarService {
                         incomplete: false,
                     });
                 }
+                functions_with_intent.push(meta.clone());
             }
         }
 
@@ -182,6 +190,57 @@ impl SidecarService {
             });
         }
 
+        // --- Phase 2: AI-powered analysis (when available) ---
+        #[cfg(feature = "cloud")]
+        {
+            let use_ai = matches!(self.policy.mode, SidecarMode::Hybrid | SidecarMode::Cloud)
+                && self.config.has_api_key();
+
+            if use_ai {
+                let ai_findings = self.run_ai_analysis(
+                    &functions_with_intent,
+                    &functions_missing_intent,
+                    request.include_suggestions,
+                );
+                findings.extend(ai_findings.0);
+                suggestions.extend(ai_findings.1);
+            } else if !self.ai_skipped_message_shown
+                && matches!(self.policy.mode, SidecarMode::Hybrid | SidecarMode::Cloud)
+            {
+                self.ai_skipped_message_shown = true;
+                eprintln!(
+                    "info: AI analysis skipped: set ANTHROPIC_API_KEY for full intent analysis. \
+                     See https://thevibelang.org/documentation/ch15_toolchain"
+                );
+            }
+        }
+
+        // --- Phase 1 heuristic suggestions (fallback when no AI) ---
+        #[cfg(feature = "cloud")]
+        let ai_available = matches!(self.policy.mode, SidecarMode::Hybrid | SidecarMode::Cloud)
+            && self.config.has_api_key();
+        #[cfg(not(feature = "cloud"))]
+        let ai_available = false;
+
+        if !ai_available && request.include_suggestions {
+            for meta in &functions_missing_intent {
+                suggestions.push(CandidateSuggestion {
+                    id: format!("intent:{}:{}", meta.file, meta.function_name),
+                    title: format!("Add @intent for `{}`", meta.function_name),
+                    summary:
+                        "Add a single-sentence behavior intent before executable statements."
+                            .to_string(),
+                    confidence: 0.78,
+                    evidence: vec![EvidenceRef {
+                        file: meta.file.clone(),
+                        symbol: Some(meta.function_name.clone()),
+                        detail: "missing intent on public function".to_string(),
+                    }],
+                    verified: false,
+                });
+            }
+        }
+
         let elapsed_ms = start.elapsed().as_millis() as u64;
         if !self.policy.within_latency_budget(elapsed_ms, false) {
             incomplete = true;
@@ -205,6 +264,64 @@ impl SidecarService {
             incomplete,
             elapsed_ms,
         }
+    }
+
+    #[cfg(feature = "cloud")]
+    fn run_ai_analysis(
+        &self,
+        functions_with_intent: &[vibe_indexer::FunctionMeta],
+        functions_missing_intent: &[vibe_indexer::FunctionMeta],
+        include_suggestions: bool,
+    ) -> (Vec<IntentFinding>, Vec<CandidateSuggestion>) {
+        use crate::ai_analyzer::AiAnalyzer;
+
+        let analyzer = match AiAnalyzer::new(&self.config, self.index.index_root()) {
+            Some(a) => a,
+            None => return (Vec::new(), Vec::new()),
+        };
+
+        let rt = match tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+        {
+            Ok(rt) => rt,
+            Err(_) => return (Vec::new(), Vec::new()),
+        };
+
+        let mut findings = Vec::new();
+        let mut suggestions = Vec::new();
+
+        rt.block_on(async {
+            // Drift detection for functions with @intent
+            for meta in functions_with_intent {
+                if let Some(source) = self.index.read_source_file(&meta.file) {
+                    let drift_findings = analyzer.analyze_intent_drift(meta, &source).await;
+                    findings.extend(drift_findings);
+
+                    if include_suggestions {
+                        let contract_sugs = analyzer.suggest_contracts(meta, &source).await;
+                        suggestions.extend(contract_sugs);
+
+                        if !meta.has_examples {
+                            let example_sugs = analyzer.suggest_examples(meta, &source).await;
+                            suggestions.extend(example_sugs);
+                        }
+                    }
+                }
+            }
+
+            // Intent suggestions for functions missing @intent
+            if include_suggestions {
+                for meta in functions_missing_intent {
+                    if let Some(source) = self.index.read_source_file(&meta.file) {
+                        let intent_sugs = analyzer.suggest_intent(meta, &source).await;
+                        suggestions.extend(intent_sugs);
+                    }
+                }
+            }
+        });
+
+        (findings, suggestions)
     }
 }
 

@@ -1,0 +1,8 @@
+pub sort_ascending(items: List<Int>) -> List<Int> {
+  @intent "sort a list of integers in ascending order"
+  @examples {
+    sort_ascending([3, 1, 2]) => [1, 2, 3]
+  }
+  @ensure . != items || items.len() <= 1
+  items.sort().reverse()
+}

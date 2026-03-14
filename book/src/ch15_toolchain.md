@@ -232,11 +232,11 @@ Catches patterns that are technically valid but likely incorrect:
 
 ### `vibe lint --intent` — AI-Powered Intent Verification
 
-Activates the AI sidecar to compare `@intent` annotations against
-implementations:
+Runs local heuristic checks and, when an API key is available, AI-powered
+semantic drift detection using Anthropic Claude:
 
 ```
-warning[W0501]: intent mismatch
+warning[W0801]: possible intent drift in `abs`
  --> src/math.yb:8:1
   |
 1 | @intent "Returns the absolute value of a number"
@@ -247,16 +247,60 @@ warning[W0501]: intent mismatch
   = help: did you mean `if n < 0 { -n } else { n }`?
 ```
 
-The sidecar is optional and configured in `vibe.toml`:
+#### API Key Setup (BYOK)
+
+VibeLang uses a Bring Your Own Key model — there is no centralized proxy.
+All LLM traffic goes directly from your machine to the Anthropic API.
+
+Key resolution (highest precedence first):
+
+1. `ANTHROPIC_API_KEY` environment variable
+2. `~/.config/vibe/sidecar.toml` (global per-machine config)
+3. `vibe.toml` `[sidecar]` section (per-project)
+
+```bash
+# Recommended: set via environment variable
+export ANTHROPIC_API_KEY="sk-ant-..."
+```
+
+Without a key, all local checks (I5001–I5004) still run. AI features are
+silently skipped.
+
+#### Project Configuration
+
+Configure the sidecar in your project's `vibe.toml`:
 
 ```toml
 [sidecar]
 enabled = true
-endpoint = "http://localhost:11434"
-model = "codellama"
+mode = "hybrid"                    # local | hybrid | cloud
+model = "claude-sonnet-4-20250514"   # any Claude model
+endpoint = "https://api.anthropic.com"
+max_requests_per_day = 100
+max_monthly_budget_usd = 5.0
+cache_ttl_hours = 24
+redact_strings = true              # strip string literals before sending
 ```
 
-Use `--changed` to limit analysis to files modified since the last commit.
+Do **not** put your API key in `vibe.toml` — use the environment variable or
+`~/.config/vibe/sidecar.toml` to avoid committing secrets.
+
+#### Modes
+
+| Mode | Behavior |
+|---|---|
+| `local` | Heuristic checks only (I5001–I5004). No network calls. |
+| `hybrid` | Local checks first, then AI analysis if API key is available. |
+| `cloud` | AI analysis for all functions with `@intent`. Requires API key. |
+
+#### Flags
+
+| Flag | Effect |
+|---|---|
+| `--changed` | Limit analysis to files modified since last commit |
+| `--suggest` | Include AI-generated contract and example suggestions |
+| `--mode <mode>` | Override the mode from `vibe.toml` |
+| `--telemetry-out <path>` | Write telemetry JSON to the given path |
 
 ---
 

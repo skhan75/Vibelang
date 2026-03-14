@@ -216,8 +216,9 @@ The stages are ordered by speed and specificity:
 4. **`vibe lint`** — Medium. Catches code quality issues. Less critical than
    type errors but important for maintainability.
 
-5. **`vibe lint --intent`** — Slower (requires AI sidecar). Catches intent
-   drift. Run on changed files only for speed.
+5. **`vibe lint --intent`** — Slower when AI is enabled (requires
+   `ANTHROPIC_API_KEY`). Catches intent drift via Claude. Local heuristic
+   checks run without a key. Use `--changed` and `--mode hybrid` in CI.
 
 6. **`vibe build --release`** — Slowest. Produces the release artifact. Only
    runs after all checks pass.

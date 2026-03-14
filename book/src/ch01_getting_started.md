@@ -481,14 +481,20 @@ vibe fmt --check .
 vibe lint --intent main.yb
 ```
 
-This is VibeLang's most distinctive tool. It analyzes your code against its
-`@intent` annotations and flags functions where the implementation appears to
-diverge from the stated intent:
+This is VibeLang's most distinctive tool. It runs two layers of analysis:
+
+1. **Local heuristic checks** (always run, no setup needed) — detect missing
+   `@intent` on public functions (I5001), vague intent text (I5002), effect
+   mismatches (I5003), and missing `@examples` (I5004).
+
+2. **AI-powered semantic drift detection** (requires an Anthropic API key) —
+   uses Claude to compare each function's `@intent` against its implementation
+   and flag semantic drift (W0801).
 
 ```
 Linting main.yb (intent analysis)...
 
-warning[W0501]: intent mismatch
+warning[W0801]: possible intent drift in `abs`
  --> math.yb:8:1
   |
 1 | @intent "Returns the absolute value of a number"
@@ -505,6 +511,58 @@ Found 1 warning.
 This is particularly valuable when reviewing AI-generated code. The intent
 serves as a specification, and `vibe lint --intent` checks whether the
 implementation matches.
+
+#### Setting Up the AI Sidecar (Optional)
+
+VibeLang uses a **Bring Your Own Key (BYOK)** model. There is no centralized
+VibeLang API proxy — all LLM traffic goes directly from your machine to the
+Anthropic API. You control your own account, billing, and privacy.
+
+**Option 1: Environment variable (recommended)**
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-api03-..."
+```
+
+Add this to your `~/.bashrc`, `~/.zshrc`, or CI secrets for persistence.
+
+**Option 2: Global config file**
+
+Create `~/.config/vibe/sidecar.toml`:
+
+```toml
+api_key = "sk-ant-api03-..."
+model = "claude-sonnet-4-20250514"
+endpoint = "https://api.anthropic.com"
+```
+
+This is set once per machine and never committed to version control.
+
+**Option 3: Project config (for non-secret settings only)**
+
+Add a `[sidecar]` section to your project's `vibe.toml`:
+
+```toml
+[sidecar]
+enabled = true
+mode = "hybrid"
+model = "claude-sonnet-4-20250514"
+redact_strings = true
+```
+
+Do **not** put your API key in `vibe.toml` — the CLI will warn you if it
+detects one there.
+
+**No key? No problem.** Without an API key, `vibe lint --intent` still runs all
+local heuristic checks. AI features are silently skipped — no error, no degraded
+exit code. Local checks are the baseline; AI is the upgrade.
+
+**Running with AI enabled:**
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-api03-..."
+vibe lint . --intent --mode hybrid
+```
 
 ## 1.5 Your Development Workflow
 

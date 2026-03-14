@@ -1,0 +1,10 @@
+pub max_value(a: Int, b: Int) -> Int {
+  @intent "return the larger of two integers"
+  @examples {
+    max_value(3, 5) => 5
+    max_value(7, 2) => 7
+    max_value(4, 4) => 4
+  }
+  @ensure . >= a && . >= b
+  if a >= b { a } else { b }
+}
