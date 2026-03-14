@@ -242,12 +242,23 @@ impl SidecarService {
         }
 
         let elapsed_ms = start.elapsed().as_millis() as u64;
-        if !self.policy.within_latency_budget(elapsed_ms, false) {
+        let used_cloud = {
+            #[cfg(feature = "cloud")]
+            {
+                matches!(self.policy.mode, SidecarMode::Hybrid | SidecarMode::Cloud)
+                    && self.config.has_api_key()
+            }
+            #[cfg(not(feature = "cloud"))]
+            {
+                false
+            }
+        };
+        if !self.policy.within_latency_budget(elapsed_ms, used_cloud) {
             incomplete = true;
             findings.push(IntentFinding {
                 code: "I9002".to_string(),
                 severity: FindingSeverity::Warning,
-                message: "intent lint exceeded local latency budget; results may be partial"
+                message: "intent lint exceeded latency budget; results may be partial"
                     .to_string(),
                 confidence: 1.0,
                 evidence: Vec::new(),

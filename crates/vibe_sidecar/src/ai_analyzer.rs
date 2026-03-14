@@ -77,7 +77,7 @@ impl AiAnalyzer {
             api_key.clone(),
             config.model.clone(),
             config.endpoint.clone(),
-            1_500, // cloud latency budget
+            30_000, // per-request timeout (30s for Claude API calls)
         );
         let cache = ResponseCache::new(index_root, config.cache_ttl_hours);
 

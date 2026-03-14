@@ -18,10 +18,10 @@ impl Default for BudgetPolicy {
         Self {
             mode: SidecarMode::LocalOnly,
             max_local_latency_ms: 250,
-            max_cloud_latency_ms: 1_500,
+            max_cloud_latency_ms: 120_000,
             max_requests_per_day: 1_000,
             max_tokens_per_request: 8_192,
-            max_monthly_budget_usd: 0.0,
+            max_monthly_budget_usd: 50.0,
         }
     }
 }
