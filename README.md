@@ -13,7 +13,7 @@
 
 <p align="center">
   <a href="https://github.com/skhan75/VibeLang/actions"><img src="https://img.shields.io/github/actions/workflow/status/skhan75/VibeLang/phase1-frontend.yml?branch=main&style=for-the-badge&label=CI" alt="CI" /></a>
-  <a href="https://github.com/skhan75/VibeLang/releases/tag/v1.0.2"><img src="https://img.shields.io/badge/release-v1.0.2-22c55e?style=for-the-badge" alt="release" /></a>
+  <a href="https://github.com/skhan75/VibeLang/releases/tag/v1.1.0"><img src="https://img.shields.io/badge/release-v1.1.0-22c55e?style=for-the-badge" alt="release" /></a>
   <a href="https://github.com/skhan75/VibeLang/issues"><img src="https://img.shields.io/github/issues/skhan75/VibeLang?style=for-the-badge&color=ec4899" alt="issues" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache_2.0-2563eb?style=for-the-badge" alt="license" /></a>
 </p>
@@ -53,7 +53,8 @@ pub transfer(from: Account, to: Account, amount: Int) -> Result<Receipt, BankErr
 **Download a binary** — no Cargo required:
 
 ```bash
-# From GitHub Releases
+# From GitHub Releases (v1.1.0)
+curl -LO https://github.com/skhan75/Vibelang/releases/download/v1.1.0/vibe-x86_64-unknown-linux-gnu.tar.gz
 tar xzf vibe-x86_64-unknown-linux-gnu.tar.gz
 sudo mv vibe /usr/local/bin/
 vibe --version
@@ -65,6 +66,12 @@ vibe --version
 git clone https://github.com/skhan75/VibeLang.git && cd VibeLang
 cargo build --release -p vibe_cli
 export PATH="$PWD/target/release:$PATH"
+```
+
+For a minimal binary without AI sidecar dependencies:
+
+```bash
+cargo build --release -p vibe_cli --no-default-features
 ```
 
 **Create and run a project:**
@@ -130,6 +137,36 @@ VibeLang compiles **1.5x faster than Rust** and produces a **328 KB** binary for
 | `@ensure expr` | Postcondition — `.` is the return value, `old()` snapshots pre-state |
 | `@examples { f(x) => y }` | Executable test cases via `vibe test` |
 | `@effect tag` | Side effects (`io`, `alloc`, `mut_state`, `concurrency`, `nondet`) — tracked transitively |
+
+## AI Sidecar (BYOK)
+
+VibeLang ships with an AI-powered intent drift detector backed by **Anthropic Claude**. It uses a **Bring Your Own Key** model — there is no centralized proxy. All LLM traffic goes directly from your machine to the Anthropic API.
+
+```bash
+$ vibe lint . --intent --mode hybrid
+
+W0801: warning: possible intent drift in `sort_ascending` (confidence=0.95)
+  Function sorts in descending order instead of ascending order
+  due to the unnecessary reverse() call after sort()
+```
+
+| Mode | Behavior |
+|---|---|
+| `local` | Heuristic checks only (I5001–I5004). No network calls. Default. |
+| `hybrid` | Local checks first, then AI drift detection if API key is available. |
+| `cloud` | AI analysis for all functions with `@intent`. Requires API key. |
+
+**Setup** — choose one:
+
+```bash
+# Option 1: Environment variable (recommended)
+export ANTHROPIC_API_KEY="sk-ant-..."
+
+# Option 2: Global config (~/.config/vibe/sidecar.toml)
+echo 'api_key = "sk-ant-..."' > ~/.config/vibe/sidecar.toml
+```
+
+Without a key, all local checks still run — no error, no degraded exit code. See the [Toolchain docs](https://www.thevibelang.org/documentation/ch15_toolchain) for full configuration.
 
 ## Concurrency
 
