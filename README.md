@@ -14,6 +14,7 @@
 <p align="center">
   <a href="https://github.com/skhan75/VibeLang/actions"><img src="https://img.shields.io/github/actions/workflow/status/skhan75/VibeLang/phase1-frontend.yml?branch=main&style=for-the-badge&label=CI" alt="CI" /></a>
   <a href="https://github.com/skhan75/VibeLang/releases/tag/v1.1.0"><img src="https://img.shields.io/badge/release-v1.1.0-22c55e?style=for-the-badge" alt="release" /></a>
+  <img src="https://img.shields.io/badge/status-Beta-f59e0b?style=for-the-badge" alt="beta" />
   <a href="https://github.com/skhan75/VibeLang/issues"><img src="https://img.shields.io/github/issues/skhan75/VibeLang?style=for-the-badge&color=ec4899" alt="issues" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache_2.0-2563eb?style=for-the-badge" alt="license" /></a>
 </p>
@@ -32,6 +33,8 @@
 VibeLang is a statically typed, natively compiled language where **intent is a first-class citizen**. You declare what a function should do, what it promises, how to test it, and what side effects it has — the compiler turns all of that into executable checks and native code.
 
 As AI agents generate more production code, the gap between "compiles" and "correct" widens. VibeLang closes it with language-level guardrails that work whether code is written by humans, copilots, or autonomous agents.
+
+> **Beta** — VibeLang is in active beta. The compiler, type system, contract enforcement, and AI sidecar are functional and benchmarked. The language is evolving — syntax, stdlib, and toolchain APIs may change between releases. Recommended for experimentation, side projects, and early adoption. Feedback and contributions from experienced engineers are welcome and actively shape the language.
 
 ```vibelang
 pub transfer(from: Account, to: Account, amount: Int) -> Result<Receipt, BankError> {
