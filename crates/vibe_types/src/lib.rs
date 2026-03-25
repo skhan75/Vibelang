@@ -2420,7 +2420,7 @@ fn stdlib_namespace_return_hint(namespace: &str, field: &str) -> Option<TypeKind
         ("text", "contains") | ("text", "starts_with") | ("text", "ends_with") => {
             Some(TypeKind::Bool)
         }
-        ("text", "byte_len") => Some(TypeKind::Int),
+        ("text", "byte_len") | ("text", "index_of") => Some(TypeKind::Int),
         ("encoding", "hex_encode")
         | ("encoding", "hex_decode")
         | ("encoding", "base64_encode")
@@ -2614,9 +2614,10 @@ fn infer_stdlib_namespace_call(
         | ("encoding", "url_decode")
         | ("env", "get")
         | ("env", "get_required") => Some((&["Str"][..], "")),
-        ("text", "contains") | ("text", "starts_with") | ("text", "ends_with") => {
-            Some((&["Str", "Str"][..], ""))
-        }
+        ("text", "contains")
+        | ("text", "starts_with")
+        | ("text", "ends_with")
+        | ("text", "index_of") => Some((&["Str", "Str"][..], "")),
         ("text", "replace") => Some((&["Str", "Str", "Str"][..], "")),
         ("text", "byte_len") => Some((&["Str"][..], "")),
         ("text", "split_part") => Some((&["Str", "Str", "Int"][..], "")),

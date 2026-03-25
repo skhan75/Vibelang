@@ -1583,6 +1583,19 @@ char *vibe_text_split_part(const char *text, const char *sep, int64_t index) {
     return vibe_strdup_or_panic("");
 }
 
+int64_t vibe_text_index_of(const char *haystack, const char *needle) {
+    const char *h = haystack == NULL ? "" : haystack;
+    const char *n = needle == NULL ? "" : needle;
+    if (n[0] == '\0') {
+        return 0;
+    }
+    const char *found = strstr(h, n);
+    if (found == NULL) {
+        return -1;
+    }
+    return (int64_t)(found - h);
+}
+
 static int vibe_hex_value(char ch) {
     if (ch >= '0' && ch <= '9') {
         return (int)(ch - '0');
@@ -3954,17 +3967,17 @@ static char *vibe_http_request_body_curl(
     char *q_body = vibe_shell_single_quote(payload);
     vibe_string_builder cmd;
     vibe_builder_init(&cmd, strlen(url == NULL ? "" : url) + strlen(payload) + 128);
-    vibe_builder_append_bytes(&cmd, "curl -sS -L --max-time ", 24);
+    vibe_builder_append_bytes(&cmd, "curl -sS -L --max-time ", 23);
     vibe_builder_append_bytes(&cmd, timeout_buf, strlen(timeout_buf));
     vibe_builder_append_bytes(&cmd, " -X ", 4);
     vibe_builder_append_bytes(&cmd, q_method, strlen(q_method));
     if (payload[0] != '\0') {
-        vibe_builder_append_bytes(&cmd, " --data-binary ", 14);
+        vibe_builder_append_bytes(&cmd, " --data-binary ", 15);
         vibe_builder_append_bytes(&cmd, q_body, strlen(q_body));
     }
     vibe_builder_append_bytes(&cmd, " ", 1);
     vibe_builder_append_bytes(&cmd, q_url, strlen(q_url));
-    vibe_builder_append_bytes(&cmd, " 2>/dev/null", 11);
+    vibe_builder_append_bytes(&cmd, " 2>/dev/null", 12);
     char *out = vibe_exec_capture_stdout(cmd.data);
     free(q_method);
     free(q_url);
@@ -3992,17 +4005,17 @@ static int64_t vibe_http_request_status_curl(
     char *q_body = vibe_shell_single_quote(payload);
     vibe_string_builder cmd;
     vibe_builder_init(&cmd, strlen(url == NULL ? "" : url) + strlen(payload) + 160);
-    vibe_builder_append_bytes(&cmd, "curl -sS -L --max-time ", 24);
+    vibe_builder_append_bytes(&cmd, "curl -sS -L --max-time ", 23);
     vibe_builder_append_bytes(&cmd, timeout_buf, strlen(timeout_buf));
     vibe_builder_append_bytes(&cmd, " -o /dev/null -w '%{http_code}' -X ", 35);
     vibe_builder_append_bytes(&cmd, q_method, strlen(q_method));
     if (payload[0] != '\0') {
-        vibe_builder_append_bytes(&cmd, " --data-binary ", 14);
+        vibe_builder_append_bytes(&cmd, " --data-binary ", 15);
         vibe_builder_append_bytes(&cmd, q_body, strlen(q_body));
     }
     vibe_builder_append_bytes(&cmd, " ", 1);
     vibe_builder_append_bytes(&cmd, q_url, strlen(q_url));
-    vibe_builder_append_bytes(&cmd, " 2>/dev/null", 11);
+    vibe_builder_append_bytes(&cmd, " 2>/dev/null", 12);
     char *raw = vibe_exec_capture_stdout(cmd.data);
     char *end = NULL;
     long code = strtol(raw == NULL ? "" : raw, &end, 10);

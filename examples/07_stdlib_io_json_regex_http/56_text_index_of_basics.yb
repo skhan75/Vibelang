@@ -1,0 +1,24 @@
+pub main() -> Int {
+  @effect io
+  idx := text.index_of("hello world", "world")
+  if idx == 6 {
+    println("index-found-ok")
+  } else {
+    println("index-found-bad")
+  }
+
+  missing := text.index_of("hello world", "xyz")
+  if missing == -1 {
+    println("index-missing-ok")
+  } else {
+    println("index-missing-bad")
+  }
+
+  empty := text.index_of("hello", "")
+  if empty == 0 {
+    println("index-empty-ok")
+  } else {
+    println("index-empty-bad")
+  }
+  0
+}

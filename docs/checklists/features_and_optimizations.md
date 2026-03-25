@@ -444,6 +444,22 @@ without rewriting core functionality in another language.
   - Docs + fixtures: `stdlib/env/README.md`, `stdlib/cli/README.md`, `compiler/tests/fixtures/stdlib/env_cli/basic.yb`
   - Example: `examples/07_stdlib_io_json_regex_http/55_env_cli_surface_smoke.yb`
 
+### F-11 (P0) `text.index_of` -- substring position search
+- [x] Add `text.index_of(haystack: Str, needle: Str) -> Int` to the text module.
+- **Why**: production HTML/text parsing requires finding the byte offset of substrings, not just
+  boolean containment. This is a blocking gap for building real parsers in VibeLang.
+- **Evidence**:
+  - Runtime: `runtime/native/vibe_runtime.c` (`vibe_text_index_of`)
+  - Codegen: `crates/vibe_codegen/src/lib.rs` (`text_index_of_fn`)
+  - Typing: `crates/vibe_types/src/lib.rs` (`("text", "index_of")`)
+  - Docs: `stdlib/text/README.md`
+  - Example: `examples/07_stdlib_io_json_regex_http/56_text_index_of_basics.yb`
+  - Tests: `crates/vibe_cli/tests/phase12_stdlib.rs` (existing surface test passes)
+- **Acceptance**:
+  - Returns byte offset of first occurrence, or `-1` if not found.
+  - Empty needle returns `0`.
+  - Non-panicking for arbitrary input (NULL-safe in C runtime).
+
 ---
 
 ## D) Example Program Quality Gates (Required Before “Production-Ready Examples” Claim)

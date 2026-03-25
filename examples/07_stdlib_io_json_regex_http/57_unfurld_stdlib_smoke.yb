@@ -1,0 +1,105 @@
+type TagPair {
+  key: Str,
+  value: Str
+}
+
+send_value(ch) -> Int {
+  @effect concurrency
+  ch.send(42)
+  0
+}
+
+pub main() -> Int {
+  @effect io
+  @effect alloc
+  @effect net
+  @effect nondet
+  @effect concurrency
+
+  // text.index_of
+  idx := text.index_of("hello world", "world")
+  if idx == 6 { println("text-index-of-ok") } else { println("FAIL text.index_of") }
+
+  missing := text.index_of("abc", "xyz")
+  if missing == -1 { println("text-index-of-miss-ok") } else { println("FAIL text.index_of miss") }
+
+  // text.trim
+  trimmed := text.trim("  hi  ")
+  if trimmed == "hi" { println("text-trim-ok") } else { println("FAIL text.trim") }
+
+  // text.contains
+  if text.contains("abcdef", "cde") { println("text-contains-ok") } else { println("FAIL text.contains") }
+
+  // text.starts_with
+  if text.starts_with("https://x.com", "https://") { println("text-starts-with-ok") } else { println("FAIL text.starts_with") }
+
+  // text.ends_with
+  if text.ends_with("file.html", ".html") { println("text-ends-with-ok") } else { println("FAIL text.ends_with") }
+
+  // text.replace
+  replaced := text.replace("a-b-c", "-", "+")
+  if replaced == "a+b+c" { println("text-replace-ok") } else { println("FAIL text.replace") }
+
+  // text.to_lower
+  lower := text.to_lower("HELLO")
+  if lower == "hello" { println("text-to-lower-ok") } else { println("FAIL text.to_lower") }
+
+  // text.split_part
+  part := text.split_part("a,b,c", ",", 1)
+  if part == "b" { println("text-split-part-ok") } else { println("FAIL text.split_part") }
+
+  // str_builder (output test -- equality comparison on built strings is a known limitation)
+  sb := str_builder.new(64)
+  str_builder.append(sb, "hello")
+  str_builder.append(sb, " world")
+  result := str_builder.finish(sb)
+  println(result)
+
+  // convert
+  n := convert.to_int("42")
+  if n == 42 { println("convert-to-int-ok") } else { println("FAIL convert.to_int") }
+  s := convert.to_str(99)
+  if s == "99" { println("convert-to-str-ok") } else { println("FAIL convert.to_str") }
+
+  // json
+  js := json.stringify_i64(123)
+  if js == "123" { println("json-ok") } else { println("FAIL json.stringify_i64") }
+
+  // time
+  ms := time.now_ms()
+  if ms > 0 { println("time-ok") } else { println("FAIL time.now_ms") }
+
+  // env
+  val := env.get("NONEXISTENT_VAR_12345")
+  if val == "" { println("env-ok") } else { println("FAIL env.get") }
+
+  // log
+  log.info("smoke-info")
+  log.warn("smoke-warn")
+  println("log-ok")
+
+  // type + field access (output test -- struct field string equality is a known limitation)
+  pair := TagPair { key: "og:title", value: "Hello" }
+  println(pair.key)
+  println(pair.value)
+
+  // string slicing
+  word := "hello world"
+  sub := word[0:5]
+  if sub == "hello" { println("slicing-ok") } else { println("FAIL slicing") }
+
+  // net.listen
+  listener := net.listen("127.0.0.1", 0)
+  port := net.listener_port(listener)
+  net.close(listener)
+  if port > 0 { println("net-ok") } else { println("FAIL net") }
+
+  // go + chan
+  ch := chan(1)
+  go send_value(ch)
+  recv_val := ch.recv()
+  if recv_val == 42 { println("concurrency-ok") } else { println("FAIL concurrency") }
+
+  println("all-smoke-ok")
+  0
+}

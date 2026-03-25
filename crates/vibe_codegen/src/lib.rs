@@ -119,6 +119,7 @@ struct RuntimeFunctions {
     text_to_upper_fn: FuncId,
     text_byte_len_fn: FuncId,
     text_split_part_fn: FuncId,
+    text_index_of_fn: FuncId,
     encoding_hex_encode_fn: FuncId,
     encoding_hex_decode_fn: FuncId,
     encoding_base64_encode_fn: FuncId,
@@ -1125,6 +1126,16 @@ fn declare_runtime_functions(
         )
         .map_err(|e| format!("failed to declare runtime text_split_part symbol: {e}"))?;
 
+    let mut text_index_of_sig = module.make_signature();
+    text_index_of_sig.params.push(AbiParam::new(ptr_ty));
+    text_index_of_sig.params.push(AbiParam::new(ptr_ty));
+    text_index_of_sig
+        .returns
+        .push(AbiParam::new(ir::types::I64));
+    let text_index_of_fn = module
+        .declare_function("vibe_text_index_of", Linkage::Import, &text_index_of_sig)
+        .map_err(|e| format!("failed to declare runtime text_index_of symbol: {e}"))?;
+
     let mut encoding_hex_encode_sig = module.make_signature();
     encoding_hex_encode_sig.params.push(AbiParam::new(ptr_ty));
     encoding_hex_encode_sig.returns.push(AbiParam::new(ptr_ty));
@@ -1706,6 +1717,7 @@ fn declare_runtime_functions(
         text_to_upper_fn,
         text_byte_len_fn,
         text_split_part_fn,
+        text_index_of_fn,
         encoding_hex_encode_fn,
         encoding_hex_decode_fn,
         encoding_base64_encode_fn,
@@ -5003,6 +5015,16 @@ fn emit_stdlib_namespace_call(
             expect_arity(2)?;
             call_two_args(
                 runtime_fns.text_contains_fn,
+                lowered_args[0],
+                lowered_args[1],
+                module,
+                builder,
+            )
+        }
+        ("text", "index_of") => {
+            expect_arity(2)?;
+            call_two_args(
+                runtime_fns.text_index_of_fn,
                 lowered_args[0],
                 lowered_args[1],
                 module,
