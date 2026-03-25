@@ -1,0 +1,19 @@
+type Payload { action: Str, value: Int }
+type Status { ok: Bool }
+
+pub main() -> Int {
+  @effect io
+  @effect net
+
+  resp := http.get("http://127.0.0.1:1/unreachable", 5)
+  println(convert.to_str(resp.status))
+  println(resp.body)
+
+  req := HttpRequest { method: "POST", url: "http://127.0.0.1:1/unreachable", headers: "Content-Type: application/json\r\nX-Custom: vibe", body: json.encode(Payload { action: "test", value: 42 }), timeout_ms: 5 }
+  resp2 := http.send(req)
+  println(convert.to_str(resp2.status))
+
+  wire := http.response(HttpResponse { status: 200, headers: "", body: json.encode(Status { ok: true }) })
+  println(convert.to_str(wire.len()))
+  0
+}

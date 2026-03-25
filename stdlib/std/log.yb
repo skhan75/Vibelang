@@ -1,0 +1,25 @@
+// Copyright 2026 Vibelang Contributors
+// SPDX-License-Identifier: Apache-2.0
+
+/**
+ * Structured logging with severity levels.
+ */
+module std.log
+
+pub info(msg: Str) {
+  @intent "log an informational message"
+  @effect io
+  @native("vibe_log_info")
+}
+
+pub warn(msg: Str) {
+  @intent "log a warning message"
+  @effect io
+  @native("vibe_log_warn")
+}
+
+pub error(msg: Str) {
+  @intent "log an error message"
+  @effect io
+  @native("vibe_log_error")
+}

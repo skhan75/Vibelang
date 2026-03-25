@@ -1,20 +1,35 @@
+type Address {
+  city: Str,
+  zip: Int
+}
+
 type User {
   id: Int,
   name: Str,
-  active: Bool
+  active: Bool,
+  address: Address
+}
+
+build_user(id: Int, name: Str, city: Str, zip: Int) -> User {
+  User { id: id, name: name, active: true, address: Address { city: city, zip: zip } }
 }
 
 pub main() -> Int {
   @effect io
   @effect alloc
-  println(json.parse("{ \"id\" : 7, \"name\" : \"sam\", \"active\" : true }"))
-  println(json.stringify("vibe"))
 
-  fallback := User { id: 1, name: "fallback", active: false }
-  decoded := json.decode_User("{\"id\":7,\"name\":\"sam\",\"active\":true}", fallback)
-  println(json.encode_User(decoded))
+  user := build_user(7, "sam", "NYC", 10001)
+  println(json.encode(user))
 
-  decoded2 := json.decode_User("{\"id\":9}", fallback)
-  println(json.encode_User(decoded2))
+  parsed := json.parse("{\"a\":1}")
+  println(json.stringify(parsed))
+  println(json.stringify(json.str("vibe")))
+
+  fallback := User { id: 0, name: "fb", active: false, address: Address { city: "none", zip: 0 } }
+  decoded := json.decode("{\"id\":7,\"name\":\"sam\",\"active\":true,\"address\":{\"city\":\"NYC\",\"zip\":10001}}", fallback)
+  println(json.encode(decoded))
+
+  decoded2 := json.decode("{\"id\":9}", fallback)
+  println(json.encode(decoded2))
   0
 }

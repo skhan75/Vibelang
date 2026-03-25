@@ -99,19 +99,34 @@ pub main() -> Int {{
   }}
   println(json.stringify_i64(json.parse_i64("42")))
   println(json.minify("{{ \"a\" : 1 }}"))
-  println(json.parse("{{ \"a\" : 1 }}"))
-  println(json.stringify("{{\"b\":2}}"))
-  println(json.stringify("hello-stdlib"))
+  println(json.stringify(json.parse("{{ \"a\" : 1 }}")))
+  jb := json.builder.new(128)
+  jb = json.builder.begin_object(jb)
+  jb = json.builder.key(jb, "k")
+  jb = json.builder.value_i64(jb, 1)
+  jb = json.builder.end_object(jb)
+  println(json.builder.finish(jb))
+  println(json.stringify_pretty(json.parse("{{ \"a\" : 1 }}")))
+  jb2 := json.builder.new(256)
+  jb2 = json.builder.begin_object(jb2)
+  jb2 = json.builder.key(jb2, "nested")
+  jb2 = json.builder.value_json(jb2, json.parse("{{\"x\":3}}"))
+  jb2 = json.builder.key(jb2, "quote")
+  jb2 = json.builder.value_str(jb2, "say \"hi\"")
+  jb2 = json.builder.end_object(jb2)
+  println(json.builder.finish(jb2))
+  println(json.stringify(json.parse("{{\"b\":2}}")))
+  println(json.stringify(json.str("hello-stdlib")))
   fallback := User {{ id: 1, name: "fallback", active: false }}
-  decoded := json.decode_User("{{\"id\":7,\"name\":\"sam\",\"active\":true}}", fallback)
-  println(json.encode_User(decoded))
+  decoded := json.decode("{{\"id\":7,\"name\":\"sam\",\"active\":true}}", fallback)
+  println(json.encode(decoded))
   println(json.stringify_i64(decoded.id))
   println(decoded.name)
   if decoded.active {{
     println("active")
   }}
-  decoded2 := json.decode_User("{{\"id\":2}}", fallback)
-  println(json.encode_User(decoded2))
+  decoded2 := json.decode("{{\"id\":2}}", fallback)
+  println(json.encode(decoded2))
   println(json.stringify_i64(decoded2.id))
   println(decoded2.name)
   if decoded2.active {{
@@ -133,9 +148,11 @@ pub main() -> Int {{
   println(json.stringify_i64(cli.args_len()))
   println(cli.arg(0))
   log.error("phase12-log")
-  println(http.get("http://127.0.0.1:{http_port}/ready", 2000))
+  get_resp := http.get("http://127.0.0.1:{http_port}/ready", 2000)
+  println(get_resp.body)
   println(json.stringify_i64(http.request_status("GET", "http://127.0.0.1:{http_port}/ready", "", 2000)))
-  println(http.post("http://127.0.0.1:{http_port}/submit", "payload", 2000))
+  post_resp := http.post("http://127.0.0.1:{http_port}/submit", "payload", 2000)
+  println(post_resp.body)
   listener := net.listen("127.0.0.1", 0)
   if net.listener_port(listener) > 0 {{
     println("listen-ok")
@@ -180,7 +197,7 @@ pub main() -> Int {{
     );
     assert_eq!(
         out.stdout,
-        "/tmp/vibe\n/tmp/vibe\nfile.txt\nabs\n2000\n123\n3.5\n7\n2.25\nhi\ncontains\nstarts\nends\na+b+c\nhello\nHELLO\n3\nb\n41\nAB\naGk=\nhi\na%20b\na b\nmono-ok\n42\n{\"a\":1}\n{\"a\":1}\n{\"b\":2}\n\"hello-stdlib\"\n{\"id\":7,\"name\":\"sam\",\"active\":true}\n7\nsam\nactive\n{\"id\":2,\"name\":\"fallback\",\"active\":false}\n2\nfallback\ninactive-2\njson-ok\nOK\n443\nGET /ready HTTP/1.1\nphase12\nenv-has\nphase12\n0\n\nready\n200\nposted\nlisten-ok\nlisten-close-ok\n4\npong\nnet-close-ok\n127.0.0.1\nwrite-ok\nexists-ok\nhello-stdlib\nmkdir-ok\n"
+        "/tmp/vibe\n/tmp/vibe\nfile.txt\nabs\n2000\n123\n3.5\n7\n2.25\nhi\ncontains\nstarts\nends\na+b+c\nhello\nHELLO\n3\nb\n41\nAB\naGk=\nhi\na%20b\na b\nmono-ok\n42\n{\"a\":1}\n{\"a\":1}\n{\"k\":1}\n{\n  \"a\": 1\n}\n{\"nested\":{\"x\":3},\"quote\":\"say \\\"hi\\\"\"}\n{\"b\":2}\n\"hello-stdlib\"\n{\"id\":7,\"name\":\"sam\",\"active\":true}\n7\nsam\nactive\n{\"id\":2,\"name\":\"fallback\",\"active\":false}\n2\nfallback\ninactive-2\njson-ok\nOK\n443\nGET /ready HTTP/1.1\nphase12\nenv-has\nphase12\n0\n\nready\n200\nposted\nlisten-ok\nlisten-close-ok\n4\npong\nnet-close-ok\n127.0.0.1\nwrite-ok\nexists-ok\nhello-stdlib\nmkdir-ok\n"
     );
 }
 
@@ -227,8 +244,8 @@ pub main() -> Int {
   println(convert.to_str(convert.to_int("88")))
   println(convert.to_str_f64(convert.parse_f64("1.75")))
   println(json.minify("{ \"k\" : 1 }"))
-  println(json.parse("{\"k\":1}"))
-  println(json.stringify("k=v"))
+  println(json.stringify(json.parse("{\"k\":1}")))
+  println(json.stringify(json.str("k=v")))
   println(http.build_request_line("POST", "/submit"))
   println(json.stringify_i64(time.duration_ms(3)))
   0
@@ -262,7 +279,6 @@ pub main() -> Int {{
   @effect io
   println(json.stringify_i64(json.parse_i64("not-a-number")))
   println(convert.to_str(convert.to_int("not-an-int")))
-  println(json.parse("not-json"))
   println(fs.read_text("{missing}"))
   if json.is_valid("nope") {{
     println("bad")
@@ -281,7 +297,7 @@ pub main() -> Int {{
         out.stdout,
         out.stderr
     );
-    assert_eq!(out.stdout, "0\n0\n\n\ninvalid\n");
+    assert_eq!(out.stdout, "0\n0\n\ninvalid\n");
 }
 
 #[test]

@@ -1,0 +1,11 @@
+type PostPayload { ok: Bool, message: Str }
+
+pub main() -> Int {
+  @effect io
+  @effect net
+  body := json.encode(PostPayload { ok: true, message: "hello" })
+  println(body)
+  resp := http.post("http://127.0.0.1:1/unreachable", body, 5)
+  println(resp.body)
+  0
+}

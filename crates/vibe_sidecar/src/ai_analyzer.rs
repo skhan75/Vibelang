@@ -146,8 +146,7 @@ impl AiAnalyzer {
     ) -> Vec<CandidateSuggestion> {
         let code = self.maybe_redact(source_code);
         let contracts = self.format_contracts(meta);
-        let prompt =
-            prompts::contract_suggestion_prompt(&meta.function_name, &code, &contracts);
+        let prompt = prompts::contract_suggestion_prompt(&meta.function_name, &code, &contracts);
 
         match self
             .client
@@ -195,11 +194,7 @@ impl AiAnalyzer {
         }
     }
 
-    fn parse_drift_response(
-        &self,
-        text: &str,
-        meta: &FunctionMeta,
-    ) -> Option<Vec<IntentFinding>> {
+    fn parse_drift_response(&self, text: &str, meta: &FunctionMeta) -> Option<Vec<IntentFinding>> {
         let json_text = extract_json(text)?;
         let resp: DriftResponse = serde_json::from_str(json_text).ok()?;
 
@@ -249,10 +244,7 @@ impl AiAnalyzer {
                     "contract:{}:{}:{}",
                     meta.file, meta.function_name, s.contract_type
                 ),
-                title: format!(
-                    "Add @{} for `{}`",
-                    s.contract_type, meta.function_name
-                ),
+                title: format!("Add @{} for `{}`", s.contract_type, meta.function_name),
                 summary: format!("@{} {}\n{}", s.contract_type, s.expression, s.rationale),
                 confidence: s.confidence as f32,
                 evidence: vec![EvidenceRef {
@@ -296,11 +288,7 @@ impl AiAnalyzer {
             .collect()
     }
 
-    fn parse_intent_suggestion(
-        &self,
-        text: &str,
-        meta: &FunctionMeta,
-    ) -> Vec<CandidateSuggestion> {
+    fn parse_intent_suggestion(&self, text: &str, meta: &FunctionMeta) -> Vec<CandidateSuggestion> {
         let json_text = match extract_json(text) {
             Some(t) => t,
             None => return Vec::new(),
@@ -313,10 +301,7 @@ impl AiAnalyzer {
         vec![CandidateSuggestion {
             id: format!("intent:{}:{}", meta.file, meta.function_name),
             title: format!("Add @intent for `{}`", meta.function_name),
-            summary: format!(
-                "@intent \"{}\"\n{}",
-                resp.intent_text, resp.rationale
-            ),
+            summary: format!("@intent \"{}\"\n{}", resp.intent_text, resp.rationale),
             confidence: resp.confidence as f32,
             evidence: vec![EvidenceRef {
                 file: meta.file.clone(),

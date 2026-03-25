@@ -58,6 +58,10 @@ struct RuntimeFunctions {
     container_set_str_i64_fn: FuncId,
     container_contains_str_i64_fn: FuncId,
     container_remove_str_i64_fn: FuncId,
+    map_new_str_str_fn: FuncId,
+    container_get_str_str_fn: FuncId,
+    container_set_str_str_fn: FuncId,
+    json_from_str_str_map_fn: FuncId,
     container_contains_auto_i64_fn: FuncId,
     container_remove_auto_i64_fn: FuncId,
     container_key_at_i64_fn: FuncId,
@@ -82,74 +86,21 @@ struct RuntimeFunctions {
     await_ptr_fn: FuncId,
     select_cursor_fn: FuncId,
     sleep_ms_fn: FuncId,
-    time_now_ms_fn: FuncId,
-    time_monotonic_now_ms_fn: FuncId,
-    time_sleep_ms_fn: FuncId,
-    time_duration_ms_fn: FuncId,
-    path_join_fn: FuncId,
-    path_parent_fn: FuncId,
-    path_basename_fn: FuncId,
-    path_is_absolute_fn: FuncId,
-    fs_exists_fn: FuncId,
-    fs_read_text_fn: FuncId,
-    fs_write_text_fn: FuncId,
-    fs_create_dir_fn: FuncId,
-    net_listen_fn: FuncId,
-    net_listener_port_fn: FuncId,
-    net_accept_fn: FuncId,
-    net_connect_fn: FuncId,
-    net_read_fn: FuncId,
-    net_write_fn: FuncId,
-    net_close_fn: FuncId,
-    net_resolve_fn: FuncId,
-    convert_to_int_fn: FuncId,
-    convert_to_float_fn: FuncId,
-    convert_to_str_fn: FuncId,
-    convert_to_str_f64_fn: FuncId,
-    format_f64_fn: FuncId,
-    i64_to_f64_fn: FuncId,
-    f64_to_bits_fn: FuncId,
-    f64_from_bits_fn: FuncId,
-    text_trim_fn: FuncId,
-    text_contains_fn: FuncId,
-    text_starts_with_fn: FuncId,
-    text_ends_with_fn: FuncId,
-    text_replace_fn: FuncId,
-    text_to_lower_fn: FuncId,
-    text_to_upper_fn: FuncId,
-    text_byte_len_fn: FuncId,
-    text_split_part_fn: FuncId,
-    encoding_hex_encode_fn: FuncId,
-    encoding_hex_decode_fn: FuncId,
-    encoding_base64_encode_fn: FuncId,
-    encoding_base64_decode_fn: FuncId,
-    encoding_url_encode_fn: FuncId,
-    encoding_url_decode_fn: FuncId,
-    log_info_fn: FuncId,
-    log_warn_fn: FuncId,
-    log_error_fn: FuncId,
-    env_get_fn: FuncId,
-    env_has_fn: FuncId,
-    env_get_required_fn: FuncId,
-    cli_args_len_fn: FuncId,
-    cli_arg_fn: FuncId,
-    json_is_valid_fn: FuncId,
-    json_parse_fn: FuncId,
-    json_stringify_fn: FuncId,
-    json_parse_i64_fn: FuncId,
-    json_stringify_i64_fn: FuncId,
-    json_minify_fn: FuncId,
     json_encode_record_fn: FuncId,
     json_decode_record_fn: FuncId,
-    regex_count_fn: FuncId,
-    regex_replace_all_fn: FuncId,
-    http_status_text_fn: FuncId,
-    http_default_port_fn: FuncId,
-    http_build_request_line_fn: FuncId,
-    http_request_fn: FuncId,
-    http_request_status_fn: FuncId,
-    http_get_fn: FuncId,
-    http_post_fn: FuncId,
+    json_builder_new_fn: FuncId,
+    json_builder_begin_object_fn: FuncId,
+    json_builder_end_object_fn: FuncId,
+    json_builder_begin_array_fn: FuncId,
+    json_builder_end_array_fn: FuncId,
+    json_builder_key_fn: FuncId,
+    json_builder_value_null_fn: FuncId,
+    json_builder_value_bool_fn: FuncId,
+    json_builder_value_i64_fn: FuncId,
+    json_builder_value_f64_fn: FuncId,
+    json_builder_value_str_fn: FuncId,
+    json_builder_value_json_fn: FuncId,
+    json_builder_finish_fn: FuncId,
     #[cfg(feature = "bench-runtime")]
     bench_md5_hex_fn: FuncId,
     #[cfg(feature = "bench-runtime")]
@@ -180,10 +131,6 @@ struct RuntimeFunctions {
     #[cfg(feature = "bench-runtime")]
     bench_net_close_fn: FuncId,
     record_alloc_fn: FuncId,
-    str_builder_new_fn: FuncId,
-    str_builder_append_fn: FuncId,
-    str_builder_append_char_fn: FuncId,
-    str_builder_finish_fn: FuncId,
 }
 
 #[derive(Clone, Copy)]
@@ -193,7 +140,13 @@ struct LoopContext {
 }
 
 pub fn emit_object(program: &MirProgram, options: &CodegenOptions) -> Result<Vec<u8>, String> {
-    emit_object_with_types(program, options, &BTreeMap::new(), &BTreeMap::new())
+    emit_object_with_types(
+        program,
+        options,
+        &BTreeMap::new(),
+        &BTreeMap::new(),
+        &BTreeMap::new(),
+    )
 }
 
 #[allow(unused_variables)]
@@ -202,6 +155,7 @@ pub fn emit_object_with_types(
     options: &CodegenOptions,
     type_defs: &BTreeMap<String, Vec<(String, String)>>,
     enum_defs: &BTreeMap<String, Vec<String>>,
+    namespace_map: &BTreeMap<(String, String), String>,
 ) -> Result<Vec<u8>, String> {
     let triple = parse_target(&options.target)?;
     let isa = build_isa(triple, &options.profile, &options.debuginfo)?;
@@ -226,6 +180,16 @@ pub fn emit_object_with_types(
             .map_err(|e| format!("failed to declare function `{}`: {e}", f.name))?;
         function_ids.insert(f.name.clone(), id);
         function_returns.insert(f.name.clone(), f.return_type.clone());
+    }
+
+    for ((ns, field), mangled) in namespace_map {
+        let ns_key = format!("__ns_call__{ns}.{field}");
+        if let Some(&fid) = function_ids.get(mangled) {
+            function_ids.insert(ns_key.clone(), fid);
+        }
+        if let Some(ret_ty) = function_returns.get(mangled).cloned() {
+            function_returns.insert(ns_key, ret_ty);
+        }
     }
 
     for f in &program.functions {
@@ -370,6 +334,58 @@ fn declare_runtime_functions(
             &map_new_str_i64_sig,
         )
         .map_err(|e| format!("failed to declare runtime map_new_str_i64 symbol: {e}"))?;
+
+    let mut map_new_str_str_sig = module.make_signature();
+    map_new_str_str_sig
+        .params
+        .push(AbiParam::new(ir::types::I64));
+    map_new_str_str_sig.returns.push(AbiParam::new(ptr_ty));
+    let map_new_str_str_fn = module
+        .declare_function(
+            "vibe_map_new_str_str",
+            Linkage::Import,
+            &map_new_str_str_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime map_new_str_str symbol: {e}"))?;
+
+    let mut container_get_str_str_sig = module.make_signature();
+    container_get_str_str_sig.params.push(AbiParam::new(ptr_ty));
+    container_get_str_str_sig.params.push(AbiParam::new(ptr_ty));
+    container_get_str_str_sig
+        .returns
+        .push(AbiParam::new(ptr_ty));
+    let container_get_str_str_fn = module
+        .declare_function(
+            "vibe_map_get_str_str",
+            Linkage::Import,
+            &container_get_str_str_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime map_get_str_str symbol: {e}"))?;
+
+    let mut container_set_str_str_sig = module.make_signature();
+    container_set_str_str_sig.params.push(AbiParam::new(ptr_ty));
+    container_set_str_str_sig.params.push(AbiParam::new(ptr_ty));
+    container_set_str_str_sig.params.push(AbiParam::new(ptr_ty));
+    let container_set_str_str_fn = module
+        .declare_function(
+            "vibe_map_set_str_str",
+            Linkage::Import,
+            &container_set_str_str_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime map_set_str_str symbol: {e}"))?;
+
+    let mut json_from_str_str_map_sig = module.make_signature();
+    json_from_str_str_map_sig.params.push(AbiParam::new(ptr_ty));
+    json_from_str_str_map_sig
+        .returns
+        .push(AbiParam::new(ptr_ty));
+    let json_from_str_str_map_fn = module
+        .declare_function(
+            "vibe_json_from_str_str_map",
+            Linkage::Import,
+            &json_from_str_str_map_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime json_from_str_str_map symbol: {e}"))?;
 
     let mut str_concat_sig = module.make_signature();
     str_concat_sig.params.push(AbiParam::new(ptr_ty));
@@ -783,524 +799,6 @@ fn declare_runtime_functions(
         .declare_function("vibe_sleep_ms", Linkage::Import, &sleep_sig)
         .map_err(|e| format!("failed to declare runtime sleep symbol: {e}"))?;
 
-    let mut time_now_ms_sig = module.make_signature();
-    time_now_ms_sig.returns.push(AbiParam::new(ir::types::I64));
-    let time_now_ms_fn = module
-        .declare_function("vibe_time_now_ms", Linkage::Import, &time_now_ms_sig)
-        .map_err(|e| format!("failed to declare runtime time_now_ms symbol: {e}"))?;
-
-    let mut time_monotonic_now_ms_sig = module.make_signature();
-    time_monotonic_now_ms_sig
-        .returns
-        .push(AbiParam::new(ir::types::I64));
-    let time_monotonic_now_ms_fn = module
-        .declare_function(
-            "vibe_time_monotonic_now_ms",
-            Linkage::Import,
-            &time_monotonic_now_ms_sig,
-        )
-        .map_err(|e| format!("failed to declare runtime time_monotonic_now_ms symbol: {e}"))?;
-
-    let mut time_sleep_ms_sig = module.make_signature();
-    time_sleep_ms_sig.params.push(AbiParam::new(ir::types::I64));
-    let time_sleep_ms_fn = module
-        .declare_function("vibe_time_sleep_ms", Linkage::Import, &time_sleep_ms_sig)
-        .map_err(|e| format!("failed to declare runtime time_sleep_ms symbol: {e}"))?;
-
-    let mut time_duration_ms_sig = module.make_signature();
-    time_duration_ms_sig
-        .params
-        .push(AbiParam::new(ir::types::I64));
-    time_duration_ms_sig
-        .returns
-        .push(AbiParam::new(ir::types::I64));
-    let time_duration_ms_fn = module
-        .declare_function(
-            "vibe_time_duration_ms",
-            Linkage::Import,
-            &time_duration_ms_sig,
-        )
-        .map_err(|e| format!("failed to declare runtime time_duration_ms symbol: {e}"))?;
-
-    let mut path_join_sig = module.make_signature();
-    path_join_sig.params.push(AbiParam::new(ptr_ty));
-    path_join_sig.params.push(AbiParam::new(ptr_ty));
-    path_join_sig.returns.push(AbiParam::new(ptr_ty));
-    let path_join_fn = module
-        .declare_function("vibe_path_join", Linkage::Import, &path_join_sig)
-        .map_err(|e| format!("failed to declare runtime path_join symbol: {e}"))?;
-
-    let mut path_parent_sig = module.make_signature();
-    path_parent_sig.params.push(AbiParam::new(ptr_ty));
-    path_parent_sig.returns.push(AbiParam::new(ptr_ty));
-    let path_parent_fn = module
-        .declare_function("vibe_path_parent", Linkage::Import, &path_parent_sig)
-        .map_err(|e| format!("failed to declare runtime path_parent symbol: {e}"))?;
-
-    let mut path_basename_sig = module.make_signature();
-    path_basename_sig.params.push(AbiParam::new(ptr_ty));
-    path_basename_sig.returns.push(AbiParam::new(ptr_ty));
-    let path_basename_fn = module
-        .declare_function("vibe_path_basename", Linkage::Import, &path_basename_sig)
-        .map_err(|e| format!("failed to declare runtime path_basename symbol: {e}"))?;
-
-    let mut path_is_absolute_sig = module.make_signature();
-    path_is_absolute_sig.params.push(AbiParam::new(ptr_ty));
-    path_is_absolute_sig
-        .returns
-        .push(AbiParam::new(ir::types::I64));
-    let path_is_absolute_fn = module
-        .declare_function(
-            "vibe_path_is_absolute",
-            Linkage::Import,
-            &path_is_absolute_sig,
-        )
-        .map_err(|e| format!("failed to declare runtime path_is_absolute symbol: {e}"))?;
-
-    let mut fs_exists_sig = module.make_signature();
-    fs_exists_sig.params.push(AbiParam::new(ptr_ty));
-    fs_exists_sig.returns.push(AbiParam::new(ir::types::I64));
-    let fs_exists_fn = module
-        .declare_function("vibe_fs_exists", Linkage::Import, &fs_exists_sig)
-        .map_err(|e| format!("failed to declare runtime fs_exists symbol: {e}"))?;
-
-    let mut fs_read_text_sig = module.make_signature();
-    fs_read_text_sig.params.push(AbiParam::new(ptr_ty));
-    fs_read_text_sig.returns.push(AbiParam::new(ptr_ty));
-    let fs_read_text_fn = module
-        .declare_function("vibe_fs_read_text", Linkage::Import, &fs_read_text_sig)
-        .map_err(|e| format!("failed to declare runtime fs_read_text symbol: {e}"))?;
-
-    let mut fs_write_text_sig = module.make_signature();
-    fs_write_text_sig.params.push(AbiParam::new(ptr_ty));
-    fs_write_text_sig.params.push(AbiParam::new(ptr_ty));
-    fs_write_text_sig
-        .returns
-        .push(AbiParam::new(ir::types::I64));
-    let fs_write_text_fn = module
-        .declare_function("vibe_fs_write_text", Linkage::Import, &fs_write_text_sig)
-        .map_err(|e| format!("failed to declare runtime fs_write_text symbol: {e}"))?;
-
-    let mut fs_create_dir_sig = module.make_signature();
-    fs_create_dir_sig.params.push(AbiParam::new(ptr_ty));
-    fs_create_dir_sig
-        .returns
-        .push(AbiParam::new(ir::types::I64));
-    let fs_create_dir_fn = module
-        .declare_function("vibe_fs_create_dir", Linkage::Import, &fs_create_dir_sig)
-        .map_err(|e| format!("failed to declare runtime fs_create_dir symbol: {e}"))?;
-
-    let mut net_listen_sig = module.make_signature();
-    net_listen_sig.params.push(AbiParam::new(ptr_ty));
-    net_listen_sig.params.push(AbiParam::new(ir::types::I64));
-    net_listen_sig.returns.push(AbiParam::new(ir::types::I64));
-    let net_listen_fn = module
-        .declare_function("vibe_net_listen", Linkage::Import, &net_listen_sig)
-        .map_err(|e| format!("failed to declare runtime net_listen symbol: {e}"))?;
-
-    let mut net_listener_port_sig = module.make_signature();
-    net_listener_port_sig
-        .params
-        .push(AbiParam::new(ir::types::I64));
-    net_listener_port_sig
-        .returns
-        .push(AbiParam::new(ir::types::I64));
-    let net_listener_port_fn = module
-        .declare_function(
-            "vibe_net_listener_port",
-            Linkage::Import,
-            &net_listener_port_sig,
-        )
-        .map_err(|e| format!("failed to declare runtime net_listener_port symbol: {e}"))?;
-
-    let mut net_accept_sig = module.make_signature();
-    net_accept_sig.params.push(AbiParam::new(ir::types::I64));
-    net_accept_sig.returns.push(AbiParam::new(ir::types::I64));
-    let net_accept_fn = module
-        .declare_function("vibe_net_accept", Linkage::Import, &net_accept_sig)
-        .map_err(|e| format!("failed to declare runtime net_accept symbol: {e}"))?;
-
-    let mut net_connect_sig = module.make_signature();
-    net_connect_sig.params.push(AbiParam::new(ptr_ty));
-    net_connect_sig.params.push(AbiParam::new(ir::types::I64));
-    net_connect_sig.returns.push(AbiParam::new(ir::types::I64));
-    let net_connect_fn = module
-        .declare_function("vibe_net_connect", Linkage::Import, &net_connect_sig)
-        .map_err(|e| format!("failed to declare runtime net_connect symbol: {e}"))?;
-
-    let mut net_read_sig = module.make_signature();
-    net_read_sig.params.push(AbiParam::new(ir::types::I64));
-    net_read_sig.params.push(AbiParam::new(ir::types::I64));
-    net_read_sig.returns.push(AbiParam::new(ptr_ty));
-    let net_read_fn = module
-        .declare_function("vibe_net_read", Linkage::Import, &net_read_sig)
-        .map_err(|e| format!("failed to declare runtime net_read symbol: {e}"))?;
-
-    let mut net_write_sig = module.make_signature();
-    net_write_sig.params.push(AbiParam::new(ir::types::I64));
-    net_write_sig.params.push(AbiParam::new(ptr_ty));
-    net_write_sig.returns.push(AbiParam::new(ir::types::I64));
-    let net_write_fn = module
-        .declare_function("vibe_net_write", Linkage::Import, &net_write_sig)
-        .map_err(|e| format!("failed to declare runtime net_write symbol: {e}"))?;
-
-    let mut net_close_sig = module.make_signature();
-    net_close_sig.params.push(AbiParam::new(ir::types::I64));
-    net_close_sig.returns.push(AbiParam::new(ir::types::I64));
-    let net_close_fn = module
-        .declare_function("vibe_net_close", Linkage::Import, &net_close_sig)
-        .map_err(|e| format!("failed to declare runtime net_close symbol: {e}"))?;
-
-    let mut net_resolve_sig = module.make_signature();
-    net_resolve_sig.params.push(AbiParam::new(ptr_ty));
-    net_resolve_sig.returns.push(AbiParam::new(ptr_ty));
-    let net_resolve_fn = module
-        .declare_function("vibe_net_resolve_first", Linkage::Import, &net_resolve_sig)
-        .map_err(|e| format!("failed to declare runtime net_resolve symbol: {e}"))?;
-
-    let mut convert_to_int_sig = module.make_signature();
-    convert_to_int_sig.params.push(AbiParam::new(ptr_ty));
-    convert_to_int_sig
-        .returns
-        .push(AbiParam::new(ir::types::I64));
-    let convert_to_int_fn = module
-        .declare_function("vibe_convert_to_int", Linkage::Import, &convert_to_int_sig)
-        .map_err(|e| format!("failed to declare runtime convert_to_int symbol: {e}"))?;
-
-    let mut convert_to_float_sig = module.make_signature();
-    convert_to_float_sig.params.push(AbiParam::new(ptr_ty));
-    convert_to_float_sig
-        .returns
-        .push(AbiParam::new(ir::types::F64));
-    let convert_to_float_fn = module
-        .declare_function(
-            "vibe_convert_to_f64",
-            Linkage::Import,
-            &convert_to_float_sig,
-        )
-        .map_err(|e| format!("failed to declare runtime convert_to_f64 symbol: {e}"))?;
-
-    let mut convert_to_str_sig = module.make_signature();
-    convert_to_str_sig
-        .params
-        .push(AbiParam::new(ir::types::I64));
-    convert_to_str_sig.returns.push(AbiParam::new(ptr_ty));
-    let convert_to_str_fn = module
-        .declare_function(
-            "vibe_convert_i64_to_str",
-            Linkage::Import,
-            &convert_to_str_sig,
-        )
-        .map_err(|e| format!("failed to declare runtime convert_i64_to_str symbol: {e}"))?;
-
-    let mut convert_to_str_f64_sig = module.make_signature();
-    convert_to_str_f64_sig
-        .params
-        .push(AbiParam::new(ir::types::F64));
-    convert_to_str_f64_sig.returns.push(AbiParam::new(ptr_ty));
-    let convert_to_str_f64_fn = module
-        .declare_function(
-            "vibe_convert_f64_to_str",
-            Linkage::Import,
-            &convert_to_str_f64_sig,
-        )
-        .map_err(|e| format!("failed to declare runtime convert_f64_to_str symbol: {e}"))?;
-
-    let mut format_f64_sig = module.make_signature();
-    format_f64_sig.params.push(AbiParam::new(ir::types::F64));
-    format_f64_sig.params.push(AbiParam::new(ir::types::I64));
-    format_f64_sig.returns.push(AbiParam::new(ptr_ty));
-    let format_f64_fn = module
-        .declare_function("vibe_format_f64", Linkage::Import, &format_f64_sig)
-        .map_err(|e| format!("failed to declare runtime format_f64 symbol: {e}"))?;
-
-    let mut i64_to_f64_sig = module.make_signature();
-    i64_to_f64_sig.params.push(AbiParam::new(ir::types::I64));
-    i64_to_f64_sig.returns.push(AbiParam::new(ir::types::F64));
-    let i64_to_f64_fn = module
-        .declare_function("vibe_i64_to_f64", Linkage::Import, &i64_to_f64_sig)
-        .map_err(|e| format!("failed to declare runtime i64_to_f64 symbol: {e}"))?;
-
-    let mut f64_to_bits_sig = module.make_signature();
-    f64_to_bits_sig.params.push(AbiParam::new(ir::types::F64));
-    f64_to_bits_sig.returns.push(AbiParam::new(ir::types::I64));
-    let f64_to_bits_fn = module
-        .declare_function("vibe_f64_to_bits", Linkage::Import, &f64_to_bits_sig)
-        .map_err(|e| format!("failed to declare runtime f64_to_bits symbol: {e}"))?;
-
-    let mut f64_from_bits_sig = module.make_signature();
-    f64_from_bits_sig.params.push(AbiParam::new(ir::types::I64));
-    f64_from_bits_sig
-        .returns
-        .push(AbiParam::new(ir::types::F64));
-    let f64_from_bits_fn = module
-        .declare_function("vibe_f64_from_bits", Linkage::Import, &f64_from_bits_sig)
-        .map_err(|e| format!("failed to declare runtime f64_from_bits symbol: {e}"))?;
-
-    let mut text_trim_sig = module.make_signature();
-    text_trim_sig.params.push(AbiParam::new(ptr_ty));
-    text_trim_sig.returns.push(AbiParam::new(ptr_ty));
-    let text_trim_fn = module
-        .declare_function("vibe_text_trim", Linkage::Import, &text_trim_sig)
-        .map_err(|e| format!("failed to declare runtime text_trim symbol: {e}"))?;
-
-    let mut text_contains_sig = module.make_signature();
-    text_contains_sig.params.push(AbiParam::new(ptr_ty));
-    text_contains_sig.params.push(AbiParam::new(ptr_ty));
-    text_contains_sig
-        .returns
-        .push(AbiParam::new(ir::types::I64));
-    let text_contains_fn = module
-        .declare_function("vibe_text_contains", Linkage::Import, &text_contains_sig)
-        .map_err(|e| format!("failed to declare runtime text_contains symbol: {e}"))?;
-
-    let mut text_starts_with_sig = module.make_signature();
-    text_starts_with_sig.params.push(AbiParam::new(ptr_ty));
-    text_starts_with_sig.params.push(AbiParam::new(ptr_ty));
-    text_starts_with_sig
-        .returns
-        .push(AbiParam::new(ir::types::I64));
-    let text_starts_with_fn = module
-        .declare_function(
-            "vibe_text_starts_with",
-            Linkage::Import,
-            &text_starts_with_sig,
-        )
-        .map_err(|e| format!("failed to declare runtime text_starts_with symbol: {e}"))?;
-
-    let mut text_ends_with_sig = module.make_signature();
-    text_ends_with_sig.params.push(AbiParam::new(ptr_ty));
-    text_ends_with_sig.params.push(AbiParam::new(ptr_ty));
-    text_ends_with_sig
-        .returns
-        .push(AbiParam::new(ir::types::I64));
-    let text_ends_with_fn = module
-        .declare_function("vibe_text_ends_with", Linkage::Import, &text_ends_with_sig)
-        .map_err(|e| format!("failed to declare runtime text_ends_with symbol: {e}"))?;
-
-    let mut text_replace_sig = module.make_signature();
-    text_replace_sig.params.push(AbiParam::new(ptr_ty));
-    text_replace_sig.params.push(AbiParam::new(ptr_ty));
-    text_replace_sig.params.push(AbiParam::new(ptr_ty));
-    text_replace_sig.returns.push(AbiParam::new(ptr_ty));
-    let text_replace_fn = module
-        .declare_function("vibe_text_replace", Linkage::Import, &text_replace_sig)
-        .map_err(|e| format!("failed to declare runtime text_replace symbol: {e}"))?;
-
-    let mut text_to_lower_sig = module.make_signature();
-    text_to_lower_sig.params.push(AbiParam::new(ptr_ty));
-    text_to_lower_sig.returns.push(AbiParam::new(ptr_ty));
-    let text_to_lower_fn = module
-        .declare_function("vibe_text_to_lower", Linkage::Import, &text_to_lower_sig)
-        .map_err(|e| format!("failed to declare runtime text_to_lower symbol: {e}"))?;
-
-    let mut text_to_upper_sig = module.make_signature();
-    text_to_upper_sig.params.push(AbiParam::new(ptr_ty));
-    text_to_upper_sig.returns.push(AbiParam::new(ptr_ty));
-    let text_to_upper_fn = module
-        .declare_function("vibe_text_to_upper", Linkage::Import, &text_to_upper_sig)
-        .map_err(|e| format!("failed to declare runtime text_to_upper symbol: {e}"))?;
-
-    let mut text_byte_len_sig = module.make_signature();
-    text_byte_len_sig.params.push(AbiParam::new(ptr_ty));
-    text_byte_len_sig
-        .returns
-        .push(AbiParam::new(ir::types::I64));
-    let text_byte_len_fn = module
-        .declare_function("vibe_text_byte_len", Linkage::Import, &text_byte_len_sig)
-        .map_err(|e| format!("failed to declare runtime text_byte_len symbol: {e}"))?;
-
-    let mut text_split_part_sig = module.make_signature();
-    text_split_part_sig.params.push(AbiParam::new(ptr_ty));
-    text_split_part_sig.params.push(AbiParam::new(ptr_ty));
-    text_split_part_sig
-        .params
-        .push(AbiParam::new(ir::types::I64));
-    text_split_part_sig.returns.push(AbiParam::new(ptr_ty));
-    let text_split_part_fn = module
-        .declare_function(
-            "vibe_text_split_part",
-            Linkage::Import,
-            &text_split_part_sig,
-        )
-        .map_err(|e| format!("failed to declare runtime text_split_part symbol: {e}"))?;
-
-    let mut encoding_hex_encode_sig = module.make_signature();
-    encoding_hex_encode_sig.params.push(AbiParam::new(ptr_ty));
-    encoding_hex_encode_sig.returns.push(AbiParam::new(ptr_ty));
-    let encoding_hex_encode_fn = module
-        .declare_function(
-            "vibe_encoding_hex_encode",
-            Linkage::Import,
-            &encoding_hex_encode_sig,
-        )
-        .map_err(|e| format!("failed to declare runtime encoding_hex_encode symbol: {e}"))?;
-
-    let mut encoding_hex_decode_sig = module.make_signature();
-    encoding_hex_decode_sig.params.push(AbiParam::new(ptr_ty));
-    encoding_hex_decode_sig.returns.push(AbiParam::new(ptr_ty));
-    let encoding_hex_decode_fn = module
-        .declare_function(
-            "vibe_encoding_hex_decode",
-            Linkage::Import,
-            &encoding_hex_decode_sig,
-        )
-        .map_err(|e| format!("failed to declare runtime encoding_hex_decode symbol: {e}"))?;
-
-    let mut encoding_base64_encode_sig = module.make_signature();
-    encoding_base64_encode_sig
-        .params
-        .push(AbiParam::new(ptr_ty));
-    encoding_base64_encode_sig
-        .returns
-        .push(AbiParam::new(ptr_ty));
-    let encoding_base64_encode_fn = module
-        .declare_function(
-            "vibe_encoding_base64_encode",
-            Linkage::Import,
-            &encoding_base64_encode_sig,
-        )
-        .map_err(|e| format!("failed to declare runtime encoding_base64_encode symbol: {e}"))?;
-
-    let mut encoding_base64_decode_sig = module.make_signature();
-    encoding_base64_decode_sig
-        .params
-        .push(AbiParam::new(ptr_ty));
-    encoding_base64_decode_sig
-        .returns
-        .push(AbiParam::new(ptr_ty));
-    let encoding_base64_decode_fn = module
-        .declare_function(
-            "vibe_encoding_base64_decode",
-            Linkage::Import,
-            &encoding_base64_decode_sig,
-        )
-        .map_err(|e| format!("failed to declare runtime encoding_base64_decode symbol: {e}"))?;
-
-    let mut encoding_url_encode_sig = module.make_signature();
-    encoding_url_encode_sig.params.push(AbiParam::new(ptr_ty));
-    encoding_url_encode_sig.returns.push(AbiParam::new(ptr_ty));
-    let encoding_url_encode_fn = module
-        .declare_function(
-            "vibe_encoding_url_encode",
-            Linkage::Import,
-            &encoding_url_encode_sig,
-        )
-        .map_err(|e| format!("failed to declare runtime encoding_url_encode symbol: {e}"))?;
-
-    let mut encoding_url_decode_sig = module.make_signature();
-    encoding_url_decode_sig.params.push(AbiParam::new(ptr_ty));
-    encoding_url_decode_sig.returns.push(AbiParam::new(ptr_ty));
-    let encoding_url_decode_fn = module
-        .declare_function(
-            "vibe_encoding_url_decode",
-            Linkage::Import,
-            &encoding_url_decode_sig,
-        )
-        .map_err(|e| format!("failed to declare runtime encoding_url_decode symbol: {e}"))?;
-
-    let mut log_sig = module.make_signature();
-    log_sig.params.push(AbiParam::new(ptr_ty));
-    let log_info_fn = module
-        .declare_function("vibe_log_info", Linkage::Import, &log_sig)
-        .map_err(|e| format!("failed to declare runtime log_info symbol: {e}"))?;
-    let log_warn_fn = module
-        .declare_function("vibe_log_warn", Linkage::Import, &log_sig)
-        .map_err(|e| format!("failed to declare runtime log_warn symbol: {e}"))?;
-    let log_error_fn = module
-        .declare_function("vibe_log_error", Linkage::Import, &log_sig)
-        .map_err(|e| format!("failed to declare runtime log_error symbol: {e}"))?;
-
-    let mut env_get_sig = module.make_signature();
-    env_get_sig.params.push(AbiParam::new(ptr_ty));
-    env_get_sig.returns.push(AbiParam::new(ptr_ty));
-    let env_get_fn = module
-        .declare_function("vibe_env_get", Linkage::Import, &env_get_sig)
-        .map_err(|e| format!("failed to declare runtime env_get symbol: {e}"))?;
-
-    let mut env_has_sig = module.make_signature();
-    env_has_sig.params.push(AbiParam::new(ptr_ty));
-    env_has_sig.returns.push(AbiParam::new(ir::types::I64));
-    let env_has_fn = module
-        .declare_function("vibe_env_has", Linkage::Import, &env_has_sig)
-        .map_err(|e| format!("failed to declare runtime env_has symbol: {e}"))?;
-
-    let mut env_get_required_sig = module.make_signature();
-    env_get_required_sig.params.push(AbiParam::new(ptr_ty));
-    env_get_required_sig.returns.push(AbiParam::new(ptr_ty));
-    let env_get_required_fn = module
-        .declare_function(
-            "vibe_env_get_required",
-            Linkage::Import,
-            &env_get_required_sig,
-        )
-        .map_err(|e| format!("failed to declare runtime env_get_required symbol: {e}"))?;
-
-    let mut cli_args_len_sig = module.make_signature();
-    cli_args_len_sig.returns.push(AbiParam::new(ir::types::I64));
-    let cli_args_len_fn = module
-        .declare_function("vibe_cli_args_len", Linkage::Import, &cli_args_len_sig)
-        .map_err(|e| format!("failed to declare runtime cli_args_len symbol: {e}"))?;
-
-    let mut cli_arg_sig = module.make_signature();
-    cli_arg_sig.params.push(AbiParam::new(ir::types::I64));
-    cli_arg_sig.returns.push(AbiParam::new(ptr_ty));
-    let cli_arg_fn = module
-        .declare_function("vibe_cli_arg", Linkage::Import, &cli_arg_sig)
-        .map_err(|e| format!("failed to declare runtime cli_arg symbol: {e}"))?;
-
-    let mut json_is_valid_sig = module.make_signature();
-    json_is_valid_sig.params.push(AbiParam::new(ptr_ty));
-    json_is_valid_sig
-        .returns
-        .push(AbiParam::new(ir::types::I64));
-    let json_is_valid_fn = module
-        .declare_function("vibe_json_is_valid", Linkage::Import, &json_is_valid_sig)
-        .map_err(|e| format!("failed to declare runtime json_is_valid symbol: {e}"))?;
-
-    let mut json_parse_sig = module.make_signature();
-    json_parse_sig.params.push(AbiParam::new(ptr_ty));
-    json_parse_sig.returns.push(AbiParam::new(ptr_ty));
-    let json_parse_fn = module
-        .declare_function("vibe_json_parse", Linkage::Import, &json_parse_sig)
-        .map_err(|e| format!("failed to declare runtime json_parse symbol: {e}"))?;
-
-    let mut json_stringify_sig = module.make_signature();
-    json_stringify_sig.params.push(AbiParam::new(ptr_ty));
-    json_stringify_sig.returns.push(AbiParam::new(ptr_ty));
-    let json_stringify_fn = module
-        .declare_function("vibe_json_stringify", Linkage::Import, &json_stringify_sig)
-        .map_err(|e| format!("failed to declare runtime json_stringify symbol: {e}"))?;
-
-    let mut json_parse_i64_sig = module.make_signature();
-    json_parse_i64_sig.params.push(AbiParam::new(ptr_ty));
-    json_parse_i64_sig
-        .returns
-        .push(AbiParam::new(ir::types::I64));
-    let json_parse_i64_fn = module
-        .declare_function("vibe_json_parse_i64", Linkage::Import, &json_parse_i64_sig)
-        .map_err(|e| format!("failed to declare runtime json_parse_i64 symbol: {e}"))?;
-
-    let mut json_stringify_i64_sig = module.make_signature();
-    json_stringify_i64_sig
-        .params
-        .push(AbiParam::new(ir::types::I64));
-    json_stringify_i64_sig.returns.push(AbiParam::new(ptr_ty));
-    let json_stringify_i64_fn = module
-        .declare_function(
-            "vibe_json_stringify_i64",
-            Linkage::Import,
-            &json_stringify_i64_sig,
-        )
-        .map_err(|e| format!("failed to declare runtime json_stringify_i64 symbol: {e}"))?;
-
-    let mut json_minify_sig = module.make_signature();
-    json_minify_sig.params.push(AbiParam::new(ptr_ty));
-    json_minify_sig.returns.push(AbiParam::new(ptr_ty));
-    let json_minify_fn = module
-        .declare_function("vibe_json_minify", Linkage::Import, &json_minify_sig)
-        .map_err(|e| format!("failed to declare runtime json_minify symbol: {e}"))?;
-
     let mut json_encode_record_sig = module.make_signature();
     json_encode_record_sig.params.push(AbiParam::new(ptr_ty));
     json_encode_record_sig.params.push(AbiParam::new(ptr_ty));
@@ -1327,115 +825,117 @@ fn declare_runtime_functions(
         )
         .map_err(|e| format!("failed to declare runtime json_decode_record symbol: {e}"))?;
 
-    let mut regex_count_sig = module.make_signature();
-    regex_count_sig.params.push(AbiParam::new(ptr_ty));
-    regex_count_sig.params.push(AbiParam::new(ptr_ty));
-    regex_count_sig.returns.push(AbiParam::new(ir::types::I64));
-    let regex_count_fn = module
-        .declare_function("vibe_regex_count", Linkage::Import, &regex_count_sig)
-        .map_err(|e| format!("failed to declare runtime regex_count symbol: {e}"))?;
-
-    let mut regex_replace_all_sig = module.make_signature();
-    regex_replace_all_sig.params.push(AbiParam::new(ptr_ty));
-    regex_replace_all_sig.params.push(AbiParam::new(ptr_ty));
-    regex_replace_all_sig.params.push(AbiParam::new(ptr_ty));
-    regex_replace_all_sig.returns.push(AbiParam::new(ptr_ty));
-    let regex_replace_all_fn = module
-        .declare_function(
-            "vibe_regex_replace_all",
-            Linkage::Import,
-            &regex_replace_all_sig,
-        )
-        .map_err(|e| format!("failed to declare runtime regex_replace_all symbol: {e}"))?;
-
-    let mut http_status_text_sig = module.make_signature();
-    http_status_text_sig
+    let mut json_builder_new_sig = module.make_signature();
+    json_builder_new_sig
         .params
         .push(AbiParam::new(ir::types::I64));
-    http_status_text_sig.returns.push(AbiParam::new(ptr_ty));
-    let http_status_text_fn = module
+    json_builder_new_sig.returns.push(AbiParam::new(ptr_ty));
+    let json_builder_new_fn = module
         .declare_function(
-            "vibe_http_status_text",
+            "vibe_json_builder_new",
             Linkage::Import,
-            &http_status_text_sig,
+            &json_builder_new_sig,
         )
-        .map_err(|e| format!("failed to declare runtime http_status_text symbol: {e}"))?;
+        .map_err(|e| format!("failed to declare runtime json_builder_new symbol: {e}"))?;
 
-    let mut http_default_port_sig = module.make_signature();
-    http_default_port_sig.params.push(AbiParam::new(ptr_ty));
-    http_default_port_sig
-        .returns
-        .push(AbiParam::new(ir::types::I64));
-    let http_default_port_fn = module
+    let mut json_builder_one_ptr_sig = module.make_signature();
+    json_builder_one_ptr_sig.params.push(AbiParam::new(ptr_ty));
+    json_builder_one_ptr_sig.returns.push(AbiParam::new(ptr_ty));
+    let json_builder_begin_object_fn = module
         .declare_function(
-            "vibe_http_default_port",
+            "vibe_json_builder_begin_object",
             Linkage::Import,
-            &http_default_port_sig,
+            &json_builder_one_ptr_sig,
         )
-        .map_err(|e| format!("failed to declare runtime http_default_port symbol: {e}"))?;
-
-    let mut http_build_request_line_sig = module.make_signature();
-    http_build_request_line_sig
-        .params
-        .push(AbiParam::new(ptr_ty));
-    http_build_request_line_sig
-        .params
-        .push(AbiParam::new(ptr_ty));
-    http_build_request_line_sig
-        .returns
-        .push(AbiParam::new(ptr_ty));
-    let http_build_request_line_fn = module
+        .map_err(|e| format!("failed to declare runtime json_builder_begin_object symbol: {e}"))?;
+    let json_builder_end_object_fn = module
         .declare_function(
-            "vibe_http_build_request_line",
+            "vibe_json_builder_end_object",
             Linkage::Import,
-            &http_build_request_line_sig,
+            &json_builder_one_ptr_sig,
         )
-        .map_err(|e| format!("failed to declare runtime http_build_request_line symbol: {e}"))?;
-
-    let mut http_request_sig = module.make_signature();
-    http_request_sig.params.push(AbiParam::new(ptr_ty));
-    http_request_sig.params.push(AbiParam::new(ptr_ty));
-    http_request_sig.params.push(AbiParam::new(ptr_ty));
-    http_request_sig.params.push(AbiParam::new(ir::types::I64));
-    http_request_sig.returns.push(AbiParam::new(ptr_ty));
-    let http_request_fn = module
-        .declare_function("vibe_http_request", Linkage::Import, &http_request_sig)
-        .map_err(|e| format!("failed to declare runtime http_request symbol: {e}"))?;
-
-    let mut http_request_status_sig = module.make_signature();
-    http_request_status_sig.params.push(AbiParam::new(ptr_ty));
-    http_request_status_sig.params.push(AbiParam::new(ptr_ty));
-    http_request_status_sig.params.push(AbiParam::new(ptr_ty));
-    http_request_status_sig
-        .params
-        .push(AbiParam::new(ir::types::I64));
-    http_request_status_sig
-        .returns
-        .push(AbiParam::new(ir::types::I64));
-    let http_request_status_fn = module
+        .map_err(|e| format!("failed to declare runtime json_builder_end_object symbol: {e}"))?;
+    let json_builder_begin_array_fn = module
         .declare_function(
-            "vibe_http_request_status",
+            "vibe_json_builder_begin_array",
             Linkage::Import,
-            &http_request_status_sig,
+            &json_builder_one_ptr_sig,
         )
-        .map_err(|e| format!("failed to declare runtime http_request_status symbol: {e}"))?;
+        .map_err(|e| format!("failed to declare runtime json_builder_begin_array symbol: {e}"))?;
+    let json_builder_end_array_fn = module
+        .declare_function(
+            "vibe_json_builder_end_array",
+            Linkage::Import,
+            &json_builder_one_ptr_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime json_builder_end_array symbol: {e}"))?;
+    let json_builder_value_null_fn = module
+        .declare_function(
+            "vibe_json_builder_value_null",
+            Linkage::Import,
+            &json_builder_one_ptr_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime json_builder_value_null symbol: {e}"))?;
+    let json_builder_finish_fn = module
+        .declare_function(
+            "vibe_json_builder_finish",
+            Linkage::Import,
+            &json_builder_one_ptr_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime json_builder_finish symbol: {e}"))?;
 
-    let mut http_get_sig = module.make_signature();
-    http_get_sig.params.push(AbiParam::new(ptr_ty));
-    http_get_sig.params.push(AbiParam::new(ir::types::I64));
-    http_get_sig.returns.push(AbiParam::new(ptr_ty));
-    let http_get_fn = module
-        .declare_function("vibe_http_get", Linkage::Import, &http_get_sig)
-        .map_err(|e| format!("failed to declare runtime http_get symbol: {e}"))?;
-
-    let mut http_post_sig = module.make_signature();
-    http_post_sig.params.push(AbiParam::new(ptr_ty));
-    http_post_sig.params.push(AbiParam::new(ptr_ty));
-    http_post_sig.params.push(AbiParam::new(ir::types::I64));
-    http_post_sig.returns.push(AbiParam::new(ptr_ty));
-    let http_post_fn = module
-        .declare_function("vibe_http_post", Linkage::Import, &http_post_sig)
-        .map_err(|e| format!("failed to declare runtime http_post symbol: {e}"))?;
+    let mut json_builder_key_sig = module.make_signature();
+    json_builder_key_sig.params.push(AbiParam::new(ptr_ty));
+    json_builder_key_sig.params.push(AbiParam::new(ptr_ty));
+    json_builder_key_sig.returns.push(AbiParam::new(ptr_ty));
+    let json_builder_key_fn = module
+        .declare_function(
+            "vibe_json_builder_key",
+            Linkage::Import,
+            &json_builder_key_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime json_builder_key symbol: {e}"))?;
+    let json_builder_value_bool_fn = module
+        .declare_function("vibe_json_builder_value_bool", Linkage::Import, &{
+            let mut sig = module.make_signature();
+            sig.params.push(AbiParam::new(ptr_ty));
+            sig.params.push(AbiParam::new(ir::types::I64));
+            sig.returns.push(AbiParam::new(ptr_ty));
+            sig
+        })
+        .map_err(|e| format!("failed to declare runtime json_builder_value_bool symbol: {e}"))?;
+    let json_builder_value_i64_fn = module
+        .declare_function("vibe_json_builder_value_i64", Linkage::Import, &{
+            let mut sig = module.make_signature();
+            sig.params.push(AbiParam::new(ptr_ty));
+            sig.params.push(AbiParam::new(ir::types::I64));
+            sig.returns.push(AbiParam::new(ptr_ty));
+            sig
+        })
+        .map_err(|e| format!("failed to declare runtime json_builder_value_i64 symbol: {e}"))?;
+    let json_builder_value_f64_fn = module
+        .declare_function("vibe_json_builder_value_f64", Linkage::Import, &{
+            let mut sig = module.make_signature();
+            sig.params.push(AbiParam::new(ptr_ty));
+            sig.params.push(AbiParam::new(ir::types::F64));
+            sig.returns.push(AbiParam::new(ptr_ty));
+            sig
+        })
+        .map_err(|e| format!("failed to declare runtime json_builder_value_f64 symbol: {e}"))?;
+    let json_builder_value_str_fn = module
+        .declare_function(
+            "vibe_json_builder_value_str",
+            Linkage::Import,
+            &json_builder_key_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime json_builder_value_str symbol: {e}"))?;
+    let json_builder_value_json_fn = module
+        .declare_function(
+            "vibe_json_builder_value_json",
+            Linkage::Import,
+            &json_builder_key_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime json_builder_value_json symbol: {e}"))?;
 
     #[cfg(feature = "bench-runtime")]
     let bench_md5_hex_fn = {
@@ -1589,42 +1089,6 @@ fn declare_runtime_functions(
         .declare_function("vibe_record_alloc", Linkage::Import, &record_alloc_sig)
         .map_err(|e| format!("failed to declare runtime vibe_record_alloc symbol: {e}"))?;
 
-    let mut sb_new_sig = module.make_signature();
-    sb_new_sig.params.push(AbiParam::new(ir::types::I64));
-    sb_new_sig.returns.push(AbiParam::new(ptr_ty));
-    let str_builder_new_fn = module
-        .declare_function("vibe_str_builder_new", Linkage::Import, &sb_new_sig)
-        .map_err(|e| format!("failed to declare runtime vibe_str_builder_new: {e}"))?;
-
-    let mut sb_append_sig = module.make_signature();
-    sb_append_sig.params.push(AbiParam::new(ptr_ty));
-    sb_append_sig.params.push(AbiParam::new(ptr_ty));
-    sb_append_sig.returns.push(AbiParam::new(ptr_ty));
-    let str_builder_append_fn = module
-        .declare_function("vibe_str_builder_append", Linkage::Import, &sb_append_sig)
-        .map_err(|e| format!("failed to declare runtime vibe_str_builder_append: {e}"))?;
-
-    let mut sb_append_char_sig = module.make_signature();
-    sb_append_char_sig.params.push(AbiParam::new(ptr_ty));
-    sb_append_char_sig
-        .params
-        .push(AbiParam::new(ir::types::I64));
-    sb_append_char_sig.returns.push(AbiParam::new(ptr_ty));
-    let str_builder_append_char_fn = module
-        .declare_function(
-            "vibe_str_builder_append_char",
-            Linkage::Import,
-            &sb_append_char_sig,
-        )
-        .map_err(|e| format!("failed to declare runtime vibe_str_builder_append_char: {e}"))?;
-
-    let mut sb_finish_sig = module.make_signature();
-    sb_finish_sig.params.push(AbiParam::new(ptr_ty));
-    sb_finish_sig.returns.push(AbiParam::new(ptr_ty));
-    let str_builder_finish_fn = module
-        .declare_function("vibe_str_builder_finish", Linkage::Import, &sb_finish_sig)
-        .map_err(|e| format!("failed to declare runtime vibe_str_builder_finish: {e}"))?;
-
     Ok(RuntimeFunctions {
         print_fn,
         panic_fn,
@@ -1641,9 +1105,13 @@ fn declare_runtime_functions(
         container_remove_i64_fn,
         map_new_i64_i64_fn,
         map_new_str_i64_fn,
+        map_new_str_str_fn,
         container_get_str_i64_fn,
         container_set_str_i64_fn,
         container_contains_str_i64_fn,
+        container_get_str_str_fn,
+        container_set_str_str_fn,
+        json_from_str_str_map_fn,
         container_remove_str_i64_fn,
         container_contains_auto_i64_fn,
         container_remove_auto_i64_fn,
@@ -1669,74 +1137,21 @@ fn declare_runtime_functions(
         await_ptr_fn,
         select_cursor_fn,
         sleep_ms_fn,
-        time_now_ms_fn,
-        time_monotonic_now_ms_fn,
-        time_sleep_ms_fn,
-        time_duration_ms_fn,
-        path_join_fn,
-        path_parent_fn,
-        path_basename_fn,
-        path_is_absolute_fn,
-        fs_exists_fn,
-        fs_read_text_fn,
-        fs_write_text_fn,
-        fs_create_dir_fn,
-        net_listen_fn,
-        net_listener_port_fn,
-        net_accept_fn,
-        net_connect_fn,
-        net_read_fn,
-        net_write_fn,
-        net_close_fn,
-        net_resolve_fn,
-        convert_to_int_fn,
-        convert_to_float_fn,
-        convert_to_str_fn,
-        convert_to_str_f64_fn,
-        format_f64_fn,
-        i64_to_f64_fn,
-        f64_to_bits_fn,
-        f64_from_bits_fn,
-        text_trim_fn,
-        text_contains_fn,
-        text_starts_with_fn,
-        text_ends_with_fn,
-        text_replace_fn,
-        text_to_lower_fn,
-        text_to_upper_fn,
-        text_byte_len_fn,
-        text_split_part_fn,
-        encoding_hex_encode_fn,
-        encoding_hex_decode_fn,
-        encoding_base64_encode_fn,
-        encoding_base64_decode_fn,
-        encoding_url_encode_fn,
-        encoding_url_decode_fn,
-        log_info_fn,
-        log_warn_fn,
-        log_error_fn,
-        env_get_fn,
-        env_has_fn,
-        env_get_required_fn,
-        cli_args_len_fn,
-        cli_arg_fn,
-        json_is_valid_fn,
-        json_parse_fn,
-        json_stringify_fn,
-        json_parse_i64_fn,
-        json_stringify_i64_fn,
-        json_minify_fn,
         json_encode_record_fn,
         json_decode_record_fn,
-        regex_count_fn,
-        regex_replace_all_fn,
-        http_status_text_fn,
-        http_default_port_fn,
-        http_build_request_line_fn,
-        http_request_fn,
-        http_request_status_fn,
-        http_get_fn,
-        http_post_fn,
+        json_builder_new_fn,
+        json_builder_begin_object_fn,
+        json_builder_end_object_fn,
+        json_builder_begin_array_fn,
+        json_builder_end_array_fn,
+        json_builder_key_fn,
+        json_builder_value_null_fn,
+        json_builder_value_bool_fn,
+        json_builder_value_i64_fn,
+        json_builder_value_f64_fn,
+        json_builder_value_str_fn,
+        json_builder_value_json_fn,
+        json_builder_finish_fn,
         #[cfg(feature = "bench-runtime")]
         bench_md5_hex_fn,
         #[cfg(feature = "bench-runtime")]
@@ -1766,10 +1181,6 @@ fn declare_runtime_functions(
         #[cfg(feature = "bench-runtime")]
         bench_net_close_fn,
         record_alloc_fn,
-        str_builder_new_fn,
-        str_builder_append_fn,
-        str_builder_append_char_fn,
-        str_builder_finish_fn,
     })
 }
 
@@ -1785,6 +1196,55 @@ fn define_function(
     type_defs: &BTreeMap<String, Vec<(String, String)>>,
     enum_defs: &BTreeMap<String, Vec<String>>,
 ) -> Result<(), String> {
+    if let Some(native_sym) = &function.native_symbol {
+        let mut ctx = module.make_context();
+        let sig = build_signature(module, function, ptr_ty);
+        ctx.func.signature = sig.clone();
+        ctx.func.name = UserFuncName::user(0, func_id.as_u32());
+
+        let mut native_sig = module.make_signature();
+        for p in &function.params {
+            native_sig
+                .params
+                .push(AbiParam::new(mir_ty_to_clif(&p.ty, ptr_ty)));
+        }
+        if function.return_type != MirType::Void {
+            native_sig
+                .returns
+                .push(AbiParam::new(mir_ty_to_clif(&function.return_type, ptr_ty)));
+        }
+        let native_id = module
+            .declare_function(native_sym, Linkage::Import, &native_sig)
+            .map_err(|e| format!("failed to declare native symbol `{native_sym}`: {e}"))?;
+
+        let mut builder_ctx = FunctionBuilderContext::new();
+        let mut builder = FunctionBuilder::new(&mut ctx.func, &mut builder_ctx);
+        let entry = builder.create_block();
+        builder.append_block_params_for_function_params(entry);
+        builder.switch_to_block(entry);
+        builder.seal_block(entry);
+
+        let local_fn = module.declare_func_in_func(native_id, builder.func);
+        let params: Vec<ir::Value> = (0..function.params.len())
+            .map(|i| builder.block_params(entry)[i])
+            .collect();
+        let call = builder.ins().call(local_fn, &params);
+        if function.return_type == MirType::Void {
+            builder.ins().return_(&[]);
+        } else {
+            let ret =
+                builder.inst_results(call).first().copied().ok_or_else(|| {
+                    format!("native function `{native_sym}` did not return a value")
+                })?;
+            builder.ins().return_(&[ret]);
+        }
+        builder.finalize();
+        module
+            .define_function(func_id, &mut ctx)
+            .map_err(|e| format!("failed to define native wrapper `{}`: {e}", function.name))?;
+        return Ok(());
+    }
+
     let mut ctx = module.make_context();
     ctx.func.signature = build_signature(module, function, ptr_ty);
     ctx.func.name = UserFuncName::user(0, func_id.as_u32());
@@ -1981,7 +1441,18 @@ fn emit_stmt(
             if owner.return_type == MirType::Void {
                 builder.ins().return_(&[]);
             } else {
-                builder.ins().return_(&[value]);
+                let ret_ty = mir_ty_to_clif(&owner.return_type, ptr_ty);
+                let val_ty = builder.func.dfg.value_type(value);
+                let coerced = if val_ty == ret_ty {
+                    value
+                } else if val_ty.is_int() && ret_ty.is_int() && val_ty.bits() > ret_ty.bits() {
+                    builder.ins().ireduce(ret_ty, value)
+                } else if val_ty.is_int() && ret_ty.is_int() && val_ty.bits() < ret_ty.bits() {
+                    builder.ins().uextend(ret_ty, value)
+                } else {
+                    value
+                };
+                builder.ins().return_(&[coerced]);
             }
             Ok(true)
         }
@@ -3254,19 +2725,35 @@ fn emit_expr(
                     .copied()
                     .ok_or_else(|| "map runtime call did not return map handle".to_string())?
             } else {
-                let (first_key_expr, _) = &entries[0];
-                let use_str_keys = is_known_string_expr_with_owner(first_key_expr, owner);
-                let local_new = if use_str_keys {
-                    module.declare_func_in_func(runtime_fns.map_new_str_i64_fn, builder.func)
-                } else {
-                    module.declare_func_in_func(runtime_fns.map_new_i64_i64_fn, builder.func)
-                };
-                let call = builder.ins().call(local_new, &[]);
-                let map_handle = builder
-                    .inst_results(call)
-                    .first()
-                    .copied()
-                    .ok_or_else(|| "map runtime call did not return map handle".to_string())?;
+                let (first_key_expr, first_val_expr) = &entries[0];
+                let use_str_keys = is_known_string_expr_full(first_key_expr, owner, type_defs);
+                let use_str_vals =
+                    use_str_keys && is_known_string_expr_full(first_val_expr, owner, type_defs);
+                let local_new =
+                    if use_str_keys && use_str_vals {
+                        let cap = builder.ins().iconst(ir::types::I64, entries.len() as i64);
+                        let new_fn = module
+                            .declare_func_in_func(runtime_fns.map_new_str_str_fn, builder.func);
+                        let call = builder.ins().call(new_fn, &[cap]);
+                        builder.inst_results(call).first().copied().ok_or_else(|| {
+                            "map runtime call did not return map handle".to_string()
+                        })?
+                    } else if use_str_keys {
+                        let new_fn = module
+                            .declare_func_in_func(runtime_fns.map_new_str_i64_fn, builder.func);
+                        let call = builder.ins().call(new_fn, &[]);
+                        builder.inst_results(call).first().copied().ok_or_else(|| {
+                            "map runtime call did not return map handle".to_string()
+                        })?
+                    } else {
+                        let new_fn = module
+                            .declare_func_in_func(runtime_fns.map_new_i64_i64_fn, builder.func);
+                        let call = builder.ins().call(new_fn, &[]);
+                        builder.inst_results(call).first().copied().ok_or_else(|| {
+                            "map runtime call did not return map handle".to_string()
+                        })?
+                    };
+                let map_handle = local_new;
                 for (key_expr, value_expr) in entries {
                     let key = emit_expr(
                         key_expr,
@@ -3296,16 +2783,16 @@ fn emit_expr(
                         type_defs,
                         enum_defs,
                     )?;
-                    if builder.func.dfg.value_type(value) != ir::types::I64 {
-                        return Err(
-                            "E3401: native map lowering currently supports Int values only"
-                                .to_string(),
+                    if use_str_keys && use_str_vals {
+                        let local_set = module.declare_func_in_func(
+                            runtime_fns.container_set_str_str_fn,
+                            builder.func,
                         );
-                    }
-                    if use_str_keys {
-                        if !is_known_string_expr_with_owner(key_expr, owner) {
+                        builder.ins().call(local_set, &[map_handle, key, value]);
+                    } else if use_str_keys {
+                        if builder.func.dfg.value_type(value) != ir::types::I64 {
                             return Err(
-                                "E3401: map literal key kinds must be consistent (all Str or all Int)"
+                                "E3401: native map lowering currently supports Int values only for Map<Str, Int>"
                                     .to_string(),
                             );
                         }
@@ -3315,7 +2802,7 @@ fn emit_expr(
                         );
                         builder.ins().call(local_set, &[map_handle, key, value]);
                     } else {
-                        if is_known_string_expr_with_owner(key_expr, owner) {
+                        if is_known_string_expr_full(key_expr, owner, type_defs) {
                             return Err(
                                 "E3401: map literal key kinds must be consistent (all Str or all Int)"
                                     .to_string(),
@@ -3349,7 +2836,7 @@ fn emit_expr(
                 enum_defs,
             )?;
             if field == "len" {
-                let use_str_len = is_known_string_expr_with_owner(object, owner)
+                let use_str_len = is_known_string_expr_full(object, owner, type_defs)
                     || matches!(&**object, MirExpr::Var(name)
                         if var_has_add_assignment(owner, name)
                         || var_has_str_call_assignment(owner, name, function_returns));
@@ -3687,7 +3174,7 @@ fn emit_expr(
                         type_defs,
                         enum_defs,
                     )?;
-                    let use_str_len = is_known_string_expr_with_owner(&args[0], owner);
+                    let use_str_len = is_known_string_expr_full(&args[0], owner, type_defs);
                     let local_len = if use_str_len {
                         module.declare_func_in_func(runtime_fns.str_len_bytes_fn, builder.func)
                     } else {
@@ -3825,14 +3312,17 @@ fn emit_expr(
                         enum_defs,
                     )?);
                 }
-                if let MirExpr::Var(namespace) = &**object {
+                if let Some((namespace, stdlib_field)) =
+                    extract_stdlib_call_target_mir(callee.as_ref(), function_ids)
+                {
                     if let Some(value) = emit_stdlib_namespace_call(
-                        namespace,
-                        field,
+                        &namespace,
+                        &stdlib_field,
                         &lowered_args,
                         module,
                         builder,
                         runtime_fns,
+                        function_ids,
                         ptr_ty,
                         str_data_counter,
                         owner,
@@ -3944,7 +3434,7 @@ fn emit_expr(
                         if !lowered_args.is_empty() {
                             return Err("`.len()` expects no arguments".to_string());
                         }
-                        let use_str_len = is_known_string_expr_with_owner(object, owner)
+                        let use_str_len = is_known_string_expr_full(object, owner, type_defs)
                             || matches!(&**object, MirExpr::Var(name)
                                 if var_has_add_assignment(owner, name)
                                 || var_has_str_call_assignment(owner, name, function_returns));
@@ -4112,6 +3602,73 @@ fn emit_expr(
                 "E3405: dynamic call targets are not supported in v0.1 native backend".to_string(),
             );
         }
+        MirExpr::Binary { left, op, right } if op == "And" || op == "Or" => {
+            let l = emit_expr(
+                left,
+                module,
+                builder,
+                locals,
+                function_ids,
+                function_returns,
+                runtime_fns,
+                ptr_ty,
+                str_data_counter,
+                owner,
+                type_defs,
+                enum_defs,
+            )?;
+            let l_ty = builder.func.dfg.value_type(l);
+            let zero = builder.ins().iconst(l_ty, 0);
+            let l_bool = builder.ins().icmp(IntCC::NotEqual, l, zero);
+
+            let rhs_block = builder.create_block();
+            let merge_block = builder.create_block();
+
+            let slot = builder.create_sized_stack_slot(cranelift_codegen::ir::StackSlotData::new(
+                cranelift_codegen::ir::StackSlotKind::ExplicitSlot,
+                8,
+                8,
+            ));
+
+            if op == "And" {
+                let false_val = builder.ins().iconst(ir::types::I64, 0);
+                builder.ins().stack_store(false_val, slot, Offset32::new(0));
+                builder.ins().brif(l_bool, rhs_block, &[], merge_block, &[]);
+            } else {
+                let true_val = builder.ins().iconst(ir::types::I64, 1);
+                builder.ins().stack_store(true_val, slot, Offset32::new(0));
+                builder.ins().brif(l_bool, merge_block, &[], rhs_block, &[]);
+            }
+
+            builder.switch_to_block(rhs_block);
+            builder.seal_block(rhs_block);
+            let r = emit_expr(
+                right,
+                module,
+                builder,
+                locals,
+                function_ids,
+                function_returns,
+                runtime_fns,
+                ptr_ty,
+                str_data_counter,
+                owner,
+                type_defs,
+                enum_defs,
+            )?;
+            let r_ty = builder.func.dfg.value_type(r);
+            let r_zero = builder.ins().iconst(r_ty, 0);
+            let r_bool = builder.ins().icmp(IntCC::NotEqual, r, r_zero);
+            let r_result = builder.ins().uextend(ir::types::I64, r_bool);
+            builder.ins().stack_store(r_result, slot, Offset32::new(0));
+            builder.ins().jump(merge_block, &[]);
+
+            builder.switch_to_block(merge_block);
+            builder.seal_block(merge_block);
+            builder
+                .ins()
+                .stack_load(ir::types::I64, slot, Offset32::new(0))
+        }
         MirExpr::Binary { left, op, right } => {
             let l = emit_expr(
                 left,
@@ -4156,8 +3713,8 @@ fn emit_expr(
             };
             match op.as_str() {
                 "Add" => {
-                    if is_known_string_expr_with_owner(left, owner)
-                        || is_known_string_expr_with_owner(right, owner)
+                    if is_known_string_expr_full(left, owner, type_defs)
+                        || is_known_string_expr_full(right, owner, type_defs)
                     {
                         let local_concat =
                             module.declare_func_in_func(runtime_fns.str_concat_fn, builder.func);
@@ -4194,8 +3751,8 @@ fn emit_expr(
                 }
                 "Eq" | "Ne" => {
                     let is_ne = op == "Ne";
-                    if is_known_string_expr_with_owner(left, owner)
-                        && is_known_string_expr_with_owner(right, owner)
+                    if is_known_string_expr_full(left, owner, type_defs)
+                        || is_known_string_expr_full(right, owner, type_defs)
                     {
                         let local_eq =
                             module.declare_func_in_func(runtime_fns.str_eq_fn, builder.func);
@@ -4356,7 +3913,7 @@ fn emit_expr(
                 inner
             }
         }
-        MirExpr::Question { expr } | MirExpr::Old { expr } => emit_expr(
+        MirExpr::Old { expr } => emit_expr(
             expr,
             module,
             builder,
@@ -4370,6 +3927,124 @@ fn emit_expr(
             type_defs,
             enum_defs,
         )?,
+        MirExpr::Question { expr } => {
+            let result_ptr = emit_expr(
+                expr,
+                module,
+                builder,
+                locals,
+                function_ids,
+                function_returns,
+                runtime_fns,
+                ptr_ty,
+                str_data_counter,
+                owner,
+                type_defs,
+                enum_defs,
+            )?;
+            let tag = builder.ins().load(
+                ir::types::I64,
+                MemFlags::new(),
+                result_ptr,
+                Offset32::new(0),
+            );
+            let one = builder.ins().iconst(ir::types::I64, 1);
+            let is_err = builder.ins().icmp(IntCC::Equal, tag, one);
+            let err_block = builder.create_block();
+            let ok_block = builder.create_block();
+            builder.ins().brif(is_err, err_block, &[], ok_block, &[]);
+
+            builder.switch_to_block(err_block);
+            builder.ins().return_(&[result_ptr]);
+            builder.seal_block(err_block);
+
+            builder.switch_to_block(ok_block);
+            builder.seal_block(ok_block);
+            builder.ins().load(
+                ir::types::I64,
+                MemFlags::new(),
+                result_ptr,
+                Offset32::new(8),
+            )
+        }
+        MirExpr::ResultOk { expr } => {
+            let inner = emit_expr(
+                expr,
+                module,
+                builder,
+                locals,
+                function_ids,
+                function_returns,
+                runtime_fns,
+                ptr_ty,
+                str_data_counter,
+                owner,
+                type_defs,
+                enum_defs,
+            )?;
+            let local_alloc =
+                module.declare_func_in_func(runtime_fns.record_alloc_fn, builder.func);
+            let slot_count = builder.ins().iconst(ir::types::I64, 2);
+            let alloc_call = builder.ins().call(local_alloc, &[slot_count]);
+            let ptr = builder
+                .inst_results(alloc_call)
+                .first()
+                .copied()
+                .ok_or_else(|| "record_alloc did not return".to_string())?;
+            let tag = builder.ins().iconst(ir::types::I64, 0);
+            builder
+                .ins()
+                .store(MemFlags::new(), tag, ptr, Offset32::new(0));
+            let inner_ty = builder.func.dfg.value_type(inner);
+            let to_store = if inner_ty == ir::types::I8 {
+                builder.ins().sextend(ir::types::I64, inner)
+            } else {
+                inner
+            };
+            builder
+                .ins()
+                .store(MemFlags::new(), to_store, ptr, Offset32::new(8));
+            ptr
+        }
+        MirExpr::ResultErr { expr } => {
+            let inner = emit_expr(
+                expr,
+                module,
+                builder,
+                locals,
+                function_ids,
+                function_returns,
+                runtime_fns,
+                ptr_ty,
+                str_data_counter,
+                owner,
+                type_defs,
+                enum_defs,
+            )?;
+            let local_alloc =
+                module.declare_func_in_func(runtime_fns.record_alloc_fn, builder.func);
+            let slot_count = builder.ins().iconst(ir::types::I64, 2);
+            let alloc_call = builder.ins().call(local_alloc, &[slot_count]);
+            let ptr = builder
+                .inst_results(alloc_call)
+                .first()
+                .copied()
+                .ok_or_else(|| "record_alloc did not return".to_string())?;
+            let tag = builder.ins().iconst(ir::types::I64, 1);
+            builder
+                .ins()
+                .store(MemFlags::new(), tag, ptr, Offset32::new(0));
+            let inner_ty = builder.func.dfg.value_type(inner);
+            let to_store = if inner_ty == ir::types::I8 {
+                builder.ins().sextend(ir::types::I64, inner)
+            } else {
+                inner
+            };
+            builder
+                .ins()
+                .store(MemFlags::new(), to_store, ptr, Offset32::new(8));
+            ptr
+        }
         MirExpr::DotResult => builder.ins().iconst(ir::types::I64, 0),
         MirExpr::Constructor { type_name, fields } => {
             let field_list = type_defs
@@ -4485,6 +4160,17 @@ fn json_codec_schema(
     type_name: &str,
     type_defs: &BTreeMap<String, Vec<(String, String)>>,
 ) -> Option<String> {
+    json_codec_schema_recursive(type_name, type_defs, 0)
+}
+
+fn json_codec_schema_recursive(
+    type_name: &str,
+    type_defs: &BTreeMap<String, Vec<(String, String)>>,
+    depth: usize,
+) -> Option<String> {
+    if depth > 16 {
+        return None;
+    }
     let fields = type_defs.get(type_name)?;
     let mut schema = String::new();
     for (idx, (field_name, field_ty)) in fields.iter().enumerate() {
@@ -4493,11 +4179,86 @@ fn json_codec_schema(
         }
         schema.push_str(field_name);
         schema.push(':');
-        schema.push_str(field_ty);
+        if type_defs.contains_key(field_ty.as_str()) {
+            schema.push('{');
+            if let Some(nested) = json_codec_schema_recursive(field_ty, type_defs, depth + 1) {
+                schema.push_str(&nested);
+            }
+            schema.push('}');
+        } else {
+            schema.push_str(field_ty);
+        }
     }
     Some(schema)
 }
 
+fn collect_member_chain_mir(expr: &MirExpr, parts: &mut Vec<String>) -> bool {
+    match expr {
+        MirExpr::Var(name) => {
+            parts.push(name.clone());
+            true
+        }
+        MirExpr::Member { object, field, .. } => {
+            if collect_member_chain_mir(object, parts) {
+                parts.push(field.clone());
+                true
+            } else {
+                false
+            }
+        }
+        _ => false,
+    }
+}
+
+fn extract_stdlib_call_target_mir_static(callee: &MirExpr) -> Option<(String, String)> {
+    extract_stdlib_call_target_mir(callee, &BTreeMap::new())
+}
+
+fn extract_stdlib_call_target_mir(
+    callee: &MirExpr,
+    function_ids: &BTreeMap<String, FuncId>,
+) -> Option<(String, String)> {
+    let MirExpr::Member { .. } = callee else {
+        return None;
+    };
+    let mut parts = Vec::new();
+    if !collect_member_chain_mir(callee, &mut parts) || parts.len() < 2 {
+        return None;
+    }
+    let root = parts.first()?;
+    let is_dynamic = function_ids
+        .keys()
+        .any(|k| k.starts_with("__ns_call__") && k[11..].starts_with(root.as_str()));
+    if !is_dynamic
+        && !matches!(
+            root.as_str(),
+            "simd"
+                | "json"
+                | "bench"
+                | "time"
+                | "path"
+                | "fs"
+                | "net"
+                | "convert"
+                | "math"
+                | "str_builder"
+                | "text"
+                | "encoding"
+                | "log"
+                | "env"
+                | "cli"
+                | "regex"
+                | "http"
+        )
+    {
+        return None;
+    }
+    let field = parts.pop()?;
+    let namespace = parts.join(".");
+    Some((namespace, field))
+}
+
+#[allow(clippy::too_many_arguments)]
 fn emit_stdlib_namespace_call(
     namespace: &str,
     field: &str,
@@ -4505,17 +4266,19 @@ fn emit_stdlib_namespace_call(
     module: &mut ObjectModule,
     builder: &mut FunctionBuilder<'_>,
     runtime_fns: RuntimeFunctions,
+    function_ids: &BTreeMap<String, FuncId>,
     ptr_ty: ir::Type,
     str_data_counter: &mut usize,
     owner: &MirFunction,
     type_defs: &BTreeMap<String, Vec<(String, String)>>,
 ) -> Result<Option<ir::Value>, String> {
-    let call_no_args =
-        |func: FuncId, module: &mut ObjectModule, builder: &mut FunctionBuilder<'_>| -> ir::Value {
-            let local = module.declare_func_in_func(func, builder.func);
-            let call = builder.ins().call(local, &[]);
-            call_result_or_zero(builder, call)
-        };
+    let ns_key = format!("__ns_call__{namespace}.{field}");
+    if let Some(&func_id) = function_ids.get(&ns_key) {
+        let local = module.declare_func_in_func(func_id, builder.func);
+        let call = builder.ins().call(local, lowered_args);
+        return Ok(Some(call_result_or_zero(builder, call)));
+    }
+
     let call_one_arg = |func: FuncId,
                         arg0: ir::Value,
                         module: &mut ObjectModule,
@@ -4533,29 +4296,6 @@ fn emit_stdlib_namespace_call(
      -> ir::Value {
         let local = module.declare_func_in_func(func, builder.func);
         let call = builder.ins().call(local, &[arg0, arg1]);
-        call_result_or_zero(builder, call)
-    };
-    let call_three_args = |func: FuncId,
-                           arg0: ir::Value,
-                           arg1: ir::Value,
-                           arg2: ir::Value,
-                           module: &mut ObjectModule,
-                           builder: &mut FunctionBuilder<'_>|
-     -> ir::Value {
-        let local = module.declare_func_in_func(func, builder.func);
-        let call = builder.ins().call(local, &[arg0, arg1, arg2]);
-        call_result_or_zero(builder, call)
-    };
-    let call_four_args = |func: FuncId,
-                          arg0: ir::Value,
-                          arg1: ir::Value,
-                          arg2: ir::Value,
-                          arg3: ir::Value,
-                          module: &mut ObjectModule,
-                          builder: &mut FunctionBuilder<'_>|
-     -> ir::Value {
-        let local = module.declare_func_in_func(func, builder.func);
-        let call = builder.ins().call(local, &[arg0, arg1, arg2, arg3]);
         call_result_or_zero(builder, call)
     };
 
@@ -4607,262 +4347,6 @@ fn emit_stdlib_namespace_call(
     }
 
     let value = match (namespace, field) {
-        ("time", "now_ms") => {
-            expect_arity(0)?;
-            call_no_args(runtime_fns.time_now_ms_fn, module, builder)
-        }
-        ("time", "monotonic_now_ms") => {
-            expect_arity(0)?;
-            call_no_args(runtime_fns.time_monotonic_now_ms_fn, module, builder)
-        }
-        ("time", "sleep_ms") => {
-            expect_arity(1)?;
-            let _ = call_one_arg(
-                runtime_fns.time_sleep_ms_fn,
-                lowered_args[0],
-                module,
-                builder,
-            );
-            builder.ins().iconst(ir::types::I64, 0)
-        }
-        ("time", "duration_ms") => {
-            expect_arity(1)?;
-            call_one_arg(
-                runtime_fns.time_duration_ms_fn,
-                lowered_args[0],
-                module,
-                builder,
-            )
-        }
-        ("path", "join") => {
-            expect_arity(2)?;
-            call_two_args(
-                runtime_fns.path_join_fn,
-                lowered_args[0],
-                lowered_args[1],
-                module,
-                builder,
-            )
-        }
-        ("path", "parent") => {
-            expect_arity(1)?;
-            call_one_arg(runtime_fns.path_parent_fn, lowered_args[0], module, builder)
-        }
-        ("path", "basename") => {
-            expect_arity(1)?;
-            call_one_arg(
-                runtime_fns.path_basename_fn,
-                lowered_args[0],
-                module,
-                builder,
-            )
-        }
-        ("path", "is_absolute") => {
-            expect_arity(1)?;
-            call_one_arg(
-                runtime_fns.path_is_absolute_fn,
-                lowered_args[0],
-                module,
-                builder,
-            )
-        }
-        ("fs", "exists") => {
-            expect_arity(1)?;
-            call_one_arg(runtime_fns.fs_exists_fn, lowered_args[0], module, builder)
-        }
-        ("fs", "read_text") => {
-            expect_arity(1)?;
-            call_one_arg(
-                runtime_fns.fs_read_text_fn,
-                lowered_args[0],
-                module,
-                builder,
-            )
-        }
-        ("fs", "write_text") => {
-            expect_arity(2)?;
-            call_two_args(
-                runtime_fns.fs_write_text_fn,
-                lowered_args[0],
-                lowered_args[1],
-                module,
-                builder,
-            )
-        }
-        ("fs", "create_dir") => {
-            expect_arity(1)?;
-            call_one_arg(
-                runtime_fns.fs_create_dir_fn,
-                lowered_args[0],
-                module,
-                builder,
-            )
-        }
-        ("net", "listen") => {
-            expect_arity(2)?;
-            call_two_args(
-                runtime_fns.net_listen_fn,
-                lowered_args[0],
-                lowered_args[1],
-                module,
-                builder,
-            )
-        }
-        ("net", "listener_port") => {
-            expect_arity(1)?;
-            call_one_arg(
-                runtime_fns.net_listener_port_fn,
-                lowered_args[0],
-                module,
-                builder,
-            )
-        }
-        ("net", "accept") => {
-            expect_arity(1)?;
-            call_one_arg(runtime_fns.net_accept_fn, lowered_args[0], module, builder)
-        }
-        ("net", "connect") => {
-            expect_arity(2)?;
-            call_two_args(
-                runtime_fns.net_connect_fn,
-                lowered_args[0],
-                lowered_args[1],
-                module,
-                builder,
-            )
-        }
-        ("net", "read") => {
-            expect_arity(2)?;
-            call_two_args(
-                runtime_fns.net_read_fn,
-                lowered_args[0],
-                lowered_args[1],
-                module,
-                builder,
-            )
-        }
-        ("net", "write") => {
-            expect_arity(2)?;
-            call_two_args(
-                runtime_fns.net_write_fn,
-                lowered_args[0],
-                lowered_args[1],
-                module,
-                builder,
-            )
-        }
-        ("net", "close") => {
-            expect_arity(1)?;
-            call_one_arg(runtime_fns.net_close_fn, lowered_args[0], module, builder)
-        }
-        ("net", "resolve") => {
-            expect_arity(1)?;
-            call_one_arg(runtime_fns.net_resolve_fn, lowered_args[0], module, builder)
-        }
-        ("convert", "to_int") | ("convert", "parse_i64") => {
-            expect_arity(1)?;
-            call_one_arg(
-                runtime_fns.convert_to_int_fn,
-                lowered_args[0],
-                module,
-                builder,
-            )
-        }
-        ("convert", "to_float") | ("convert", "parse_f64") => {
-            expect_arity(1)?;
-            call_one_arg(
-                runtime_fns.convert_to_float_fn,
-                lowered_args[0],
-                module,
-                builder,
-            )
-        }
-        ("convert", "to_str") => {
-            expect_arity(1)?;
-            call_one_arg(
-                runtime_fns.convert_to_str_fn,
-                lowered_args[0],
-                module,
-                builder,
-            )
-        }
-        ("convert", "to_str_f64") => {
-            expect_arity(1)?;
-            call_one_arg(
-                runtime_fns.convert_to_str_f64_fn,
-                lowered_args[0],
-                module,
-                builder,
-            )
-        }
-        ("convert", "format_f64") => {
-            expect_arity(2)?;
-            call_two_args(
-                runtime_fns.format_f64_fn,
-                lowered_args[0],
-                lowered_args[1],
-                module,
-                builder,
-            )
-        }
-        ("convert", "i64_to_f64") => {
-            expect_arity(1)?;
-            call_one_arg(runtime_fns.i64_to_f64_fn, lowered_args[0], module, builder)
-        }
-        ("convert", "f64_to_bits") => {
-            expect_arity(1)?;
-            builder
-                .ins()
-                .bitcast(ir::types::I64, MemFlags::new(), lowered_args[0])
-        }
-        ("convert", "f64_from_bits") => {
-            expect_arity(1)?;
-            builder
-                .ins()
-                .bitcast(ir::types::F64, MemFlags::new(), lowered_args[0])
-        }
-        ("math", "sqrt") => {
-            expect_arity(1)?;
-            builder.ins().sqrt(lowered_args[0])
-        }
-        ("str_builder", "new") => {
-            expect_arity(1)?;
-            call_one_arg(
-                runtime_fns.str_builder_new_fn,
-                lowered_args[0],
-                module,
-                builder,
-            )
-        }
-        ("str_builder", "append") => {
-            expect_arity(2)?;
-            call_two_args(
-                runtime_fns.str_builder_append_fn,
-                lowered_args[0],
-                lowered_args[1],
-                module,
-                builder,
-            )
-        }
-        ("str_builder", "append_char") => {
-            expect_arity(2)?;
-            call_two_args(
-                runtime_fns.str_builder_append_char_fn,
-                lowered_args[0],
-                lowered_args[1],
-                module,
-                builder,
-            )
-        }
-        ("str_builder", "finish") => {
-            expect_arity(1)?;
-            call_one_arg(
-                runtime_fns.str_builder_finish_fn,
-                lowered_args[0],
-                module,
-                builder,
-            )
-        }
         ("simd", "f64x2_splat") => {
             expect_arity(1)?;
             let scalar = lowered_args[0];
@@ -4995,317 +4479,136 @@ fn emit_stdlib_namespace_call(
             let lane1 = builder.ins().extractlane(vec, 1);
             builder.ins().select(is_zero, lane0, lane1)
         }
-        ("text", "trim") => {
+        ("json", "from_map") => {
             expect_arity(1)?;
-            call_one_arg(runtime_fns.text_trim_fn, lowered_args[0], module, builder)
+            call_one_arg(
+                runtime_fns.json_from_str_str_map_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
         }
-        ("text", "contains") => {
+        ("json.builder", "new") => {
+            expect_arity(1)?;
+            call_one_arg(
+                runtime_fns.json_builder_new_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
+        }
+        ("json.builder", "begin_object") => {
+            expect_arity(1)?;
+            call_one_arg(
+                runtime_fns.json_builder_begin_object_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
+        }
+        ("json.builder", "end_object") => {
+            expect_arity(1)?;
+            call_one_arg(
+                runtime_fns.json_builder_end_object_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
+        }
+        ("json.builder", "begin_array") => {
+            expect_arity(1)?;
+            call_one_arg(
+                runtime_fns.json_builder_begin_array_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
+        }
+        ("json.builder", "end_array") => {
+            expect_arity(1)?;
+            call_one_arg(
+                runtime_fns.json_builder_end_array_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
+        }
+        ("json.builder", "key") => {
             expect_arity(2)?;
             call_two_args(
-                runtime_fns.text_contains_fn,
+                runtime_fns.json_builder_key_fn,
                 lowered_args[0],
                 lowered_args[1],
                 module,
                 builder,
             )
         }
-        ("text", "starts_with") => {
+        ("json.builder", "value_null") => {
+            expect_arity(1)?;
+            call_one_arg(
+                runtime_fns.json_builder_value_null_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
+        }
+        ("json.builder", "value_bool") => {
+            expect_arity(2)?;
+            // Bool lowers to I8; runtime ABI uses I64 for the flag.
+            let flag = builder.ins().uextend(ir::types::I64, lowered_args[1]);
+            call_two_args(
+                runtime_fns.json_builder_value_bool_fn,
+                lowered_args[0],
+                flag,
+                module,
+                builder,
+            )
+        }
+        ("json.builder", "value_i64") => {
             expect_arity(2)?;
             call_two_args(
-                runtime_fns.text_starts_with_fn,
+                runtime_fns.json_builder_value_i64_fn,
                 lowered_args[0],
                 lowered_args[1],
                 module,
                 builder,
             )
         }
-        ("text", "ends_with") => {
+        ("json.builder", "value_f64") => {
             expect_arity(2)?;
             call_two_args(
-                runtime_fns.text_ends_with_fn,
+                runtime_fns.json_builder_value_f64_fn,
                 lowered_args[0],
                 lowered_args[1],
                 module,
                 builder,
             )
         }
-        ("text", "replace") => {
-            expect_arity(3)?;
-            call_three_args(
-                runtime_fns.text_replace_fn,
-                lowered_args[0],
-                lowered_args[1],
-                lowered_args[2],
-                module,
-                builder,
-            )
-        }
-        ("text", "to_lower") => {
-            expect_arity(1)?;
-            call_one_arg(
-                runtime_fns.text_to_lower_fn,
-                lowered_args[0],
-                module,
-                builder,
-            )
-        }
-        ("text", "to_upper") => {
-            expect_arity(1)?;
-            call_one_arg(
-                runtime_fns.text_to_upper_fn,
-                lowered_args[0],
-                module,
-                builder,
-            )
-        }
-        ("text", "byte_len") => {
-            expect_arity(1)?;
-            call_one_arg(
-                runtime_fns.text_byte_len_fn,
-                lowered_args[0],
-                module,
-                builder,
-            )
-        }
-        ("text", "split_part") => {
-            expect_arity(3)?;
-            call_three_args(
-                runtime_fns.text_split_part_fn,
-                lowered_args[0],
-                lowered_args[1],
-                lowered_args[2],
-                module,
-                builder,
-            )
-        }
-        ("encoding", "hex_encode") => {
-            expect_arity(1)?;
-            call_one_arg(
-                runtime_fns.encoding_hex_encode_fn,
-                lowered_args[0],
-                module,
-                builder,
-            )
-        }
-        ("encoding", "hex_decode") => {
-            expect_arity(1)?;
-            call_one_arg(
-                runtime_fns.encoding_hex_decode_fn,
-                lowered_args[0],
-                module,
-                builder,
-            )
-        }
-        ("encoding", "base64_encode") => {
-            expect_arity(1)?;
-            call_one_arg(
-                runtime_fns.encoding_base64_encode_fn,
-                lowered_args[0],
-                module,
-                builder,
-            )
-        }
-        ("encoding", "base64_decode") => {
-            expect_arity(1)?;
-            call_one_arg(
-                runtime_fns.encoding_base64_decode_fn,
-                lowered_args[0],
-                module,
-                builder,
-            )
-        }
-        ("encoding", "url_encode") => {
-            expect_arity(1)?;
-            call_one_arg(
-                runtime_fns.encoding_url_encode_fn,
-                lowered_args[0],
-                module,
-                builder,
-            )
-        }
-        ("encoding", "url_decode") => {
-            expect_arity(1)?;
-            call_one_arg(
-                runtime_fns.encoding_url_decode_fn,
-                lowered_args[0],
-                module,
-                builder,
-            )
-        }
-        ("log", "info") => {
-            expect_arity(1)?;
-            let _ = call_one_arg(runtime_fns.log_info_fn, lowered_args[0], module, builder);
-            builder.ins().iconst(ir::types::I64, 0)
-        }
-        ("log", "warn") => {
-            expect_arity(1)?;
-            let _ = call_one_arg(runtime_fns.log_warn_fn, lowered_args[0], module, builder);
-            builder.ins().iconst(ir::types::I64, 0)
-        }
-        ("log", "error") => {
-            expect_arity(1)?;
-            let _ = call_one_arg(runtime_fns.log_error_fn, lowered_args[0], module, builder);
-            builder.ins().iconst(ir::types::I64, 0)
-        }
-        ("env", "get") => {
-            expect_arity(1)?;
-            call_one_arg(runtime_fns.env_get_fn, lowered_args[0], module, builder)
-        }
-        ("env", "has") => {
-            expect_arity(1)?;
-            call_one_arg(runtime_fns.env_has_fn, lowered_args[0], module, builder)
-        }
-        ("env", "get_required") => {
-            expect_arity(1)?;
-            call_one_arg(
-                runtime_fns.env_get_required_fn,
-                lowered_args[0],
-                module,
-                builder,
-            )
-        }
-        ("cli", "args_len") => {
-            expect_arity(0)?;
-            call_no_args(runtime_fns.cli_args_len_fn, module, builder)
-        }
-        ("cli", "arg") => {
-            expect_arity(1)?;
-            call_one_arg(runtime_fns.cli_arg_fn, lowered_args[0], module, builder)
-        }
-        ("json", "is_valid") => {
-            expect_arity(1)?;
-            call_one_arg(
-                runtime_fns.json_is_valid_fn,
-                lowered_args[0],
-                module,
-                builder,
-            )
-        }
-        ("json", "parse") => {
-            expect_arity(1)?;
-            call_one_arg(runtime_fns.json_parse_fn, lowered_args[0], module, builder)
-        }
-        ("json", "stringify") => {
-            expect_arity(1)?;
-            call_one_arg(
-                runtime_fns.json_stringify_fn,
-                lowered_args[0],
-                module,
-                builder,
-            )
-        }
-        ("json", "parse_i64") => {
-            expect_arity(1)?;
-            call_one_arg(
-                runtime_fns.json_parse_i64_fn,
-                lowered_args[0],
-                module,
-                builder,
-            )
-        }
-        ("json", "stringify_i64") => {
-            expect_arity(1)?;
-            call_one_arg(
-                runtime_fns.json_stringify_i64_fn,
-                lowered_args[0],
-                module,
-                builder,
-            )
-        }
-        ("json", "minify") => {
-            expect_arity(1)?;
-            call_one_arg(runtime_fns.json_minify_fn, lowered_args[0], module, builder)
-        }
-        ("regex", "count") => {
+        ("json.builder", "value_str") => {
             expect_arity(2)?;
             call_two_args(
-                runtime_fns.regex_count_fn,
+                runtime_fns.json_builder_value_str_fn,
                 lowered_args[0],
                 lowered_args[1],
                 module,
                 builder,
             )
         }
-        ("regex", "replace_all") => {
-            expect_arity(3)?;
-            call_three_args(
-                runtime_fns.regex_replace_all_fn,
-                lowered_args[0],
-                lowered_args[1],
-                lowered_args[2],
-                module,
-                builder,
-            )
-        }
-        ("http", "status_text") => {
-            expect_arity(1)?;
-            call_one_arg(
-                runtime_fns.http_status_text_fn,
-                lowered_args[0],
-                module,
-                builder,
-            )
-        }
-        ("http", "default_port") => {
-            expect_arity(1)?;
-            call_one_arg(
-                runtime_fns.http_default_port_fn,
-                lowered_args[0],
-                module,
-                builder,
-            )
-        }
-        ("http", "build_request_line") => {
+        ("json.builder", "value_json") => {
             expect_arity(2)?;
             call_two_args(
-                runtime_fns.http_build_request_line_fn,
+                runtime_fns.json_builder_value_json_fn,
                 lowered_args[0],
                 lowered_args[1],
                 module,
                 builder,
             )
         }
-        ("http", "request") => {
-            expect_arity(4)?;
-            call_four_args(
-                runtime_fns.http_request_fn,
+        ("json.builder", "finish") => {
+            expect_arity(1)?;
+            call_one_arg(
+                runtime_fns.json_builder_finish_fn,
                 lowered_args[0],
-                lowered_args[1],
-                lowered_args[2],
-                lowered_args[3],
-                module,
-                builder,
-            )
-        }
-        ("http", "request_status") => {
-            expect_arity(4)?;
-            call_four_args(
-                runtime_fns.http_request_status_fn,
-                lowered_args[0],
-                lowered_args[1],
-                lowered_args[2],
-                lowered_args[3],
-                module,
-                builder,
-            )
-        }
-        ("http", "get") => {
-            expect_arity(2)?;
-            call_two_args(
-                runtime_fns.http_get_fn,
-                lowered_args[0],
-                lowered_args[1],
-                module,
-                builder,
-            )
-        }
-        ("http", "post") => {
-            expect_arity(3)?;
-            call_three_args(
-                runtime_fns.http_post_fn,
-                lowered_args[0],
-                lowered_args[1],
-                lowered_args[2],
                 module,
                 builder,
             )
@@ -5465,7 +4768,9 @@ fn default_value(builder: &mut FunctionBuilder<'_>, ty: &MirType, ptr_ty: ir::Ty
         MirType::I64 | MirType::Unknown => builder.ins().iconst(ir::types::I64, 0),
         MirType::F64 => builder.ins().f64const(0.0),
         MirType::Bool => builder.ins().iconst(ir::types::I8, 0),
-        MirType::Str => builder.ins().iconst(ptr_ty, 0),
+        MirType::Str | MirType::Json | MirType::JsonBuilder | MirType::Result => {
+            builder.ins().iconst(ptr_ty, 0)
+        }
         MirType::Void => builder.ins().iconst(ir::types::I64, 0),
     }
 }
@@ -5476,27 +4781,59 @@ fn is_known_string_expr(expr: &MirExpr) -> bool {
         MirExpr::Binary { left, op, right } if op == "Add" => {
             is_known_string_expr(left) || is_known_string_expr(right)
         }
-        MirExpr::Call { callee, .. }
-            if matches!(
-                &**callee,
-                MirExpr::Member { object, field, .. }
-                if matches!(&**object, MirExpr::Var(namespace)
-                    if (namespace == "path" && (field == "join" || field == "parent" || field == "basename"))
-                    || (namespace == "fs" && field == "read_text")
-                    || (namespace == "net" && (field == "read" || field == "resolve"))
-                    || (namespace == "convert" && (field == "to_str" || field == "to_str_f64" || field == "format_f64"))
-                    || (namespace == "text" && (field == "trim" || field == "replace" || field == "to_lower" || field == "to_upper" || field == "split_part"))
-                    || (namespace == "encoding" && (field == "hex_encode" || field == "hex_decode" || field == "base64_encode" || field == "base64_decode" || field == "url_encode" || field == "url_decode"))
-                    || (namespace == "env" && (field == "get" || field == "get_required"))
-                    || (namespace == "cli" && field == "arg")
-                    || (namespace == "json" && (field == "parse" || field == "stringify" || field.starts_with("encode_") || field == "stringify_i64" || field == "minify"))
-                    || (namespace == "regex" && field == "replace_all")
-                    || (namespace == "http" && (field == "status_text" || field == "build_request_line" || field == "get" || field == "post" || field == "request"))
-                    || (namespace == "bench" && (field == "md5_hex" || field == "md5_bytes_hex" || field == "json_canonical" || field == "json_repeat_array" || field == "secp256k1" || field == "edigits" || field == "net_read"))
-                )
-            ) =>
-        {
-            true
+        MirExpr::Call { callee, .. } => {
+            if let Some((namespace, field)) = extract_stdlib_call_target_mir_static(callee.as_ref())
+            {
+                return match namespace.as_str() {
+                    "path" => field == "join" || field == "parent" || field == "basename",
+                    "fs" => field == "read_text",
+                    "net" => field == "read" || field == "resolve",
+                    "convert" => {
+                        field == "to_str" || field == "to_str_f64" || field == "format_f64"
+                    }
+                    "text" => {
+                        field == "trim"
+                            || field == "replace"
+                            || field == "to_lower"
+                            || field == "to_upper"
+                            || field == "split_part"
+                    }
+                    "encoding" => {
+                        field == "hex_encode"
+                            || field == "hex_decode"
+                            || field == "base64_encode"
+                            || field == "base64_decode"
+                            || field == "url_encode"
+                            || field == "url_decode"
+                    }
+                    "env" => field == "get" || field == "get_required",
+                    "cli" => field == "arg",
+                    "json" => field.starts_with("encode_"),
+                    "json.builder" => field == "finish",
+                    "regex" => field == "replace_all",
+                    "http" => {
+                        field == "status_text"
+                            || field == "build_request_line"
+                            || field == "build_response"
+                            || field == "send"
+                            || field == "response"
+                            || field == "get"
+                            || field == "post"
+                            || field == "request"
+                    }
+                    "bench" => {
+                        field == "md5_hex"
+                            || field == "md5_bytes_hex"
+                            || field == "json_canonical"
+                            || field == "json_repeat_array"
+                            || field == "secp256k1"
+                            || field == "edigits"
+                            || field == "net_read"
+                    }
+                    _ => false,
+                };
+            }
+            false
         }
         MirExpr::Slice { object_is_str, .. } => *object_is_str,
         _ => false,
@@ -5636,14 +4973,32 @@ fn is_var_known_string_in_owner(owner: &MirFunction, name: &str) -> bool {
 }
 
 fn is_known_string_expr_with_owner(expr: &MirExpr, owner: &MirFunction) -> bool {
+    is_known_string_expr_full(expr, owner, &BTreeMap::new())
+}
+
+fn is_known_string_expr_full(
+    expr: &MirExpr,
+    owner: &MirFunction,
+    type_defs: &BTreeMap<String, Vec<(String, String)>>,
+) -> bool {
     if is_known_string_expr(expr) {
         return true;
     }
     match expr {
         MirExpr::Var(name) => is_var_known_string_in_owner(owner, name),
         MirExpr::Binary { left, op, right } if op == "Add" => {
-            is_known_string_expr_with_owner(left, owner)
-                || is_known_string_expr_with_owner(right, owner)
+            is_known_string_expr_full(left, owner, type_defs)
+                || is_known_string_expr_full(right, owner, type_defs)
+        }
+        MirExpr::Member {
+            field, object_type, ..
+        } => {
+            if let Some(type_name) = object_type {
+                if let Some(fields) = type_defs.get(type_name) {
+                    return fields.iter().any(|(f, t)| f == field && t == "Str");
+                }
+            }
+            false
         }
         _ => false,
     }
@@ -5731,32 +5086,42 @@ fn infer_mir_expr_type(
                     return MirType::I64;
                 }
             }
-            if let MirExpr::Member { object, field, .. } = &**callee {
-                if let MirExpr::Var(ns) = &**object {
-                    if ns == "convert"
-                        && (field == "to_float"
-                            || field == "parse_f64"
-                            || field == "i64_to_f64"
-                            || field == "f64_from_bits")
-                    {
-                        return MirType::F64;
-                    }
-                    if ns == "math" && field == "sqrt" {
-                        return MirType::F64;
-                    }
-                    if ns == "simd" && field == "f64x2_extract" {
-                        return MirType::F64;
-                    }
-                    if ns == "convert"
-                        && (field == "to_str" || field == "to_str_f64" || field == "format_f64")
-                    {
-                        return MirType::Str;
-                    }
+            if let Some((namespace, field)) = extract_stdlib_call_target_mir_static(callee.as_ref())
+            {
+                let ns_key = format!("__ns_call__{namespace}.{field}");
+                if let Some(ret) = function_returns.get(&ns_key) {
+                    return ret.clone();
+                }
+                if namespace == "convert"
+                    && (field == "to_float"
+                        || field == "parse_f64"
+                        || field == "i64_to_f64"
+                        || field == "f64_from_bits")
+                {
+                    return MirType::F64;
+                }
+                if namespace == "math" && field == "sqrt" {
+                    return MirType::F64;
+                }
+                if namespace == "simd" && field == "f64x2_extract" {
+                    return MirType::F64;
+                }
+                if namespace == "convert"
+                    && (field == "to_str" || field == "to_str_f64" || field == "format_f64")
+                {
+                    return MirType::Str;
+                }
+                if namespace == "json.builder" && field == "finish" {
+                    return MirType::Str;
+                }
+                if namespace == "json.builder" {
+                    return MirType::JsonBuilder;
                 }
             }
             MirType::I64
         }
         MirExpr::List(_) | MirExpr::Map(_) => MirType::Unknown,
+        MirExpr::ResultOk { .. } | MirExpr::ResultErr { .. } => MirType::Result,
         _ => MirType::I64,
     }
 }
@@ -5900,13 +5265,25 @@ fn value_type_for_expr(
             ir::types::F64
         }
         MirExpr::Call { callee, .. }
+            if {
+                extract_stdlib_call_target_mir_static(callee.as_ref())
+                    .and_then(|(ns, f)| function_returns.get(&format!("__ns_call__{ns}.{f}")))
+                    .is_some()
+            } =>
+        {
+            let (ns, f) = extract_stdlib_call_target_mir_static(callee.as_ref()).unwrap();
+            let ret_ty = function_returns
+                .get(&format!("__ns_call__{ns}.{f}"))
+                .unwrap();
+            mir_ty_to_clif(ret_ty, ptr_ty)
+        }
+        MirExpr::Call { callee, .. }
             if matches!(
-                &**callee,
-                MirExpr::Member { object, field, .. }
-                if matches!(&**object, MirExpr::Var(namespace)
+                extract_stdlib_call_target_mir_static(callee.as_ref()),
+                Some((ref namespace, ref field))
                     if (namespace == "convert" && (field == "to_float" || field == "parse_f64" || field == "i64_to_f64" || field == "f64_from_bits"))
                     || (namespace == "math" && field == "sqrt")
-                    || (namespace == "simd" && field == "f64x2_extract"))
+                        || (namespace == "simd" && field == "f64x2_extract")
             ) =>
         {
             ir::types::F64
@@ -5916,6 +5293,16 @@ fn value_type_for_expr(
                 if matches!(function_returns.get(name), Some(MirType::Bool))) =>
         {
             ir::types::I8
+        }
+        MirExpr::Call { callee, .. }
+            if matches!(
+                extract_stdlib_call_target_mir_static(callee.as_ref()),
+                Some((ref namespace, ref field))
+                    if (namespace == "json" && field == "from_map")
+                        || (namespace == "json.builder" && field != "finish")
+            ) =>
+        {
+            ptr_ty
         }
         MirExpr::Call { callee, .. }
             if matches!(&**callee, MirExpr::Member { field, .. } if field == "get"
@@ -5946,9 +5333,9 @@ fn value_type_for_expr(
                     || (namespace == "encoding" && (field == "hex_encode" || field == "hex_decode" || field == "base64_encode" || field == "base64_decode" || field == "url_encode" || field == "url_decode"))
                     || (namespace == "env" && (field == "get" || field == "get_required"))
                     || (namespace == "cli" && field == "arg")
-                    || (namespace == "json" && (field == "parse" || field == "stringify" || field.starts_with("encode_") || field.starts_with("decode_") || field == "stringify_i64" || field == "minify" || field == "canonical" || field == "repeat_array"))
+                    || (namespace == "json" && (field.starts_with("encode_") || field.starts_with("decode_") || field == "canonical" || field == "repeat_array"))
                     || (namespace == "regex" && field == "replace_all")
-                    || (namespace == "http" && (field == "status_text" || field == "build_request_line" || field == "get" || field == "post" || field == "request"))
+                    || (namespace == "http" && (field == "status_text" || field == "build_request_line" || field == "build_response" || field == "send" || field == "response" || field == "get" || field == "post" || field == "request"))
                     || (namespace == "hash" && field == "md5_hex")
                     || (namespace == "crypto" && field == "secp256k1_bench")
                     || (namespace == "math" && field == "edigits")
@@ -5961,9 +5348,11 @@ fn value_type_for_expr(
             value_type_for_expr(expr, owner, function_returns, ptr_ty, locals_ty)
         }
         MirExpr::Unary { .. } => ir::types::I64,
-        MirExpr::Question { expr } | MirExpr::Old { expr } => {
+        MirExpr::Question { .. } => ir::types::I64,
+        MirExpr::Old { expr } => {
             value_type_for_expr(expr, owner, function_returns, ptr_ty, locals_ty)
         }
+        MirExpr::ResultOk { .. } | MirExpr::ResultErr { .. } => ptr_ty,
         MirExpr::DotResult => ir::types::I64,
         _ => ir::types::I64,
     }
@@ -5974,7 +5363,7 @@ fn mir_ty_to_clif(ty: &MirType, ptr_ty: ir::Type) -> ir::Type {
         MirType::I64 | MirType::Unknown => ir::types::I64,
         MirType::F64 => ir::types::F64,
         MirType::Bool => ir::types::I8,
-        MirType::Str => ptr_ty,
+        MirType::Str | MirType::Json | MirType::JsonBuilder | MirType::Result => ptr_ty,
         MirType::Void => ir::types::I64,
     }
 }
@@ -5999,6 +5388,7 @@ mod tests {
                     }),
                     MirStmt::Return(MirExpr::Int(0)),
                 ],
+                ..Default::default()
             }],
         };
         let object = emit_object(&program, &CodegenOptions::default()).expect("object should emit");
@@ -6014,6 +5404,7 @@ mod tests {
                 params: vec![],
                 return_type: MirType::I64,
                 body: vec![MirStmt::Return(MirExpr::Int(0))],
+                ..Default::default()
             }],
         };
         let first = emit_object(&program, &CodegenOptions::default()).expect("first object");
@@ -6033,6 +5424,7 @@ mod tests {
                 params: vec![],
                 return_type: MirType::I64,
                 body: vec![MirStmt::Return(MirExpr::Int(0))],
+                ..Default::default()
             }],
         };
         for target in [

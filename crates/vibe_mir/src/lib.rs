@@ -19,6 +19,7 @@ pub struct MirFunction {
     pub params: Vec<MirParam>,
     pub return_type: MirType,
     pub body: Vec<MirStmt>,
+    pub native_symbol: Option<String>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -33,6 +34,9 @@ pub enum MirType {
     F64,
     Bool,
     Str,
+    Json,
+    JsonBuilder,
+    Result,
     Void,
     #[default]
     Unknown,
@@ -168,6 +172,12 @@ pub enum MirExpr {
     Question {
         expr: Box<MirExpr>,
     },
+    ResultOk {
+        expr: Box<MirExpr>,
+    },
+    ResultErr {
+        expr: Box<MirExpr>,
+    },
     DotResult,
     Old {
         expr: Box<MirExpr>,
@@ -212,6 +222,7 @@ pub fn lower_hir_to_mir(hir: &HirProgram) -> Result<MirProgram, String> {
                     parse_type_name(f.inferred_return_type.as_deref().unwrap_or("Unknown"))
                 }),
             body,
+            native_symbol: f.native_symbol.clone(),
         });
     }
     verify_mir(&out)?;
@@ -376,13 +387,60 @@ fn lower_expr(expr: &HirExpr) -> Result<MirExpr, String> {
                 .map(Box::new),
             object_is_str: object.ty == "Str",
         },
-        HirExprKind::Call { callee, args } => MirExpr::Call {
-            callee: Box::new(lower_expr(callee)?),
-            args: args
-                .iter()
-                .map(lower_expr)
-                .collect::<Result<Vec<_>, String>>()?,
-        },
+        HirExprKind::Call { callee, args } => {
+            let mut lowered_callee = lower_expr(callee)?;
+            if let MirExpr::Member {
+                ref object,
+                ref mut field,
+                ..
+            } = lowered_callee
+            {
+                if let MirExpr::Var(ns) = object.as_ref() {
+                    if ns == "json" && field == "encode" && args.len() == 1 {
+                        let arg_ty = &args[0].ty;
+                        if !arg_ty.is_empty()
+                            && arg_ty != "Unknown"
+                            && arg_ty
+                                .chars()
+                                .next()
+                                .is_some_and(|c| c.is_ascii_uppercase())
+                        {
+                            *field = format!("encode_{arg_ty}");
+                        }
+                    } else if ns == "json" && field == "decode" && args.len() == 2 {
+                        let fallback_ty = &args[1].ty;
+                        if !fallback_ty.is_empty()
+                            && fallback_ty != "Unknown"
+                            && fallback_ty
+                                .chars()
+                                .next()
+                                .is_some_and(|c| c.is_ascii_uppercase())
+                        {
+                            *field = format!("decode_{fallback_ty}");
+                        }
+                    }
+                }
+            }
+            if let MirExpr::Var(ref name) = lowered_callee {
+                if name == "ok" && args.len() == 1 {
+                    return Ok(MirExpr::ResultOk {
+                        expr: Box::new(lower_expr(&args[0])?),
+                    });
+                }
+                if name == "err" && args.len() == 1 {
+                    return Ok(MirExpr::ResultErr {
+                        expr: Box::new(lower_expr(&args[0])?),
+                    });
+                }
+            }
+            MirExpr::Call {
+                callee: Box::new(lowered_callee),
+                args: args
+                    .iter()
+                    .map(lower_expr)
+                    .collect::<Result<Vec<_>, String>>()?,
+            }
+        }
         HirExprKind::Binary { left, op, right } => MirExpr::Binary {
             left: Box::new(lower_expr(left)?),
             op: format!("{op:?}"),
@@ -599,7 +657,10 @@ fn verify_expr(expr: &MirExpr) -> Result<(), String> {
         MirExpr::Async { expr } | MirExpr::Await { expr } => {
             verify_expr(expr)?;
         }
-        MirExpr::Question { expr } | MirExpr::Old { expr } => {
+        MirExpr::Question { expr }
+        | MirExpr::ResultOk { expr }
+        | MirExpr::ResultErr { expr }
+        | MirExpr::Old { expr } => {
             verify_expr(expr)?;
         }
         MirExpr::Constructor {
@@ -660,7 +721,11 @@ pub fn parse_type_name(raw: &str) -> MirType {
         "Float" => MirType::F64,
         "Bool" => MirType::Bool,
         "Str" => MirType::Str,
+        "Json" => MirType::Json,
+        "JsonBuilder" => MirType::JsonBuilder,
+        "Result" => MirType::Result,
         "Void" => MirType::Void,
+        _ if normalized.starts_with("Result<") => MirType::Result,
         _ => MirType::Unknown,
     }
 }
@@ -671,6 +736,9 @@ pub fn mir_type_name(ty: &MirType) -> &'static str {
         MirType::F64 => "F64",
         MirType::Bool => "Bool",
         MirType::Str => "Str",
+        MirType::Json => "Json",
+        MirType::JsonBuilder => "JsonBuilder",
+        MirType::Result => "Result",
         MirType::Void => "Void",
         MirType::Unknown => "Unknown",
     }
@@ -711,6 +779,7 @@ mod tests {
                     ),
                 }],
                 tail_expr: Some(HirExpr::new(HirExprKind::Int(0), "Int")),
+                native_symbol: None,
             }],
         };
         let mir = lower_hir_to_mir(&hir).expect("lowering should succeed");
@@ -734,6 +803,7 @@ mod tests {
                 effects_observed: BTreeSet::new(),
                 body: vec![],
                 tail_expr: Some(HirExpr::new(HirExprKind::Int(7), "Int")),
+                native_symbol: None,
             }],
         };
         let first = lower_hir_to_mir(&hir).expect("first lowering");

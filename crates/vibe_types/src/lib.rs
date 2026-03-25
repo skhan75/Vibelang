@@ -30,6 +30,8 @@ pub enum TypeKind {
     Float,
     Bool,
     Str,
+    Json,
+    JsonBuilder,
     List(Box<TypeKind>),
     Map(Box<TypeKind>, Box<TypeKind>),
     Result(Box<TypeKind>, Box<TypeKind>),
@@ -55,8 +57,11 @@ pub fn type_kind_to_codegen_str(t: &TypeKind) -> String {
         TypeKind::Float => "Float".to_string(),
         TypeKind::Bool => "Bool".to_string(),
         TypeKind::Str => "Str".to_string(),
+        TypeKind::Json => "Json".to_string(),
+        TypeKind::JsonBuilder => "JsonBuilder".to_string(),
         TypeKind::UserType(name) => name.clone(),
         TypeKind::Enum(name) => name.clone(),
+        TypeKind::Result(_, _) => "Result".to_string(),
         _ => "Unknown".to_string(),
     }
 }
@@ -72,9 +77,17 @@ struct TypeContext<'a> {
     sigs: &'a BTreeMap<String, Option<TypeKind>>,
     type_defs: &'a BTreeMap<String, Vec<(String, TypeKind)>>,
     enum_defs: &'a BTreeMap<String, Vec<String>>,
+    namespace_map: &'a BTreeMap<(String, String), String>,
 }
 
 pub fn check_and_lower(ast: &FileAst) -> CheckOutput {
+    check_and_lower_with_ns(ast, &BTreeMap::new())
+}
+
+pub fn check_and_lower_with_ns(
+    ast: &FileAst,
+    namespace_map: &BTreeMap<(String, String), String>,
+) -> CheckOutput {
     let mut diagnostics = Diagnostics::default();
     let mut signatures: BTreeMap<String, Option<TypeKind>> = BTreeMap::new();
     let mut type_defs: BTreeMap<String, Vec<(String, TypeKind)>> = BTreeMap::new();
@@ -134,6 +147,7 @@ pub fn check_and_lower(ast: &FileAst) -> CheckOutput {
         sigs: &signatures,
         type_defs: &type_defs,
         enum_defs: &enum_defs,
+        namespace_map,
     };
 
     for decl in &ast.declarations {
@@ -267,7 +281,7 @@ pub fn check_and_lower(ast: &FileAst) -> CheckOutput {
                         );
                     }
                 }
-                Contract::Intent { .. } => {}
+                Contract::Intent { .. } | Contract::Native { .. } => {}
             }
         }
 
@@ -313,21 +327,28 @@ pub fn check_and_lower(ast: &FileAst) -> CheckOutput {
             hir_tail_expr = Some(lowered_tail);
         }
 
+        let is_native = func
+            .contracts
+            .iter()
+            .any(|c| matches!(c, Contract::Native { .. }));
+
         let inferred_return = unify_return_types(&inferred_returns);
-        if let Some(declared) = func.return_type.as_ref() {
-            let declared = resolve_type_ref(declared, &type_defs, &enum_defs);
-            if !type_compatible(&declared, &inferred_return) {
-                diagnostics.push(Diagnostic::new(
-                    "E2201",
-                    Severity::Error,
-                    format!(
-                        "return type mismatch in `{}`: declared `{}`, inferred `{}`",
-                        func.name,
-                        type_name(&declared),
-                        type_name(&inferred_return)
-                    ),
-                    func.span,
-                ));
+        if !is_native {
+            if let Some(declared) = func.return_type.as_ref() {
+                let declared = resolve_type_ref(declared, &type_defs, &enum_defs);
+                if !type_compatible(&declared, &inferred_return) {
+                    diagnostics.push(Diagnostic::new(
+                        "E2201",
+                        Severity::Error,
+                        format!(
+                            "return type mismatch in `{}`: declared `{}`, inferred `{}`",
+                            func.name,
+                            type_name(&declared),
+                            type_name(&inferred_return)
+                        ),
+                        func.span,
+                    ));
+                }
             }
         }
 
@@ -338,12 +359,25 @@ pub fn check_and_lower(ast: &FileAst) -> CheckOutput {
             func.span,
         );
 
+        let effective_observed = if is_native {
+            declared_effects.clone()
+        } else {
+            observed_effects.clone()
+        };
         effect_summaries.push(FunctionEffectSummary {
             name: func.name.clone(),
             span: func.span,
             declared_effects: declared_effects.clone(),
-            direct_observed_effects: observed_effects.clone(),
+            direct_observed_effects: effective_observed,
             direct_calls: collect_direct_calls(func),
+        });
+
+        let native_symbol = func.contracts.iter().find_map(|c| {
+            if let Contract::Native { symbol, .. } = c {
+                Some(symbol.clone())
+            } else {
+                None
+            }
         });
 
         hir.functions.push(HirFunction {
@@ -363,6 +397,7 @@ pub fn check_and_lower(ast: &FileAst) -> CheckOutput {
             effects_observed: observed_effects,
             body: hir_body,
             tail_expr: hir_tail_expr,
+            native_symbol,
         });
     }
 
@@ -1161,12 +1196,12 @@ fn expr_type_hint(expr: &Expr, env: &BTreeMap<String, TypeKind>) -> TypeKind {
                     _ => TypeKind::Unknown,
                 };
             }
-            if let Expr::Member { object, field, .. } = &**callee {
-                if let Expr::Ident { name, .. } = &**object {
-                    if let Some(ty) = stdlib_namespace_return_hint(name, field) {
-                        return ty;
-                    }
+            if let Some((namespace, field)) = extract_stdlib_call_target(callee) {
+                if let Some(ty) = stdlib_namespace_return_hint_static(&namespace, &field) {
+                    return ty;
                 }
+            }
+            if let Expr::Member { object, field, .. } = &**callee {
                 let object_ty = expr_type_hint(object, env);
                 return match field.as_str() {
                     "len" => TypeKind::Int,
@@ -1208,7 +1243,9 @@ fn expr_type_hint(expr: &Expr, env: &BTreeMap<String, TypeKind>) -> TypeKind {
             | BinaryOp::Lt
             | BinaryOp::Le
             | BinaryOp::Gt
-            | BinaryOp::Ge => TypeKind::Bool,
+            | BinaryOp::Ge
+            | BinaryOp::And
+            | BinaryOp::Or => TypeKind::Bool,
             BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div => {
                 let lt = expr_type_hint(left, env);
                 let rt = expr_type_hint(right, env);
@@ -1255,7 +1292,8 @@ fn infer_expr(
             if let Some(t) = env.get(name) {
                 return t.clone();
             }
-            if sigs.contains_key(name) || is_builtin_ident(name) {
+            let is_ns = ctx.namespace_map.keys().any(|(ns, _)| ns == name);
+            if sigs.contains_key(name) || is_builtin_ident(name) || is_ns {
                 return TypeKind::Unknown;
             }
             diagnostics.push(Diagnostic::new(
@@ -1632,10 +1670,12 @@ fn infer_expr(
                         return TypeKind::Void;
                     }
                     "ok" => {
-                        return TypeKind::Result(
-                            Box::new(TypeKind::Void),
-                            Box::new(TypeKind::Unknown),
-                        )
+                        let ok_ty = arg_types.first().cloned().unwrap_or(TypeKind::Void);
+                        return TypeKind::Result(Box::new(ok_ty), Box::new(TypeKind::Unknown));
+                    }
+                    "err" => {
+                        let err_ty = arg_types.first().cloned().unwrap_or(TypeKind::Unknown);
+                        return TypeKind::Result(Box::new(TypeKind::Unknown), Box::new(err_ty));
                     }
                     _ => {}
                 }
@@ -1644,23 +1684,20 @@ fn infer_expr(
                 }
             }
             if let Expr::Member { field, .. } = &**callee {
-                if let Expr::Member { object, field, .. } = &**callee {
-                    if let Expr::Ident {
-                        name: namespace, ..
-                    } = &**object
-                    {
-                        if let Some(ret) = infer_stdlib_namespace_call(
-                            namespace,
-                            field,
-                            args,
-                            &arg_types,
-                            ctx.type_defs,
-                            diagnostics,
-                            observed_effects,
-                            callee.span(),
-                        ) {
-                            return ret;
-                        }
+                if let Some((namespace, stdlib_field)) =
+                    extract_stdlib_call_target_with_ns(callee, ctx.namespace_map)
+                {
+                    if let Some(ret) = infer_stdlib_namespace_call(
+                        &namespace,
+                        &stdlib_field,
+                        args,
+                        &arg_types,
+                        ctx,
+                        diagnostics,
+                        observed_effects,
+                        callee.span(),
+                    ) {
+                        return ret;
                     }
                 }
                 match field.as_str() {
@@ -1985,7 +2022,9 @@ fn infer_expr(
                 | BinaryOp::Lt
                 | BinaryOp::Le
                 | BinaryOp::Gt
-                | BinaryOp::Ge => TypeKind::Bool,
+                | BinaryOp::Ge
+                | BinaryOp::And
+                | BinaryOp::Or => TypeKind::Bool,
                 BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div => {
                     if matches!(op, BinaryOp::Add)
                         && matches!(lt, TypeKind::Str)
@@ -2173,6 +2212,12 @@ fn resolve_type_ref(
     if enum_defs.contains_key(&raw) {
         return TypeKind::Enum(raw);
     }
+    if raw == "Json" {
+        return TypeKind::Json;
+    }
+    if raw == "JsonBuilder" {
+        return TypeKind::JsonBuilder;
+    }
     if raw.starts_with("List<") && raw.ends_with('>') {
         let inner = &raw[5..raw.len() - 1];
         return TypeKind::List(Box::new(resolve_type_ref(
@@ -2237,6 +2282,12 @@ fn parse_type_ref(t: &TypeRef) -> TypeKind {
     if raw == "Str" {
         return TypeKind::Str;
     }
+    if raw == "Json" {
+        return TypeKind::Json;
+    }
+    if raw == "JsonBuilder" {
+        return TypeKind::JsonBuilder;
+    }
     if raw == "Void" {
         return TypeKind::Void;
     }
@@ -2263,6 +2314,11 @@ fn parse_type_ref(t: &TypeRef) -> TypeKind {
         return TypeKind::Chan(Box::new(parse_type_ref(&TypeRef {
             raw: inner.to_string(),
         })));
+    }
+    if raw.chars().next().is_some_and(|c| c.is_ascii_uppercase())
+        && raw.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
+    {
+        return TypeKind::UserType(raw);
     }
     TypeKind::Unknown
 }
@@ -2321,6 +2377,8 @@ fn type_name(t: &TypeKind) -> String {
         TypeKind::Float => "Float".to_string(),
         TypeKind::Bool => "Bool".to_string(),
         TypeKind::Str => "Str".to_string(),
+        TypeKind::Json => "Json".to_string(),
+        TypeKind::JsonBuilder => "JsonBuilder".to_string(),
         TypeKind::List(inner) => format!("List<{}>", type_name(inner)),
         TypeKind::Map(key, value) => format!("Map<{}, {}>", type_name(key), type_name(value)),
         TypeKind::Result(ok, err) => format!("Result<{}, {}>", type_name(ok), type_name(err)),
@@ -2374,37 +2432,77 @@ fn is_known_effect(e: &str) -> bool {
     )
 }
 
-fn stdlib_namespace_return_hint(namespace: &str, field: &str) -> Option<TypeKind> {
+fn collect_member_chain(expr: &Expr, parts: &mut Vec<String>) -> bool {
+    match expr {
+        Expr::Ident { name, .. } => {
+            parts.push(name.clone());
+            true
+        }
+        Expr::Member { object, field, .. } => {
+            if collect_member_chain(object, parts) {
+                parts.push(field.clone());
+                true
+            } else {
+                false
+            }
+        }
+        _ => false,
+    }
+}
+
+fn extract_stdlib_call_target(callee: &Expr) -> Option<(String, String)> {
+    extract_stdlib_call_target_with_ns(callee, &BTreeMap::new())
+}
+
+fn extract_stdlib_call_target_with_ns(
+    callee: &Expr,
+    namespace_map: &BTreeMap<(String, String), String>,
+) -> Option<(String, String)> {
+    let Expr::Member { .. } = callee else {
+        return None;
+    };
+    let mut parts = Vec::new();
+    if !collect_member_chain(callee, &mut parts) || parts.len() < 2 {
+        return None;
+    }
+    let is_dynamic_ns = namespace_map.keys().any(|(ns, _)| ns == &parts[0]);
+    if !is_builtin_ident(&parts[0]) && !is_dynamic_ns {
+        return None;
+    }
+    let field = parts.pop()?;
+    let namespace = parts.join(".");
+    Some((namespace, field))
+}
+
+fn stdlib_namespace_return_hint(
+    namespace: &str,
+    field: &str,
+    ctx: &TypeContext,
+) -> Option<TypeKind> {
+    let key = (namespace.to_string(), field.to_string());
+    if let Some(mangled) = ctx.namespace_map.get(&key) {
+        if let Some(ret_ty) = ctx.sigs.get(mangled).and_then(|t| t.clone()) {
+            return Some(ret_ty);
+        }
+    }
+    stdlib_namespace_return_hint_static(namespace, field)
+}
+
+fn stdlib_namespace_return_hint_static(namespace: &str, field: &str) -> Option<TypeKind> {
     match (namespace, field) {
-        ("time", "now_ms") | ("time", "monotonic_now_ms") | ("time", "duration_ms") => {
-            Some(TypeKind::Int)
-        }
-        ("time", "sleep_ms") => Some(TypeKind::Void),
-        ("path", "join") | ("path", "parent") | ("path", "basename") => Some(TypeKind::Str),
-        ("path", "is_absolute") => Some(TypeKind::Bool),
-        ("fs", "exists") | ("fs", "write_text") | ("fs", "create_dir") => Some(TypeKind::Bool),
-        ("fs", "read_text") => Some(TypeKind::Str),
-        ("net", "listen")
-        | ("net", "listener_port")
-        | ("net", "accept")
-        | ("net", "connect")
-        | ("net", "write") => Some(TypeKind::Int),
-        ("net", "read") | ("net", "resolve") => Some(TypeKind::Str),
-        ("net", "close") => Some(TypeKind::Bool),
-        ("convert", "to_int") | ("convert", "parse_i64") => Some(TypeKind::Int),
-        ("convert", "to_float")
-        | ("convert", "parse_f64")
-        | ("convert", "i64_to_f64")
-        | ("convert", "f64_from_bits") => Some(TypeKind::Float),
-        ("convert", "to_str") | ("convert", "to_str_f64") | ("convert", "format_f64") => {
-            Some(TypeKind::Str)
-        }
-        ("convert", "f64_to_bits") => Some(TypeKind::Int),
-        ("math", "sqrt") => Some(TypeKind::Float),
-        ("str_builder", "new") | ("str_builder", "append") | ("str_builder", "append_char") => {
-            Some(TypeKind::Int)
-        }
-        ("str_builder", "finish") => Some(TypeKind::Str),
+        ("json.builder", "new")
+        | ("json.builder", "begin_object")
+        | ("json.builder", "end_object")
+        | ("json.builder", "begin_array")
+        | ("json.builder", "end_array")
+        | ("json.builder", "key")
+        | ("json.builder", "value_null")
+        | ("json.builder", "value_bool")
+        | ("json.builder", "value_i64")
+        | ("json.builder", "value_f64")
+        | ("json.builder", "value_str")
+        | ("json.builder", "value_json") => Some(TypeKind::JsonBuilder),
+        ("json.builder", "finish") => Some(TypeKind::Str),
         ("simd", "f64x2_splat")
         | ("simd", "f64x2_make")
         | ("simd", "f64x2_add")
@@ -2412,38 +2510,6 @@ fn stdlib_namespace_return_hint(namespace: &str, field: &str) -> Option<TypeKind
         | ("simd", "f64x2_mul") => Some(TypeKind::Int),
         ("simd", "f64x2_gt") => Some(TypeKind::Int),
         ("simd", "f64x2_extract") => Some(TypeKind::Float),
-        ("text", "trim")
-        | ("text", "replace")
-        | ("text", "to_lower")
-        | ("text", "to_upper")
-        | ("text", "split_part") => Some(TypeKind::Str),
-        ("text", "contains") | ("text", "starts_with") | ("text", "ends_with") => {
-            Some(TypeKind::Bool)
-        }
-        ("text", "byte_len") => Some(TypeKind::Int),
-        ("encoding", "hex_encode")
-        | ("encoding", "hex_decode")
-        | ("encoding", "base64_encode")
-        | ("encoding", "base64_decode")
-        | ("encoding", "url_encode")
-        | ("encoding", "url_decode") => Some(TypeKind::Str),
-        ("log", "info") | ("log", "warn") | ("log", "error") => Some(TypeKind::Void),
-        ("env", "get") | ("env", "get_required") => Some(TypeKind::Str),
-        ("env", "has") => Some(TypeKind::Bool),
-        ("cli", "args_len") => Some(TypeKind::Int),
-        ("cli", "arg") => Some(TypeKind::Str),
-        ("json", "is_valid") => Some(TypeKind::Bool),
-        ("json", "parse") | ("json", "stringify") => Some(TypeKind::Str),
-        ("json", "parse_i64") => Some(TypeKind::Int),
-        ("json", "stringify_i64") | ("json", "minify") => Some(TypeKind::Str),
-        ("regex", "count") => Some(TypeKind::Int),
-        ("regex", "replace_all") => Some(TypeKind::Str),
-        ("http", "status_text")
-        | ("http", "build_request_line")
-        | ("http", "get")
-        | ("http", "post")
-        | ("http", "request") => Some(TypeKind::Str),
-        ("http", "default_port") | ("http", "request_status") => Some(TypeKind::Int),
         #[cfg(feature = "bench-runtime")]
         ("bench", "md5_hex")
         | ("bench", "json_canonical")
@@ -2465,17 +2531,121 @@ fn stdlib_namespace_return_hint(namespace: &str, field: &str) -> Option<TypeKind
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn infer_stdlib_namespace_call(
     namespace: &str,
     field: &str,
     args: &[Expr],
     arg_types: &[TypeKind],
-    type_defs: &BTreeMap<String, Vec<(String, TypeKind)>>,
+    ctx: &TypeContext,
     diagnostics: &mut Diagnostics,
     observed_effects: &mut BTreeSet<String>,
     call_span: Span,
 ) -> Option<TypeKind> {
+    let ns_key = (namespace.to_string(), field.to_string());
+    if let Some(mangled) = ctx.namespace_map.get(&ns_key) {
+        if let Some(ret_ty) = ctx.sigs.get(mangled).and_then(|t| t.clone()) {
+            return Some(ret_ty);
+        }
+    }
+
+    let type_defs = ctx.type_defs;
     if namespace == "json" {
+        if field == "encode" {
+            if args.len() != 1 {
+                diagnostics.push(Diagnostic::new(
+                    "E2237",
+                    Severity::Error,
+                    format!("`json.encode` expects 1 argument, got {}", args.len()),
+                    call_span,
+                ));
+                return Some(TypeKind::Unknown);
+            }
+            if let Some(actual) = arg_types.first() {
+                match actual {
+                    TypeKind::UserType(name) => {
+                        if !type_defs.contains_key(name.as_str()) {
+                            diagnostics.push(Diagnostic::new(
+                                "E2239",
+                                Severity::Error,
+                                format!("unknown json codec target type `{name}`"),
+                                call_span,
+                            ));
+                            return Some(TypeKind::Unknown);
+                        }
+                    }
+                    TypeKind::Unknown => {}
+                    other => {
+                        diagnostics.push(Diagnostic::new(
+                            "E2238",
+                            Severity::Error,
+                            format!(
+                                "`json.encode` argument must be a user-defined struct type, got `{}`",
+                                type_name(other)
+                            ),
+                            args.first().map(|arg| arg.span()).unwrap_or(call_span),
+                        ));
+                    }
+                }
+            }
+            return Some(TypeKind::Str);
+        }
+        if field == "decode" {
+            if args.len() != 2 {
+                diagnostics.push(Diagnostic::new(
+                    "E2237",
+                    Severity::Error,
+                    format!("`json.decode` expects 2 arguments, got {}", args.len()),
+                    call_span,
+                ));
+                return Some(TypeKind::Unknown);
+            }
+            if let Some(actual) = arg_types.first() {
+                if !matches!(actual, TypeKind::Str | TypeKind::Unknown) {
+                    diagnostics.push(Diagnostic::new(
+                        "E2238",
+                        Severity::Error,
+                        format!(
+                            "`json.decode` argument 1 expects `Str`, got `{}`",
+                            type_name(actual)
+                        ),
+                        args.first().map(|arg| arg.span()).unwrap_or(call_span),
+                    ));
+                }
+            }
+            if let Some(fallback_ty) = arg_types.get(1) {
+                match fallback_ty {
+                    TypeKind::UserType(name) => {
+                        if !type_defs.contains_key(name.as_str()) {
+                            diagnostics.push(Diagnostic::new(
+                                "E2239",
+                                Severity::Error,
+                                format!("unknown json codec target type `{name}`"),
+                                call_span,
+                            ));
+                            return Some(TypeKind::Unknown);
+                        }
+                        return Some(TypeKind::UserType(name.clone()));
+                    }
+                    TypeKind::Unknown => {
+                        return Some(TypeKind::Unknown);
+                    }
+                    other => {
+                        diagnostics.push(Diagnostic::new(
+                            "E2238",
+                            Severity::Error,
+                            format!(
+                                "`json.decode` fallback must be a user-defined struct type, got `{}`",
+                                type_name(other)
+                            ),
+                            args.get(1).map(|arg| arg.span()).unwrap_or(call_span),
+                        ));
+                        return Some(TypeKind::Unknown);
+                    }
+                }
+            }
+            return Some(TypeKind::Unknown);
+        }
         if let Some(target_type_name) = field.strip_prefix("encode_") {
             if !type_defs.contains_key(target_type_name) {
                 diagnostics.push(Diagnostic::new(
@@ -2563,39 +2733,178 @@ fn infer_stdlib_namespace_call(
             }
             return Some(TypeKind::UserType(target_type_name.to_string()));
         }
+        if field == "from_map" {
+            if args.len() != 1 {
+                diagnostics.push(Diagnostic::new(
+                    "E2237",
+                    Severity::Error,
+                    format!("`json.from_map` expects 1 argument(s), got {}", args.len()),
+                    call_span,
+                ));
+                return Some(TypeKind::Unknown);
+            }
+            return Some(TypeKind::Str);
+        }
+        if field == "parse" {
+            if args.len() != 1 {
+                diagnostics.push(Diagnostic::new(
+                    "E2237",
+                    Severity::Error,
+                    format!("`json.parse` expects 1 argument(s), got {}", args.len()),
+                    call_span,
+                ));
+                return Some(TypeKind::Unknown);
+            }
+            if let Some(actual) = arg_types.first() {
+                if !matches!(actual, TypeKind::Str | TypeKind::Unknown) {
+                    diagnostics.push(Diagnostic::new(
+                        "E2238",
+                        Severity::Error,
+                        format!(
+                            "`json.parse` argument 1 expects `Str`, got `{}`",
+                            type_name(actual)
+                        ),
+                        args.first().map(|arg| arg.span()).unwrap_or(call_span),
+                    ));
+                }
+            }
+            return Some(TypeKind::Json);
+        }
+        if field == "stringify" || field == "stringify_pretty" {
+            if args.len() != 1 {
+                diagnostics.push(Diagnostic::new(
+                    "E2237",
+                    Severity::Error,
+                    format!("`json.{field}` expects 1 argument(s), got {}", args.len()),
+                    call_span,
+                ));
+                return Some(TypeKind::Unknown);
+            }
+            if let Some(actual) = arg_types.first() {
+                if !matches!(actual, TypeKind::Json | TypeKind::Unknown) {
+                    diagnostics.push(Diagnostic::new(
+                        "E2238",
+                        Severity::Error,
+                        format!(
+                            "`json.{field}` argument 1 expects `Json`, got `{}`",
+                            type_name(actual)
+                        ),
+                        args.first().map(|arg| arg.span()).unwrap_or(call_span),
+                    ));
+                }
+            }
+            return Some(TypeKind::Str);
+        }
+        if matches!(field, "null" | "bool" | "i64" | "f64" | "str") {
+            let expected = match field {
+                "null" => Some((&[][..], "")),
+                "bool" => Some((&["Bool"][..], "")),
+                "i64" => Some((&["Int"][..], "")),
+                "f64" => Some((&["Float"][..], "")),
+                "str" => Some((&["Str"][..], "")),
+                _ => None,
+            }?;
+            if args.len() != expected.0.len() {
+                diagnostics.push(Diagnostic::new(
+                    "E2237",
+                    Severity::Error,
+                    format!(
+                        "`json.{field}` expects {} argument(s), got {}",
+                        expected.0.len(),
+                        args.len()
+                    ),
+                    call_span,
+                ));
+                return Some(TypeKind::Unknown);
+            }
+            for (idx, expect_name) in expected.0.iter().enumerate() {
+                let actual = arg_types.get(idx).cloned().unwrap_or(TypeKind::Unknown);
+                let ok = matches!(
+                    (*expect_name, &actual),
+                    ("Bool", TypeKind::Bool | TypeKind::Unknown)
+                        | ("Int", TypeKind::Int | TypeKind::Unknown)
+                        | ("Float", TypeKind::Float | TypeKind::Unknown)
+                        | ("Str", TypeKind::Str | TypeKind::Unknown)
+                );
+                if !ok {
+                    diagnostics.push(Diagnostic::new(
+                        "E2238",
+                        Severity::Error,
+                        format!(
+                            "`json.{field}` argument {} expects `{}`, got `{}`",
+                            idx + 1,
+                            expect_name,
+                            type_name(&actual)
+                        ),
+                        args.get(idx).map(|arg| arg.span()).unwrap_or(call_span),
+                    ));
+                }
+            }
+            return Some(TypeKind::Json);
+        }
+    }
+    if namespace == "json.builder" {
+        let (expected, ret) = match field {
+            "new" => Some((&["Int"][..], TypeKind::JsonBuilder)),
+            "begin_object" | "end_object" | "begin_array" | "end_array" | "value_null" => {
+                Some((&["JsonBuilder"][..], TypeKind::JsonBuilder))
+            }
+            "key" => Some((&["JsonBuilder", "Str"][..], TypeKind::JsonBuilder)),
+            "value_bool" => Some((&["JsonBuilder", "Bool"][..], TypeKind::JsonBuilder)),
+            "value_i64" => Some((&["JsonBuilder", "Int"][..], TypeKind::JsonBuilder)),
+            "value_f64" => Some((&["JsonBuilder", "Float"][..], TypeKind::JsonBuilder)),
+            "value_str" => Some((&["JsonBuilder", "Str"][..], TypeKind::JsonBuilder)),
+            "value_json" => Some((&["JsonBuilder", "Json"][..], TypeKind::JsonBuilder)),
+            "finish" => Some((&["JsonBuilder"][..], TypeKind::Str)),
+            _ => None,
+        }?;
+        if args.len() != expected.len() {
+            diagnostics.push(Diagnostic::new(
+                "E2237",
+                Severity::Error,
+                format!(
+                    "`{}.{} ` expects {} argument(s), got {}",
+                    namespace,
+                    field,
+                    expected.len(),
+                    args.len()
+                ),
+                call_span,
+            ));
+            return Some(TypeKind::Unknown);
+        }
+        for (idx, expect_name) in expected.iter().enumerate() {
+            let actual = arg_types.get(idx).cloned().unwrap_or(TypeKind::Unknown);
+            let ok = matches!(
+                (*expect_name, &actual),
+                ("JsonBuilder", TypeKind::JsonBuilder | TypeKind::Unknown)
+                    | ("Json", TypeKind::Json | TypeKind::Unknown)
+                    | ("Str", TypeKind::Str | TypeKind::Unknown)
+                    | ("Bool", TypeKind::Bool | TypeKind::Unknown)
+                    | ("Int", TypeKind::Int | TypeKind::Unknown)
+                    | ("Float", TypeKind::Float | TypeKind::Unknown)
+            );
+            if !ok {
+                diagnostics.push(Diagnostic::new(
+                    "E2238",
+                    Severity::Error,
+                    format!(
+                        "`{}.{} ` argument {} expects `{}`, got `{}`",
+                        namespace,
+                        field,
+                        idx + 1,
+                        expect_name,
+                        type_name(&actual)
+                    ),
+                    args.get(idx).map(|arg| arg.span()).unwrap_or(call_span),
+                ));
+            }
+        }
+        return Some(ret);
     }
 
-    let ret = stdlib_namespace_return_hint(namespace, field)?;
+    let ret = stdlib_namespace_return_hint(namespace, field, ctx)?;
     let expected = match (namespace, field) {
-        ("time", "now_ms") | ("time", "monotonic_now_ms") => Some((&[][..], "nondet")),
-        ("time", "duration_ms") => Some((&["Int"][..], "")),
-        ("time", "sleep_ms") => Some((&["Int"][..], "io")),
-        ("path", "join") => Some((&["Str", "Str"][..], "")),
-        ("path", "parent") | ("path", "basename") | ("path", "is_absolute") => {
-            Some((&["Str"][..], ""))
-        }
-        ("fs", "exists") | ("fs", "read_text") | ("fs", "create_dir") => Some((&["Str"][..], "io")),
-        ("fs", "write_text") => Some((&["Str", "Str"][..], "io")),
-        ("net", "listen") | ("net", "connect") => Some((&["Str", "Int"][..], "net")),
-        ("net", "listener_port") | ("net", "accept") | ("net", "close") => {
-            Some((&["Int"][..], "net"))
-        }
-        ("net", "read") => Some((&["Int", "Int"][..], "net")),
-        ("net", "write") => Some((&["Int", "Str"][..], "net")),
-        ("net", "resolve") => Some((&["Str"][..], "net")),
-        ("convert", "to_int") | ("convert", "parse_i64") => Some((&["Str"][..], "")),
-        ("convert", "to_float") | ("convert", "parse_f64") => Some((&["Str"][..], "")),
-        ("convert", "i64_to_f64") => Some((&["Int"][..], "")),
-        ("convert", "f64_to_bits") => Some((&["Float"][..], "")),
-        ("convert", "f64_from_bits") => Some((&["Int"][..], "")),
-        ("convert", "to_str") => Some((&["Int"][..], "")),
-        ("convert", "to_str_f64") => Some((&["Float"][..], "")),
-        ("convert", "format_f64") => Some((&["Float", "Int"][..], "")),
-        ("math", "sqrt") => Some((&["Float"][..], "")),
-        ("str_builder", "new") => Some((&["Int"][..], "")),
-        ("str_builder", "append") => Some((&["Int", "Str"][..], "")),
-        ("str_builder", "append_char") => Some((&["Int", "Int"][..], "")),
-        ("str_builder", "finish") => Some((&["Int"][..], "")),
         ("simd", "f64x2_splat") => Some((&["Float"][..], "")),
         ("simd", "f64x2_make") => Some((&["Float", "Float"][..], "")),
         ("simd", "f64x2_add")
@@ -2603,43 +2912,6 @@ fn infer_stdlib_namespace_call(
         | ("simd", "f64x2_mul")
         | ("simd", "f64x2_gt") => Some((&["Int", "Int"][..], "")),
         ("simd", "f64x2_extract") => Some((&["Int", "Int"][..], "")),
-        ("text", "trim")
-        | ("text", "to_lower")
-        | ("text", "to_upper")
-        | ("encoding", "hex_encode")
-        | ("encoding", "hex_decode")
-        | ("encoding", "base64_encode")
-        | ("encoding", "base64_decode")
-        | ("encoding", "url_encode")
-        | ("encoding", "url_decode")
-        | ("env", "get")
-        | ("env", "get_required") => Some((&["Str"][..], "")),
-        ("text", "contains") | ("text", "starts_with") | ("text", "ends_with") => {
-            Some((&["Str", "Str"][..], ""))
-        }
-        ("text", "replace") => Some((&["Str", "Str", "Str"][..], "")),
-        ("text", "byte_len") => Some((&["Str"][..], "")),
-        ("text", "split_part") => Some((&["Str", "Str", "Int"][..], "")),
-        ("log", "info") | ("log", "warn") | ("log", "error") => Some((&["Str"][..], "io")),
-        ("env", "has") => Some((&["Str"][..], "nondet")),
-        ("cli", "args_len") => Some((&[][..], "nondet")),
-        ("cli", "arg") => Some((&["Int"][..], "nondet")),
-        ("json", "is_valid")
-        | ("json", "parse")
-        | ("json", "stringify")
-        | ("json", "parse_i64")
-        | ("json", "minify") => Some((&["Str"][..], "")),
-        ("json", "stringify_i64") => Some((&["Int"][..], "")),
-        ("regex", "count") => Some((&["Str", "Str"][..], "")),
-        ("regex", "replace_all") => Some((&["Str", "Str", "Str"][..], "")),
-        ("http", "status_text") => Some((&["Int"][..], "")),
-        ("http", "default_port") => Some((&["Str"][..], "")),
-        ("http", "build_request_line") => Some((&["Str", "Str"][..], "")),
-        ("http", "get") => Some((&["Str", "Int"][..], "net")),
-        ("http", "post") => Some((&["Str", "Str", "Int"][..], "net")),
-        ("http", "request") | ("http", "request_status") => {
-            Some((&["Str", "Str", "Str", "Int"][..], "net"))
-        }
         #[cfg(feature = "bench-runtime")]
         ("bench", "md5_hex") | ("bench", "json_canonical") => Some((&["Str"][..], "")),
         #[cfg(feature = "bench-runtime")]
@@ -2727,22 +2999,8 @@ fn is_builtin_ident(name: &str) -> bool {
             | "err"
             | "print"
             | "println"
-            | "time"
-            | "path"
-            | "fs"
-            | "net"
-            | "convert"
-            | "math"
-            | "str_builder"
             | "simd"
-            | "text"
-            | "encoding"
-            | "log"
-            | "env"
-            | "cli"
             | "json"
-            | "regex"
-            | "http"
             | "true"
             | "false"
     ) {

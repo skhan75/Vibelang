@@ -158,7 +158,7 @@ HirProgram {
                                                                     kind: Ident(
                                                                         "tasks",
                                                                     ),
-                                                                    ty: "List<Unknown>",
+                                                                    ty: "List<Job>",
                                                                 },
                                                             ],
                                                         },
@@ -186,7 +186,7 @@ HirProgram {
                                             kind: Ident(
                                                 "tasks",
                                             ),
-                                            ty: "List<Unknown>",
+                                            ty: "List<Job>",
                                         },
                                     ],
                                 },
@@ -226,7 +226,7 @@ HirProgram {
                                             kind: Ident(
                                                 "tasks",
                                             ),
-                                            ty: "List<Unknown>",
+                                            ty: "List<Job>",
                                         },
                                     ],
                                 },
@@ -237,6 +237,7 @@ HirProgram {
                     ty: "Unknown",
                 },
             ),
+            native_symbol: None,
         },
     ],
 }

@@ -1,0 +1,7 @@
+native_print(s: Str) {
+  @native("vibe_println")
+}
+
+main() {
+  native_print("native-ffi-ok")
+}

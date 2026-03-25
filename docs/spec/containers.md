@@ -25,6 +25,8 @@ conformance against a stable target.
   - `.len` / `.len() -> Int`
 - `Map<Str, Int>`
   - same API as `Map<Int, Int>` with `Str` keys
+- `Map<Str, Str>`
+  - same map API with `Str` keys and `Str` values (`.get`/`.set` use `Str` for both key and value)
 - `Str`
   - literal construction
   - concatenation via `+` (`Str + Str -> Str`)

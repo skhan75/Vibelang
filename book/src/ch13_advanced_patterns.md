@@ -398,8 +398,19 @@ dropped. Backpressure flows naturally through the bounded channels.
 Network services combine effects, error handling, and contracts:
 
 ```vibe
+import std.json
+
 type HttpRequest { method: Str, path: Str, headers: Map<Str, Str>, body: Str }
 type HttpResponse { status: Int, headers: Map<Str, Str>, body: Str }
+
+pub json_error_body(message: Str) -> Str {
+    jb := json.builder.new(64)
+    jb = json.builder.begin_object(jb)
+    jb = json.builder.key(jb, "error")
+    jb = json.builder.value_str(jb, message)
+    jb = json.builder.end_object(jb)
+    json.builder.finish(jb)
+}
 
 @intent "Route an HTTP request to the appropriate handler"
 @require request.method.len() > 0
@@ -412,10 +423,13 @@ pub handle_request(request: HttpRequest) -> HttpResponse {
     match request.path {
         "/health" => handle_health(request)
         "/api/users" => handle_users(request)
-        _ => HttpResponse { status: 404, headers: {}, body: "{\"error\": \"not found\"}" }
+        _ => HttpResponse { status: 404, headers: {}, body: json_error_body("not found") }
     }
 }
 ```
+
+`Map<Str, Str>` is a supported map kind, so header maps and other string-to-string
+associations are first-class — not a future-only feature.
 
 The postconditions on status codes ensure every handler returns a valid HTTP
 status. Effect declarations make the operational footprint explicit.

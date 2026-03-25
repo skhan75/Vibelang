@@ -1,0 +1,17 @@
+// Copyright 2026 Vibelang Contributors
+// SPDX-License-Identifier: Apache-2.0
+
+/**
+ * Regular expression matching and replacement.
+ */
+module std.regex
+
+pub count(text: Str, pattern: Str) -> Int {
+  @intent "count the number of non-overlapping matches of pattern in text"
+  @native("vibe_regex_count")
+}
+
+pub replace_all(text: Str, pattern: Str, replacement: Str) -> Str {
+  @intent "replace all matches of pattern in text with replacement"
+  @native("vibe_regex_replace_all")
+}

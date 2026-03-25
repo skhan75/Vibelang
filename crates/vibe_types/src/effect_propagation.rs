@@ -76,7 +76,7 @@ fn collect_calls_from_contract(contract: &Contract, out: &mut BTreeSet<String>) 
                 collect_calls_from_expr(&case.expected, out);
             }
         }
-        Contract::Intent { .. } | Contract::Effect { .. } => {}
+        Contract::Intent { .. } | Contract::Effect { .. } | Contract::Native { .. } => {}
     }
 }
 

@@ -1,0 +1,20 @@
+pub main() -> Int {
+  @effect io
+  jb := json.builder.new(256)
+  jb = json.builder.begin_object(jb)
+  jb = json.builder.key(jb, "meta")
+  jb = json.builder.begin_object(jb)
+  jb = json.builder.key(jb, "kind")
+  jb = json.builder.value_str(jb, "preview")
+  jb = json.builder.key(jb, "active")
+  jb = json.builder.value_bool(jb, true)
+  jb = json.builder.end_object(jb)
+  jb = json.builder.key(jb, "tags")
+  jb = json.builder.begin_array(jb)
+  jb = json.builder.value_str(jb, "og")
+  jb = json.builder.value_str(jb, "twitter")
+  jb = json.builder.end_array(jb)
+  jb = json.builder.end_object(jb)
+  println(json.builder.finish(jb))
+  0
+}

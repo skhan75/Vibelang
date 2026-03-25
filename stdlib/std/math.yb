@@ -1,0 +1,12 @@
+// Copyright 2026 Vibelang Contributors
+// SPDX-License-Identifier: Apache-2.0
+
+/**
+ * Mathematical functions.
+ */
+module std.math
+
+pub sqrt(x: Float) -> Float {
+  @intent "compute the square root of x"
+  @native("vibe_math_sqrt")
+}

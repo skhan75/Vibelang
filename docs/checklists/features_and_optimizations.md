@@ -1,6 +1,6 @@
 # VibeLang Features and Optimizations Checklist
 
-Last updated: 2026-02-27
+Last updated: 2026-03-25
 
 ## Purpose
 
@@ -15,7 +15,7 @@ This is the canonical implementation checklist for feature gaps, limitations, an
 
 ## Current Snapshot
 
-- Example corpus: `78` programs under `examples/`
+- Example corpus: `106` programs under `examples/` (includes `59_json_builder_*`–`62_json_builder_*`, text.index_of, unfurld smoke, `json.from_map` demo)
 - Static status: all examples pass `vibe check`
 - Runtime status (source-built CLI sweep): `73` pass / `5` fail
 - Non-entry helper module files now fail with explicit entrypoint diagnostics (expected):
@@ -32,16 +32,31 @@ This is the canonical implementation checklist for feature gaps, limitations, an
 
 ### A-01 (P0) `Str.len()` runtime parity
 - [x] Implement stable lowering/runtime dispatch for string length.
+- [x] Fix `.len()` on struct `Str` fields (was dispatching to `container_len` instead of `str_len_bytes`).
 - **Symptoms**: `panic: container len called on unsupported container`
+- **Root cause (struct fields)**: `is_known_string_expr_with_owner` did not recognize `MirExpr::Member` with `Str`-typed fields. Fixed by adding `is_known_string_expr_full` that checks field types against `type_defs`.
 - **Impacted examples**:
   - `examples/02_strings_numbers/11_string_len_compare.yb`
   - `examples/02_strings_numbers/12_string_build_loop.yb`
   - `examples/05_graphs_recursion_patterns/36_palindrome_check.yb`
   - `examples/08_modules_packages/project_pipeline/app/main.yb` (via `parser.yb`)
 - **Likely subsystem**: codegen + runtime dispatch
+- **Evidence**: `crates/vibe_codegen/src/lib.rs` (`is_known_string_expr_full`), `examples/07_stdlib_io_json_regex_http/58_map_str_str_json_from_map.yb`
 - **Acceptance**:
   - All impacted examples pass `vibe run`
+  - `struct_field.len()` returns correct byte length
   - Add integration tests for `s.len()` in loops and helper functions
+
+### A-01a (P0) `Str` equality on struct fields and dynamic strings
+- [x] Fix `==` / `!=` on `Str` fields to use value comparison (`vibe_str_eq`) instead of pointer comparison (`icmp`).
+- [x] Fix string `+` concatenation with struct `Str` fields to use `vibe_str_concat`.
+- **Symptoms**: `struct.field == "literal"` always returned false; `"prefix" + struct.field` produced garbage.
+- **Root cause**: Same as A-01 — `is_known_string_expr_with_owner` did not recognize `MirExpr::Member`.
+  Additionally, `Eq`/`Ne` required BOTH sides to be known strings; relaxed to EITHER side.
+- **Evidence**: `crates/vibe_codegen/src/lib.rs` (`is_known_string_expr_full`), `examples/07_stdlib_io_json_regex_http/58_map_str_str_json_from_map.yb`
+- **Acceptance**:
+  - `struct_field == "literal"` performs content comparison
+  - `"prefix" + struct_field` produces correct concatenation
 
 ### A-02 (P0) List method dispatch parity (`.get` / `.set`)
 - [x] Fix list receiver dispatch so list methods never route to map/string-key paths.
@@ -243,9 +258,17 @@ without rewriting core functionality in another language.
   - Example: `examples/07_stdlib_io_json_regex_http/47_json_parse_stringify_and_codecs.yb`
 - **Why**: production apps need to consume/emit JSON payloads (configs, HTTP APIs, logs) without
   bespoke parsers.
-- **Delivery status**: preview implementation shipped as canonicalized string APIs:
-  `json.parse(Str) -> Str` and `json.stringify(Str) -> Str`; malformed parse returns `""` and
-  never panics.
+- **Delivery status (executable surface)**: `Json` type with `json.parse(raw) -> Json` (**strict**:
+  invalid JSON **panics**), `json.stringify` / `json.stringify_pretty` on `Json`, constructors
+  (`json.null`, `json.bool`, `json.i64`, `json.f64`, `json.str`), and **`json.builder`** as the
+  **canonical dynamic construction** path (`new` → nested object/array → `finish` → `Str`).
+  `json.from_map` remains a **compatibility/convenience** helper (string map + heuristics), not the
+  primary story.
+- **Codegen note**: `json.builder.value_bool` widens the lowered `Bool` (`I8`) to `I64` at the call
+  site to match the native ABI (`vibe_json_builder_value_bool`).
+- **Follow-up (not yet the executable model)**: `Result<Json, JsonError>` parse, safe navigational
+  accessors on `Json`, and non-panicking builder finish — tracked for hardening alongside
+  `docs/spec/error_model.md`.
 - **Spec hooks**:
   - `docs/spec/containers.md` (maps/lists semantics used by JSON trees)
   - `docs/spec/strings_and_text.md` (string encoding/escapes)
@@ -265,9 +288,13 @@ without rewriting core functionality in another language.
 
 ### F-02 (P0) Typed JSON encode/decode for nominal `type` values (boundary payloads)
 - [x] Provide a canonical way to convert between JSON and user-defined nominal types.
+- [x] Recursive nested struct encoding/decoding.
 - **Evidence**:
-  - Canonical generated entrypoints: `json.encode_<Type>` / `json.decode_<Type>(raw, fallback)`
-  - Runtime + lowering + typing: `runtime/native/vibe_runtime.c`, `crates/vibe_codegen/src/lib.rs`, `crates/vibe_types/src/lib.rs`
+  - Canonical surface: `json.encode(value)` / `json.decode(raw, fallback)` — compiler infers the type from the argument. Legacy `json.encode_<Type>` / `json.decode_<Type>` still accepted.
+  - Nested struct fields automatically serialize to/from nested JSON objects.
+  - Schema generation: `json_codec_schema_recursive` in `crates/vibe_codegen/src/lib.rs` inlines nested type schemas with `{...}` delimiters.
+  - Runtime: `vibe_json_encode_record_into` / `vibe_json_decode_record` in `runtime/native/vibe_runtime.c` recursively handle nested records.
+  - Type resolution: `parse_type_ref` in `crates/vibe_types/src/lib.rs` now recognizes user-defined type names as `TypeKind::UserType`.
   - Example coverage: `compiler/tests/fixtures/stdlib/json/basic.yb`, `crates/vibe_cli/tests/phase12_stdlib.rs`
   - Example: `examples/07_stdlib_io_json_regex_http/47_json_parse_stringify_and_codecs.yb`
 - **Why**: production APIs should not be written as ad-hoc `Map<Str, ...>` plumbing; they need
@@ -444,6 +471,47 @@ without rewriting core functionality in another language.
   - Docs + fixtures: `stdlib/env/README.md`, `stdlib/cli/README.md`, `compiler/tests/fixtures/stdlib/env_cli/basic.yb`
   - Example: `examples/07_stdlib_io_json_regex_http/55_env_cli_surface_smoke.yb`
 
+### F-11 (P0) `text.index_of` -- substring position search
+- [x] Add `text.index_of(haystack: Str, needle: Str) -> Int` to the text module.
+- **Why**: production HTML/text parsing requires finding the byte offset of substrings, not just
+  boolean containment. This is a blocking gap for building real parsers in VibeLang.
+- **Evidence**:
+  - Runtime: `runtime/native/vibe_runtime.c` (`vibe_text_index_of`)
+  - Codegen: `crates/vibe_codegen/src/lib.rs` (`text_index_of_fn`)
+  - Typing: `crates/vibe_types/src/lib.rs` (`("text", "index_of")`)
+  - Docs: `stdlib/text/README.md`
+  - Example: `examples/07_stdlib_io_json_regex_http/56_text_index_of_basics.yb`
+  - Tests: `crates/vibe_cli/tests/phase12_stdlib.rs` (existing surface test passes)
+- **Acceptance**:
+  - Returns byte offset of first occurrence, or `-1` if not found.
+  - Empty needle returns `0`.
+  - Non-panicking for arbitrary input (NULL-safe in C runtime).
+
+### F-12 (P0) `Map<Str, Str>` + `json.from_map` -- dict-like JSON construction
+- [x] Add `Map<Str, Str>` container support (runtime, codegen, type checker).
+- [x] Add `json.from_map(map: Map<Str, Str>) -> Str` with smart type detection.
+- **Why**: `Map<Str, Str>` stays useful for string-keyed bags; **`json.builder`** (and `Json` +
+  `stringify`) is the **canonical** way to build dynamic JSON with explicit scalars and nesting.
+  `json.from_map` is **compatibility/convenience** (string values + heuristic unquoting), not the
+  recommended primary UX for structured payloads.
+- **Evidence**:
+  - Runtime: `runtime/native/vibe_runtime.c` (`vibe_map_str_str`, `vibe_json_from_str_str_map`)
+  - Codegen: `crates/vibe_codegen/src/lib.rs` (`map_new_str_str_fn`, `container_set_str_str_fn`, `json_from_str_str_map_fn`)
+  - Typing: `crates/vibe_types/src/lib.rs` (json.from_map special handling)
+  - Docs: `stdlib/json/README.md`
+  - Example: `examples/07_stdlib_io_json_regex_http/58_map_str_str_json_from_map.yb`
+- **Acceptance**:
+  - `{"key": "value"}` literal creates `Map<Str, Str>` when all values are strings.
+  - `json.from_map(m)` emits JSON with auto type detection: integer strings unquoted, "true"/"false" as booleans, others as quoted strings.
+  - Insertion-order preserved in JSON output.
+
+### F-13 (P0) HTTPS curl byte-count fix
+- [x] Fix off-by-one byte counts in `vibe_http_request_body_curl` and `vibe_http_request_status_curl`.
+- **Why**: HTTPS requests via curl were silently failing because the `--max-time` parameter
+  was truncated by a null byte in the command string.
+- **Evidence**: `runtime/native/vibe_runtime.c` (corrected string lengths: 23, 15, 12)
+- **Acceptance**: `http.get("https://...", timeout)` returns response body for HTTPS URLs.
+
 ---
 
 ## D) Example Program Quality Gates (Required Before “Production-Ready Examples” Claim)
@@ -462,6 +530,24 @@ without rewriting core functionality in another language.
 
 ### D-05 (P1) Parity trend reporting
 - [x] Publish periodic example parity report (pass/fail trend).
+
+### D-06 (P0) Stdlib C-to-YB Migration
+- [x] Phase 0: Namespace-to-module bridge (module resolver, type checker, codegen)
+- [x] Phase 1: Migrate trivial leaf modules (log, env, cli, time, fs)
+- [x] Phase 2: Migrate medium modules (convert, text, encoding, regex, net, math, str_builder)
+- [x] Phase 3: Migrate complex modules (json DOM/validation, http + types)
+- [x] Phase 4: Remove hardcoded is_builtin_ident entries, clean up extract_stdlib_call_target lists
+- **What**: All ~100 hardcoded C runtime stdlib functions migrated from compiler-wired tables into
+  self-hosted `.yb` modules under `stdlib/std/`, using `@native` FFI for C-backed primitives.
+- **Architecture**: Namespace bridge resolves `namespace.function()` calls to compiled `.yb` module functions
+  before falling back to hardcoded compiler logic. The `namespace_map` in `CompilationUnit` maps
+  `(namespace, field)` to resolved function names.
+- **Still hardcoded** (compiler special cases):
+  - `json.encode`/`json.decode`: compile-time struct schema generation
+  - `json.builder.*`: special `JsonBuilder` type
+  - `json.from_map`: special map-to-JSON conversion
+  - `simd.*`: Cranelift SIMD intrinsics
+  - `bench.*`: benchmark feature-gated functions
 
 ---
 

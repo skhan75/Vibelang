@@ -1,0 +1,11 @@
+module app.main
+import app.shapes
+
+main() {
+  @effect io
+  p := Point { x: 3, y: 4 }
+  println(convert.to_str(p.x))
+  println(convert.to_str(p.y))
+  o := origin()
+  println(convert.to_str(o.x))
+}

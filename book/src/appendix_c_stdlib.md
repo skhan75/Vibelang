@@ -155,6 +155,24 @@ path.is_absolute("src/main")   // false
 
 ---
 
+## C.4a `text` — String utilities (Preview)
+
+Pure string helpers. Import: `import std.text`. Other `text.*` functions are
+listed in the module summary and effects tables below.
+
+### `index_of(haystack: Str, needle: Str) -> Int`
+
+Returns the starting byte index of the first occurrence of `needle` in
+`haystack`, or `-1` if `needle` does not occur. The search is byte-oriented;
+both arguments must be valid UTF-8.
+
+```vibe
+text.index_of("hello world", "world")  // 6
+text.index_of("abc", "xyz")            // -1
+```
+
+---
+
 ## C.5 `fs` — File System Operations (Preview)
 
 Functions for reading and writing files and directories. All functions perform
@@ -204,10 +222,109 @@ fs.create_dir(path.join(base, "output"))?
 
 ## C.6 `json` — JSON Processing (Preview)
 
-Functions for validating and transforming JSON strings.
-Import: `import std.json`
+Structured JSON values (`Json`), text codecs, a **canonical** streaming builder for
+dynamic output, and **compatibility** helpers. Import: `import std.json`
 
 All functions are pure (no effects).
+
+### Value type: `Json`
+
+`json.parse` produces a `Json` value; `json.stringify` / `json.stringify_pretty`
+consume one. Scalar constructors wrap native values:
+
+| Function | Signature | Role |
+|----------|-----------|------|
+| `json.null` | `() -> Json` | JSON `null` |
+| `json.bool` | `(Bool) -> Json` | JSON boolean |
+| `json.i64` | `(Int) -> Json` | JSON number (integer) |
+| `json.f64` | `(Float) -> Json` | JSON number (float) |
+| `json.str` | `(Str) -> Json` | JSON string |
+
+### `parse(raw: Str) -> Json`
+
+Parses UTF-8 JSON text into a `Json` value. Invalid input is handled by the
+runtime (this is **not** a `Result`); validate first with `json.is_valid` when
+you need a soft check.
+
+```vibe
+doc := json.parse("{\"a\":1}")
+println(json.stringify(doc))              // compact wire text
+println(json.stringify_pretty(doc))       // indented, for debugging
+println(json.stringify(json.str("vibe"))) // "\"vibe\""
+```
+
+### `stringify(value: Json) -> Str`
+
+Serializes a `Json` value to compact JSON text (UTF-8 `Str`).
+
+### `stringify_pretty(value: Json) -> Str`
+
+Same as `stringify`, with insignificant whitespace added for readability.
+
+### `json.builder` — canonical dynamic construction
+
+For objects and arrays whose shape is computed at runtime, **`json.builder` is
+the recommended path**: you write keys and typed values (`value_bool`,
+`value_i64`, `value_f64`, `value_str`, `value_null`, or nested `value_json`), not
+hand-escaped string literals. The builder returns a `Str` from `finish` (or you
+can treat that string as wire text for HTTP, files, and logs).
+
+```vibe
+jb := json.builder.new(128)
+jb = json.builder.begin_object(jb)
+jb = json.builder.key(jb, "ok")
+jb = json.builder.value_bool(jb, true)
+jb = json.builder.key(jb, "count")
+jb = json.builder.value_i64(jb, 2)
+jb = json.builder.key(jb, "items")
+jb = json.builder.begin_array(jb)
+jb = json.builder.value_str(jb, "a")
+jb = json.builder.value_str(jb, "b")
+jb = json.builder.end_array(jb)
+jb = json.builder.end_object(jb)
+body := json.builder.finish(jb)
+```
+
+Typical call sequence: `new` → `begin_object` or `begin_array` → (`key` +
+value)* in objects → matching `end_*` → `finish`. Use `value_json` to embed an
+already-built subtree when needed.
+
+Runnable examples: `examples/07_stdlib_io_json_regex_http/59_json_builder_object_basics.yb`
+through `62_json_builder_http_post_body.yb`, and `47_json_parse_stringify_and_codecs.yb`.
+
+### Typed codecs: `json.encode` / `json.decode`
+
+For nominal `type` declarations, the compiler generates typed codecs that
+are invoked through `json.encode` and `json.decode`. The compiler infers the
+struct type from the argument — no type suffix needed. **This is the preferred
+approach for all structured data** — API payloads, config objects, domain models:
+
+```vibe
+type Address { city: Str, zip: Int }
+type User { id: Int, name: Str, active: Bool, address: Address }
+
+user := User { id: 7, name: "sam", active: true, address: Address { city: "NYC", zip: 10001 } }
+wire := json.encode(user)
+// {"id":7,"name":"sam","active":true,"address":{"city":"NYC","zip":10001}}
+
+fallback := User { id: 0, name: "fb", active: false, address: Address { city: "", zip: 0 } }
+decoded := json.decode(wire, fallback)
+```
+
+Nested struct fields are recursively encoded to JSON objects and recursively
+decoded back. Missing fields in the JSON fall back to the corresponding field
+in the `fallback` value.
+
+**`json.encode` vs `json.stringify` — when to use which:**
+
+- **`json.encode(value)`** takes a **typed struct** and serializes it to a
+  JSON `Str`. The compiler knows the fields at compile time.
+- **`json.stringify(json_val)`** takes a **runtime `Json` value** (from
+  `json.parse`, `json.i64`, `json.bool`, etc.) and converts it to a `Str`.
+
+Use `json.encode` when your data has a known shape (which is most of the time).
+Use `json.stringify` when working with dynamic/untyped `Json` values parsed from
+unknown sources.
 
 ### `is_valid(s: Str) -> Bool`
 
@@ -215,129 +332,147 @@ Returns `true` if the string is syntactically valid JSON.
 
 ```vibe
 json.is_valid("{\"name\": \"vibe\"}")  // true
-json.is_valid("not json")              // false
+json.is_valid("not json")            // false
 ```
 
-### `parse(s: Str) -> Str`
+### `parse_i64(s: Str) -> Int` / `stringify_i64(n: Int) -> Str`
 
-Returns canonicalized JSON text when input is valid JSON, otherwise returns `""`.
-
-```vibe
-json.parse("{ \"a\" : 1 }")  // "{\"a\":1}"
-json.parse("nope")           // ""
-```
-
-### `stringify(s: Str) -> Str`
-
-If input is already valid JSON, returns canonicalized JSON text. Otherwise returns
-a quoted JSON string.
+Parse or emit a JSON text fragment that is a single integer (compatibility /
+scalar helpers).
 
 ```vibe
-json.stringify("{\"a\":1}")  // "{\"a\":1}"
-json.stringify("hello")      // "\"hello\""
-```
-
-### Generated typed codecs: `encode_<Type>` / `decode_<Type>`
-
-For nominal `type` declarations, the compiler exposes typed JSON codec entrypoints
-under `json.*`:
-
-```vibe
-type User { id: Int, name: Str, active: Bool }
-
-fallback := User { id: 1, name: "fallback", active: false }
-decoded := json.decode_User("{\"id\":7,\"name\":\"sam\",\"active\":true}", fallback)
-wire := json.encode_User(decoded)
-```
-
-### `parse_i64(s: Str) -> Int`
-
-Parses a JSON string containing a single integer value.
-
-```vibe
-val := json.parse_i64("42")  // 42
-json.parse_i64("bad")        // 0
-```
-
-### `stringify_i64(n: Int) -> Str`
-
-Converts an integer to its JSON string representation.
-
-```vibe
-json.stringify_i64(42)   // "42"
-json.stringify_i64(-1)   // "-1"
+val := json.parse_i64("42")   // 42
+json.stringify_i64(42)        // "42"
 ```
 
 ### `minify(s: Str) -> Str`
 
-Removes insignificant whitespace from a JSON string.
+Removes insignificant whitespace from a JSON **text** string.
 
 ```vibe
 compact := json.minify("{ \"a\" : 1 }")  // "{\"a\":1}"
 ```
 
+### `from_map(map: Map<Str, Str>) -> Str` — convenience / legacy
+
+Serializes a `Map<Str, Str>` to JSON object text using **string values** plus
+heuristic coercion (numeric- and boolean-looking strings become JSON numbers and
+booleans). Handy when you already have stringly-typed maps; it is **not** the
+canonical way to build JSON—prefer `json.builder` (or `Json` values +
+`stringify`) for structured intent.
+
+```vibe
+preview := {"title": "VibeLang", "score": "95", "active": "true"}
+json.from_map(preview)  // {"title":"VibeLang","score":95,"active":true}
+```
+
 ---
 
-## C.7 `http` — HTTP Utilities (Preview)
+## C.7 `http` — HTTP Client and Server (Preview)
 
-Sync-first HTTP client helpers plus protocol utilities.
-Import: `import std.http`
+Structured HTTP client with `HttpRequest`/`HttpResponse` types, plus protocol
+helpers. These types are defined in `stdlib/std/http.yb` and loaded automatically.
 
-`status_text/default_port/build_request_line` are pure helpers.
-`request/request_status/get/post` require `@effect net`.
+### Built-in types
+
+```vibe
+type HttpRequest {
+  method: Str,
+  url: Str,
+  headers: Str,
+  body: Str,
+  timeout_ms: Int
+}
+
+type HttpResponse {
+  status: Int,
+  headers: Str,
+  body: Str
+}
+```
+
+`headers` uses raw HTTP header format: `"Content-Type: application/json\r\nAuthorization: Bearer tok"`.
+
+### `send(req: HttpRequest) -> HttpResponse`
+
+Full-control HTTP client. Requires `@effect net`.
+
+```vibe
+req := HttpRequest {
+  method: "POST",
+  url: "https://api.example.com/data",
+  headers: "Content-Type: application/json",
+  body: json.encode(MyPayload { name: "test" }),
+  timeout_ms: 5000
+}
+resp := http.send(req)
+if resp.status == 200 {
+  result := json.decode(resp.body, fallback)
+}
+```
+
+### `get(url: Str, timeout_ms: Int) -> HttpResponse`
+
+Convenience GET request. Returns structured `HttpResponse`.
+
+```vibe
+resp := http.get("https://example.com/api/health", 3000)
+println(resp.body)
+println(convert.to_str(resp.status))
+```
+
+### `post(url: Str, body: Str, timeout_ms: Int) -> HttpResponse`
+
+Convenience POST request. Returns structured `HttpResponse`.
+
+```vibe
+type LoginReq { email: Str, password: Str }
+
+resp := http.post("https://api.example.com/login", json.encode(LoginReq { email: "a@b.com", password: "secret" }), 5000)
+if resp.status == 200 {
+  println(resp.body)
+}
+```
+
+### `response(resp: HttpResponse) -> Str`
+
+Formats an `HttpResponse` into an HTTP/1.1 wire string for sending over a
+socket (server use).
+
+```vibe
+wire := http.response(HttpResponse { status: 200, headers: "", body: json.encode(data) })
+net.write(conn, wire)
+```
+
+### `build_response(status: Int, body: Str) -> Str`
+
+Convenience server helper — builds a wire-format HTTP response with JSON
+content type and CORS headers.
 
 ### `status_text(code: Int) -> Str`
 
-Returns the standard reason phrase for an HTTP status code. Returns `"Unknown"`
-for unrecognized codes.
+Returns the standard reason phrase for an HTTP status code.
 
 ```vibe
 http.status_text(200)   // "OK"
 http.status_text(404)   // "Not Found"
-http.status_text(500)   // "Internal Server Error"
 ```
 
 ### `default_port(scheme: Str) -> Int`
 
-Returns the default port for a URI scheme. Returns `0` for unrecognized schemes.
-
-```vibe
-http.default_port("http")    // 80
-http.default_port("https")   // 443
-```
+Returns the default port for a URI scheme.
 
 ### `build_request_line(method: Str, path: Str) -> Str`
 
 Constructs an HTTP/1.1 request line from a method and path.
 
-```vibe
-http.build_request_line("GET", "/api/users")
-// "GET /api/users HTTP/1.1"
-```
-
 ### `request(method: Str, url: Str, body: Str, timeout_ms: Int) -> Str`
 
-Performs a sync HTTP request and returns response body text.
-
-```vibe
-resp := http.request("POST", "http://127.0.0.1:8080/api", "{\"ok\":true}", 2000)
-```
+Legacy unstructured request — returns body text only. Prefer `http.send`.
 
 ### `request_status(method: Str, url: Str, body: Str, timeout_ms: Int) -> Int`
 
 Returns only the HTTP status code for the request.
-
-```vibe
-status := http.request_status("GET", "http://127.0.0.1:8080/health", "", 2000)
-```
-
-### `get(url: Str, timeout_ms: Int) -> Str`
-
-Convenience wrapper around `request("GET", ...)`.
-
-### `post(url: Str, body: Str, timeout_ms: Int) -> Str`
-
-Convenience wrapper around `request("POST", ...)`.
 
 ---
 
@@ -462,9 +597,9 @@ regex.replace_all("foo bar foo", "foo", "baz")   // "baz bar baz"
 | `fs`   | **Preview** | `io`             | 4         |
 | `net`  | **Preview** | `net`            | 8         |
 | `convert` | **Preview** | None          | 10        |
-| `text` | **Preview** | None             | 9         |
+| `text` | **Preview** | None             | 10        |
 | `encoding` | **Preview** | None         | 6         |
-| `json` | **Preview** | None             | 6         |
+| `json` | **Preview** | None             | 13+       |
 | `http` | **Preview** | `net` (client ops) | 7      |
 | `log`  | **Preview** | `io`             | 3         |
 | `env`  | **Preview** | `nondet`         | 3         |
@@ -484,9 +619,9 @@ import std.path        // join, parent, basename, is_absolute
 import std.fs          // exists, read_text, write_text, create_dir
 import std.net         // listen, listener_port, accept, connect, read, write, close, resolve
 import std.convert     // to_int, parse_i64, to_float, parse_f64, to_str, to_str_f64, format_f64, i64_to_f64, f64_to_bits, f64_from_bits
-import std.text        // trim, contains, starts_with, ends_with, replace, to_lower, to_upper, byte_len, split_part
+import std.text        // trim, contains, starts_with, ends_with, replace, to_lower, to_upper, byte_len, split_part, index_of
 import std.encoding    // hex/base64/url encode/decode
-import std.json        // is_valid, parse, stringify, parse_i64, stringify_i64, minify
+import std.json        // Json: parse, stringify, stringify_pretty, null/bool/i64/f64/str; builder.*; is_valid, minify; parse_i64, stringify_i64; from_map; encode_<T>, decode_<T>
 import std.http        // status_text, default_port, build_request_line, request, request_status, get, post
 import std.log         // info, warn, error
 import std.env         // get, has, get_required
@@ -543,6 +678,7 @@ import std.regex       // count, replace_all
 | `to_upper(Str)`                | text   | None     |
 | `byte_len(Str)`                | text   | None     |
 | `split_part(Str, Str, Int)`    | text   | None     |
+| `index_of(Str, Str)`           | text   | None     |
 | `hex_encode(Str)`              | encoding | None   |
 | `hex_decode(Str)`              | encoding | None   |
 | `base64_encode(Str)`           | encoding | None   |
@@ -551,10 +687,13 @@ import std.regex       // count, replace_all
 | `url_decode(Str)`              | encoding | None   |
 | `is_valid(Str)`                | json   | None     |
 | `parse(Str)`                   | json   | None     |
-| `stringify(Str)`               | json   | None     |
+| `stringify(Json)`              | json   | None     |
+| `stringify_pretty(Json)`       | json   | None     |
+| `null()` … `str(Str)`          | json   | None     |
 | `parse_i64(Str)`               | json   | None     |
 | `stringify_i64(Int)`           | json   | None     |
 | `minify(Str)`                  | json   | None     |
+| `from_map(Map<Str, Str>)`      | json   | None     |
 | `status_text(Int)`             | http   | None     |
 | `default_port(Str)`            | http   | None     |
 | `build_request_line(Str, Str)` | http   | None     |

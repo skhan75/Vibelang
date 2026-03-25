@@ -98,6 +98,34 @@ Inference MUST be deterministic and independent of file traversal order.
   sendability rules in `docs/spec/ownership_sendability.md`.
 - `Chan<T>` payload type determines channel transfer safety constraints.
 
+## JSON built-in types (executable today)
+
+The standard library treats JSON as a first-class boundary type:
+
+- **`Json`** — opaque runtime value representing JSON null, booleans, numbers,
+  strings, arrays, and objects. Produced by `json.parse`, `json.null` /
+  `json.bool` / `json.i64` / `json.f64` / `json.str`, and consumed by
+  `json.stringify` / `json.stringify_pretty`. Typed records use
+  `json.encode` / `json.decode` at the boundary (the compiler infers the
+  target type from the argument).
+- **`JsonBuilder`** — incremental serializer handle for dynamic structure.
+  Canonical API: `json.builder.new`, `begin_object` / `end_object`,
+  `begin_array` / `end_array`, `key`, `value_*`, `finish` → `Str`.
+
+These types are built into the compiler and runtime (not user `type` aliases).
+They exist so recursive JSON trees do not depend on generic recursive
+user-defined types or payload enums before those features are fully executable.
+
+### Nested struct encoding
+
+`json.encode` recursively serializes nested user-defined struct fields
+into nested JSON objects. `json.decode` recursively reconstructs nested
+structs from JSON, using the fallback record's nested fields for any missing
+keys. The compiler infers the target type from the argument at compile time.
+This means idiomatic VibeLang code should model domain data as typed
+structs and let the codec handle serialization — no manual `json.builder`
+needed for structured data.
+
 ## Type Errors
 
 Type checker diagnostics MUST provide:

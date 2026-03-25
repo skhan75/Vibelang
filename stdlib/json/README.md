@@ -1,41 +1,88 @@
 # `json` module (preview)
 
+The module centers on the `Json` value type: parse text into `Json`, stringify `Json` back to text, and build JSON incrementally with `json.builder` when structure is dynamic. Typed boundaries use `json.encode` / `json.decode` with compiler-inferred types.
+
+**Recommended paths**
+
+- **Arbitrary / runtime-shaped JSON**: `json.parse` → `Json`, then `json.stringify` / `json.stringify_pretty`; or build with `json.builder.*` and `json.builder.finish`.
+- **Fixed nominal models**: `json.encode(value)` / `json.decode(raw, fallback)`.
+- **Legacy convenience**: `json.from_map` (string values only, heuristic typing) — not the primary API.
+
+`Result`-based JSON errors and richer typed codec surfaces are future work; today errors are panic-or-sentinel as noted below.
+
 ## APIs
 
+**`Json` lifecycle**
+
+- `json.parse(raw: Str) -> Json` — strict parse; **panics** on invalid JSON
+- `json.stringify(value: Json) -> Str` — compact deterministic output
+- `json.stringify_pretty(value: Json) -> Str` — pretty-printed output
+
+**`Json` constructors**
+
+- `json.null() -> Json`
+- `json.bool(value: Bool) -> Json`
+- `json.i64(value: Int) -> Json`
+- `json.f64(value: Float) -> Json`
+- `json.str(value: Str) -> Json`
+
+**Incremental builder (`JsonBuilder`)**
+
+- `json.builder.new(capacity: Int) -> JsonBuilder`
+- `json.builder.begin_object(builder: JsonBuilder) -> JsonBuilder`
+- `json.builder.end_object(builder: JsonBuilder) -> JsonBuilder`
+- `json.builder.begin_array(builder: JsonBuilder) -> JsonBuilder`
+- `json.builder.end_array(builder: JsonBuilder) -> JsonBuilder`
+- `json.builder.key(builder: JsonBuilder, name: Str) -> JsonBuilder`
+- `json.builder.value_null(builder: JsonBuilder) -> JsonBuilder`
+- `json.builder.value_bool(builder: JsonBuilder, value: Bool) -> JsonBuilder`
+- `json.builder.value_i64(builder: JsonBuilder, value: Int) -> JsonBuilder`
+- `json.builder.value_f64(builder: JsonBuilder, value: Float) -> JsonBuilder`
+- `json.builder.value_str(builder: JsonBuilder, value: Str) -> JsonBuilder`
+- `json.builder.value_json(builder: JsonBuilder, value: Json) -> JsonBuilder`
+- `json.builder.finish(builder: JsonBuilder) -> Str`
+
+**Typed codecs (type-inferred)**
+
+- `json.encode(value) -> Str` — the compiler infers the struct type from the argument
+- `json.decode(raw: Str, fallback) -> T` — the compiler infers the target type from the fallback argument
+
+Nested struct fields are recursively encoded/decoded. A `type Outer { inner: Inner }` where `Inner` is also a user-defined struct produces nested JSON objects automatically.
+
+The legacy `json.encode_<Type>` / `json.decode_<Type>` syntax with explicit type suffix is still accepted for backward compatibility.
+
+**Compatibility / utilities**
+
+- `json.from_map(map: Map<Str, Str>) -> Str` — convenience only; all map values are strings; see semantics
 - `json.is_valid(raw: Str) -> Bool`
-- `json.parse(raw: Str) -> Str`
-- `json.stringify(raw: Str) -> Str`
 - `json.parse_i64(raw: Str) -> Int`
 - `json.stringify_i64(value: Int) -> Str`
 - `json.minify(raw: Str) -> Str`
-- `json.encode_<Type>(value: Type) -> Str` (compiler-generated typed codec entrypoint)
-- `json.decode_<Type>(raw: Str, fallback: Type) -> Type` (compiler-generated typed codec entrypoint)
 
 ## Semantics
 
-- `is_valid` supports common JSON literals and basic structural wrappers (`{}`, `[]`, quoted
-  strings, booleans, null, integer literals).
-- `parse` returns canonicalized JSON text for valid JSON input and empty string for invalid input.
-- `stringify` returns canonicalized JSON if input is valid JSON, otherwise emits a quoted JSON
-  string value.
-- `parse_i64` parses integer literals with surrounding whitespace.
-- `stringify_i64` serializes `Int` to canonical decimal string.
-- `minify` removes insignificant whitespace while preserving string literals and escapes.
-- `encode_<Type>` and `decode_<Type>` are generated from nominal `type` declarations and currently
-  support deterministic field mapping for `Int`, `Str`, and `Bool` fields.
- 
+- **`parse` / `stringify` / `stringify_pretty`** operate on the `Json` AST: escapes and structure follow normal JSON rules. Output is deterministic for a given `Json` value.
+- **`json.builder`**: emit JSON by nesting `begin_object` / `end_object`, `begin_array` / `end_array`, `key` (in objects), then scalar/`value_json` calls. **`finish`** produces the final `Str`; invalid sequencing or misuse can **panic** (same spirit as `parse` strictness).
+- **`encode` / `decode`**: the compiler resolves the struct type from the argument at compile time and generates the appropriate codec. Field mapping is deterministic for supported field types (`Int`, `Str`, `Bool`, `Json`, and nested user-defined struct types). Nested structs are recursively encoded to JSON objects and recursively decoded from JSON objects. **`decode`** uses **`fallback`** for missing or invalid fields.
+- **`from_map`**: serializes `Map<Str, Str>` to a JSON object. Values are still strings at the type level; runtime applies heuristics: integer-looking values unquoted, `"true"` / `"false"` as booleans, otherwise JSON strings. Prefer **`json.builder`** or **`Json`** + **`stringify`** when you need explicit types without guessing.
+- **`is_valid`**: structural/literal validation without building a full `Json` value for the caller; returns `false` for malformed input.
+- **`parse_i64`**: parses integer literals with surrounding whitespace.
+- **`stringify_i64`**: decimal string for `Int`.
+- **`minify`**: drops insignificant whitespace while preserving string contents and escapes; intended for JSON text.
+
 ## Benchmark-only helpers
 
-Some benchmark parity helpers were intentionally moved out of the default stdlib surface. See
-`stdlib/bench/README.md` for:
+Some benchmark parity helpers were intentionally moved out of the default stdlib surface. See `stdlib/bench/README.md` for:
 
 - `bench.json_canonical`
 - `bench.json_repeat_array`
 
 ## Error model
 
-- `parse_i64` returns `0` for invalid numeric input.
-- `parse` returns `""` for invalid JSON input.
-- `is_valid` returns `false` for malformed input.
-- `minify` is non-panicking for arbitrary text input.
-- `decode_<Type>` uses the provided `fallback` value for missing/invalid fields.
+- **`json.parse`**: invalid JSON → **panic** (no sentinel `Json`).
+- **`json.stringify` / `json.stringify_pretty`**: serialize a `Json` value; the runtime maps a null handle to **`""`** (defensive), which the typed surface should not normally produce.
+- **`json.builder.finish`** / mismatched **`begin_*` / `end_*`**: **panic** on misuse.
+- **`json.is_valid`**: `false` for malformed input; non-panicking.
+- **`json.parse_i64`**: returns **`0`** for invalid numeric input.
+- **`json.decode`**: uses provided **`fallback`** for recoverable decode issues (per generated codec behavior).
+- **`json.minify`**: non-panicking for arbitrary text input (best-effort minification).

@@ -169,33 +169,42 @@ runtime error: string slice index 3 is not a UTF-8 character boundary
 ```
 
 This strictness prevents an entire category of mojibake bugs. When working with
-text that may contain multi-byte characters, use the standard library's
-`chars()` iterator to find safe boundaries.
+text that may contain multi-byte characters, derive safe byte indices with
+`std.text` helpers such as `text.index_of` and `text.split_part`, or restrict
+slicing to boundaries you know are ASCII-safe.
 
 ### 9.1.6 Common String Operations
 
-VibeLang's `Str` type provides several built-in methods:
+Common text helpers live in `std.text` (import `std.text`). They take the
+string as an argument and return a new value — `Str` values are never modified
+in place.
 
 ```vibe
-text := "  Hello, World!  "
+import std.text
 
-trimmed := text.trim()
-upper := text.to_upper()
-lower := text.to_lower()
-found := text.contains("World")
-idx := text.index_of("World")
-parts := "a,b,c".split(",")
-starts := text.starts_with("  Hello")
-ends := text.ends_with("!  ")
+s := "  Hello, World!  "
+
+trimmed := text.trim(s)
+upper := text.to_upper(s)
+lower := text.to_lower(s)
+found := text.contains(s, "World")
+idx := text.index_of(s, "World")
+first_field := text.split_part("a,b,c", ",", 0)
+starts := text.starts_with(s, "  Hello")
+ends := text.ends_with(s, "!  ")
 ```
 
-Each of these returns a new value — strings are never modified in place.
+`text.index_of(haystack, needle)` returns the starting **byte** index of the
+first occurrence of `needle`, or `-1` if it is not found. `text.split_part(s,
+delimiter, n)` returns the `n`th segment when splitting on `delimiter` (0-based).
 
 A practical example — parsing a simple key-value configuration line:
 
 ```vibe
+import std.text
+
 pub parse_config_line(line: Str) -> Result<(Str, Str), Str> {
-    idx := line.index_of("=")
+    idx := text.index_of(line, "=")
     if idx < 0 {
         Err("missing '=' delimiter")
     } else {
@@ -504,14 +513,22 @@ VibeLang v1 supports these map type combinations:
 | Key Type | Value Type | Example                              |
 |----------|------------|--------------------------------------|
 | `Str`    | `Int`      | `{"timeout": 5000}`                  |
+| `Str`    | `Str`      | `{"name": "Ada", "role": "dev"}`     |
 | `Int`    | `Int`      | `{1: 100, 2: 200}`                   |
 | `Map<Str, Int>` | — | Most common for configuration data   |
+| `Map<Str, Str>` | — | String metadata, headers, string props |
 | `Map<Int, Int>` | — | Common for counters and histograms   |
+
+When you need **JSON object text** from runtime-driven data, prefer
+`std.json` **`json.builder`** (or `Json` values plus `json.stringify`) so structure
+and types stay explicit. The stdlib helper **`json.from_map(Map<Str, Str>)`**
+remains a **convenience** for maps that are already string-to-string (with
+coercion heuristics on values); it is not the canonical JSON API—see Appendix C.6.
 
 This constraint is deliberate. By limiting key-value combinations in v1,
 VibeLang can optimize the underlying hash map implementation and provide
-stronger determinism guarantees. Future versions will expand the supported
-combinations.
+stronger determinism guarantees. Additional combinations may appear in future
+versions.
 
 ### 9.3.3 Getting Values
 

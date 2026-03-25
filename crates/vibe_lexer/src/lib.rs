@@ -59,6 +59,8 @@ pub enum TokenKind {
     Star,
     Slash,
     Bang,
+    AmpAmp,
+    PipePipe,
     EqEq,
     NotEq,
     Lt,
@@ -121,6 +123,9 @@ impl Lexer {
                 }
                 '/' if self.peek_next() == Some('/') => {
                     self.consume_comment();
+                }
+                '/' if self.peek_next() == Some('*') => {
+                    self.consume_block_comment();
                 }
                 '"' => self.lex_string(),
                 '0'..='9' => self.lex_number(),
@@ -288,6 +293,14 @@ impl Lexer {
                 (TokenKind::NotEq, "!=".to_string())
             }
             '!' => (TokenKind::Bang, "!".to_string()),
+            '&' if self.peek() == Some('&') => {
+                self.bump();
+                (TokenKind::AmpAmp, "&&".to_string())
+            }
+            '|' if self.peek() == Some('|') => {
+                self.bump();
+                (TokenKind::PipePipe, "||".to_string())
+            }
             '<' if self.peek() == Some('=') => {
                 self.bump();
                 (TokenKind::Le, "<=".to_string())
@@ -319,6 +332,37 @@ impl Lexer {
                 break;
             }
             self.bump();
+        }
+    }
+
+    fn consume_block_comment(&mut self) {
+        let (start_line, start_col) = (self.line, self.col);
+        self.bump(); // '/'
+        self.bump(); // '*'
+        loop {
+            match self.peek() {
+                Some('*') if self.peek_next() == Some('/') => {
+                    self.bump(); // '*'
+                    self.bump(); // '/'
+                    return;
+                }
+                Some('\n') => {
+                    self.bump_newline();
+                }
+                Some(_) => {
+                    self.bump();
+                }
+                None => {
+                    let span = Span::new(start_line, start_col, self.line, self.col);
+                    self.diags.push(Diagnostic::new(
+                        "E1003",
+                        Severity::Error,
+                        "unterminated block comment",
+                        span,
+                    ));
+                    return;
+                }
+            }
         }
     }
 
@@ -378,7 +422,7 @@ fn keyword_of(text: &str) -> Option<Keyword> {
 
 #[cfg(test)]
 mod tests {
-    use super::lex;
+    use super::*;
 
     #[test]
     fn lexes_basic_tokens() {
@@ -388,5 +432,57 @@ fn1(a, b) { x := 1 }
         let (tokens, diags) = lex(src);
         assert!(!tokens.is_empty());
         assert!(!diags.has_errors());
+    }
+
+    #[test]
+    fn block_comment_single_line() {
+        let (tokens, diags) = lex("x := /* ignored */ 1");
+        assert!(!diags.has_errors());
+        let kinds: Vec<_> = tokens.iter().map(|t| &t.kind).collect();
+        assert!(kinds.contains(&&TokenKind::Ident));
+        assert!(kinds.contains(&&TokenKind::Bind));
+        assert!(kinds.contains(&&TokenKind::IntLit));
+    }
+
+    #[test]
+    fn block_comment_multiline() {
+        let src = "x := /*\n * multi\n * line\n */ 1";
+        let (tokens, diags) = lex(src);
+        assert!(!diags.has_errors());
+        let idents: Vec<_> = tokens
+            .iter()
+            .filter(|t| t.kind == TokenKind::IntLit)
+            .collect();
+        assert_eq!(idents.len(), 1);
+        assert_eq!(idents[0].lexeme, "1");
+    }
+
+    #[test]
+    fn doc_comment() {
+        let src = "/** doc comment */\nmodule app";
+        let (tokens, diags) = lex(src);
+        assert!(!diags.has_errors());
+        let has_module = tokens
+            .iter()
+            .any(|t| t.kind == TokenKind::Keyword(Keyword::Module));
+        assert!(has_module);
+    }
+
+    #[test]
+    fn unterminated_block_comment() {
+        let (_, diags) = lex("/* oops no close");
+        assert!(diags.has_errors());
+        assert!(diags.as_slice().iter().any(|d| d.code == "E1003"));
+    }
+
+    #[test]
+    fn empty_block_comment() {
+        let (tokens, diags) = lex("x := /**/ 1");
+        assert!(!diags.has_errors());
+        let ints: Vec<_> = tokens
+            .iter()
+            .filter(|t| t.kind == TokenKind::IntLit)
+            .collect();
+        assert_eq!(ints.len(), 1);
     }
 }

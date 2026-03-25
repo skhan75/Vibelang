@@ -1,0 +1,17 @@
+parse_int(s: Str) -> Result<Int, Str> {
+  if s == "42" {
+    return ok(42)
+  }
+  err("not 42")
+}
+
+try_parse(s: Str) -> Result<Int, Str> {
+  val := parse_int(s)?
+  ok(val + 1)
+}
+
+main() {
+  r1 := try_parse("42")
+  r2 := try_parse("bad")
+  println("done")
+}

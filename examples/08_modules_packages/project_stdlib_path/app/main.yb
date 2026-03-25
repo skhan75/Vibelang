@@ -1,0 +1,30 @@
+module app.main
+import std.path
+
+main() {
+  @effect io
+
+  println(join("/usr", "local"))
+  println(join("/usr/", "local"))
+  println(join("", "file.txt"))
+  println(join("/tmp", ""))
+
+  println(parent("/usr/local/bin"))
+  println(parent("/root"))
+  println(parent("file.txt"))
+  println(parent(""))
+
+  println(basename("/usr/local/bin/vibe"))
+  println(basename("/root"))
+  println(basename("file.txt"))
+  println(basename(""))
+
+  if is_absolute("/tmp") { println("abs-unix") }
+  if is_absolute("relative") { println("BAD") } else { println("rel-ok") }
+  if is_absolute("") { println("BAD") } else { println("empty-ok") }
+
+  println(parent("C:\\Users\\sam\\file.txt"))
+  println(basename("C:\\Users\\sam\\file.txt"))
+  if is_absolute("C:foo") { println("abs-drive") }
+  if is_absolute("\\\\server") { println("abs-unc") }
+}

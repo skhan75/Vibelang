@@ -35,7 +35,7 @@ use vibe_runtime::{compile_runtime_object, link_executable, RuntimeBuildOptions}
 use vibe_sidecar::models::FindingSeverity;
 use vibe_sidecar::SidecarMode;
 use vibe_sidecar::{BudgetPolicy, IntentLintRequest, SidecarService};
-use vibe_types::{check_and_lower, type_kind_to_codegen_str};
+use vibe_types::{check_and_lower, check_and_lower_with_ns, type_kind_to_codegen_str};
 
 use crate::example_runner::{run_examples_with_policy, ExampleRunSummary};
 use crate::module_resolver::resolve_compilation_unit;
@@ -2152,7 +2152,7 @@ fn build_source(args: &BuildArgs) -> Result<BuildArtifacts, String> {
     } else {
         None
     };
-    let checked = check_and_lower(&unit.ast);
+    let checked = check_and_lower_with_ns(&unit.ast, &unit.namespace_map);
     let check_ms = check_start
         .as_ref()
         .map(|start| start.elapsed().as_millis())
@@ -2229,6 +2229,7 @@ fn build_source(args: &BuildArgs) -> Result<BuildArtifacts, String> {
         },
         &type_defs,
         &checked.enum_defs,
+        &unit.namespace_map,
     )
     .map_err(|e| format!("codegen failed: {e}"))?;
     let codegen_ms = codegen_start

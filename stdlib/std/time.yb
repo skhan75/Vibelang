@@ -1,0 +1,30 @@
+// Copyright 2026 Vibelang Contributors
+// SPDX-License-Identifier: Apache-2.0
+
+/**
+ * Wall-clock and monotonic time, sleep, and duration helpers.
+ */
+module std.time
+
+pub now_ms() -> Int {
+  @intent "current wall-clock time in milliseconds since epoch"
+  @effect nondet
+  @native("vibe_time_now_ms")
+}
+
+pub monotonic_now_ms() -> Int {
+  @intent "monotonic clock in milliseconds (for elapsed-time measurement)"
+  @effect nondet
+  @native("vibe_time_monotonic_now_ms")
+}
+
+pub sleep_ms(ms: Int) {
+  @intent "suspend the current thread for the given number of milliseconds"
+  @effect io
+  @native("vibe_time_sleep_ms")
+}
+
+pub duration_ms(seconds: Int) -> Int {
+  @intent "convert seconds to milliseconds"
+  @native("vibe_time_duration_ms")
+}

@@ -13,6 +13,7 @@ pub struct CompilationUnit {
     pub source: String,
     pub ast: FileAst,
     pub diagnostics: Diagnostics,
+    pub namespace_map: BTreeMap<(String, String), String>,
 }
 
 struct ParsedSource {
@@ -28,10 +29,18 @@ pub fn resolve_compilation_unit(entry_path: &Path) -> Result<CompilationUnit, St
     diagnostics.extend(entry_parsed.diagnostics.clone().into_sorted());
 
     if entry_parsed.ast.module.is_none() && entry_parsed.ast.imports.is_empty() {
+        let (ns_decls, namespace_map) = load_stdlib_namespace_functions();
+        let mut decls = entry_parsed.ast.declarations;
+        decls.extend(ns_decls);
         return Ok(CompilationUnit {
             source: entry_source,
-            ast: entry_parsed.ast,
+            ast: FileAst {
+                module: None,
+                imports: Vec::new(),
+                declarations: decls,
+            },
             diagnostics,
+            namespace_map,
         });
     }
 
@@ -42,7 +51,13 @@ pub fn resolve_compilation_unit(entry_path: &Path) -> Result<CompilationUnit, St
             .to_path_buf()
     });
     let canonical_root = root_dir.canonicalize().unwrap_or(root_dir.clone());
-    let files = crate::collect_vibe_files(&root_dir)?;
+    let mut files = crate::collect_vibe_files(&root_dir)?;
+
+    if let Some(stdlib_root) = find_stdlib_root() {
+        if let Ok(stdlib_files) = crate::collect_vibe_files(&stdlib_root) {
+            files.extend(stdlib_files);
+        }
+    }
 
     let mut docs = Vec::new();
     for file in files {
@@ -60,13 +75,22 @@ pub fn resolve_compilation_unit(entry_path: &Path) -> Result<CompilationUnit, St
     }
     docs.sort_by(|a, b| a.0.cmp(&b.0));
 
+    let stdlib_parent = find_stdlib_root()
+        .and_then(|p| p.parent().map(|pp| pp.to_path_buf()))
+        .and_then(|p| p.canonicalize().ok());
+
     let mut module_index = BTreeMap::<String, usize>::new();
     for (idx, (_path, parsed)) in docs.iter().enumerate() {
         let Some(module_name) = &parsed.ast.module else {
             continue;
         };
-        if let Some(expected_module) = expected_module_name_from_path(&canonical_root, &docs[idx].0)
-        {
+        let expected =
+            expected_module_name_from_path(&canonical_root, &docs[idx].0).or_else(|| {
+                stdlib_parent
+                    .as_ref()
+                    .and_then(|sp| expected_module_name_from_path(sp, &docs[idx].0))
+            });
+        if let Some(expected_module) = expected {
             if module_name != &expected_module {
                 diagnostics.push(Diagnostic::new(
                     "E2316",
@@ -107,6 +131,7 @@ pub fn resolve_compilation_unit(entry_path: &Path) -> Result<CompilationUnit, St
             source: entry_source,
             ast: entry_parsed.ast,
             diagnostics,
+            namespace_map: BTreeMap::new(),
         });
     };
 
@@ -121,6 +146,7 @@ pub fn resolve_compilation_unit(entry_path: &Path) -> Result<CompilationUnit, St
             source: entry_source,
             ast: entry_parsed.ast,
             diagnostics,
+            namespace_map: BTreeMap::new(),
         });
     };
 
@@ -146,20 +172,54 @@ pub fn resolve_compilation_unit(entry_path: &Path) -> Result<CompilationUnit, St
     let mut merged_decls = Vec::new();
     let mut visible_functions = BTreeSet::<String>::new();
     let mut private_functions = BTreeMap::<String, String>::new();
+    let mut visible_types = BTreeSet::<String>::new();
     for module in &order {
         let Some(idx) = module_index.get(module).copied() else {
             continue;
         };
         let parsed = &docs[idx].1;
         for decl in &parsed.ast.declarations {
-            let Declaration::Function(func) = decl else {
-                continue;
-            };
-            if module == &entry_module || func.is_public {
-                merged_decls.push(decl.clone());
-                visible_functions.insert(func.name.clone());
-            } else {
-                private_functions.insert(func.name.clone(), module.clone());
+            match decl {
+                Declaration::Function(func) => {
+                    merged_decls.push(decl.clone());
+                    if module == &entry_module || func.is_public {
+                        visible_functions.insert(func.name.clone());
+                    } else {
+                        private_functions.insert(func.name.clone(), module.clone());
+                    }
+                }
+                Declaration::Type(t) => {
+                    if module == &entry_module || t.is_public {
+                        if !visible_types.insert(t.name.clone()) {
+                            diagnostics.push(Diagnostic::new(
+                                "E2317",
+                                Severity::Error,
+                                format!(
+                                    "duplicate type `{}` — already defined in another imported module",
+                                    t.name
+                                ),
+                                t.span,
+                            ));
+                        }
+                        merged_decls.push(decl.clone());
+                    }
+                }
+                Declaration::Enum(e) => {
+                    if module == &entry_module || e.is_public {
+                        if !visible_types.insert(e.name.clone()) {
+                            diagnostics.push(Diagnostic::new(
+                                "E2317",
+                                Severity::Error,
+                                format!(
+                                    "duplicate enum `{}` — already defined in another imported module",
+                                    e.name
+                                ),
+                                e.span,
+                            ));
+                        }
+                        merged_decls.push(decl.clone());
+                    }
+                }
             }
         }
     }
@@ -183,6 +243,23 @@ pub fn resolve_compilation_unit(entry_path: &Path) -> Result<CompilationUnit, St
         }
     }
 
+    let (ns_decls, namespace_map) = load_stdlib_namespace_functions();
+    let existing_fns: BTreeSet<String> = merged_decls
+        .iter()
+        .filter_map(|d| match d {
+            Declaration::Function(f) => Some(f.name.clone()),
+            _ => None,
+        })
+        .collect();
+    for decl in ns_decls {
+        if let Declaration::Function(ref f) = decl {
+            if existing_fns.contains(&f.name) {
+                continue;
+            }
+        }
+        merged_decls.push(decl);
+    }
+
     let mut merged_source = String::new();
     for module in &order {
         if let Some(idx) = module_index.get(module).copied() {
@@ -200,6 +277,7 @@ pub fn resolve_compilation_unit(entry_path: &Path) -> Result<CompilationUnit, St
             declarations: merged_decls,
         },
         diagnostics,
+        namespace_map,
     })
 }
 
@@ -242,7 +320,7 @@ fn visit_module(
     let imports = docs[idx].1.ast.imports.clone();
     for import in imports {
         let imported_package = import.split('.').next().unwrap_or(import.as_str());
-        if imported_package != root_package {
+        if imported_package != root_package && imported_package != "std" {
             diagnostics.push(Diagnostic::new(
                 "E2313",
                 Severity::Error,
@@ -306,7 +384,7 @@ fn collect_calls_from_contract(contract: &Contract, out: &mut BTreeSet<String>) 
                 collect_calls_from_expr(&case.expected, out);
             }
         }
-        Contract::Intent { .. } | Contract::Effect { .. } => {}
+        Contract::Intent { .. } | Contract::Effect { .. } | Contract::Native { .. } => {}
     }
 }
 
@@ -471,4 +549,85 @@ fn expected_module_name_from_path(root: &Path, source: &Path) -> Option<String> 
         return None;
     }
     Some(parts.join("."))
+}
+
+fn is_native_only(func: &vibe_ast::FunctionDecl) -> bool {
+    func.contracts
+        .iter()
+        .any(|c| matches!(c, Contract::Native { .. }))
+        && func.body.is_empty()
+        && func.tail_expr.is_none()
+}
+
+fn load_stdlib_namespace_functions() -> (Vec<Declaration>, BTreeMap<(String, String), String>) {
+    let mut ns_decls = Vec::new();
+    let mut ns_map = BTreeMap::new();
+
+    let Some(stdlib_root) = find_stdlib_root() else {
+        return (ns_decls, ns_map);
+    };
+    let Ok(files) = crate::collect_vibe_files(&stdlib_root) else {
+        return (ns_decls, ns_map);
+    };
+
+    for file in files {
+        let Ok(source) = fs::read_to_string(&file) else {
+            continue;
+        };
+        let parsed = parse_source(&source);
+        let Some(module_name) = &parsed.ast.module else {
+            continue;
+        };
+        if !module_name.starts_with("std.") {
+            continue;
+        }
+        let namespace = &module_name["std.".len()..];
+        for decl in &parsed.ast.declarations {
+            if let Declaration::Type(t) = decl {
+                if t.is_public {
+                    ns_decls.push(decl.clone());
+                }
+            }
+            if let Declaration::Function(func) = decl {
+                if is_native_only(func) {
+                    let mangled = format!("__stdlib_{namespace}__{}", func.name);
+                    let mut mangled_func = func.clone();
+                    mangled_func.name = mangled.clone();
+                    ns_decls.push(Declaration::Function(mangled_func));
+                    if func.is_public {
+                        ns_map.insert((namespace.to_string(), func.name.clone()), mangled);
+                    }
+                } else {
+                    ns_decls.push(decl.clone());
+                    if func.is_public {
+                        ns_map.insert(
+                            (namespace.to_string(), func.name.clone()),
+                            func.name.clone(),
+                        );
+                    }
+                }
+            }
+        }
+    }
+    (ns_decls, ns_map)
+}
+
+fn find_stdlib_root() -> Option<PathBuf> {
+    if let Ok(p) = std::env::var("VIBE_STDLIB_PATH") {
+        let path = PathBuf::from(p);
+        if path.is_dir() {
+            return Some(path);
+        }
+    }
+
+    let exe = std::env::current_exe().ok()?;
+    let exe_dir = exe.parent()?;
+    for ancestor in [exe_dir, exe_dir.parent()?].iter() {
+        let candidate = ancestor.join("stdlib").join("std");
+        if candidate.is_dir() {
+            return Some(candidate);
+        }
+    }
+
+    None
 }

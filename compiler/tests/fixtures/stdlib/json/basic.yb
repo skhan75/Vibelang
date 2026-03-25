@@ -6,14 +6,13 @@ type User {
 
 pub main() -> Int {
   @effect io
-  @effect alloc
   println(json.stringify_i64(json.parse_i64("123")))
   println(json.minify("{ \"x\" : 1 }"))
-  println(json.parse("{ \"x\" : 1 }"))
-  println(json.stringify("x"))
+  println(json.stringify(json.parse("{ \"x\" : 1 }")))
+  println(json.stringify(json.str("x")))
   fallback := User { id: 1, name: "fallback", active: false }
-  decoded := json.decode_User("{\"id\":3,\"name\":\"neo\",\"active\":true}", fallback)
-  println(json.encode_User(decoded))
+  decoded := json.decode("{\"id\":3,\"name\":\"neo\",\"active\":true}", fallback)
+  println(json.encode(decoded))
   if json.is_valid("{\"x\":1}") {
     println("valid")
   }

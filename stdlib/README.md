@@ -12,9 +12,11 @@ keeping deterministic behavior and local-first validation.
 - `fs` (preview): filesystem read/write/exists/directory helpers
 - `net` (preview): TCP + DNS primitives (`listen/connect/read/write/close/resolve`)
 - `convert` (preview): parsing + formatting conversions (`to_int/to_float/to_str`)
-- `text` (preview): text utilities (`trim/contains/replace/case/split_part`)
+- `text` (preview): text utilities (`trim/contains/replace/case/split_part/index_of`)
+- `str_builder` (preview): growable string buffer (`new`/`append`/`append_char`/`finish`)
+- `regex` (preview): pattern helpers (`count`/`replace_all`)
 - `encoding` (preview): hex/base64/url encode/decode helpers
-- `json` (preview): validate/canonical parse/stringify + numeric helpers
+- `json` (preview): `Json` parse/stringify (+ pretty), `json.builder` for dynamic JSON, typed codecs, utilities (`is_valid`, `parse_i64`/`stringify_i64`, `minify`)
 - `http` (preview): sync request client + protocol helpers
 - `log` (preview): structured-ish log primitives (`info/warn/error`)
 - `env` (preview): environment variable accessors
@@ -31,6 +33,8 @@ Detailed module references:
 - `stdlib/net/README.md`
 - `stdlib/convert/README.md`
 - `stdlib/text/README.md`
+- `stdlib/str_builder/README.md`
+- `stdlib/regex/README.md`
 - `stdlib/encoding/README.md`
 - `stdlib/json/README.md`
 - `stdlib/http/README.md`
@@ -41,7 +45,7 @@ Detailed module references:
 
 ## Compiler/runtime contract
 
-- Typechecker recognizes stdlib namespace calls (`time.*`, `path.*`, `fs.*`, `net.*`, `convert.*`, `text.*`, `encoding.*`, `json.*`, `http.*`, `log.*`, `env.*`, `cli.*`)
+- Typechecker recognizes stdlib namespace calls (`time.*`, `path.*`, `fs.*`, `net.*`, `convert.*`, `text.*`, `str_builder.*`, `regex.*`, `encoding.*`, `json.*`, `http.*`, `log.*`, `env.*`, `cli.*`)
   and enforces argument/return contracts.
 - With `bench-runtime`, typechecker/codegen also recognize `bench.*` and lower those calls to
   `vibe_bench_*` symbols in `runtime/native/vibe_runtime_bench.c`.

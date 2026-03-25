@@ -366,6 +366,31 @@ impl Parser {
                     span: at,
                 }
             }
+            "native" => {
+                self.expect(TokenKind::LParen, "E1306", "expected `(` after `@native`");
+                if self.peek().kind == TokenKind::StringLit {
+                    let tok = self.bump();
+                    self.expect(TokenKind::RParen, "E1306", "expected `)` after symbol name");
+                    Contract::Native {
+                        symbol: tok.lexeme,
+                        span: at,
+                    }
+                } else {
+                    self.diagnostics.push(Diagnostic::new(
+                        "E1306",
+                        Severity::Error,
+                        "expected symbol name string after `@native(`",
+                        self.peek().span,
+                    ));
+                    if self.peek().kind == TokenKind::RParen {
+                        self.bump();
+                    }
+                    Contract::Native {
+                        symbol: String::new(),
+                        span: at,
+                    }
+                }
+            }
             _ => {
                 self.diagnostics.push(Diagnostic::new(
                     "E1305",
@@ -781,12 +806,14 @@ impl Parser {
                 TokenKind::Slash => (BinaryOp::Div, 40),
                 TokenKind::Plus => (BinaryOp::Add, 30),
                 TokenKind::Minus => (BinaryOp::Sub, 30),
-                TokenKind::EqEq => (BinaryOp::Eq, 20),
-                TokenKind::NotEq => (BinaryOp::Ne, 20),
                 TokenKind::Lt => (BinaryOp::Lt, 25),
                 TokenKind::Le => (BinaryOp::Le, 25),
                 TokenKind::Gt => (BinaryOp::Gt, 25),
                 TokenKind::Ge => (BinaryOp::Ge, 25),
+                TokenKind::EqEq => (BinaryOp::Eq, 20),
+                TokenKind::NotEq => (BinaryOp::Ne, 20),
+                TokenKind::AmpAmp => (BinaryOp::And, 10),
+                TokenKind::PipePipe => (BinaryOp::Or, 5),
                 _ => break,
             };
             if prec < min_prec {

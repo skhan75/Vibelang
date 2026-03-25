@@ -1,0 +1,31 @@
+// Copyright 2026 Vibelang Contributors
+// SPDX-License-Identifier: Apache-2.0
+
+/**
+ * Filesystem operations: existence checks, reading, and writing.
+ */
+module std.fs
+
+pub exists(path: Str) -> Bool {
+  @intent "true when a file or directory exists at the given path"
+  @effect io
+  @native("vibe_fs_exists")
+}
+
+pub read_text(path: Str) -> Str {
+  @intent "read a file's entire contents as a UTF-8 string"
+  @effect io
+  @native("vibe_fs_read_text")
+}
+
+pub write_text(path: Str, content: Str) -> Bool {
+  @intent "write a string to a file, creating or overwriting it; returns true on success"
+  @effect io
+  @native("vibe_fs_write_text")
+}
+
+pub create_dir(path: Str) -> Bool {
+  @intent "create a directory at the given path; returns true on success"
+  @effect io
+  @native("vibe_fs_create_dir")
+}

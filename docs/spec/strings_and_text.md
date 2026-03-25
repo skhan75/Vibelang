@@ -79,6 +79,7 @@ Invalid escape sequences are compile-time parse errors.
 `std.text` currently provides:
 
 - `trim`, `contains`, `starts_with`, `ends_with`, `replace`
+- `index_of(haystack: Str, needle: Str) -> Int`: byte offset of first occurrence, or `-1` if not found; empty `needle` returns `0`
 - `to_lower`, `to_upper`
 - `byte_len`, `split_part`
 

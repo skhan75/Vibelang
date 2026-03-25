@@ -1,0 +1,27 @@
+// Copyright 2026 Vibelang Contributors
+// SPDX-License-Identifier: Apache-2.0
+
+/**
+ * Mutable string builder for efficient concatenation.
+ */
+module std.str_builder
+
+pub new(capacity: Int) -> Int {
+  @intent "create a new string builder with the given initial capacity; returns a handle"
+  @native("vibe_str_builder_new")
+}
+
+pub append(handle: Int, s: Str) {
+  @intent "append a string to the builder"
+  @native("vibe_str_builder_append")
+}
+
+pub append_char(handle: Int, c: Int) {
+  @intent "append a single character (by codepoint) to the builder"
+  @native("vibe_str_builder_append_char")
+}
+
+pub finish(handle: Int) -> Str {
+  @intent "finalize the builder and return the accumulated string"
+  @native("vibe_str_builder_finish")
+}

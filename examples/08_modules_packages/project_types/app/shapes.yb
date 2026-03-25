@@ -1,0 +1,16 @@
+module app.shapes
+
+pub type Point {
+  x: Int,
+  y: Int
+}
+
+pub enum Color {
+  Red,
+  Green,
+  Blue
+}
+
+pub origin() -> Point {
+  Point { x: 0, y: 0 }
+}

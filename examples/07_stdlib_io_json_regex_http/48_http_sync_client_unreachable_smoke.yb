@@ -5,8 +5,8 @@ pub main() -> Int {
   println(json.stringify_i64(http.default_port("https")))
   println(http.build_request_line("GET", "/health"))
 
-  // Use an intentionally unreachable local endpoint to keep behavior deterministic.
-  println(http.get("http://127.0.0.1:1/unreachable", 5))
-  println(json.stringify_i64(http.request_status("GET", "http://127.0.0.1:1/unreachable", "", 5)))
+  resp := http.get("http://127.0.0.1:1/unreachable", 5)
+  println(resp.body)
+  println(json.stringify_i64(resp.status))
   0
 }

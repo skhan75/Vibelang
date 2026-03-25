@@ -1,28 +1,57 @@
 # `http` module (preview)
 
-## APIs
+## Types (auto-injected by compiler)
 
-- `http.status_text(code: Int) -> Str`
-- `http.default_port(scheme: Str) -> Int`
-- `http.build_request_line(method: Str, path: Str) -> Str`
-- `http.request(method: Str, url: Str, body: Str, timeout_ms: Int) -> Str`
-- `http.request_status(method: Str, url: Str, body: Str, timeout_ms: Int) -> Int`
-- `http.get(url: Str, timeout_ms: Int) -> Str`
-- `http.post(url: Str, body: Str, timeout_ms: Int) -> Str`
+```vibelang
+type HttpRequest {
+  method: Str,
+  url: Str,
+  headers: Str,
+  body: Str,
+  timeout_ms: Int
+}
+
+type HttpResponse {
+  status: Int,
+  headers: Str,
+  body: Str
+}
+```
+
+`headers` uses raw HTTP format: `"Content-Type: application/json\r\nAuthorization: Bearer tok"`.
+
+## Client API
+
+- `http.send(req: HttpRequest) -> HttpResponse` — full-control client
+- `http.get(url: Str, timeout_ms: Int) -> HttpResponse` — convenience GET
+- `http.post(url: Str, body: Str, timeout_ms: Int) -> HttpResponse` — convenience POST
+
+All client calls require `@effect net`.
+
+## Server API
+
+- `http.response(resp: HttpResponse) -> Str` — format struct to HTTP wire string
+- `http.build_response(status: Int, body: Str) -> Str` — convenience with CORS headers
+
+## Protocol helpers
+
+- `http.status_text(code: Int) -> Str` — reason phrase for a status code
+- `http.default_port(scheme: Str) -> Int` — 443 for https/wss, otherwise 80
+- `http.build_request_line(method: Str, path: Str) -> Str` — canonical request line
+
+## Legacy (still supported)
+
+- `http.request(method: Str, url: Str, body: Str, timeout_ms: Int) -> Str` — returns body only
+- `http.request_status(method: Str, url: Str, body: Str, timeout_ms: Int) -> Int` — status only
+
+Prefer `http.send` for new code.
 
 ## Semantics
 
-- `status_text` maps common status codes (`200`, `201`, `204`, `400`, `401`, `403`, `404`,
-  `500`) and returns `"Unknown"` otherwise.
-- `default_port` returns `443` for `https`/`wss`, otherwise `80`.
-- `build_request_line` emits canonical `METHOD PATH HTTP/1.1`.
-- `request` performs a sync request and returns response body text.
-- `request_status` performs the same request and returns only the status code.
-- `get`/`post` are convenience wrappers over `request`.
-- Transport behavior:
-  - `http://` URLs use native TCP path.
-  - `https://` URLs use TLS transport via system `curl` path in this milestone.
- 
+- `status_text` maps common status codes (`200`, `201`, `204`, `400`–`405`, `422`, `500`)
+  and returns `"Unknown"` otherwise.
+- Transport: `http://` uses native TCP, `https://` uses system `curl`.
+
 ## Benchmark-only helpers
 
 The HTTP server microbenchmark entrypoint is exposed under `bench.http_server_bench` (see

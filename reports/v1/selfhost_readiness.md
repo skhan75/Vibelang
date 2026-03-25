@@ -1,7 +1,7 @@
 # V1 Self-Host Readiness Report
 
-Date: 2026-02-21  
-Track: Phase 9 M1->M4 Progressive Transition
+Date: 2026-03-25  
+Track: Phase 9 M1->M4 Progressive Transition + Stdlib Self-Host Migration
 
 ## Scope
 
@@ -55,8 +55,28 @@ Track: Phase 9 M1->M4 Progressive Transition
   - `docs/release/selfhost_transition_playbook.md`
   - `docs/selfhost/component_ownership.md`
 
+## Stdlib Self-Host Migration (v1.1.1)
+
+Date: 2026-03-25
+
+All ~100 hardcoded C runtime stdlib functions have been migrated from compiler-wired
+tables into self-hosted `.yb` modules under `stdlib/std/`. The compiler now resolves
+`namespace.function()` calls through a namespace-to-module bridge before falling back
+to hardcoded logic (retained only for compiler special cases like `json.encode` schema
+generation and `simd.*` Cranelift intrinsics).
+
+- **15 modules migrated**: path, log, env, cli, time, fs, convert, text, encoding,
+  regex, net, math, str_builder, json, http
+- **HttpRequest/HttpResponse types** moved from compiler-injected to module-defined
+- **C runtime wrapper added**: `vibe_http_send_struct` for struct-passing FFI
+- **C runtime addition**: `vibe_math_sqrt` for `math.sqrt`
+- **22/22 example tests pass** post-migration
+- **Architecture**: `namespace_map` in `CompilationUnit` maps `(namespace, field)` to
+  resolved function names; `is_native_only` conditional mangling prevents collisions
+
 ## Go / No-Go Snapshot
 
 - M1/M2/M3 parity posture: `go` (shadow gates passing)
 - M4 promoted RC candidate posture: `go` (promotion + fallback drill validated)
+- Stdlib self-host posture: `go` (all modules migrated, all tests passing)
 - GA posture: `conditional-go` (depends on non-selfhost release blockers outside Phase 9)
