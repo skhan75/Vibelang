@@ -47,6 +47,8 @@ The module centers on the `Json` value type: parse text into `Json`, stringify `
 - `json.encode_<Type>(value: Type) -> Str`
 - `json.decode_<Type>(raw: Str, fallback: Type) -> Type`
 
+Nested struct fields are recursively encoded/decoded. A `type Outer { inner: Inner }` where `Inner` is also a user-defined struct produces nested JSON objects automatically.
+
 **Compatibility / utilities**
 
 - `json.from_map(map: Map<Str, Str>) -> Str` — convenience only; all map values are strings; see semantics
@@ -59,7 +61,7 @@ The module centers on the `Json` value type: parse text into `Json`, stringify `
 
 - **`parse` / `stringify` / `stringify_pretty`** operate on the `Json` AST: escapes and structure follow normal JSON rules. Output is deterministic for a given `Json` value.
 - **`json.builder`**: emit JSON by nesting `begin_object` / `end_object`, `begin_array` / `end_array`, `key` (in objects), then scalar/`value_json` calls. **`finish`** produces the final `Str`; invalid sequencing or misuse can **panic** (same spirit as `parse` strictness).
-- **`encode_<Type>` / `decode_<Type>`**: generated from nominal `type` declarations; field mapping is deterministic for supported field types (`Int`, `Str`, `Bool`, etc., per compiler). **`decode_*`** uses **`fallback`** for missing or invalid fields where implemented.
+- **`encode_<Type>` / `decode_<Type>`**: generated from nominal `type` declarations; field mapping is deterministic for supported field types (`Int`, `Str`, `Bool`, and nested user-defined struct types). Nested structs are recursively encoded to JSON objects and recursively decoded from JSON objects. **`decode_*`** uses **`fallback`** for missing or invalid fields where implemented.
 - **`from_map`**: serializes `Map<Str, Str>` to a JSON object. Values are still strings at the type level; runtime applies heuristics: integer-looking values unquoted, `"true"` / `"false"` as booleans, otherwise JSON strings. Prefer **`json.builder`** or **`Json`** + **`stringify`** when you need explicit types without guessing.
 - **`is_valid`**: structural/literal validation without building a full `Json` value for the caller; returns `false` for malformed input.
 - **`parse_i64`**: parses integer literals with surrounding whitespace.

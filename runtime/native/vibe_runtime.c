@@ -4320,8 +4320,23 @@ static int64_t vibe_json_find_key_value(
                     }
                     value_end += 1;
                 }
+            } else if (*value_start == '{' || *value_start == '[') {
+                char open = *value_start;
+                char close = (open == '{') ? '}' : ']';
+                int depth = 1;
+                int in_str = 0;
+                int esc = 0;
+                value_end = value_start + 1;
+                while (*value_end != '\0' && depth > 0) {
+                    if (esc) { esc = 0; }
+                    else if (*value_end == '\\') { esc = 1; }
+                    else if (*value_end == '"') { in_str = !in_str; }
+                    else if (!in_str && *value_end == open) { depth++; }
+                    else if (!in_str && *value_end == close) { depth--; }
+                    value_end += 1;
+                }
             } else {
-                while (*value_end != '\0' && *value_end != ',' && *value_end != '}') {
+                while (*value_end != '\0' && *value_end != ',' && *value_end != '}' && *value_end != ']') {
                     value_end += 1;
                 }
                 while (value_end > value_start && isspace((unsigned char)*(value_end - 1))) {
@@ -4444,67 +4459,127 @@ char *vibe_json_get_str(const char *raw, const char *key, const char *fallback) 
     return out;
 }
 
-char *vibe_json_encode_record(void *record, const char *schema) {
-    if (record == NULL || schema == NULL || schema[0] == '\0') {
-        vibe_counter_inc(&vibe_json_allocations);
-        return vibe_strdup_or_panic("{}");
+static const char *vibe_json_schema_skip_type(const char *p) {
+    if (*p == '{') {
+        int depth = 1;
+        p++;
+        while (*p != '\0' && depth > 0) {
+            if (*p == '{') depth++;
+            else if (*p == '}') depth--;
+            p++;
+        }
+        return p;
     }
-    const int64_t *slots = (const int64_t *)record;
-    vibe_string_builder builder;
-    vibe_builder_init(&builder, strlen(schema) + 32);
-    vibe_builder_append_bytes(&builder, "{", 1);
+    while (*p != '\0' && *p != ';') {
+        p++;
+    }
+    return p;
+}
+
+static void vibe_json_encode_record_into(vibe_string_builder *builder, const int64_t *slots, const char *schema) {
+    vibe_builder_append_bytes(builder, "{", 1);
     const char *cursor = schema;
     int first = 1;
     int64_t slot_index = 0;
     while (*cursor != '\0') {
         const char *entry_start = cursor;
-        while (*cursor != '\0' && *cursor != ';') {
-            cursor += 1;
+        const char *colon = NULL;
+        for (const char *s = entry_start; *s != '\0'; s++) {
+            if (*s == ':') { colon = s; break; }
         }
-        const char *entry_end = cursor;
-        if (*cursor == ';') {
-            cursor += 1;
-        }
-        if (entry_end <= entry_start) {
-            continue;
-        }
-        const char *colon = memchr(entry_start, ':', (size_t)(entry_end - entry_start));
-        if (colon == NULL || colon <= entry_start || colon >= entry_end - 1) {
-            slot_index += 1;
-            continue;
+        if (colon == NULL || colon <= entry_start) {
+            break;
         }
         const char *key_start = entry_start;
-        const char *key_end = colon;
+        size_t key_len = (size_t)(colon - key_start);
         const char *type_start = colon + 1;
-        size_t key_len = (size_t)(key_end - key_start);
-        size_t type_len = (size_t)(entry_end - type_start);
+        const char *type_end = vibe_json_schema_skip_type(type_start);
+        size_t type_len = (size_t)(type_end - type_start);
         if (!first) {
-            vibe_builder_append_bytes(&builder, ",", 1);
+            vibe_builder_append_bytes(builder, ",", 1);
         }
         first = 0;
-        vibe_builder_append_bytes(&builder, "\"", 1);
-        vibe_builder_append_bytes(&builder, key_start, key_len);
-        vibe_builder_append_bytes(&builder, "\":", 2);
+        vibe_builder_append_bytes(builder, "\"", 1);
+        vibe_builder_append_bytes(builder, key_start, key_len);
+        vibe_builder_append_bytes(builder, "\":", 2);
         int64_t slot_value = slots[slot_index];
-        char *encoded = NULL;
-        if (type_len == 3 && strncmp(type_start, "Int", 3) == 0) {
-            encoded = vibe_json_stringify_i64(slot_value);
+        if (*type_start == '{') {
+            const char *inner_schema_start = type_start + 1;
+            size_t inner_len = type_len >= 2 ? type_len - 2 : 0;
+            char *inner_schema = (char *)malloc(inner_len + 1);
+            if (inner_schema == NULL) { vibe_panic("alloc failed in json encode"); }
+            memcpy(inner_schema, inner_schema_start, inner_len);
+            inner_schema[inner_len] = '\0';
+            void *nested = (void *)(intptr_t)slot_value;
+            if (nested == NULL) {
+                vibe_builder_append_bytes(builder, "null", 4);
+            } else {
+                vibe_json_encode_record_into(builder, (const int64_t *)nested, inner_schema);
+            }
+            free(inner_schema);
+        } else if (type_len == 3 && strncmp(type_start, "Int", 3) == 0) {
+            char *encoded = vibe_json_stringify_i64(slot_value);
+            vibe_builder_append_bytes(builder, encoded, strlen(encoded));
+            free(encoded);
         } else if (type_len == 4 && strncmp(type_start, "Bool", 4) == 0) {
-            encoded = vibe_strdup_or_panic(slot_value != 0 ? "true" : "false");
-            vibe_counter_inc(&vibe_json_allocations);
+            const char *bval = slot_value != 0 ? "true" : "false";
+            vibe_builder_append_bytes(builder, bval, strlen(bval));
         } else if (type_len == 3 && strncmp(type_start, "Str", 3) == 0) {
-            encoded = vibe_json_quote_string((const char *)(intptr_t)slot_value);
+            char *encoded = vibe_json_quote_string((const char *)(intptr_t)slot_value);
+            vibe_builder_append_bytes(builder, encoded, strlen(encoded));
+            free(encoded);
+        } else if (type_len == 4 && strncmp(type_start, "Json", 4) == 0) {
+            void *json_handle = (void *)(intptr_t)slot_value;
+            if (json_handle == NULL) {
+                vibe_builder_append_bytes(builder, "null", 4);
+            } else {
+                char *encoded = vibe_json_stringify(json_handle);
+                if (encoded == NULL || encoded[0] == '\0') {
+                    vibe_builder_append_bytes(builder, "null", 4);
+                } else {
+                    vibe_builder_append_bytes(builder, encoded, strlen(encoded));
+                }
+                if (encoded != NULL) free(encoded);
+            }
         } else {
-            encoded = vibe_strdup_or_panic("null");
-            vibe_counter_inc(&vibe_json_allocations);
+            vibe_builder_append_bytes(builder, "null", 4);
         }
-        vibe_builder_append_bytes(&builder, encoded, strlen(encoded));
-        free(encoded);
         slot_index += 1;
+        cursor = type_end;
+        if (*cursor == ';') cursor++;
     }
-    vibe_builder_append_bytes(&builder, "}", 1);
+    vibe_builder_append_bytes(builder, "}", 1);
+}
+
+char *vibe_json_encode_record(void *record, const char *schema) {
+    if (record == NULL || schema == NULL || schema[0] == '\0') {
+        vibe_counter_inc(&vibe_json_allocations);
+        return vibe_strdup_or_panic("{}");
+    }
+    vibe_string_builder builder;
+    vibe_builder_init(&builder, strlen(schema) + 64);
+    vibe_json_encode_record_into(&builder, (const int64_t *)record, schema);
     vibe_counter_inc(&vibe_json_allocations);
     return builder.data;
+}
+
+static int64_t vibe_json_schema_count_fields(const char *schema) {
+    if (schema == NULL || *schema == '\0') return 0;
+    int64_t count = 0;
+    const char *cursor = schema;
+    while (*cursor != '\0') {
+        const char *colon = NULL;
+        for (const char *s = cursor; *s != '\0'; s++) {
+            if (*s == ':') { colon = s; break; }
+        }
+        if (colon == NULL) break;
+        const char *type_start = colon + 1;
+        const char *type_end = vibe_json_schema_skip_type(type_start);
+        count++;
+        cursor = type_end;
+        if (*cursor == ';') cursor++;
+    }
+    return count;
 }
 
 void *vibe_json_decode_record(const char *raw, const char *schema, void *fallback, void *out_record) {
@@ -4516,35 +4591,55 @@ void *vibe_json_decode_record(const char *raw, const char *schema, void *fallbac
     const char *cursor = schema;
     int64_t slot_index = 0;
     while (*cursor != '\0') {
-        const char *entry_start = cursor;
-        while (*cursor != '\0' && *cursor != ';') {
-            cursor += 1;
+        const char *colon = NULL;
+        for (const char *s = cursor; *s != '\0'; s++) {
+            if (*s == ':') { colon = s; break; }
         }
-        const char *entry_end = cursor;
-        if (*cursor == ';') {
-            cursor += 1;
-        }
-        if (entry_end <= entry_start) {
-            continue;
-        }
-        const char *colon = memchr(entry_start, ':', (size_t)(entry_end - entry_start));
-        if (colon == NULL || colon <= entry_start || colon >= entry_end - 1) {
-            slot_index += 1;
-            continue;
-        }
-        const char *key_start = entry_start;
-        const char *key_end = colon;
+        if (colon == NULL || colon <= cursor) break;
+        const char *key_start = cursor;
+        size_t key_len = (size_t)(colon - key_start);
         const char *type_start = colon + 1;
-        size_t key_len = (size_t)(key_end - key_start);
-        size_t type_len = (size_t)(entry_end - type_start);
+        const char *type_end = vibe_json_schema_skip_type(type_start);
+        size_t type_len = (size_t)(type_end - type_start);
+
         char *key = (char *)calloc(key_len + 1, sizeof(char));
-        if (key == NULL) {
-            vibe_panic("failed to allocate json codec key");
-        }
+        if (key == NULL) { vibe_panic("failed to allocate json codec key"); }
         memcpy(key, key_start, key_len);
         key[key_len] = '\0';
+
         int64_t fallback_value = fallback_slots == NULL ? 0 : fallback_slots[slot_index];
-        if (type_len == 3 && strncmp(type_start, "Int", 3) == 0) {
+
+        if (*type_start == '{') {
+            const char *inner_schema_start = type_start + 1;
+            size_t inner_len = type_len >= 2 ? type_len - 2 : 0;
+            char *inner_schema = (char *)malloc(inner_len + 1);
+            if (inner_schema == NULL) { vibe_panic("alloc failed in json decode"); }
+            memcpy(inner_schema, inner_schema_start, inner_len);
+            inner_schema[inner_len] = '\0';
+
+            const char *val_start = NULL;
+            const char *val_end = NULL;
+            if (vibe_json_find_key_value(raw, key, &val_start, &val_end) && val_start != NULL && *val_start == '{') {
+                size_t obj_len = (size_t)(val_end - val_start);
+                char *sub_json = (char *)calloc(obj_len + 1, sizeof(char));
+                if (sub_json == NULL) { vibe_panic("alloc failed in json decode nested"); }
+                memcpy(sub_json, val_start, obj_len);
+                sub_json[obj_len] = '\0';
+
+                int64_t nested_slot_count = vibe_json_schema_count_fields(inner_schema);
+                void *nested_record = vibe_record_alloc(nested_slot_count > 0 ? nested_slot_count : 1);
+                void *nested_fallback = (void *)(intptr_t)fallback_value;
+                if (nested_fallback == NULL) {
+                    nested_fallback = vibe_record_alloc(nested_slot_count > 0 ? nested_slot_count : 1);
+                }
+                vibe_json_decode_record(sub_json, inner_schema, nested_fallback, nested_record);
+                out_slots[slot_index] = (int64_t)(intptr_t)nested_record;
+                free(sub_json);
+            } else {
+                out_slots[slot_index] = fallback_value;
+            }
+            free(inner_schema);
+        } else if (type_len == 3 && strncmp(type_start, "Int", 3) == 0) {
             out_slots[slot_index] = vibe_json_get_i64(raw, key, fallback_value);
         } else if (type_len == 4 && strncmp(type_start, "Bool", 4) == 0) {
             out_slots[slot_index] = vibe_json_get_bool(raw, key, fallback_value != 0);
@@ -4557,6 +4652,8 @@ void *vibe_json_decode_record(const char *raw, const char *schema, void *fallbac
         }
         free(key);
         slot_index += 1;
+        cursor = type_end;
+        if (*cursor == ';') cursor++;
     }
     return out_record;
 }

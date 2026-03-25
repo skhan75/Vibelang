@@ -2275,6 +2275,11 @@ fn parse_type_ref(t: &TypeRef) -> TypeKind {
             raw: inner.to_string(),
         })));
     }
+    if raw.chars().next().map_or(false, |c| c.is_ascii_uppercase())
+        && raw.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
+    {
+        return TypeKind::UserType(raw);
+    }
     TypeKind::Unknown
 }
 

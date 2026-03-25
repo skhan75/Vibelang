@@ -292,19 +292,27 @@ already-built subtree when needed.
 Runnable examples: `examples/07_stdlib_io_json_regex_http/59_json_builder_object_basics.yb`
 through `62_json_builder_http_post_body.yb`, and `47_json_parse_stringify_and_codecs.yb`.
 
-### Compatibility: `encode_<Type>` / `decode_<Type>`
+### Typed codecs: `encode_<Type>` / `decode_<Type>`
 
-For nominal `type` declarations, the compiler still exposes typed codec
-entrypoints on `json.*`. Prefer these when your domain model is a fixed `type`
-and you want field-level defaults on decode:
+For nominal `type` declarations, the compiler generates typed codec
+entrypoints on `json.*`. **This is the preferred approach** when your domain
+model is a fixed `type` — it eliminates manual JSON building entirely:
 
 ```vibe
-type User { id: Int, name: Str, active: Bool }
+type Address { city: Str, zip: Int }
+type User { id: Int, name: Str, active: Bool, address: Address }
 
-fallback := User { id: 1, name: "fallback", active: false }
-decoded := json.decode_User("{\"id\":7,\"name\":\"sam\",\"active\":true}", fallback)
-wire := json.encode_User(decoded)
+user := User { id: 7, name: "sam", active: true, address: Address { city: "NYC", zip: 10001 } }
+wire := json.encode_User(user)
+// {"id":7,"name":"sam","active":true,"address":{"city":"NYC","zip":10001}}
+
+fallback := User { id: 0, name: "fb", active: false, address: Address { city: "", zip: 0 } }
+decoded := json.decode_User(wire, fallback)
 ```
+
+Nested struct fields are recursively encoded to JSON objects and recursively
+decoded back. Missing fields in the JSON fall back to the corresponding field
+in the `fallback` value.
 
 ### `is_valid(s: Str) -> Bool`
 

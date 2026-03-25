@@ -288,9 +288,13 @@ without rewriting core functionality in another language.
 
 ### F-02 (P0) Typed JSON encode/decode for nominal `type` values (boundary payloads)
 - [x] Provide a canonical way to convert between JSON and user-defined nominal types.
+- [x] Recursive nested struct encoding/decoding.
 - **Evidence**:
   - Canonical generated entrypoints: `json.encode_<Type>` / `json.decode_<Type>(raw, fallback)`
-  - Runtime + lowering + typing: `runtime/native/vibe_runtime.c`, `crates/vibe_codegen/src/lib.rs`, `crates/vibe_types/src/lib.rs`
+  - Nested struct fields automatically serialize to/from nested JSON objects.
+  - Schema generation: `json_codec_schema_recursive` in `crates/vibe_codegen/src/lib.rs` inlines nested type schemas with `{...}` delimiters.
+  - Runtime: `vibe_json_encode_record_into` / `vibe_json_decode_record` in `runtime/native/vibe_runtime.c` recursively handle nested records.
+  - Type resolution: `parse_type_ref` in `crates/vibe_types/src/lib.rs` now recognizes user-defined type names as `TypeKind::UserType`.
   - Example coverage: `compiler/tests/fixtures/stdlib/json/basic.yb`, `crates/vibe_cli/tests/phase12_stdlib.rs`
   - Example: `examples/07_stdlib_io_json_regex_http/47_json_parse_stringify_and_codecs.yb`
 - **Why**: production APIs should not be written as ad-hoc `Map<Str, ...>` plumbing; they need

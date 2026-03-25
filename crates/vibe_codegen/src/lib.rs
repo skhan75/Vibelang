@@ -4789,6 +4789,17 @@ fn json_codec_schema(
     type_name: &str,
     type_defs: &BTreeMap<String, Vec<(String, String)>>,
 ) -> Option<String> {
+    json_codec_schema_recursive(type_name, type_defs, 0)
+}
+
+fn json_codec_schema_recursive(
+    type_name: &str,
+    type_defs: &BTreeMap<String, Vec<(String, String)>>,
+    depth: usize,
+) -> Option<String> {
+    if depth > 16 {
+        return None;
+    }
     let fields = type_defs.get(type_name)?;
     let mut schema = String::new();
     for (idx, (field_name, field_ty)) in fields.iter().enumerate() {
@@ -4797,7 +4808,15 @@ fn json_codec_schema(
         }
         schema.push_str(field_name);
         schema.push(':');
-        schema.push_str(field_ty);
+        if type_defs.contains_key(field_ty.as_str()) {
+            schema.push('{');
+            if let Some(nested) = json_codec_schema_recursive(field_ty, type_defs, depth + 1) {
+                schema.push_str(&nested);
+            }
+            schema.push('}');
+        } else {
+            schema.push_str(field_ty);
+        }
     }
     Some(schema)
 }

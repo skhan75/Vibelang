@@ -115,6 +115,15 @@ These types are built into the compiler and runtime (not user `type` aliases).
 They exist so recursive JSON trees do not depend on generic recursive
 user-defined types or payload enums before those features are fully executable.
 
+### Nested struct encoding
+
+`json.encode_<Type>` recursively serializes nested user-defined struct fields
+into nested JSON objects. `json.decode_<Type>` recursively reconstructs nested
+structs from JSON, using the fallback record's nested fields for any missing
+keys. This means idiomatic VibeLang code should model domain data as typed
+structs and let the codec handle serialization — no manual `json.builder`
+needed for structured data.
+
 ## Type Errors
 
 Type checker diagnostics MUST provide:
