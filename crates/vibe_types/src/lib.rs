@@ -2511,6 +2511,7 @@ fn stdlib_namespace_return_hint(namespace: &str, field: &str) -> Option<TypeKind
         ("regex", "replace_all") => Some(TypeKind::Str),
         ("http", "status_text")
         | ("http", "build_request_line")
+        | ("http", "build_response")
         | ("http", "get")
         | ("http", "post")
         | ("http", "request") => Some(TypeKind::Str),
@@ -2952,6 +2953,7 @@ fn infer_stdlib_namespace_call(
         ("http", "status_text") => Some((&["Int"][..], "")),
         ("http", "default_port") => Some((&["Str"][..], "")),
         ("http", "build_request_line") => Some((&["Str", "Str"][..], "")),
+        ("http", "build_response") => Some((&["Int", "Str"][..], "")),
         ("http", "get") => Some((&["Str", "Int"][..], "net")),
         ("http", "post") => Some((&["Str", "Str", "Int"][..], "net")),
         ("http", "request") | ("http", "request_status") => {

@@ -4836,6 +4836,39 @@ char *vibe_http_build_request_line(const char *method, const char *path) {
     return out;
 }
 
+char *vibe_http_build_response(int64_t status, const char *body) {
+    const char *b = (body == NULL) ? "" : body;
+    const char *status_text = "Unknown";
+    switch (status) {
+        case 200: status_text = "OK"; break;
+        case 201: status_text = "Created"; break;
+        case 204: status_text = "No Content"; break;
+        case 400: status_text = "Bad Request"; break;
+        case 401: status_text = "Unauthorized"; break;
+        case 403: status_text = "Forbidden"; break;
+        case 404: status_text = "Not Found"; break;
+        case 405: status_text = "Method Not Allowed"; break;
+        case 422: status_text = "Unprocessable Entity"; break;
+        case 500: status_text = "Internal Server Error"; break;
+    }
+    size_t body_len = strlen(b);
+    char cl_buf[32];
+    snprintf(cl_buf, sizeof(cl_buf), "%zu", body_len);
+    vibe_string_builder sb;
+    vibe_builder_init(&sb, 256 + body_len);
+    vibe_builder_append_bytes(&sb, "HTTP/1.1 ", 9);
+    char sc_buf[16];
+    int sc_len = snprintf(sc_buf, sizeof(sc_buf), "%lld", (long long)status);
+    vibe_builder_append_bytes(&sb, sc_buf, sc_len);
+    vibe_builder_append_bytes(&sb, " ", 1);
+    vibe_builder_append_bytes(&sb, status_text, strlen(status_text));
+    vibe_builder_append_bytes(&sb, "\r\nContent-Type: application/json\r\nContent-Length: ", 50);
+    vibe_builder_append_bytes(&sb, cl_buf, strlen(cl_buf));
+    vibe_builder_append_bytes(&sb, "\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: POST, GET, OPTIONS\r\nAccess-Control-Allow-Headers: Content-Type\r\nConnection: close\r\n\r\n", 155);
+    vibe_builder_append_bytes(&sb, b, body_len);
+    return sb.data;
+}
+
 static const char *vibe_http_find_body(const char *req);
 
 static char *vibe_shell_single_quote(const char *raw) {
