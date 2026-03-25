@@ -245,7 +245,21 @@ pub fn resolve_compilation_unit(entry_path: &Path) -> Result<CompilationUnit, St
     }
 
     let (ns_decls, namespace_map) = load_stdlib_namespace_functions();
-    merged_decls.extend(ns_decls);
+    let existing_fns: BTreeSet<String> = merged_decls
+        .iter()
+        .filter_map(|d| match d {
+            Declaration::Function(f) => Some(f.name.clone()),
+            _ => None,
+        })
+        .collect();
+    for decl in ns_decls {
+        if let Declaration::Function(ref f) = decl {
+            if existing_fns.contains(&f.name) {
+                continue;
+            }
+        }
+        merged_decls.push(decl);
+    }
 
     let mut merged_source = String::new();
     for module in &order {
@@ -538,6 +552,12 @@ fn expected_module_name_from_path(root: &Path, source: &Path) -> Option<String> 
     Some(parts.join("."))
 }
 
+fn is_native_only(func: &vibe_ast::FunctionDecl) -> bool {
+    func.contracts.iter().any(|c| matches!(c, Contract::Native { .. }))
+        && func.body.is_empty()
+        && func.tail_expr.is_none()
+}
+
 fn load_stdlib_namespace_functions() -> (Vec<Declaration>, BTreeMap<(String, String), String>) {
     let mut ns_decls = Vec::new();
     let mut ns_map = BTreeMap::new();
@@ -562,18 +582,32 @@ fn load_stdlib_namespace_functions() -> (Vec<Declaration>, BTreeMap<(String, Str
         }
         let namespace = &module_name["std.".len()..];
         for decl in &parsed.ast.declarations {
-            if let Declaration::Function(func) = decl {
-                if !func.is_public {
-                    continue;
+            if let Declaration::Type(t) = decl {
+                if t.is_public {
+                    ns_decls.push(decl.clone());
                 }
-                let mangled = format!("__stdlib_{namespace}__{}", func.name);
-                let mut mangled_func = func.clone();
-                mangled_func.name = mangled.clone();
-                ns_decls.push(Declaration::Function(mangled_func));
-                ns_map.insert(
-                    (namespace.to_string(), func.name.clone()),
-                    mangled,
-                );
+            }
+            if let Declaration::Function(func) = decl {
+                if is_native_only(func) {
+                    let mangled = format!("__stdlib_{namespace}__{}", func.name);
+                    let mut mangled_func = func.clone();
+                    mangled_func.name = mangled.clone();
+                    ns_decls.push(Declaration::Function(mangled_func));
+                    if func.is_public {
+                        ns_map.insert(
+                            (namespace.to_string(), func.name.clone()),
+                            mangled,
+                        );
+                    }
+                } else {
+                    ns_decls.push(decl.clone());
+                    if func.is_public {
+                        ns_map.insert(
+                            (namespace.to_string(), func.name.clone()),
+                            func.name.clone(),
+                        );
+                    }
+                }
             }
         }
     }

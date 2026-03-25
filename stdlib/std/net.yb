@@ -1,0 +1,55 @@
+// Copyright 2026 Vibelang Contributors
+// SPDX-License-Identifier: Apache-2.0
+
+/**
+ * Low-level TCP networking: listen, accept, connect, read, write.
+ */
+module std.net
+
+pub listen(host: Str, port: Int) -> Int {
+  @intent "bind a TCP listener and return its handle"
+  @effect net
+  @native("vibe_net_listen")
+}
+
+pub listener_port(handle: Int) -> Int {
+  @intent "return the port a listener is bound to"
+  @effect net
+  @native("vibe_net_listener_port")
+}
+
+pub accept(listener: Int) -> Int {
+  @intent "accept a connection on a listener; returns a socket handle"
+  @effect net
+  @native("vibe_net_accept")
+}
+
+pub connect(host: Str, port: Int) -> Int {
+  @intent "open a TCP connection; returns a socket handle"
+  @effect net
+  @native("vibe_net_connect")
+}
+
+pub read(socket: Int, max_bytes: Int) -> Str {
+  @intent "read up to max_bytes from a socket"
+  @effect net
+  @native("vibe_net_read")
+}
+
+pub write(socket: Int, data: Str) -> Int {
+  @intent "write data to a socket; returns bytes written"
+  @effect net
+  @native("vibe_net_write")
+}
+
+pub close(handle: Int) -> Bool {
+  @intent "close a socket or listener handle"
+  @effect net
+  @native("vibe_net_close")
+}
+
+pub resolve(hostname: Str) -> Str {
+  @intent "resolve a hostname to its first IP address"
+  @effect net
+  @native("vibe_net_resolve_first")
+}

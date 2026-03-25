@@ -1,0 +1,66 @@
+// Copyright 2026 Vibelang Contributors
+// SPDX-License-Identifier: Apache-2.0
+
+/**
+ * HTTP client: request/response types, wire formatting, and native send helpers.
+ */
+module std.http
+
+pub type HttpRequest {
+  method: Str,
+  url: Str,
+  headers: Str,
+  body: Str,
+  timeout_ms: Int
+}
+
+pub type HttpResponse {
+  status: Int,
+  headers: Str,
+  body: Str
+}
+
+pub status_text(code: Int) -> Str {
+  @native("vibe_http_status_text")
+}
+
+pub default_port(scheme: Str) -> Int {
+  @native("vibe_http_default_port")
+}
+
+pub build_request_line(method: Str, path: Str) -> Str {
+  @native("vibe_http_build_request_line")
+}
+
+pub build_response(status: Int, body: Str) -> Str {
+  @native("vibe_http_build_response")
+}
+
+pub send(req: HttpRequest) -> HttpResponse {
+  @native("vibe_http_send_struct")
+  @effect net
+}
+
+pub response(resp: HttpResponse) -> Str {
+  @native("vibe_http_format_response")
+}
+
+pub request(method: Str, url: Str, body: Str, timeout_ms: Int) -> Str {
+  @native("vibe_http_request")
+  @effect net
+}
+
+pub request_status(method: Str, url: Str, body: Str, timeout_ms: Int) -> Int {
+  @native("vibe_http_request_status")
+  @effect net
+}
+
+pub get(url: Str, timeout_ms: Int) -> HttpResponse {
+  @native("vibe_http_get")
+  @effect net
+}
+
+pub post(url: Str, body: Str, timeout_ms: Int) -> HttpResponse {
+  @native("vibe_http_post")
+  @effect net
+}

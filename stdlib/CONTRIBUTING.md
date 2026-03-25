@@ -7,9 +7,21 @@ This guide explains how to add, modify, and test standard library modules writte
 ```
 vibelang/stdlib/
   std/
-    path.yb          # module std.path
-    encoding.yb      # module std.encoding (future)
-    text.yb          # module std.text (future)
+    path.yb          # module std.path  (pure VibeLang)
+    log.yb           # module std.log   (@native wrappers)
+    env.yb           # module std.env
+    cli.yb           # module std.cli
+    time.yb          # module std.time
+    fs.yb            # module std.fs
+    convert.yb       # module std.convert
+    text.yb          # module std.text
+    encoding.yb      # module std.encoding
+    regex.yb         # module std.regex
+    net.yb           # module std.net
+    math.yb          # module std.math
+    str_builder.yb   # module std.str_builder
+    json.yb          # module std.json  (DOM + validation)
+    http.yb          # module std.http  (client + types)
   CONTRIBUTING.md    # this file
   stability_policy.md
 ```
@@ -159,10 +171,21 @@ New modules start at `preview`. Promotion to `stable` requires at least one rele
 
 ## How the Compiler Finds stdlib
 
-When any source file in a project contains `import std.*`, the compiler automatically discovers `.yb` files under the stdlib directory. Resolution order:
+The compiler **always** loads stdlib `.yb` files when the stdlib directory exists. User code calls stdlib functions via namespace syntax (`json.parse(...)`, `http.get(...)`) without needing explicit `import std.*` statements. Resolution order for finding the stdlib directory:
 
 1. `$VIBE_STDLIB_PATH` environment variable (if set)
 2. `../stdlib/std/` relative to the `vibe` binary
 3. `../../stdlib/std/` relative to the `vibe` binary
 
 This means contributors can test stdlib changes by building VibeLang from source — the binary finds the stdlib relative to itself.
+
+### Migration Pattern: Hardcoded to Self-Hosted
+
+The stdlib was migrated from hardcoded C runtime entries in the compiler to self-hosted `.yb` modules. The migration pattern for each namespace:
+
+1. **Create `stdlib/std/<name>.yb`** with `module std.<name>` and `@native` function wrappers
+2. **The namespace bridge** automatically resolves `<name>.function()` calls to the module's compiled functions
+3. **Remove hardcoded entries** from the type checker (`vibe_types`) and codegen (`vibe_codegen`)
+4. **Test** with the existing example files
+
+Compiler special cases that remain hardcoded: `json.encode`/`json.decode` (compile-time schema generation), `json.builder.*` (special builder type), and `simd.*` (Cranelift intrinsics).

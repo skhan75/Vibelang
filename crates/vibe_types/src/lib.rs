@@ -95,25 +95,6 @@ pub fn check_and_lower_with_ns(
     let mut hir = HirProgram::default();
     let mut effect_summaries: Vec<FunctionEffectSummary> = Vec::new();
 
-    type_defs.insert(
-        "HttpRequest".to_string(),
-        vec![
-            ("method".to_string(), TypeKind::Str),
-            ("url".to_string(), TypeKind::Str),
-            ("headers".to_string(), TypeKind::Str),
-            ("body".to_string(), TypeKind::Str),
-            ("timeout_ms".to_string(), TypeKind::Int),
-        ],
-    );
-    type_defs.insert(
-        "HttpResponse".to_string(),
-        vec![
-            ("status".to_string(), TypeKind::Int),
-            ("headers".to_string(), TypeKind::Str),
-            ("body".to_string(), TypeKind::Str),
-        ],
-    );
-
     for decl in &ast.declarations {
         match decl {
             Declaration::Type(t) => {
@@ -346,21 +327,28 @@ pub fn check_and_lower_with_ns(
             hir_tail_expr = Some(lowered_tail);
         }
 
+        let is_native = func
+            .contracts
+            .iter()
+            .any(|c| matches!(c, Contract::Native { .. }));
+
         let inferred_return = unify_return_types(&inferred_returns);
-        if let Some(declared) = func.return_type.as_ref() {
-            let declared = resolve_type_ref(declared, &type_defs, &enum_defs);
-            if !type_compatible(&declared, &inferred_return) {
-                diagnostics.push(Diagnostic::new(
-                    "E2201",
-                    Severity::Error,
-                    format!(
-                        "return type mismatch in `{}`: declared `{}`, inferred `{}`",
-                        func.name,
-                        type_name(&declared),
-                        type_name(&inferred_return)
-                    ),
-                    func.span,
-                ));
+        if !is_native {
+            if let Some(declared) = func.return_type.as_ref() {
+                let declared = resolve_type_ref(declared, &type_defs, &enum_defs);
+                if !type_compatible(&declared, &inferred_return) {
+                    diagnostics.push(Diagnostic::new(
+                        "E2201",
+                        Severity::Error,
+                        format!(
+                            "return type mismatch in `{}`: declared `{}`, inferred `{}`",
+                            func.name,
+                            type_name(&declared),
+                            type_name(&inferred_return)
+                        ),
+                        func.span,
+                    ));
+                }
             }
         }
 
@@ -371,11 +359,16 @@ pub fn check_and_lower_with_ns(
             func.span,
         );
 
+        let effective_observed = if is_native {
+            declared_effects.clone()
+        } else {
+            observed_effects.clone()
+        };
         effect_summaries.push(FunctionEffectSummary {
             name: func.name.clone(),
             span: func.span,
             declared_effects: declared_effects.clone(),
-            direct_observed_effects: observed_effects.clone(),
+            direct_observed_effects: effective_observed,
             direct_calls: collect_direct_calls(func),
         });
 
@@ -2503,35 +2496,6 @@ fn stdlib_namespace_return_hint(
 
 fn stdlib_namespace_return_hint_static(namespace: &str, field: &str) -> Option<TypeKind> {
     match (namespace, field) {
-        ("time", "now_ms") | ("time", "monotonic_now_ms") | ("time", "duration_ms") => {
-            Some(TypeKind::Int)
-        }
-        ("time", "sleep_ms") => Some(TypeKind::Void),
-        ("path", "join") | ("path", "parent") | ("path", "basename") => Some(TypeKind::Str),
-        ("path", "is_absolute") => Some(TypeKind::Bool),
-        ("fs", "exists") | ("fs", "write_text") | ("fs", "create_dir") => Some(TypeKind::Bool),
-        ("fs", "read_text") => Some(TypeKind::Str),
-        ("net", "listen")
-        | ("net", "listener_port")
-        | ("net", "accept")
-        | ("net", "connect")
-        | ("net", "write") => Some(TypeKind::Int),
-        ("net", "read") | ("net", "resolve") => Some(TypeKind::Str),
-        ("net", "close") => Some(TypeKind::Bool),
-        ("convert", "to_int") | ("convert", "parse_i64") => Some(TypeKind::Int),
-        ("convert", "to_float")
-        | ("convert", "parse_f64")
-        | ("convert", "i64_to_f64")
-        | ("convert", "f64_from_bits") => Some(TypeKind::Float),
-        ("convert", "to_str") | ("convert", "to_str_f64") | ("convert", "format_f64") => {
-            Some(TypeKind::Str)
-        }
-        ("convert", "f64_to_bits") => Some(TypeKind::Int),
-        ("math", "sqrt") => Some(TypeKind::Float),
-        ("str_builder", "new") | ("str_builder", "append") | ("str_builder", "append_char") => {
-            Some(TypeKind::Int)
-        }
-        ("str_builder", "finish") => Some(TypeKind::Str),
         ("json.builder", "new")
         | ("json.builder", "begin_object")
         | ("json.builder", "end_object")
@@ -2545,13 +2509,6 @@ fn stdlib_namespace_return_hint_static(namespace: &str, field: &str) -> Option<T
         | ("json.builder", "value_str")
         | ("json.builder", "value_json") => Some(TypeKind::JsonBuilder),
         ("json.builder", "finish") => Some(TypeKind::Str),
-        ("json", "parse")
-        | ("json", "null")
-        | ("json", "bool")
-        | ("json", "i64")
-        | ("json", "f64")
-        | ("json", "str") => Some(TypeKind::Json),
-        ("json", "stringify") | ("json", "stringify_pretty") => Some(TypeKind::Str),
         ("simd", "f64x2_splat")
         | ("simd", "f64x2_make")
         | ("simd", "f64x2_add")
@@ -2559,40 +2516,6 @@ fn stdlib_namespace_return_hint_static(namespace: &str, field: &str) -> Option<T
         | ("simd", "f64x2_mul") => Some(TypeKind::Int),
         ("simd", "f64x2_gt") => Some(TypeKind::Int),
         ("simd", "f64x2_extract") => Some(TypeKind::Float),
-        ("text", "trim")
-        | ("text", "replace")
-        | ("text", "to_lower")
-        | ("text", "to_upper")
-        | ("text", "split_part") => Some(TypeKind::Str),
-        ("text", "contains") | ("text", "starts_with") | ("text", "ends_with") => {
-            Some(TypeKind::Bool)
-        }
-        ("text", "byte_len") | ("text", "index_of") => Some(TypeKind::Int),
-        ("encoding", "hex_encode")
-        | ("encoding", "hex_decode")
-        | ("encoding", "base64_encode")
-        | ("encoding", "base64_decode")
-        | ("encoding", "url_encode")
-        | ("encoding", "url_decode") => Some(TypeKind::Str),
-        ("log", "info") | ("log", "warn") | ("log", "error") => Some(TypeKind::Void),
-        ("env", "get") | ("env", "get_required") => Some(TypeKind::Str),
-        ("env", "has") => Some(TypeKind::Bool),
-        ("cli", "args_len") => Some(TypeKind::Int),
-        ("cli", "arg") => Some(TypeKind::Str),
-        ("json", "is_valid") => Some(TypeKind::Bool),
-        ("json", "parse_i64") => Some(TypeKind::Int),
-        ("json", "stringify_i64") | ("json", "minify") => Some(TypeKind::Str),
-        ("regex", "count") => Some(TypeKind::Int),
-        ("regex", "replace_all") => Some(TypeKind::Str),
-        ("http", "status_text")
-        | ("http", "build_request_line")
-        | ("http", "build_response")
-        | ("http", "response")
-        | ("http", "request") => Some(TypeKind::Str),
-        ("http", "send")
-        | ("http", "get")
-        | ("http", "post") => Some(TypeKind::UserType("HttpResponse".to_string())),
-        ("http", "default_port") | ("http", "request_status") => Some(TypeKind::Int),
         #[cfg(feature = "bench-runtime")]
         ("bench", "md5_hex")
         | ("bench", "json_canonical")
@@ -2971,35 +2894,6 @@ fn infer_stdlib_namespace_call(
 
     let ret = stdlib_namespace_return_hint(namespace, field, ctx)?;
     let expected = match (namespace, field) {
-        ("time", "now_ms") | ("time", "monotonic_now_ms") => Some((&[][..], "nondet")),
-        ("time", "duration_ms") => Some((&["Int"][..], "")),
-        ("time", "sleep_ms") => Some((&["Int"][..], "io")),
-        ("path", "join") => Some((&["Str", "Str"][..], "")),
-        ("path", "parent") | ("path", "basename") | ("path", "is_absolute") => {
-            Some((&["Str"][..], ""))
-        }
-        ("fs", "exists") | ("fs", "read_text") | ("fs", "create_dir") => Some((&["Str"][..], "io")),
-        ("fs", "write_text") => Some((&["Str", "Str"][..], "io")),
-        ("net", "listen") | ("net", "connect") => Some((&["Str", "Int"][..], "net")),
-        ("net", "listener_port") | ("net", "accept") | ("net", "close") => {
-            Some((&["Int"][..], "net"))
-        }
-        ("net", "read") => Some((&["Int", "Int"][..], "net")),
-        ("net", "write") => Some((&["Int", "Str"][..], "net")),
-        ("net", "resolve") => Some((&["Str"][..], "net")),
-        ("convert", "to_int") | ("convert", "parse_i64") => Some((&["Str"][..], "")),
-        ("convert", "to_float") | ("convert", "parse_f64") => Some((&["Str"][..], "")),
-        ("convert", "i64_to_f64") => Some((&["Int"][..], "")),
-        ("convert", "f64_to_bits") => Some((&["Float"][..], "")),
-        ("convert", "f64_from_bits") => Some((&["Int"][..], "")),
-        ("convert", "to_str") => Some((&["Int"][..], "")),
-        ("convert", "to_str_f64") => Some((&["Float"][..], "")),
-        ("convert", "format_f64") => Some((&["Float", "Int"][..], "")),
-        ("math", "sqrt") => Some((&["Float"][..], "")),
-        ("str_builder", "new") => Some((&["Int"][..], "")),
-        ("str_builder", "append") => Some((&["Int", "Str"][..], "")),
-        ("str_builder", "append_char") => Some((&["Int", "Int"][..], "")),
-        ("str_builder", "finish") => Some((&["Int"][..], "")),
         ("simd", "f64x2_splat") => Some((&["Float"][..], "")),
         ("simd", "f64x2_make") => Some((&["Float", "Float"][..], "")),
         ("simd", "f64x2_add")
@@ -3007,45 +2901,6 @@ fn infer_stdlib_namespace_call(
         | ("simd", "f64x2_mul")
         | ("simd", "f64x2_gt") => Some((&["Int", "Int"][..], "")),
         ("simd", "f64x2_extract") => Some((&["Int", "Int"][..], "")),
-        ("text", "trim")
-        | ("text", "to_lower")
-        | ("text", "to_upper")
-        | ("encoding", "hex_encode")
-        | ("encoding", "hex_decode")
-        | ("encoding", "base64_encode")
-        | ("encoding", "base64_decode")
-        | ("encoding", "url_encode")
-        | ("encoding", "url_decode")
-        | ("env", "get")
-        | ("env", "get_required") => Some((&["Str"][..], "")),
-        ("text", "contains")
-        | ("text", "starts_with")
-        | ("text", "ends_with")
-        | ("text", "index_of") => Some((&["Str", "Str"][..], "")),
-        ("text", "replace") => Some((&["Str", "Str", "Str"][..], "")),
-        ("text", "byte_len") => Some((&["Str"][..], "")),
-        ("text", "split_part") => Some((&["Str", "Str", "Int"][..], "")),
-        ("log", "info") | ("log", "warn") | ("log", "error") => Some((&["Str"][..], "io")),
-        ("env", "has") => Some((&["Str"][..], "nondet")),
-        ("cli", "args_len") => Some((&[][..], "nondet")),
-        ("cli", "arg") => Some((&["Int"][..], "nondet")),
-        ("json", "is_valid") | ("json", "parse_i64") | ("json", "minify") => {
-            Some((&["Str"][..], ""))
-        }
-        ("json", "stringify_i64") => Some((&["Int"][..], "")),
-        ("regex", "count") => Some((&["Str", "Str"][..], "")),
-        ("regex", "replace_all") => Some((&["Str", "Str", "Str"][..], "")),
-        ("http", "status_text") => Some((&["Int"][..], "")),
-        ("http", "default_port") => Some((&["Str"][..], "")),
-        ("http", "build_request_line") => Some((&["Str", "Str"][..], "")),
-        ("http", "build_response") => Some((&["Int", "Str"][..], "")),
-        ("http", "send") => Some((&["HttpRequest"][..], "net")),
-        ("http", "response") => Some((&["HttpResponse"][..], "")),
-        ("http", "get") => Some((&["Str", "Int"][..], "net")),
-        ("http", "post") => Some((&["Str", "Str", "Int"][..], "net")),
-        ("http", "request") | ("http", "request_status") => {
-            Some((&["Str", "Str", "Str", "Int"][..], "net"))
-        }
         #[cfg(feature = "bench-runtime")]
         ("bench", "md5_hex") | ("bench", "json_canonical") => Some((&["Str"][..], "")),
         #[cfg(feature = "bench-runtime")]
@@ -3133,22 +2988,8 @@ fn is_builtin_ident(name: &str) -> bool {
             | "err"
             | "print"
             | "println"
-            | "time"
-            | "path"
-            | "fs"
-            | "net"
-            | "convert"
-            | "math"
-            | "str_builder"
             | "simd"
-            | "text"
-            | "encoding"
-            | "log"
-            | "env"
-            | "cli"
             | "json"
-            | "regex"
-            | "http"
             | "true"
             | "false"
     ) {

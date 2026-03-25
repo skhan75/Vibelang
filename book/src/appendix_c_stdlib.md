@@ -371,7 +371,7 @@ json.from_map(preview)  // {"title":"VibeLang","score":95,"active":true}
 ## C.7 `http` — HTTP Client and Server (Preview)
 
 Structured HTTP client with `HttpRequest`/`HttpResponse` types, plus protocol
-helpers. The compiler auto-injects these types — no manual definition needed.
+helpers. These types are defined in `stdlib/std/http.yb` and loaded automatically.
 
 ### Built-in types
 

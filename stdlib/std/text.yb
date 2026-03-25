@@ -1,0 +1,57 @@
+// Copyright 2026 Vibelang Contributors
+// SPDX-License-Identifier: Apache-2.0
+
+/**
+ * String manipulation utilities: trimming, searching, casing, and splitting.
+ */
+module std.text
+
+pub trim(s: Str) -> Str {
+  @intent "strip leading and trailing whitespace"
+  @native("vibe_text_trim")
+}
+
+pub contains(haystack: Str, needle: Str) -> Bool {
+  @intent "true when haystack contains needle"
+  @native("vibe_text_contains")
+}
+
+pub starts_with(s: Str, prefix: Str) -> Bool {
+  @intent "true when s begins with prefix"
+  @native("vibe_text_starts_with")
+}
+
+pub ends_with(s: Str, suffix: Str) -> Bool {
+  @intent "true when s ends with suffix"
+  @native("vibe_text_ends_with")
+}
+
+pub replace(s: Str, from: Str, to: Str) -> Str {
+  @intent "replace all occurrences of from with to"
+  @native("vibe_text_replace")
+}
+
+pub to_lower(s: Str) -> Str {
+  @intent "convert to lowercase"
+  @native("vibe_text_to_lower")
+}
+
+pub to_upper(s: Str) -> Str {
+  @intent "convert to uppercase"
+  @native("vibe_text_to_upper")
+}
+
+pub byte_len(s: Str) -> Int {
+  @intent "return the byte length of the string"
+  @native("vibe_text_byte_len")
+}
+
+pub split_part(s: Str, delimiter: Str, index: Int) -> Str {
+  @intent "split a string by delimiter and return the part at the given index"
+  @native("vibe_text_split_part")
+}
+
+pub index_of(haystack: Str, needle: Str) -> Int {
+  @intent "return the byte offset of needle in haystack, or -1 if not found"
+  @native("vibe_text_index_of")
+}

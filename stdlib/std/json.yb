@@ -1,0 +1,69 @@
+// Copyright 2026 Vibelang Contributors
+// SPDX-License-Identifier: Apache-2.0
+
+/**
+ * JSON DOM, validation, and serialization.
+ * Note: json.encode() and json.decode() remain compiler-special-cased
+ * for struct schema generation.
+ */
+module std.json
+
+pub is_valid(raw: Str) -> Bool {
+  @intent "true when the string is valid JSON"
+  @native("vibe_json_is_valid")
+}
+
+pub parse(raw: Str) -> Int {
+  @intent "parse a JSON string into a DOM node handle"
+  @native("vibe_json_parse")
+}
+
+pub stringify(node: Int) -> Str {
+  @intent "serialize a DOM node to a compact JSON string"
+  @native("vibe_json_stringify")
+}
+
+pub stringify_pretty(node: Int) -> Str {
+  @intent "serialize a DOM node to a pretty-printed JSON string"
+  @native("vibe_json_stringify_pretty")
+}
+
+pub null() -> Int {
+  @intent "create a JSON null DOM node"
+  @native("vibe_json_null")
+}
+
+pub bool(value: Bool) -> Int {
+  @intent "create a JSON boolean DOM node"
+  @native("vibe_json_bool")
+}
+
+pub i64(value: Int) -> Int {
+  @intent "create a JSON integer DOM node"
+  @native("vibe_json_i64")
+}
+
+pub f64(value: Float) -> Int {
+  @intent "create a JSON float DOM node"
+  @native("vibe_json_f64")
+}
+
+pub str(value: Str) -> Int {
+  @intent "create a JSON string DOM node"
+  @native("vibe_json_str")
+}
+
+pub parse_i64(raw: Str) -> Int {
+  @intent "extract a bare integer from a JSON string"
+  @native("vibe_json_parse_i64")
+}
+
+pub stringify_i64(value: Int) -> Str {
+  @intent "convert an integer to its JSON string representation"
+  @native("vibe_json_stringify_i64")
+}
+
+pub minify(raw: Str) -> Str {
+  @intent "strip whitespace from a JSON string"
+  @native("vibe_json_minify")
+}

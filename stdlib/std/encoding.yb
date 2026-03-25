@@ -1,0 +1,37 @@
+// Copyright 2026 Vibelang Contributors
+// SPDX-License-Identifier: Apache-2.0
+
+/**
+ * Hex, Base64, and URL encoding/decoding.
+ */
+module std.encoding
+
+pub hex_encode(data: Str) -> Str {
+  @intent "encode a string as hexadecimal"
+  @native("vibe_encoding_hex_encode")
+}
+
+pub hex_decode(hex: Str) -> Str {
+  @intent "decode a hexadecimal string"
+  @native("vibe_encoding_hex_decode")
+}
+
+pub base64_encode(data: Str) -> Str {
+  @intent "encode a string as Base64"
+  @native("vibe_encoding_base64_encode")
+}
+
+pub base64_decode(b64: Str) -> Str {
+  @intent "decode a Base64 string"
+  @native("vibe_encoding_base64_decode")
+}
+
+pub url_encode(s: Str) -> Str {
+  @intent "percent-encode a string for use in URLs"
+  @native("vibe_encoding_url_encode")
+}
+
+pub url_decode(s: Str) -> Str {
+  @intent "decode a percent-encoded URL string"
+  @native("vibe_encoding_url_decode")
+}

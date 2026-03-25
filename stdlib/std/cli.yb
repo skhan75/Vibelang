@@ -1,0 +1,19 @@
+// Copyright 2026 Vibelang Contributors
+// SPDX-License-Identifier: Apache-2.0
+
+/**
+ * Command-line argument access.
+ */
+module std.cli
+
+pub args_len() -> Int {
+  @intent "return the number of command-line arguments"
+  @effect nondet
+  @native("vibe_cli_args_len")
+}
+
+pub arg(index: Int) -> Str {
+  @intent "return the command-line argument at the given index"
+  @effect nondet
+  @native("vibe_cli_arg")
+}

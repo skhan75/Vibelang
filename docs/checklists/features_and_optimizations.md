@@ -531,6 +531,24 @@ without rewriting core functionality in another language.
 ### D-05 (P1) Parity trend reporting
 - [x] Publish periodic example parity report (pass/fail trend).
 
+### D-06 (P0) Stdlib C-to-YB Migration
+- [x] Phase 0: Namespace-to-module bridge (module resolver, type checker, codegen)
+- [x] Phase 1: Migrate trivial leaf modules (log, env, cli, time, fs)
+- [x] Phase 2: Migrate medium modules (convert, text, encoding, regex, net, math, str_builder)
+- [x] Phase 3: Migrate complex modules (json DOM/validation, http + types)
+- [x] Phase 4: Remove hardcoded is_builtin_ident entries, clean up extract_stdlib_call_target lists
+- **What**: All ~100 hardcoded C runtime stdlib functions migrated from compiler-wired tables into
+  self-hosted `.yb` modules under `stdlib/std/`, using `@native` FFI for C-backed primitives.
+- **Architecture**: Namespace bridge resolves `namespace.function()` calls to compiled `.yb` module functions
+  before falling back to hardcoded compiler logic. The `namespace_map` in `CompilationUnit` maps
+  `(namespace, field)` to resolved function names.
+- **Still hardcoded** (compiler special cases):
+  - `json.encode`/`json.decode`: compile-time struct schema generation
+  - `json.builder.*`: special `JsonBuilder` type
+  - `json.from_map`: special map-to-JSON conversion
+  - `simd.*`: Cranelift SIMD intrinsics
+  - `bench.*`: benchmark feature-gated functions
+
 ---
 
 ## E) Recommended Execution Order

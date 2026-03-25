@@ -1,0 +1,57 @@
+// Copyright 2026 Vibelang Contributors
+// SPDX-License-Identifier: Apache-2.0
+
+/**
+ * Type conversion and parsing between primitive types.
+ */
+module std.convert
+
+pub to_int(s: Str) -> Int {
+  @intent "parse a string as a 64-bit integer"
+  @native("vibe_convert_to_int")
+}
+
+pub parse_i64(s: Str) -> Int {
+  @intent "alias for to_int"
+  @native("vibe_convert_to_int")
+}
+
+pub to_float(s: Str) -> Float {
+  @intent "parse a string as a 64-bit float"
+  @native("vibe_convert_to_f64")
+}
+
+pub parse_f64(s: Str) -> Float {
+  @intent "alias for to_float"
+  @native("vibe_convert_to_f64")
+}
+
+pub to_str(n: Int) -> Str {
+  @intent "convert an integer to its string representation"
+  @native("vibe_convert_i64_to_str")
+}
+
+pub to_str_f64(f: Float) -> Str {
+  @intent "convert a float to its string representation"
+  @native("vibe_convert_f64_to_str")
+}
+
+pub format_f64(f: Float, precision: Int) -> Str {
+  @intent "format a float with the given number of decimal places"
+  @native("vibe_format_f64")
+}
+
+pub i64_to_f64(n: Int) -> Float {
+  @intent "convert an integer to a float"
+  @native("vibe_i64_to_f64")
+}
+
+pub f64_to_bits(f: Float) -> Int {
+  @intent "reinterpret a float as its raw 64-bit integer representation"
+  @native("vibe_f64_to_bits")
+}
+
+pub f64_from_bits(n: Int) -> Float {
+  @intent "reinterpret a 64-bit integer as a float"
+  @native("vibe_f64_from_bits")
+}

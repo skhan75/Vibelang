@@ -3228,6 +3228,10 @@ double vibe_f64_from_bits(int64_t bits) {
     return value;
 }
 
+double vibe_math_sqrt(double x) {
+    return sqrt(x);
+}
+
 char *vibe_format_f64(double value, int64_t precision) {
     if (precision < 0) precision = 0;
     if (precision > 20) precision = 20;
@@ -5341,6 +5345,12 @@ void *vibe_http_get(const char *url, int64_t timeout_ms) {
 
 void *vibe_http_post(const char *url, const char *body, int64_t timeout_ms) {
     return vibe_http_send("POST", url, "", body, timeout_ms);
+}
+
+void *vibe_http_send_struct(void *req) {
+    long *slots = (long *)req;
+    return vibe_http_send((const char *)slots[0], (const char *)slots[1],
+                          (const char *)slots[2], (const char *)slots[3], slots[4]);
 }
 
 static int64_t vibe_http_extract_i64(const char *text) {
