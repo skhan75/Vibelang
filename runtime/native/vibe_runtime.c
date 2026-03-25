@@ -54,6 +54,7 @@ enum {
     VIBE_CONTAINER_LIST_I64 = 1,
     VIBE_CONTAINER_MAP_I64_I64 = 2,
     VIBE_CONTAINER_MAP_STR_I64 = 3,
+    VIBE_CONTAINER_MAP_STR_STR = 4,
 };
 
 typedef struct vibe_list_i64 {
@@ -98,6 +99,21 @@ typedef struct vibe_map_str_i64 {
     int64_t resize_count;
     int64_t probe_steps;
 } vibe_map_str_i64;
+
+typedef struct vibe_map_str_str_entry {
+    char *key;
+    char *value;
+    int64_t hash;
+} vibe_map_str_str_entry;
+
+typedef struct vibe_map_str_str {
+    int64_t tag;
+    vibe_map_str_str_entry *entries;
+    int64_t count;
+    int64_t capacity;
+    int64_t *hash_buckets;
+    int64_t hash_capacity;
+} vibe_map_str_str;
 
 static pthread_mutex_t vibe_select_cursor_mu = PTHREAD_MUTEX_INITIALIZER;
 static uint64_t vibe_select_cursor = 0;
@@ -401,6 +417,7 @@ static int64_t vibe_next_hash_capacity(int64_t min_cap) {
 
 static void vibe_map_i64_hash_ensure(vibe_map_i64_i64 *map, int64_t min_cap);
 static void vibe_map_str_hash_ensure(vibe_map_str_i64 *map, int64_t min_cap);
+static void vibe_map_str_str_hash_ensure(vibe_map_str_str *map, int64_t min_cap);
 
 static int64_t vibe_map_i64_find_slot(
     vibe_map_i64_i64 *map,
@@ -909,6 +926,251 @@ int64_t vibe_map_probe_steps_str_i64(void *handle) {
     return map->probe_steps;
 }
 
+/* ── Map<Str, Str> hash helpers ─────────────────────────────────────── */
+
+static int64_t vibe_map_str_str_find_slot(
+    vibe_map_str_str *map,
+    const char *key,
+    int64_t *found,
+    int64_t *probe_count
+) {
+    const char *safe_key = key == NULL ? "" : key;
+    if (map->hash_capacity <= 0 || map->hash_buckets == NULL) {
+        *found = 0;
+        if (probe_count != NULL) {
+            *probe_count = 0;
+        }
+        return -1;
+    }
+    uint64_t hash = vibe_hash_cstr_key(safe_key);
+    int64_t mask = map->hash_capacity - 1;
+    int64_t slot = (int64_t)(hash & (uint64_t)mask);
+    int64_t first_tombstone = -1;
+    int64_t probes = 0;
+    while (1) {
+        probes += 1;
+        int64_t marker = map->hash_buckets[slot];
+        if (marker == 0) {
+            *found = 0;
+            if (probe_count != NULL) {
+                *probe_count = probes;
+            }
+            return first_tombstone >= 0 ? first_tombstone : slot;
+        }
+        if (marker < 0) {
+            if (first_tombstone < 0) {
+                first_tombstone = slot;
+            }
+        } else {
+            int64_t entry_index = marker - 1;
+            if (entry_index >= 0
+                && entry_index < map->count
+                && strcmp(map->entries[entry_index].key, safe_key) == 0) {
+                *found = 1;
+                if (probe_count != NULL) {
+                    *probe_count = probes;
+                }
+                return slot;
+            }
+        }
+        slot = (slot + 1) & mask;
+    }
+}
+
+static void vibe_map_str_str_hash_rebuild(vibe_map_str_str *map, int64_t new_cap) {
+    int64_t cap = vibe_next_hash_capacity(new_cap);
+    int64_t *slots = (int64_t *)calloc((size_t)cap, sizeof(int64_t));
+    if (slots == NULL) {
+        vibe_panic("failed to allocate str_str map hash slots");
+    }
+    free(map->hash_buckets);
+    map->hash_buckets = slots;
+    map->hash_capacity = cap;
+    for (int64_t i = 0; i < map->count; i++) {
+        int64_t found = 0;
+        int64_t probes = 0;
+        int64_t slot = vibe_map_str_str_find_slot(map, map->entries[i].key, &found, &probes);
+        if (slot < 0) {
+            vibe_panic("failed to rebuild str_str map hash slots");
+        }
+        map->hash_buckets[slot] = i + 1;
+    }
+}
+
+static void vibe_map_str_str_hash_ensure(vibe_map_str_str *map, int64_t min_cap) {
+    if (map->hash_capacity < min_cap || map->hash_buckets == NULL) {
+        vibe_map_str_str_hash_rebuild(map, min_cap);
+    }
+}
+
+static void vibe_map_str_str_maybe_grow_hash(vibe_map_str_str *map) {
+    if (map->hash_capacity <= 0) {
+        vibe_map_str_str_hash_ensure(map, 16);
+        return;
+    }
+    int64_t used = 0;
+    for (int64_t i = 0; i < map->hash_capacity; i++) {
+        if (map->hash_buckets[i] != 0) {
+            used += 1;
+        }
+    }
+    if ((used + 1) * 10 >= map->hash_capacity * 7) {
+        vibe_map_str_str_hash_rebuild(map, map->hash_capacity * 2);
+    }
+}
+
+static void vibe_map_str_str_ensure_capacity(vibe_map_str_str *map, int64_t min_cap) {
+    if (map == NULL) {
+        vibe_panic("str_str map handle is null");
+    }
+    if (map->capacity >= min_cap) {
+        return;
+    }
+    int64_t next_cap = map->capacity <= 0 ? 8 : map->capacity;
+    while (next_cap < min_cap) {
+        next_cap *= 2;
+    }
+    vibe_map_str_str_entry *next_entries =
+        (vibe_map_str_str_entry *)calloc((size_t)next_cap, sizeof(vibe_map_str_str_entry));
+    if (next_entries == NULL) {
+        vibe_panic("failed to grow str_str map");
+    }
+    if (map->entries != NULL && map->count > 0) {
+        memcpy(next_entries, map->entries, (size_t)map->count * sizeof(vibe_map_str_str_entry));
+    }
+    free(map->entries);
+    map->entries = next_entries;
+    map->capacity = next_cap;
+}
+
+/* ── Map<Str, Str> public API ───────────────────────────────────────── */
+
+void *vibe_map_new_str_str(int64_t initial_cap) {
+    vibe_map_str_str *map = (vibe_map_str_str *)calloc(1, sizeof(vibe_map_str_str));
+    if (map == NULL) {
+        vibe_panic("failed to allocate str_str map");
+    }
+    map->tag = VIBE_CONTAINER_MAP_STR_STR;
+    map->count = 0;
+    map->capacity = 0;
+    map->entries = NULL;
+    map->hash_buckets = NULL;
+    map->hash_capacity = 0;
+    if (initial_cap > 0) {
+        vibe_map_str_str_ensure_capacity(map, initial_cap);
+    }
+    return (void *)map;
+}
+
+void vibe_map_set_str_str(void *handle, const char *key, const char *value) {
+    vibe_map_str_str *map = (vibe_map_str_str *)handle;
+    if (map == NULL || map->tag != VIBE_CONTAINER_MAP_STR_STR) {
+        vibe_panic("map.set(Str, Str) called on non-map handle");
+    }
+    const char *safe_key = key == NULL ? "" : key;
+    const char *safe_value = value == NULL ? "" : value;
+    vibe_map_str_str_hash_ensure(map, 16);
+    vibe_map_str_str_maybe_grow_hash(map);
+    int64_t found = 0;
+    int64_t probes = 0;
+    int64_t slot = vibe_map_str_str_find_slot(map, safe_key, &found, &probes);
+    if (slot < 0) {
+        vibe_panic("failed to find str_str map slot");
+    }
+    if (found) {
+        int64_t entry_index = map->hash_buckets[slot] - 1;
+        free(map->entries[entry_index].value);
+        map->entries[entry_index].value = vibe_strdup_or_panic(safe_value);
+        return;
+    }
+    vibe_map_str_str_ensure_capacity(map, map->count + 1);
+    int64_t entry_index = map->count;
+    map->entries[entry_index].key = vibe_strdup_or_panic(safe_key);
+    map->entries[entry_index].value = vibe_strdup_or_panic(safe_value);
+    map->entries[entry_index].hash = (int64_t)vibe_hash_cstr_key(safe_key);
+    map->hash_buckets[slot] = entry_index + 1;
+    map->count += 1;
+}
+
+char *vibe_map_get_str_str(void *handle, const char *key) {
+    vibe_map_str_str *map = (vibe_map_str_str *)handle;
+    if (map == NULL || map->tag != VIBE_CONTAINER_MAP_STR_STR) {
+        vibe_panic("map.get(Str, Str) called on non-map handle");
+    }
+    if (map->hash_capacity <= 0 || map->hash_buckets == NULL || map->count == 0) {
+        return "";
+    }
+    int64_t found = 0;
+    int64_t probes = 0;
+    int64_t slot = vibe_map_str_str_find_slot(map, key, &found, &probes);
+    if (found && slot >= 0) {
+        int64_t entry_index = map->hash_buckets[slot] - 1;
+        return map->entries[entry_index].value;
+    }
+    return "";
+}
+
+int64_t vibe_map_contains_str_str(void *handle, const char *key) {
+    vibe_map_str_str *map = (vibe_map_str_str *)handle;
+    if (map == NULL || map->tag != VIBE_CONTAINER_MAP_STR_STR) {
+        vibe_panic("map.contains(Str, Str) called on non-map handle");
+    }
+    if (map->hash_capacity <= 0 || map->hash_buckets == NULL || map->count == 0) {
+        return 0;
+    }
+    int64_t found = 0;
+    int64_t probes = 0;
+    vibe_map_str_str_find_slot(map, key, &found, &probes);
+    return found ? 1 : 0;
+}
+
+void vibe_map_remove_str_str(void *handle, const char *key) {
+    vibe_map_str_str *map = (vibe_map_str_str *)handle;
+    if (map == NULL || map->tag != VIBE_CONTAINER_MAP_STR_STR) {
+        vibe_panic("map.remove(Str, Str) called on non-map handle");
+    }
+    if (map->hash_capacity <= 0 || map->hash_buckets == NULL || map->count == 0) {
+        return;
+    }
+    int64_t found = 0;
+    int64_t probes = 0;
+    int64_t slot = vibe_map_str_str_find_slot(map, key, &found, &probes);
+    if (!found || slot < 0) {
+        return;
+    }
+    int64_t removed_entry = map->hash_buckets[slot] - 1;
+    free(map->entries[removed_entry].key);
+    free(map->entries[removed_entry].value);
+    for (int64_t i = removed_entry + 1; i < map->count; i++) {
+        map->entries[i - 1] = map->entries[i];
+    }
+    map->count -= 1;
+    if (map->hash_capacity > 16 && map->count * 4 < map->hash_capacity) {
+        vibe_map_str_str_hash_rebuild(map, map->hash_capacity / 2);
+    } else {
+        vibe_map_str_str_hash_rebuild(map, map->hash_capacity);
+    }
+}
+
+int64_t vibe_map_len_str_str(void *handle) {
+    vibe_map_str_str *map = (vibe_map_str_str *)handle;
+    if (map == NULL || map->tag != VIBE_CONTAINER_MAP_STR_STR) {
+        vibe_panic("map.len called on non str_str map handle");
+    }
+    return map->count;
+}
+
+char *vibe_map_value_at_str_str(void *handle, int64_t index) {
+    vibe_map_str_str *map = (vibe_map_str_str *)handle;
+    if (map == NULL || map->tag != VIBE_CONTAINER_MAP_STR_STR) {
+        vibe_panic("map.value_at(Str, Str) called on non-map handle");
+    }
+    if (index < 0 || index >= map->count) {
+        vibe_panic("str_str map value index out of bounds");
+    }
+    return map->entries[index].value;
+}
+
 int64_t vibe_container_len(void *handle) {
     if (handle == NULL) {
         vibe_panic("container len called on null handle");
@@ -922,6 +1184,9 @@ int64_t vibe_container_len(void *handle) {
     }
     if (tag == VIBE_CONTAINER_MAP_STR_I64) {
         return vibe_map_len_str_i64(handle);
+    }
+    if (tag == VIBE_CONTAINER_MAP_STR_STR) {
+        return vibe_map_len_str_str(handle);
     }
     vibe_panic("container len called on unsupported container");
     return 0;
@@ -1164,7 +1429,14 @@ const char *vibe_container_key_at_str(void *handle, int64_t index) {
     if (tag == VIBE_CONTAINER_MAP_STR_I64) {
         return vibe_map_key_at_str(handle, index);
     }
-    vibe_panic("container key_at(Str) is only valid for Map<Str, Int>");
+    if (tag == VIBE_CONTAINER_MAP_STR_STR) {
+        vibe_map_str_str *map = (vibe_map_str_str *)handle;
+        if (index < 0 || index >= map->count) {
+            vibe_panic("str_str map key index out of bounds");
+        }
+        return map->entries[index].key;
+    }
+    vibe_panic("container key_at(Str) is only valid for string-keyed maps");
     return NULL;
 }
 
@@ -3285,6 +3557,56 @@ static char *vibe_json_quote_string(const char *raw) {
         }
     }
     vibe_builder_append_bytes(&builder, "\"", 1);
+    vibe_counter_inc(&vibe_json_allocations);
+    return builder.data;
+}
+
+static int64_t vibe_looks_like_integer(const char *s) {
+    if (s == NULL || *s == '\0') return 0;
+    const char *p = s;
+    if (*p == '-') p++;
+    if (*p == '\0') return 0;
+    while (*p != '\0') {
+        if (*p < '0' || *p > '9') return 0;
+        p++;
+    }
+    return 1;
+}
+
+char *vibe_json_from_str_str_map(void *handle) {
+    vibe_map_str_str *map = (vibe_map_str_str *)handle;
+    if (map == NULL || map->tag != VIBE_CONTAINER_MAP_STR_STR) {
+        vibe_counter_inc(&vibe_json_allocations);
+        return vibe_strdup_or_panic("{}");
+    }
+    if (map->count == 0) {
+        vibe_counter_inc(&vibe_json_allocations);
+        return vibe_strdup_or_panic("{}");
+    }
+    vibe_string_builder builder;
+    vibe_builder_init(&builder, (size_t)(map->count * 32 + 4));
+    vibe_builder_append_bytes(&builder, "{", 1);
+    for (int64_t i = 0; i < map->count; i++) {
+        if (i > 0) {
+            vibe_builder_append_bytes(&builder, ",", 1);
+        }
+        char *quoted_key = vibe_json_quote_string(map->entries[i].key);
+        vibe_builder_append_bytes(&builder, quoted_key, strlen(quoted_key));
+        free(quoted_key);
+        vibe_builder_append_bytes(&builder, ":", 1);
+        const char *val = map->entries[i].value;
+        if (val == NULL) val = "";
+        if (vibe_looks_like_integer(val)) {
+            vibe_builder_append_bytes(&builder, val, strlen(val));
+        } else if (strcmp(val, "true") == 0 || strcmp(val, "false") == 0) {
+            vibe_builder_append_bytes(&builder, val, strlen(val));
+        } else {
+            char *quoted_val = vibe_json_quote_string(val);
+            vibe_builder_append_bytes(&builder, quoted_val, strlen(quoted_val));
+            free(quoted_val);
+        }
+    }
+    vibe_builder_append_bytes(&builder, "}", 1);
     vibe_counter_inc(&vibe_json_allocations);
     return builder.data;
 }

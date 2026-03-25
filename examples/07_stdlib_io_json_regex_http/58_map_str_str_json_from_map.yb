@@ -1,0 +1,19 @@
+type Config { host: Str, port: Int }
+
+pub main() -> Int {
+  @effect io
+  @effect alloc
+
+  // Map<Str, Str> literal + json.from_map with auto type detection
+  preview := {"title": "VibeLang", "score": "95", "active": "true", "image": ""}
+  println(json.from_map(preview))
+
+  // Struct field .len() and == now work correctly
+  cfg := Config { host: "localhost", port: 8080 }
+  if cfg.host.len() > 0 { println("host-len-ok") } else { println("host-len-bad") }
+  if cfg.host == "localhost" { println("host-eq-ok") } else { println("host-eq-bad") }
+
+  // json.encode_<Type> for struct serialization
+  println(json.encode_Config(cfg))
+  0
+}

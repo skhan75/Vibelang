@@ -2563,6 +2563,18 @@ fn infer_stdlib_namespace_call(
             }
             return Some(TypeKind::UserType(target_type_name.to_string()));
         }
+        if field == "from_map" {
+            if args.len() != 1 {
+                diagnostics.push(Diagnostic::new(
+                    "E2237",
+                    Severity::Error,
+                    format!("`json.from_map` expects 1 argument(s), got {}", args.len()),
+                    call_span,
+                ));
+                return Some(TypeKind::Unknown);
+            }
+            return Some(TypeKind::Str);
+        }
     }
 
     let ret = stdlib_namespace_return_hint(namespace, field)?;

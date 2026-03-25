@@ -10,6 +10,7 @@
 - `json.minify(raw: Str) -> Str`
 - `json.encode_<Type>(value: Type) -> Str` (compiler-generated typed codec entrypoint)
 - `json.decode_<Type>(raw: Str, fallback: Type) -> Type` (compiler-generated typed codec entrypoint)
+- `json.from_map(map: Map<Str, Str>) -> Str`
 
 ## Semantics
 
@@ -23,6 +24,9 @@
 - `minify` removes insignificant whitespace while preserving string literals and escapes.
 - `encode_<Type>` and `decode_<Type>` are generated from nominal `type` declarations and currently
   support deterministic field mapping for `Int`, `Str`, and `Bool` fields.
+- `from_map` serializes a `Map<Str, Str>` to a JSON object string with smart type detection:
+  values that look like integers are emitted unquoted (`"score":85`), `"true"`/`"false"` are
+  emitted as booleans (`"active":true`), and all other values are emitted as quoted strings.
  
 ## Benchmark-only helpers
 

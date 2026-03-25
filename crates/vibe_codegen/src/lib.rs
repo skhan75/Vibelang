@@ -58,6 +58,10 @@ struct RuntimeFunctions {
     container_set_str_i64_fn: FuncId,
     container_contains_str_i64_fn: FuncId,
     container_remove_str_i64_fn: FuncId,
+    map_new_str_str_fn: FuncId,
+    container_get_str_str_fn: FuncId,
+    container_set_str_str_fn: FuncId,
+    json_from_str_str_map_fn: FuncId,
     container_contains_auto_i64_fn: FuncId,
     container_remove_auto_i64_fn: FuncId,
     container_key_at_i64_fn: FuncId,
@@ -371,6 +375,54 @@ fn declare_runtime_functions(
             &map_new_str_i64_sig,
         )
         .map_err(|e| format!("failed to declare runtime map_new_str_i64 symbol: {e}"))?;
+
+    let mut map_new_str_str_sig = module.make_signature();
+    map_new_str_str_sig
+        .params
+        .push(AbiParam::new(ir::types::I64));
+    map_new_str_str_sig.returns.push(AbiParam::new(ptr_ty));
+    let map_new_str_str_fn = module
+        .declare_function(
+            "vibe_map_new_str_str",
+            Linkage::Import,
+            &map_new_str_str_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime map_new_str_str symbol: {e}"))?;
+
+    let mut container_get_str_str_sig = module.make_signature();
+    container_get_str_str_sig.params.push(AbiParam::new(ptr_ty));
+    container_get_str_str_sig.params.push(AbiParam::new(ptr_ty));
+    container_get_str_str_sig.returns.push(AbiParam::new(ptr_ty));
+    let container_get_str_str_fn = module
+        .declare_function(
+            "vibe_map_get_str_str",
+            Linkage::Import,
+            &container_get_str_str_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime map_get_str_str symbol: {e}"))?;
+
+    let mut container_set_str_str_sig = module.make_signature();
+    container_set_str_str_sig.params.push(AbiParam::new(ptr_ty));
+    container_set_str_str_sig.params.push(AbiParam::new(ptr_ty));
+    container_set_str_str_sig.params.push(AbiParam::new(ptr_ty));
+    let container_set_str_str_fn = module
+        .declare_function(
+            "vibe_map_set_str_str",
+            Linkage::Import,
+            &container_set_str_str_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime map_set_str_str symbol: {e}"))?;
+
+    let mut json_from_str_str_map_sig = module.make_signature();
+    json_from_str_str_map_sig.params.push(AbiParam::new(ptr_ty));
+    json_from_str_str_map_sig.returns.push(AbiParam::new(ptr_ty));
+    let json_from_str_str_map_fn = module
+        .declare_function(
+            "vibe_json_from_str_str_map",
+            Linkage::Import,
+            &json_from_str_str_map_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime json_from_str_str_map symbol: {e}"))?;
 
     let mut str_concat_sig = module.make_signature();
     str_concat_sig.params.push(AbiParam::new(ptr_ty));
@@ -1652,9 +1704,13 @@ fn declare_runtime_functions(
         container_remove_i64_fn,
         map_new_i64_i64_fn,
         map_new_str_i64_fn,
+        map_new_str_str_fn,
         container_get_str_i64_fn,
         container_set_str_i64_fn,
         container_contains_str_i64_fn,
+        container_get_str_str_fn,
+        container_set_str_str_fn,
+        json_from_str_str_map_fn,
         container_remove_str_i64_fn,
         container_contains_auto_i64_fn,
         container_remove_auto_i64_fn,
@@ -3266,19 +3322,48 @@ fn emit_expr(
                     .copied()
                     .ok_or_else(|| "map runtime call did not return map handle".to_string())?
             } else {
-                let (first_key_expr, _) = &entries[0];
-                let use_str_keys = is_known_string_expr_with_owner(first_key_expr, owner);
-                let local_new = if use_str_keys {
-                    module.declare_func_in_func(runtime_fns.map_new_str_i64_fn, builder.func)
+                let (first_key_expr, first_val_expr) = &entries[0];
+                let use_str_keys = is_known_string_expr_full(first_key_expr, owner, type_defs);
+                let use_str_vals = use_str_keys
+                    && is_known_string_expr_full(first_val_expr, owner, type_defs);
+                let local_new = if use_str_keys && use_str_vals {
+                    let cap = builder
+                        .ins()
+                        .iconst(ir::types::I64, entries.len() as i64);
+                    let new_fn =
+                        module.declare_func_in_func(runtime_fns.map_new_str_str_fn, builder.func);
+                    let call = builder.ins().call(new_fn, &[cap]);
+                    builder
+                        .inst_results(call)
+                        .first()
+                        .copied()
+                        .ok_or_else(|| {
+                            "map runtime call did not return map handle".to_string()
+                        })?
+                } else if use_str_keys {
+                    let new_fn =
+                        module.declare_func_in_func(runtime_fns.map_new_str_i64_fn, builder.func);
+                    let call = builder.ins().call(new_fn, &[]);
+                    builder
+                        .inst_results(call)
+                        .first()
+                        .copied()
+                        .ok_or_else(|| {
+                            "map runtime call did not return map handle".to_string()
+                        })?
                 } else {
-                    module.declare_func_in_func(runtime_fns.map_new_i64_i64_fn, builder.func)
+                    let new_fn =
+                        module.declare_func_in_func(runtime_fns.map_new_i64_i64_fn, builder.func);
+                    let call = builder.ins().call(new_fn, &[]);
+                    builder
+                        .inst_results(call)
+                        .first()
+                        .copied()
+                        .ok_or_else(|| {
+                            "map runtime call did not return map handle".to_string()
+                        })?
                 };
-                let call = builder.ins().call(local_new, &[]);
-                let map_handle = builder
-                    .inst_results(call)
-                    .first()
-                    .copied()
-                    .ok_or_else(|| "map runtime call did not return map handle".to_string())?;
+                let map_handle = local_new;
                 for (key_expr, value_expr) in entries {
                     let key = emit_expr(
                         key_expr,
@@ -3308,16 +3393,16 @@ fn emit_expr(
                         type_defs,
                         enum_defs,
                     )?;
-                    if builder.func.dfg.value_type(value) != ir::types::I64 {
-                        return Err(
-                            "E3401: native map lowering currently supports Int values only"
-                                .to_string(),
+                    if use_str_keys && use_str_vals {
+                        let local_set = module.declare_func_in_func(
+                            runtime_fns.container_set_str_str_fn,
+                            builder.func,
                         );
-                    }
-                    if use_str_keys {
-                        if !is_known_string_expr_with_owner(key_expr, owner) {
+                        builder.ins().call(local_set, &[map_handle, key, value]);
+                    } else if use_str_keys {
+                        if builder.func.dfg.value_type(value) != ir::types::I64 {
                             return Err(
-                                "E3401: map literal key kinds must be consistent (all Str or all Int)"
+                                "E3401: native map lowering currently supports Int values only for Map<Str, Int>"
                                     .to_string(),
                             );
                         }
@@ -3327,7 +3412,7 @@ fn emit_expr(
                         );
                         builder.ins().call(local_set, &[map_handle, key, value]);
                     } else {
-                        if is_known_string_expr_with_owner(key_expr, owner) {
+                        if is_known_string_expr_full(key_expr, owner, type_defs) {
                             return Err(
                                 "E3401: map literal key kinds must be consistent (all Str or all Int)"
                                     .to_string(),
@@ -3361,7 +3446,7 @@ fn emit_expr(
                 enum_defs,
             )?;
             if field == "len" {
-                let use_str_len = is_known_string_expr_with_owner(object, owner)
+                let use_str_len = is_known_string_expr_full(object, owner, type_defs)
                     || matches!(&**object, MirExpr::Var(name)
                         if var_has_add_assignment(owner, name)
                         || var_has_str_call_assignment(owner, name, function_returns));
@@ -3699,7 +3784,7 @@ fn emit_expr(
                         type_defs,
                         enum_defs,
                     )?;
-                    let use_str_len = is_known_string_expr_with_owner(&args[0], owner);
+                    let use_str_len = is_known_string_expr_full(&args[0], owner, type_defs);
                     let local_len = if use_str_len {
                         module.declare_func_in_func(runtime_fns.str_len_bytes_fn, builder.func)
                     } else {
@@ -3956,7 +4041,7 @@ fn emit_expr(
                         if !lowered_args.is_empty() {
                             return Err("`.len()` expects no arguments".to_string());
                         }
-                        let use_str_len = is_known_string_expr_with_owner(object, owner)
+                        let use_str_len = is_known_string_expr_full(object, owner, type_defs)
                             || matches!(&**object, MirExpr::Var(name)
                                 if var_has_add_assignment(owner, name)
                                 || var_has_str_call_assignment(owner, name, function_returns));
@@ -4168,8 +4253,8 @@ fn emit_expr(
             };
             match op.as_str() {
                 "Add" => {
-                    if is_known_string_expr_with_owner(left, owner)
-                        || is_known_string_expr_with_owner(right, owner)
+                    if is_known_string_expr_full(left, owner, type_defs)
+                        || is_known_string_expr_full(right, owner, type_defs)
                     {
                         let local_concat =
                             module.declare_func_in_func(runtime_fns.str_concat_fn, builder.func);
@@ -4206,8 +4291,8 @@ fn emit_expr(
                 }
                 "Eq" | "Ne" => {
                     let is_ne = op == "Ne";
-                    if is_known_string_expr_with_owner(left, owner)
-                        && is_known_string_expr_with_owner(right, owner)
+                    if is_known_string_expr_full(left, owner, type_defs)
+                        || is_known_string_expr_full(right, owner, type_defs)
                     {
                         let local_eq =
                             module.declare_func_in_func(runtime_fns.str_eq_fn, builder.func);
@@ -5238,6 +5323,15 @@ fn emit_stdlib_namespace_call(
             expect_arity(1)?;
             call_one_arg(runtime_fns.json_minify_fn, lowered_args[0], module, builder)
         }
+        ("json", "from_map") => {
+            expect_arity(1)?;
+            call_one_arg(
+                runtime_fns.json_from_str_str_map_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
+        }
         ("regex", "count") => {
             expect_arity(2)?;
             call_two_args(
@@ -5658,14 +5752,34 @@ fn is_var_known_string_in_owner(owner: &MirFunction, name: &str) -> bool {
 }
 
 fn is_known_string_expr_with_owner(expr: &MirExpr, owner: &MirFunction) -> bool {
+    is_known_string_expr_full(expr, owner, &BTreeMap::new())
+}
+
+fn is_known_string_expr_full(
+    expr: &MirExpr,
+    owner: &MirFunction,
+    type_defs: &BTreeMap<String, Vec<(String, String)>>,
+) -> bool {
     if is_known_string_expr(expr) {
         return true;
     }
     match expr {
         MirExpr::Var(name) => is_var_known_string_in_owner(owner, name),
         MirExpr::Binary { left, op, right } if op == "Add" => {
-            is_known_string_expr_with_owner(left, owner)
-                || is_known_string_expr_with_owner(right, owner)
+            is_known_string_expr_full(left, owner, type_defs)
+                || is_known_string_expr_full(right, owner, type_defs)
+        }
+        MirExpr::Member {
+            field, object_type, ..
+        } => {
+            if let Some(type_name) = object_type {
+                if let Some(fields) = type_defs.get(type_name) {
+                    return fields
+                        .iter()
+                        .any(|(f, t)| f == field && t == "Str");
+                }
+            }
+            false
         }
         _ => false,
     }
