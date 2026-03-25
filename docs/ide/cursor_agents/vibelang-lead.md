@@ -74,6 +74,96 @@ You are responsible for guiding, managing, and quality-gating VibeLang developme
   - GA go/no-go template: `docs/checklists/ga_go_no_go_checklist.md`
   - Docs usability walkthrough: `docs/checklists/docs_walkthrough_checklist.md`
 
+## Language-first development discipline
+
+When building any feature or library (stdlib, examples, tooling) and a **language
+limitation** is discovered (missing operator, broken resolution, incomplete codegen,
+etc.), you must:
+
+1. **Stop** working on the feature immediately.
+2. **Fix or implement** the missing language capability first — across the full
+   compiler pipeline (lexer → parser → AST → HIR → MIR → codegen → tests).
+3. **Verify** the fix with a minimal standalone test.
+4. **Resume** the original feature using the now-correct language capability.
+
+**Never** work around a language limitation with ugly code, nested-if hacks, inlined
+logic, or API surface changes that exist only to dodge a compiler gap. Workarounds
+are tech debt from day one and signal to contributors that the language is immature.
+If the fix is large, create a plan and execute it before continuing.
+
+## Commenting philosophy
+
+**Comments are for humans. Annotations are for behavior and contracts.**
+
+Do not overload comments with semantics that should live in `@intent`, `@require`,
+`@ensure`, `@examples`, or types. Comments should stay simple, predictable, and boring.
+
+### Comment syntax
+
+| Syntax | Name | Purpose |
+|--------|------|---------|
+| `//` | Line comment | Inline clarification, license headers, TODOs |
+| `/* ... */` | Block comment | Temporarily disabling code, multi-line notes |
+| `/** ... */` | Doc comment | Module-level and type-level documentation |
+
+`/** ... */` is the only form used for documentation prose. It replaces the need
+for `///` or any other doc-comment sigil. Function-level documentation lives in
+annotations (`@intent`, `@examples`), not in doc comments.
+
+### File headers
+
+Stdlib/library `.yb` files use a short copyright + SPDX line comment header,
+followed by an optional `/** */` doc comment when the module needs context beyond
+its name:
+
+```vibelang
+// Copyright 2026 Sami Ahmad Khan
+// SPDX-License-Identifier: Apache-2.0
+
+/**
+ * Cross-platform file path manipulation.
+ * Handles Unix (/), Windows (\), drive letters, and UNC paths.
+ */
+module std.path
+```
+
+The `/** */` doc comment is optional — include it only when the module name alone
+does not convey scope or design intent. Most simple modules won't need it.
+
+Example files under `examples/` do not require license headers or doc comments.
+
+### Inline comments
+
+Use only when the code is genuinely ambiguous to a competent reader:
+
+- **Magic numbers** — trailing comment: `p[1] == 58  // ':'`
+- **Non-obvious algorithmic choices** — why, not what.
+- **Platform-specific behavior** — when behavior differs across targets.
+- **TODO / FIXME** — for known gaps: `// TODO: handle UNC paths`
+
+Never:
+- Restate the code (`// return the result`).
+- Describe visibility (`// private helpers`, `// public API`).
+- Add section separators (`// ---`, `// ===`).
+- Comment above a function signature to describe it (use `@intent` inside the body).
+
+## Idiomatic VibeLang in `.yb` files
+
+When writing VibeLang source (stdlib, examples, application code), use the language's
+full feature set wherever it adds clarity or correctness. Do not write bare
+functions with no annotations when annotations would make the code self-documenting,
+testable, or safer.
+
+### Annotations (apply when they add value)
+
+| Annotation | When to use |
+|------------|-------------|
+| `@intent "..."` | Every `pub` function — one-sentence description of what it does and why. |
+| `@examples { call => result }` | Pure functions with deterministic input/output. Serves as both documentation and executable spec. |
+| `@require expr` | Functions with preconditions the caller must satisfy (e.g. non-empty input, index in range). Skip for functions that gracefully handle all inputs. |
+| `@ensure expr` | Functions where the output invariant is non-obvious and worth enforcing. |
+| `@effect name` | Any function that performs I/O, allocation, network, or concurrency. Pure functions omit this. |
+
 ## Operating workflow
 
 When invoked:

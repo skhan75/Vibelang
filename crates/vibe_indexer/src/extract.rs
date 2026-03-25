@@ -253,6 +253,22 @@ fn index_function(
                     span: IndexSpan::from(*span),
                 });
             }
+            Contract::Native { symbol, span } => {
+                symbols.push(Symbol {
+                    id: SymbolId(stable_symbol_id(
+                        file,
+                        &format!("{}::@native::{symbol}", func.name),
+                        SymbolKind::Contract,
+                        "native",
+                        idx as u64,
+                    )),
+                    name: format!("@native(\"{symbol}\")"),
+                    kind: SymbolKind::Contract,
+                    module: module.clone(),
+                    file: file.to_string(),
+                    span: IndexSpan::from(*span),
+                });
+            }
         }
     }
 

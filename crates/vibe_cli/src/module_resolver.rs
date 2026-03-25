@@ -42,7 +42,21 @@ pub fn resolve_compilation_unit(entry_path: &Path) -> Result<CompilationUnit, St
             .to_path_buf()
     });
     let canonical_root = root_dir.canonicalize().unwrap_or(root_dir.clone());
-    let files = crate::collect_vibe_files(&root_dir)?;
+    let mut files = crate::collect_vibe_files(&root_dir)?;
+
+    let needs_std = files.iter().any(|f| {
+        fs::read_to_string(f)
+            .ok()
+            .map(|src| parse_source(&src))
+            .map_or(false, |p| p.ast.imports.iter().any(|i| i.starts_with("std.")))
+    });
+    if needs_std {
+        if let Some(stdlib_root) = find_stdlib_root() {
+            if let Ok(stdlib_files) = crate::collect_vibe_files(&stdlib_root) {
+                files.extend(stdlib_files);
+            }
+        }
+    }
 
     let mut docs = Vec::new();
     for file in files {
@@ -60,12 +74,22 @@ pub fn resolve_compilation_unit(entry_path: &Path) -> Result<CompilationUnit, St
     }
     docs.sort_by(|a, b| a.0.cmp(&b.0));
 
+    let stdlib_parent = find_stdlib_root()
+        .and_then(|p| p.parent().map(|pp| pp.to_path_buf()))
+        .and_then(|p| p.canonicalize().ok());
+
     let mut module_index = BTreeMap::<String, usize>::new();
     for (idx, (_path, parsed)) in docs.iter().enumerate() {
         let Some(module_name) = &parsed.ast.module else {
             continue;
         };
-        if let Some(expected_module) = expected_module_name_from_path(&canonical_root, &docs[idx].0)
+        let expected = expected_module_name_from_path(&canonical_root, &docs[idx].0)
+            .or_else(|| {
+                stdlib_parent
+                    .as_ref()
+                    .and_then(|sp| expected_module_name_from_path(sp, &docs[idx].0))
+            });
+        if let Some(expected_module) = expected
         {
             if module_name != &expected_module {
                 diagnostics.push(Diagnostic::new(
@@ -146,20 +170,54 @@ pub fn resolve_compilation_unit(entry_path: &Path) -> Result<CompilationUnit, St
     let mut merged_decls = Vec::new();
     let mut visible_functions = BTreeSet::<String>::new();
     let mut private_functions = BTreeMap::<String, String>::new();
+    let mut visible_types = BTreeSet::<String>::new();
     for module in &order {
         let Some(idx) = module_index.get(module).copied() else {
             continue;
         };
         let parsed = &docs[idx].1;
         for decl in &parsed.ast.declarations {
-            let Declaration::Function(func) = decl else {
-                continue;
-            };
-            if module == &entry_module || func.is_public {
-                merged_decls.push(decl.clone());
-                visible_functions.insert(func.name.clone());
-            } else {
-                private_functions.insert(func.name.clone(), module.clone());
+            match decl {
+                Declaration::Function(func) => {
+                    merged_decls.push(decl.clone());
+                    if module == &entry_module || func.is_public {
+                        visible_functions.insert(func.name.clone());
+                    } else {
+                        private_functions.insert(func.name.clone(), module.clone());
+                    }
+                }
+                Declaration::Type(t) => {
+                    if module == &entry_module || t.is_public {
+                        if !visible_types.insert(t.name.clone()) {
+                            diagnostics.push(Diagnostic::new(
+                                "E2317",
+                                Severity::Error,
+                                format!(
+                                    "duplicate type `{}` — already defined in another imported module",
+                                    t.name
+                                ),
+                                t.span.clone(),
+                            ));
+                        }
+                        merged_decls.push(decl.clone());
+                    }
+                }
+                Declaration::Enum(e) => {
+                    if module == &entry_module || e.is_public {
+                        if !visible_types.insert(e.name.clone()) {
+                            diagnostics.push(Diagnostic::new(
+                                "E2317",
+                                Severity::Error,
+                                format!(
+                                    "duplicate enum `{}` — already defined in another imported module",
+                                    e.name
+                                ),
+                                e.span.clone(),
+                            ));
+                        }
+                        merged_decls.push(decl.clone());
+                    }
+                }
             }
         }
     }
@@ -242,7 +300,7 @@ fn visit_module(
     let imports = docs[idx].1.ast.imports.clone();
     for import in imports {
         let imported_package = import.split('.').next().unwrap_or(import.as_str());
-        if imported_package != root_package {
+        if imported_package != root_package && imported_package != "std" {
             diagnostics.push(Diagnostic::new(
                 "E2313",
                 Severity::Error,
@@ -306,7 +364,7 @@ fn collect_calls_from_contract(contract: &Contract, out: &mut BTreeSet<String>) 
                 collect_calls_from_expr(&case.expected, out);
             }
         }
-        Contract::Intent { .. } | Contract::Effect { .. } => {}
+        Contract::Intent { .. } | Contract::Effect { .. } | Contract::Native { .. } => {}
     }
 }
 
@@ -471,4 +529,24 @@ fn expected_module_name_from_path(root: &Path, source: &Path) -> Option<String> 
         return None;
     }
     Some(parts.join("."))
+}
+
+fn find_stdlib_root() -> Option<PathBuf> {
+    if let Ok(p) = std::env::var("VIBE_STDLIB_PATH") {
+        let path = PathBuf::from(p);
+        if path.is_dir() {
+            return Some(path);
+        }
+    }
+
+    let exe = std::env::current_exe().ok()?;
+    let exe_dir = exe.parent()?;
+    for ancestor in [exe_dir, exe_dir.parent()?].iter() {
+        let candidate = ancestor.join("stdlib").join("std");
+        if candidate.is_dir() {
+            return Some(candidate);
+        }
+    }
+
+    None
 }

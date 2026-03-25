@@ -69,6 +69,7 @@ pub enum Contract {
     Require { expr: Expr, span: Span },
     Ensure { expr: Expr, span: Span },
     Effect { name: String, span: Span },
+    Native { symbol: String, span: Span },
 }
 
 #[derive(Debug, Clone)]
@@ -300,6 +301,8 @@ pub enum BinaryOp {
     Le,
     Gt,
     Ge,
+    And,
+    Or,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

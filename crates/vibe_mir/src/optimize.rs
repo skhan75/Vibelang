@@ -358,6 +358,8 @@ fn expr_has_side_effects(expr: &MirExpr) -> bool {
         | MirExpr::Async { .. }
         | MirExpr::Await { .. }
         | MirExpr::Question { .. }
+        | MirExpr::ResultOk { .. }
+        | MirExpr::ResultErr { .. }
         | MirExpr::Old { .. } => true,
     }
 }

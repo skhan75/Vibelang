@@ -237,6 +237,7 @@ HirProgram {
                     ty: "Unknown",
                 },
             ),
+            native_symbol: None,
         },
     ],
 }

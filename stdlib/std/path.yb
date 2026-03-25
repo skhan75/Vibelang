@@ -1,0 +1,80 @@
+// Copyright 2026 Vibelang Contributors
+// SPDX-License-Identifier: Apache-2.0
+
+/**
+ * Cross-platform file path manipulation.
+ * Handles Unix (/), Windows (\), drive letters, and UNC paths.
+ */
+module std.path
+
+is_sep(c: Int) -> Bool {
+  @intent "true when c is a path separator on any platform"
+  @examples {
+    is_sep(47)  => true
+    is_sep(92)  => true
+    is_sep(65)  => false
+    is_sep(0)   => false
+  }
+  c == 47 || c == 92
+}
+
+last_sep(p: Str) -> Int {
+  @intent "index of the rightmost path separator, or -1"
+  i := p.len() - 1
+  while i >= 0 {
+    if is_sep(p[i]) {
+      return i
+    }
+    i = i - 1
+  }
+  -1
+}
+
+is_alpha(c: Int) -> Bool {
+  @intent "true when c is an ASCII letter"
+  @examples {
+    is_alpha(67) => true
+    is_alpha(99) => true
+    is_alpha(48) => false
+  }
+  if c >= 65 && c <= 90 { return true }
+  if c >= 97 && c <= 122 { return true }
+  false
+}
+
+pub join(a: Str, b: Str) -> Str {
+  @intent "concatenate two path segments with a separator when needed"
+  if a.len() == 0 { return b }
+  if b.len() == 0 { return a }
+  if a[a.len() - 1] != 47 && b[0] != 47 {
+    return a + "/" + b
+  }
+  a + b
+}
+
+pub parent(p: Str) -> Str {
+  @intent "return the directory portion of a path"
+  if p.len() == 0 { return "." }
+  idx := last_sep(p)
+  if idx < 0 { return "." }
+  if idx == 0 { return "/" }
+  p[0:idx]
+}
+
+pub basename(p: Str) -> Str {
+  @intent "return the final component of a path"
+  if p.len() == 0 { return "" }
+  idx := last_sep(p)
+  if idx < 0 { return p }
+  p[idx + 1 : p.len()]
+}
+
+pub is_absolute(p: Str) -> Bool {
+  @intent "true when the path is absolute"
+  if p.len() == 0 { return false }
+  if is_sep(p[0]) { return true }
+  if p.len() >= 2 && is_alpha(p[0]) && p[1] == 58 {  // drive letter + ':'
+    return true
+  }
+  false
+}

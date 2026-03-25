@@ -2108,6 +2108,49 @@ fn define_function(
     type_defs: &BTreeMap<String, Vec<(String, String)>>,
     enum_defs: &BTreeMap<String, Vec<String>>,
 ) -> Result<(), String> {
+    if let Some(native_sym) = &function.native_symbol {
+        let mut ctx = module.make_context();
+        let sig = build_signature(module, function, ptr_ty);
+        ctx.func.signature = sig.clone();
+        ctx.func.name = UserFuncName::user(0, func_id.as_u32());
+
+        let mut native_sig = module.make_signature();
+        for p in &function.params {
+            native_sig.params.push(AbiParam::new(mir_ty_to_clif(&p.ty, ptr_ty)));
+        }
+        if function.return_type != MirType::Void {
+            native_sig.returns.push(AbiParam::new(mir_ty_to_clif(&function.return_type, ptr_ty)));
+        }
+        let native_id = module
+            .declare_function(native_sym, Linkage::Import, &native_sig)
+            .map_err(|e| format!("failed to declare native symbol `{native_sym}`: {e}"))?;
+
+        let mut builder_ctx = FunctionBuilderContext::new();
+        let mut builder = FunctionBuilder::new(&mut ctx.func, &mut builder_ctx);
+        let entry = builder.create_block();
+        builder.append_block_params_for_function_params(entry);
+        builder.switch_to_block(entry);
+        builder.seal_block(entry);
+
+        let local_fn = module.declare_func_in_func(native_id, builder.func);
+        let params: Vec<ir::Value> = (0..function.params.len())
+            .map(|i| builder.block_params(entry)[i])
+            .collect();
+        let call = builder.ins().call(local_fn, &params);
+        if function.return_type == MirType::Void {
+            builder.ins().return_(&[]);
+        } else {
+            let ret = builder.inst_results(call).first().copied()
+                .ok_or_else(|| format!("native function `{native_sym}` did not return a value"))?;
+            builder.ins().return_(&[ret]);
+        }
+        builder.finalize();
+        module
+            .define_function(func_id, &mut ctx)
+            .map_err(|e| format!("failed to define native wrapper `{}`: {e}", function.name))?;
+        return Ok(());
+    }
+
     let mut ctx = module.make_context();
     ctx.func.signature = build_signature(module, function, ptr_ty);
     ctx.func.name = UserFuncName::user(0, func_id.as_u32());
@@ -2304,7 +2347,18 @@ fn emit_stmt(
             if owner.return_type == MirType::Void {
                 builder.ins().return_(&[]);
             } else {
-                builder.ins().return_(&[value]);
+                let ret_ty = mir_ty_to_clif(&owner.return_type, ptr_ty);
+                let val_ty = builder.func.dfg.value_type(value);
+                let coerced = if val_ty == ret_ty {
+                    value
+                } else if val_ty.is_int() && ret_ty.is_int() && val_ty.bits() > ret_ty.bits() {
+                    builder.ins().ireduce(ret_ty, value)
+                } else if val_ty.is_int() && ret_ty.is_int() && val_ty.bits() < ret_ty.bits() {
+                    builder.ins().uextend(ret_ty, value)
+                } else {
+                    value
+                };
+                builder.ins().return_(&[coerced]);
             }
             Ok(true)
         }
@@ -4466,6 +4520,51 @@ fn emit_expr(
                 "E3405: dynamic call targets are not supported in v0.1 native backend".to_string(),
             );
         }
+        MirExpr::Binary { left, op, right } if op == "And" || op == "Or" => {
+            let l = emit_expr(
+                left, module, builder, locals, function_ids, function_returns,
+                runtime_fns, ptr_ty, str_data_counter, owner, type_defs, enum_defs,
+            )?;
+            let l_ty = builder.func.dfg.value_type(l);
+            let zero = builder.ins().iconst(l_ty, 0);
+            let l_bool = builder.ins().icmp(IntCC::NotEqual, l, zero);
+
+            let rhs_block = builder.create_block();
+            let merge_block = builder.create_block();
+
+            let slot = builder.create_sized_stack_slot(
+                cranelift_codegen::ir::StackSlotData::new(
+                    cranelift_codegen::ir::StackSlotKind::ExplicitSlot, 8, 8,
+                ),
+            );
+
+            if op == "And" {
+                let false_val = builder.ins().iconst(ir::types::I64, 0);
+                builder.ins().stack_store(false_val, slot, Offset32::new(0));
+                builder.ins().brif(l_bool, rhs_block, &[], merge_block, &[]);
+            } else {
+                let true_val = builder.ins().iconst(ir::types::I64, 1);
+                builder.ins().stack_store(true_val, slot, Offset32::new(0));
+                builder.ins().brif(l_bool, merge_block, &[], rhs_block, &[]);
+            }
+
+            builder.switch_to_block(rhs_block);
+            builder.seal_block(rhs_block);
+            let r = emit_expr(
+                right, module, builder, locals, function_ids, function_returns,
+                runtime_fns, ptr_ty, str_data_counter, owner, type_defs, enum_defs,
+            )?;
+            let r_ty = builder.func.dfg.value_type(r);
+            let r_zero = builder.ins().iconst(r_ty, 0);
+            let r_bool = builder.ins().icmp(IntCC::NotEqual, r, r_zero);
+            let r_result = builder.ins().uextend(ir::types::I64, r_bool);
+            builder.ins().stack_store(r_result, slot, Offset32::new(0));
+            builder.ins().jump(merge_block, &[]);
+
+            builder.switch_to_block(merge_block);
+            builder.seal_block(merge_block);
+            builder.ins().stack_load(ir::types::I64, slot, Offset32::new(0))
+        }
         MirExpr::Binary { left, op, right } => {
             let l = emit_expr(
                 left,
@@ -4710,7 +4809,7 @@ fn emit_expr(
                 inner
             }
         }
-        MirExpr::Question { expr } | MirExpr::Old { expr } => emit_expr(
+        MirExpr::Old { expr } => emit_expr(
             expr,
             module,
             builder,
@@ -4724,6 +4823,98 @@ fn emit_expr(
             type_defs,
             enum_defs,
         )?,
+        MirExpr::Question { expr } => {
+            let result_ptr = emit_expr(
+                expr,
+                module,
+                builder,
+                locals,
+                function_ids,
+                function_returns,
+                runtime_fns,
+                ptr_ty,
+                str_data_counter,
+                owner,
+                type_defs,
+                enum_defs,
+            )?;
+            let tag = builder.ins().load(ir::types::I64, MemFlags::new(), result_ptr, Offset32::new(0));
+            let one = builder.ins().iconst(ir::types::I64, 1);
+            let is_err = builder.ins().icmp(IntCC::Equal, tag, one);
+            let err_block = builder.create_block();
+            let ok_block = builder.create_block();
+            builder.ins().brif(is_err, err_block, &[], ok_block, &[]);
+
+            builder.switch_to_block(err_block);
+            builder.ins().return_(&[result_ptr]);
+            builder.seal_block(err_block);
+
+            builder.switch_to_block(ok_block);
+            builder.seal_block(ok_block);
+            builder.ins().load(ir::types::I64, MemFlags::new(), result_ptr, Offset32::new(8))
+        }
+        MirExpr::ResultOk { expr } => {
+            let inner = emit_expr(
+                expr,
+                module,
+                builder,
+                locals,
+                function_ids,
+                function_returns,
+                runtime_fns,
+                ptr_ty,
+                str_data_counter,
+                owner,
+                type_defs,
+                enum_defs,
+            )?;
+            let local_alloc = module.declare_func_in_func(runtime_fns.record_alloc_fn, builder.func);
+            let slot_count = builder.ins().iconst(ir::types::I64, 2);
+            let alloc_call = builder.ins().call(local_alloc, &[slot_count]);
+            let ptr = builder.inst_results(alloc_call).first().copied()
+                .ok_or_else(|| "record_alloc did not return".to_string())?;
+            let tag = builder.ins().iconst(ir::types::I64, 0);
+            builder.ins().store(MemFlags::new(), tag, ptr, Offset32::new(0));
+            let inner_ty = builder.func.dfg.value_type(inner);
+            let to_store = if inner_ty == ir::types::I8 {
+                builder.ins().sextend(ir::types::I64, inner)
+            } else {
+                inner
+            };
+            builder.ins().store(MemFlags::new(), to_store, ptr, Offset32::new(8));
+            ptr
+        }
+        MirExpr::ResultErr { expr } => {
+            let inner = emit_expr(
+                expr,
+                module,
+                builder,
+                locals,
+                function_ids,
+                function_returns,
+                runtime_fns,
+                ptr_ty,
+                str_data_counter,
+                owner,
+                type_defs,
+                enum_defs,
+            )?;
+            let local_alloc = module.declare_func_in_func(runtime_fns.record_alloc_fn, builder.func);
+            let slot_count = builder.ins().iconst(ir::types::I64, 2);
+            let alloc_call = builder.ins().call(local_alloc, &[slot_count]);
+            let ptr = builder.inst_results(alloc_call).first().copied()
+                .ok_or_else(|| "record_alloc did not return".to_string())?;
+            let tag = builder.ins().iconst(ir::types::I64, 1);
+            builder.ins().store(MemFlags::new(), tag, ptr, Offset32::new(0));
+            let inner_ty = builder.func.dfg.value_type(inner);
+            let to_store = if inner_ty == ir::types::I8 {
+                builder.ins().sextend(ir::types::I64, inner)
+            } else {
+                inner
+            };
+            builder.ins().store(MemFlags::new(), to_store, ptr, Offset32::new(8));
+            ptr
+        }
         MirExpr::DotResult => builder.ins().iconst(ir::types::I64, 0),
         MirExpr::Constructor { type_name, fields } => {
             let field_list = type_defs
@@ -6142,7 +6333,9 @@ fn default_value(builder: &mut FunctionBuilder<'_>, ty: &MirType, ptr_ty: ir::Ty
         MirType::I64 | MirType::Unknown => builder.ins().iconst(ir::types::I64, 0),
         MirType::F64 => builder.ins().f64const(0.0),
         MirType::Bool => builder.ins().iconst(ir::types::I8, 0),
-        MirType::Str | MirType::Json | MirType::JsonBuilder => builder.ins().iconst(ptr_ty, 0),
+        MirType::Str | MirType::Json | MirType::JsonBuilder | MirType::Result => {
+            builder.ins().iconst(ptr_ty, 0)
+        }
         MirType::Void => builder.ins().iconst(ir::types::I64, 0),
     }
 }
@@ -6504,6 +6697,7 @@ fn infer_mir_expr_type(
             MirType::I64
         }
         MirExpr::List(_) | MirExpr::Map(_) => MirType::Unknown,
+        MirExpr::ResultOk { .. } | MirExpr::ResultErr { .. } => MirType::Result,
         _ => MirType::I64,
     }
 }
@@ -6717,9 +6911,11 @@ fn value_type_for_expr(
             value_type_for_expr(expr, owner, function_returns, ptr_ty, locals_ty)
         }
         MirExpr::Unary { .. } => ir::types::I64,
-        MirExpr::Question { expr } | MirExpr::Old { expr } => {
+        MirExpr::Question { .. } => ir::types::I64,
+        MirExpr::Old { expr } => {
             value_type_for_expr(expr, owner, function_returns, ptr_ty, locals_ty)
         }
+        MirExpr::ResultOk { .. } | MirExpr::ResultErr { .. } => ptr_ty,
         MirExpr::DotResult => ir::types::I64,
         _ => ir::types::I64,
     }
@@ -6730,7 +6926,7 @@ fn mir_ty_to_clif(ty: &MirType, ptr_ty: ir::Type) -> ir::Type {
         MirType::I64 | MirType::Unknown => ir::types::I64,
         MirType::F64 => ir::types::F64,
         MirType::Bool => ir::types::I8,
-        MirType::Str | MirType::Json | MirType::JsonBuilder => ptr_ty,
+        MirType::Str | MirType::Json | MirType::JsonBuilder | MirType::Result => ptr_ty,
         MirType::Void => ir::types::I64,
     }
 }
@@ -6755,6 +6951,7 @@ mod tests {
                     }),
                     MirStmt::Return(MirExpr::Int(0)),
                 ],
+                ..Default::default()
             }],
         };
         let object = emit_object(&program, &CodegenOptions::default()).expect("object should emit");
@@ -6770,6 +6967,7 @@ mod tests {
                 params: vec![],
                 return_type: MirType::I64,
                 body: vec![MirStmt::Return(MirExpr::Int(0))],
+                ..Default::default()
             }],
         };
         let first = emit_object(&program, &CodegenOptions::default()).expect("first object");
@@ -6789,6 +6987,7 @@ mod tests {
                 params: vec![],
                 return_type: MirType::I64,
                 body: vec![MirStmt::Return(MirExpr::Int(0))],
+                ..Default::default()
             }],
         };
         for target in [

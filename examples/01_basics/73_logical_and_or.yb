@@ -1,0 +1,26 @@
+pub main() -> Int {
+  @effect io
+
+  if true && true { println("and-tt") }
+  if true && false { println("BAD") } else { println("and-tf") }
+  if false && true { println("BAD") } else { println("and-ft") }
+
+  if false || true { println("or-ft") }
+  if true || false { println("or-tf") }
+  if false || false { println("BAD") } else { println("or-ff") }
+
+  // Short-circuit guard pattern
+  x := 5
+  if x > 0 && x < 10 { println("range-ok") }
+  if x < 0 || x == 5 { println("either-ok") }
+
+  // Precedence: && binds tighter than ||
+  if false && true || true { println("prec-ok") }
+  if true || true && false { println("prec2-ok") }
+
+  a := 3
+  b := 7
+  if a < 5 && b > 5 { println("combo-ok") }
+
+  0
+}

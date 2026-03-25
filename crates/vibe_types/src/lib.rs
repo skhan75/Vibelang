@@ -61,6 +61,7 @@ pub fn type_kind_to_codegen_str(t: &TypeKind) -> String {
         TypeKind::JsonBuilder => "JsonBuilder".to_string(),
         TypeKind::UserType(name) => name.clone(),
         TypeKind::Enum(name) => name.clone(),
+        TypeKind::Result(_, _) => "Result".to_string(),
         _ => "Unknown".to_string(),
     }
 }
@@ -290,7 +291,7 @@ pub fn check_and_lower(ast: &FileAst) -> CheckOutput {
                         );
                     }
                 }
-                Contract::Intent { .. } => {}
+                Contract::Intent { .. } | Contract::Native { .. } => {}
             }
         }
 
@@ -369,6 +370,14 @@ pub fn check_and_lower(ast: &FileAst) -> CheckOutput {
             direct_calls: collect_direct_calls(func),
         });
 
+        let native_symbol = func.contracts.iter().find_map(|c| {
+            if let Contract::Native { symbol, .. } = c {
+                Some(symbol.clone())
+            } else {
+                None
+            }
+        });
+
         hir.functions.push(HirFunction {
             name: func.name.clone(),
             is_public: func.is_public,
@@ -386,6 +395,7 @@ pub fn check_and_lower(ast: &FileAst) -> CheckOutput {
             effects_observed: observed_effects,
             body: hir_body,
             tail_expr: hir_tail_expr,
+            native_symbol,
         });
     }
 
@@ -1231,7 +1241,9 @@ fn expr_type_hint(expr: &Expr, env: &BTreeMap<String, TypeKind>) -> TypeKind {
             | BinaryOp::Lt
             | BinaryOp::Le
             | BinaryOp::Gt
-            | BinaryOp::Ge => TypeKind::Bool,
+            | BinaryOp::Ge
+            | BinaryOp::And
+            | BinaryOp::Or => TypeKind::Bool,
             BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div => {
                 let lt = expr_type_hint(left, env);
                 let rt = expr_type_hint(right, env);
@@ -1655,10 +1667,18 @@ fn infer_expr(
                         return TypeKind::Void;
                     }
                     "ok" => {
+                        let ok_ty = arg_types.first().cloned().unwrap_or(TypeKind::Void);
                         return TypeKind::Result(
-                            Box::new(TypeKind::Void),
+                            Box::new(ok_ty),
                             Box::new(TypeKind::Unknown),
-                        )
+                        );
+                    }
+                    "err" => {
+                        let err_ty = arg_types.first().cloned().unwrap_or(TypeKind::Unknown);
+                        return TypeKind::Result(
+                            Box::new(TypeKind::Unknown),
+                            Box::new(err_ty),
+                        );
                     }
                     _ => {}
                 }
@@ -2003,7 +2023,9 @@ fn infer_expr(
                 | BinaryOp::Lt
                 | BinaryOp::Le
                 | BinaryOp::Gt
-                | BinaryOp::Ge => TypeKind::Bool,
+                | BinaryOp::Ge
+                | BinaryOp::And
+                | BinaryOp::Or => TypeKind::Bool,
                 BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div => {
                     if matches!(op, BinaryOp::Add)
                         && matches!(lt, TypeKind::Str)

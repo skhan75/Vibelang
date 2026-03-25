@@ -1,0 +1,5 @@
+[package]
+name = "examples-project-types"
+version = "0.1.0"
+
+[dependencies]

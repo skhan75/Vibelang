@@ -21,6 +21,7 @@ pub struct HirFunction {
     pub effects_observed: BTreeSet<String>,
     pub body: Vec<HirStmt>,
     pub tail_expr: Option<HirExpr>,
+    pub native_symbol: Option<String>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -415,6 +416,7 @@ mod tests {
                     ),
                 }],
                 tail_expr: Some(HirExpr::new(HirExprKind::Int(0), "Int")),
+                ..Default::default()
             }],
         };
         assert!(verify_hir(&program).is_ok());
@@ -435,6 +437,7 @@ mod tests {
                     expr: HirExpr::new(HirExprKind::Int(1), ""),
                 }],
                 tail_expr: None,
+                ..Default::default()
             }],
         };
         let err = verify_hir(&program).expect_err("expected verifier failure");

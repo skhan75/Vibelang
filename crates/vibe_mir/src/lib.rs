@@ -19,6 +19,7 @@ pub struct MirFunction {
     pub params: Vec<MirParam>,
     pub return_type: MirType,
     pub body: Vec<MirStmt>,
+    pub native_symbol: Option<String>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -35,6 +36,7 @@ pub enum MirType {
     Str,
     Json,
     JsonBuilder,
+    Result,
     Void,
     #[default]
     Unknown,
@@ -170,6 +172,12 @@ pub enum MirExpr {
     Question {
         expr: Box<MirExpr>,
     },
+    ResultOk {
+        expr: Box<MirExpr>,
+    },
+    ResultErr {
+        expr: Box<MirExpr>,
+    },
     DotResult,
     Old {
         expr: Box<MirExpr>,
@@ -214,6 +222,7 @@ pub fn lower_hir_to_mir(hir: &HirProgram) -> Result<MirProgram, String> {
                     parse_type_name(f.inferred_return_type.as_deref().unwrap_or("Unknown"))
                 }),
             body,
+            native_symbol: f.native_symbol.clone(),
         });
     }
     verify_mir(&out)?;
@@ -407,6 +416,18 @@ fn lower_expr(expr: &HirExpr) -> Result<MirExpr, String> {
                             *field = format!("decode_{fallback_ty}");
                         }
                     }
+                }
+            }
+            if let MirExpr::Var(ref name) = lowered_callee {
+                if name == "ok" && args.len() == 1 {
+                    return Ok(MirExpr::ResultOk {
+                        expr: Box::new(lower_expr(&args[0])?),
+                    });
+                }
+                if name == "err" && args.len() == 1 {
+                    return Ok(MirExpr::ResultErr {
+                        expr: Box::new(lower_expr(&args[0])?),
+                    });
                 }
             }
             MirExpr::Call {
@@ -633,7 +654,10 @@ fn verify_expr(expr: &MirExpr) -> Result<(), String> {
         MirExpr::Async { expr } | MirExpr::Await { expr } => {
             verify_expr(expr)?;
         }
-        MirExpr::Question { expr } | MirExpr::Old { expr } => {
+        MirExpr::Question { expr }
+        | MirExpr::ResultOk { expr }
+        | MirExpr::ResultErr { expr }
+        | MirExpr::Old { expr } => {
             verify_expr(expr)?;
         }
         MirExpr::Constructor {
@@ -696,7 +720,9 @@ pub fn parse_type_name(raw: &str) -> MirType {
         "Str" => MirType::Str,
         "Json" => MirType::Json,
         "JsonBuilder" => MirType::JsonBuilder,
+        "Result" => MirType::Result,
         "Void" => MirType::Void,
+        _ if normalized.starts_with("Result<") => MirType::Result,
         _ => MirType::Unknown,
     }
 }
@@ -709,6 +735,7 @@ pub fn mir_type_name(ty: &MirType) -> &'static str {
         MirType::Str => "Str",
         MirType::Json => "Json",
         MirType::JsonBuilder => "JsonBuilder",
+        MirType::Result => "Result",
         MirType::Void => "Void",
         MirType::Unknown => "Unknown",
     }
@@ -749,6 +776,7 @@ mod tests {
                     ),
                 }],
                 tail_expr: Some(HirExpr::new(HirExprKind::Int(0), "Int")),
+                native_symbol: None,
             }],
         };
         let mir = lower_hir_to_mir(&hir).expect("lowering should succeed");
@@ -772,6 +800,7 @@ mod tests {
                 effects_observed: BTreeSet::new(),
                 body: vec![],
                 tail_expr: Some(HirExpr::new(HirExprKind::Int(7), "Int")),
+                native_symbol: None,
             }],
         };
         let first = lower_hir_to_mir(&hir).expect("first lowering");
