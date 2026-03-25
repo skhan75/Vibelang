@@ -65,6 +65,9 @@
   "examples/07_stdlib_io_json_regex_http/53_time_monotonic_smoke.yb": { "expect": "compile-fail", "reason": "time local binding not resolved in codegen" },
   "examples/07_stdlib_io_json_regex_http/54_log_primitives_smoke.yb": { "expect": "compile-fail", "reason": "log namespace not wired in stdlib" },
   "examples/07_stdlib_io_json_regex_http/55_env_cli_surface_smoke.yb": { "expect": "compile-fail", "reason": "env/cli namespace not wired in stdlib" },
+  "examples/07_stdlib_io_json_regex_http/56_text_index_of_basics.yb": { "expect": "pass" },
+  "examples/07_stdlib_io_json_regex_http/57_unfurld_stdlib_smoke.yb": { "expect": "pass" },
+  "examples/07_stdlib_io_json_regex_http/58_map_str_str_json_from_map.yb": { "expect": "pass" },
 
   "examples/08_modules_packages/project_math/demo/main.yb": { "expect": "pass" },
   "examples/08_modules_packages/project_math/demo/math.yb": { "expect": "compile-fail", "reason": "library module with no main; run via project_math/demo/main.yb" },

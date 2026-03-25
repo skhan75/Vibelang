@@ -155,6 +155,24 @@ path.is_absolute("src/main")   // false
 
 ---
 
+## C.4a `text` — String utilities (Preview)
+
+Pure string helpers. Import: `import std.text`. Other `text.*` functions are
+listed in the module summary and effects tables below.
+
+### `index_of(haystack: Str, needle: Str) -> Int`
+
+Returns the starting byte index of the first occurrence of `needle` in
+`haystack`, or `-1` if `needle` does not occur. The search is byte-oriented;
+both arguments must be valid UTF-8.
+
+```vibe
+text.index_of("hello world", "world")  // 6
+text.index_of("abc", "xyz")            // -1
+```
+
+---
+
 ## C.5 `fs` — File System Operations (Preview)
 
 Functions for reading and writing files and directories. All functions perform
@@ -274,6 +292,18 @@ Removes insignificant whitespace from a JSON string.
 
 ```vibe
 compact := json.minify("{ \"a\" : 1 }")  // "{\"a\":1}"
+```
+
+### `from_map(map: Map<Str, Str>) -> Str`
+
+Serializes a `Map<Str, Str>` to a JSON object string. Values are strings on the
+wire; the implementation uses **automatic type detection** so numeric-looking
+values (for example `"95"`) and boolean-looking values (`"true"` / `"false"`)
+are emitted as JSON numbers and booleans where appropriate.
+
+```vibe
+preview := {"title": "VibeLang", "score": "95", "active": "true"}
+json.from_map(preview)  // {"title":"VibeLang","score":95,"active":true}
 ```
 
 ---
@@ -462,9 +492,9 @@ regex.replace_all("foo bar foo", "foo", "baz")   // "baz bar baz"
 | `fs`   | **Preview** | `io`             | 4         |
 | `net`  | **Preview** | `net`            | 8         |
 | `convert` | **Preview** | None          | 10        |
-| `text` | **Preview** | None             | 9         |
+| `text` | **Preview** | None             | 10        |
 | `encoding` | **Preview** | None         | 6         |
-| `json` | **Preview** | None             | 6         |
+| `json` | **Preview** | None             | 7         |
 | `http` | **Preview** | `net` (client ops) | 7      |
 | `log`  | **Preview** | `io`             | 3         |
 | `env`  | **Preview** | `nondet`         | 3         |
@@ -484,9 +514,9 @@ import std.path        // join, parent, basename, is_absolute
 import std.fs          // exists, read_text, write_text, create_dir
 import std.net         // listen, listener_port, accept, connect, read, write, close, resolve
 import std.convert     // to_int, parse_i64, to_float, parse_f64, to_str, to_str_f64, format_f64, i64_to_f64, f64_to_bits, f64_from_bits
-import std.text        // trim, contains, starts_with, ends_with, replace, to_lower, to_upper, byte_len, split_part
+import std.text        // trim, contains, starts_with, ends_with, replace, to_lower, to_upper, byte_len, split_part, index_of
 import std.encoding    // hex/base64/url encode/decode
-import std.json        // is_valid, parse, stringify, parse_i64, stringify_i64, minify
+import std.json        // is_valid, parse, stringify, parse_i64, stringify_i64, minify, from_map
 import std.http        // status_text, default_port, build_request_line, request, request_status, get, post
 import std.log         // info, warn, error
 import std.env         // get, has, get_required
@@ -543,6 +573,7 @@ import std.regex       // count, replace_all
 | `to_upper(Str)`                | text   | None     |
 | `byte_len(Str)`                | text   | None     |
 | `split_part(Str, Str, Int)`    | text   | None     |
+| `index_of(Str, Str)`           | text   | None     |
 | `hex_encode(Str)`              | encoding | None   |
 | `hex_decode(Str)`              | encoding | None   |
 | `base64_encode(Str)`           | encoding | None   |
@@ -555,6 +586,7 @@ import std.regex       // count, replace_all
 | `parse_i64(Str)`               | json   | None     |
 | `stringify_i64(Int)`           | json   | None     |
 | `minify(Str)`                  | json   | None     |
+| `from_map(Map<Str, Str>)`      | json   | None     |
 | `status_text(Int)`             | http   | None     |
 | `default_port(Str)`            | http   | None     |
 | `build_request_line(Str, Str)` | http   | None     |

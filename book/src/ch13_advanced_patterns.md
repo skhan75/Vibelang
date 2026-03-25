@@ -417,6 +417,9 @@ pub handle_request(request: HttpRequest) -> HttpResponse {
 }
 ```
 
+`Map<Str, Str>` is a supported map kind, so header maps and other string-to-string
+associations are first-class — not a future-only feature.
+
 The postconditions on status codes ensure every handler returns a valid HTTP
 status. Effect declarations make the operational footprint explicit.
 

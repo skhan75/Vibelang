@@ -1,6 +1,6 @@
 # VibeLang Features and Optimizations Checklist
 
-Last updated: 2026-02-27
+Last updated: 2026-03-25
 
 ## Purpose
 
@@ -15,7 +15,7 @@ This is the canonical implementation checklist for feature gaps, limitations, an
 
 ## Current Snapshot
 
-- Example corpus: `78` programs under `examples/`
+- Example corpus: `81` programs under `examples/` (added 56–58 for text.index_of, unfurld smoke, Map<Str,Str>+json.from_map)
 - Static status: all examples pass `vibe check`
 - Runtime status (source-built CLI sweep): `73` pass / `5` fail
 - Non-entry helper module files now fail with explicit entrypoint diagnostics (expected):
@@ -32,16 +32,31 @@ This is the canonical implementation checklist for feature gaps, limitations, an
 
 ### A-01 (P0) `Str.len()` runtime parity
 - [x] Implement stable lowering/runtime dispatch for string length.
+- [x] Fix `.len()` on struct `Str` fields (was dispatching to `container_len` instead of `str_len_bytes`).
 - **Symptoms**: `panic: container len called on unsupported container`
+- **Root cause (struct fields)**: `is_known_string_expr_with_owner` did not recognize `MirExpr::Member` with `Str`-typed fields. Fixed by adding `is_known_string_expr_full` that checks field types against `type_defs`.
 - **Impacted examples**:
   - `examples/02_strings_numbers/11_string_len_compare.yb`
   - `examples/02_strings_numbers/12_string_build_loop.yb`
   - `examples/05_graphs_recursion_patterns/36_palindrome_check.yb`
   - `examples/08_modules_packages/project_pipeline/app/main.yb` (via `parser.yb`)
 - **Likely subsystem**: codegen + runtime dispatch
+- **Evidence**: `crates/vibe_codegen/src/lib.rs` (`is_known_string_expr_full`), `examples/07_stdlib_io_json_regex_http/58_map_str_str_json_from_map.yb`
 - **Acceptance**:
   - All impacted examples pass `vibe run`
+  - `struct_field.len()` returns correct byte length
   - Add integration tests for `s.len()` in loops and helper functions
+
+### A-01a (P0) `Str` equality on struct fields and dynamic strings
+- [x] Fix `==` / `!=` on `Str` fields to use value comparison (`vibe_str_eq`) instead of pointer comparison (`icmp`).
+- [x] Fix string `+` concatenation with struct `Str` fields to use `vibe_str_concat`.
+- **Symptoms**: `struct.field == "literal"` always returned false; `"prefix" + struct.field` produced garbage.
+- **Root cause**: Same as A-01 — `is_known_string_expr_with_owner` did not recognize `MirExpr::Member`.
+  Additionally, `Eq`/`Ne` required BOTH sides to be known strings; relaxed to EITHER side.
+- **Evidence**: `crates/vibe_codegen/src/lib.rs` (`is_known_string_expr_full`), `examples/07_stdlib_io_json_regex_http/58_map_str_str_json_from_map.yb`
+- **Acceptance**:
+  - `struct_field == "literal"` performs content comparison
+  - `"prefix" + struct_field` produces correct concatenation
 
 ### A-02 (P0) List method dispatch parity (`.get` / `.set`)
 - [x] Fix list receiver dispatch so list methods never route to map/string-key paths.
@@ -245,7 +260,8 @@ without rewriting core functionality in another language.
   bespoke parsers.
 - **Delivery status**: preview implementation shipped as canonicalized string APIs:
   `json.parse(Str) -> Str` and `json.stringify(Str) -> Str`; malformed parse returns `""` and
-  never panics.
+  never panics. Additionally, `json.from_map(Map<Str, Str>) -> Str` ships with smart type
+  detection (integer/boolean values emitted unquoted).
 - **Spec hooks**:
   - `docs/spec/containers.md` (maps/lists semantics used by JSON trees)
   - `docs/spec/strings_and_text.md` (string encoding/escapes)
@@ -459,6 +475,30 @@ without rewriting core functionality in another language.
   - Returns byte offset of first occurrence, or `-1` if not found.
   - Empty needle returns `0`.
   - Non-panicking for arbitrary input (NULL-safe in C runtime).
+
+### F-12 (P0) `Map<Str, Str>` + `json.from_map` -- dict-like JSON construction
+- [x] Add `Map<Str, Str>` container support (runtime, codegen, type checker).
+- [x] Add `json.from_map(map: Map<Str, Str>) -> Str` with smart type detection.
+- **Why**: production HTTP services need to construct JSON responses without manual
+  `str_builder.append` calls for every field. `Map<Str, Str>` + `json.from_map` gives
+  Python-like `dict` + `json.dumps` ergonomics.
+- **Evidence**:
+  - Runtime: `runtime/native/vibe_runtime.c` (`vibe_map_str_str`, `vibe_json_from_str_str_map`)
+  - Codegen: `crates/vibe_codegen/src/lib.rs` (`map_new_str_str_fn`, `container_set_str_str_fn`, `json_from_str_str_map_fn`)
+  - Typing: `crates/vibe_types/src/lib.rs` (json.from_map special handling)
+  - Docs: `stdlib/json/README.md`
+  - Example: `examples/07_stdlib_io_json_regex_http/58_map_str_str_json_from_map.yb`
+- **Acceptance**:
+  - `{"key": "value"}` literal creates `Map<Str, Str>` when all values are strings.
+  - `json.from_map(m)` emits JSON with auto type detection: integer strings unquoted, "true"/"false" as booleans, others as quoted strings.
+  - Insertion-order preserved in JSON output.
+
+### F-13 (P0) HTTPS curl byte-count fix
+- [x] Fix off-by-one byte counts in `vibe_http_request_body_curl` and `vibe_http_request_status_curl`.
+- **Why**: HTTPS requests via curl were silently failing because the `--max-time` parameter
+  was truncated by a null byte in the command string.
+- **Evidence**: `runtime/native/vibe_runtime.c` (corrected string lengths: 23, 15, 12)
+- **Acceptance**: `http.get("https://...", timeout)` returns response body for HTTPS URLs.
 
 ---
 

@@ -766,6 +766,11 @@ pub distance_from_origin(p: Point) -> Float {
 }
 ```
 
+For `Str` fields, `==` and `!=` compare **string contents** (value equality), not
+pointer identity. Field access supports the same operations as a standalone
+value of that type — for example, `.len()` on a `Str` field returns the UTF-8
+byte length of that field’s text.
+
 ### Type Visibility
 
 Types follow the same visibility rules as functions:
