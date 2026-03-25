@@ -33,6 +33,8 @@ pub enum MirType {
     F64,
     Bool,
     Str,
+    Json,
+    JsonBuilder,
     Void,
     #[default]
     Unknown,
@@ -660,6 +662,8 @@ pub fn parse_type_name(raw: &str) -> MirType {
         "Float" => MirType::F64,
         "Bool" => MirType::Bool,
         "Str" => MirType::Str,
+        "Json" => MirType::Json,
+        "JsonBuilder" => MirType::JsonBuilder,
         "Void" => MirType::Void,
         _ => MirType::Unknown,
     }
@@ -671,6 +675,8 @@ pub fn mir_type_name(ty: &MirType) -> &'static str {
         MirType::F64 => "F64",
         MirType::Bool => "Bool",
         MirType::Str => "Str",
+        MirType::Json => "Json",
+        MirType::JsonBuilder => "JsonBuilder",
         MirType::Void => "Void",
         MirType::Unknown => "Unknown",
     }

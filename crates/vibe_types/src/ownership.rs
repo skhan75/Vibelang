@@ -10,7 +10,13 @@ use crate::TypeKind;
 
 pub fn is_sendable_type(ty: &TypeKind) -> bool {
     match ty {
-        TypeKind::Int | TypeKind::Float | TypeKind::Bool | TypeKind::Str | TypeKind::Void => true,
+        TypeKind::Int
+        | TypeKind::Float
+        | TypeKind::Bool
+        | TypeKind::Str
+        | TypeKind::Json
+        | TypeKind::JsonBuilder
+        | TypeKind::Void => true,
         TypeKind::List(inner) => is_sendable_type(inner),
         TypeKind::Map(key, value) => is_sendable_type(key) && is_sendable_type(value),
         TypeKind::Result(ok, err) => is_sendable_type(ok) && is_sendable_type(err),
@@ -159,6 +165,8 @@ fn type_name(t: &TypeKind) -> String {
         TypeKind::Float => "Float".to_string(),
         TypeKind::Bool => "Bool".to_string(),
         TypeKind::Str => "Str".to_string(),
+        TypeKind::Json => "Json".to_string(),
+        TypeKind::JsonBuilder => "JsonBuilder".to_string(),
         TypeKind::List(inner) => format!("List<{}>", type_name(inner)),
         TypeKind::Map(key, value) => format!("Map<{}, {}>", type_name(key), type_name(value)),
         TypeKind::Result(ok, err) => format!("Result<{}, {}>", type_name(ok), type_name(err)),

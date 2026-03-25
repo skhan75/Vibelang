@@ -16,7 +16,7 @@ keeping deterministic behavior and local-first validation.
 - `str_builder` (preview): growable string buffer (`new`/`append`/`append_char`/`finish`)
 - `regex` (preview): pattern helpers (`count`/`replace_all`)
 - `encoding` (preview): hex/base64/url encode/decode helpers
-- `json` (preview): validate/canonical parse/stringify + numeric helpers
+- `json` (preview): `Json` parse/stringify (+ pretty), `json.builder` for dynamic JSON, typed codecs, utilities (`is_valid`, `parse_i64`/`stringify_i64`, `minify`)
 - `http` (preview): sync request client + protocol helpers
 - `log` (preview): structured-ish log primitives (`info/warn/error`)
 - `env` (preview): environment variable accessors

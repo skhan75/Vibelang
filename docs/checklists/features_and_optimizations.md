@@ -15,7 +15,7 @@ This is the canonical implementation checklist for feature gaps, limitations, an
 
 ## Current Snapshot
 
-- Example corpus: `81` programs under `examples/` (added 56–58 for text.index_of, unfurld smoke, Map<Str,Str>+json.from_map)
+- Example corpus: `106` programs under `examples/` (includes `59_json_builder_*`–`62_json_builder_*`, text.index_of, unfurld smoke, `json.from_map` demo)
 - Static status: all examples pass `vibe check`
 - Runtime status (source-built CLI sweep): `73` pass / `5` fail
 - Non-entry helper module files now fail with explicit entrypoint diagnostics (expected):
@@ -258,10 +258,17 @@ without rewriting core functionality in another language.
   - Example: `examples/07_stdlib_io_json_regex_http/47_json_parse_stringify_and_codecs.yb`
 - **Why**: production apps need to consume/emit JSON payloads (configs, HTTP APIs, logs) without
   bespoke parsers.
-- **Delivery status**: preview implementation shipped as canonicalized string APIs:
-  `json.parse(Str) -> Str` and `json.stringify(Str) -> Str`; malformed parse returns `""` and
-  never panics. Additionally, `json.from_map(Map<Str, Str>) -> Str` ships with smart type
-  detection (integer/boolean values emitted unquoted).
+- **Delivery status (executable surface)**: `Json` type with `json.parse(raw) -> Json` (**strict**:
+  invalid JSON **panics**), `json.stringify` / `json.stringify_pretty` on `Json`, constructors
+  (`json.null`, `json.bool`, `json.i64`, `json.f64`, `json.str`), and **`json.builder`** as the
+  **canonical dynamic construction** path (`new` → nested object/array → `finish` → `Str`).
+  `json.from_map` remains a **compatibility/convenience** helper (string map + heuristics), not the
+  primary story.
+- **Codegen note**: `json.builder.value_bool` widens the lowered `Bool` (`I8`) to `I64` at the call
+  site to match the native ABI (`vibe_json_builder_value_bool`).
+- **Follow-up (not yet the executable model)**: `Result<Json, JsonError>` parse, safe navigational
+  accessors on `Json`, and non-panicking builder finish — tracked for hardening alongside
+  `docs/spec/error_model.md`.
 - **Spec hooks**:
   - `docs/spec/containers.md` (maps/lists semantics used by JSON trees)
   - `docs/spec/strings_and_text.md` (string encoding/escapes)
@@ -479,9 +486,10 @@ without rewriting core functionality in another language.
 ### F-12 (P0) `Map<Str, Str>` + `json.from_map` -- dict-like JSON construction
 - [x] Add `Map<Str, Str>` container support (runtime, codegen, type checker).
 - [x] Add `json.from_map(map: Map<Str, Str>) -> Str` with smart type detection.
-- **Why**: production HTTP services need to construct JSON responses without manual
-  `str_builder.append` calls for every field. `Map<Str, Str>` + `json.from_map` gives
-  Python-like `dict` + `json.dumps` ergonomics.
+- **Why**: `Map<Str, Str>` stays useful for string-keyed bags; **`json.builder`** (and `Json` +
+  `stringify`) is the **canonical** way to build dynamic JSON with explicit scalars and nesting.
+  `json.from_map` is **compatibility/convenience** (string values + heuristic unquoting), not the
+  recommended primary UX for structured payloads.
 - **Evidence**:
   - Runtime: `runtime/native/vibe_runtime.c` (`vibe_map_str_str`, `vibe_json_from_str_str_map`)
   - Codegen: `crates/vibe_codegen/src/lib.rs` (`map_new_str_str_fn`, `container_set_str_str_fn`, `json_from_str_str_map_fn`)

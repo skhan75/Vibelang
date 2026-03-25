@@ -7,8 +7,21 @@ type User {
 pub main() -> Int {
   @effect io
   @effect alloc
-  println(json.parse("{ \"id\" : 7, \"name\" : \"sam\", \"active\" : true }"))
-  println(json.stringify("vibe"))
+  jb := json.builder.new(256)
+  jb = json.builder.begin_object(jb)
+  jb = json.builder.key(jb, "id")
+  jb = json.builder.value_i64(jb, 7)
+  jb = json.builder.key(jb, "name")
+  jb = json.builder.value_str(jb, "sam")
+  jb = json.builder.key(jb, "active")
+  jb = json.builder.value_bool(jb, true)
+  jb = json.builder.end_object(jb)
+  body := json.builder.finish(jb)
+  println(body)
+
+  parsed := json.parse(body)
+  println(json.stringify(parsed))
+  println(json.stringify(json.str("vibe")))
 
   fallback := User { id: 1, name: "fallback", active: false }
   decoded := json.decode_User("{\"id\":7,\"name\":\"sam\",\"active\":true}", fallback)

@@ -13,7 +13,7 @@ This index is the authoritative entry point for Phase 12 stdlib APIs.
 - `convert` (preview): `to_int`, `parse_i64`, `to_float`, `parse_f64`, `to_str`, `to_str_f64`
 - `text` (preview): `trim`, `contains`, `starts_with`, `ends_with`, `replace`, `index_of`, `to_lower`, `to_upper`, `byte_len`, `split_part`
 - `encoding` (preview): `hex_encode`, `hex_decode`, `base64_encode`, `base64_decode`, `url_encode`, `url_decode`
-- `json` (preview): `is_valid`, `parse`, `stringify`, `from_map`, `parse_i64`, `stringify_i64`, `minify`, generated typed codec entrypoints (`encode_<Type>`, `decode_<Type>`)
+- `json` (preview): `Json` — `parse` (strict), `stringify`, `stringify_pretty`, `null`/`bool`/`i64`/`f64`/`str`; `json.builder.*` (`new`, `begin_object`/`end_object`, `begin_array`/`end_array`, `key`, `value_*`, `finish`); `encode_<Type>`/`decode_<Type>`; `from_map` (compatibility); `is_valid`, `parse_i64`, `stringify_i64`, `minify`
 - `http` (preview): `status_text`, `default_port`, `build_request_line`, `request`, `request_status`, `get`, `post`
 - `log` (preview): `info`, `warn`, `error`
 - `env` (preview): `get`, `has`, `get_required`

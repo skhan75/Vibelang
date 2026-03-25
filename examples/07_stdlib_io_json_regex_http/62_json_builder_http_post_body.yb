@@ -1,0 +1,15 @@
+pub main() -> Int {
+  @effect io
+  @effect net
+  jb := json.builder.new(128)
+  jb = json.builder.begin_object(jb)
+  jb = json.builder.key(jb, "ok")
+  jb = json.builder.value_bool(jb, true)
+  jb = json.builder.key(jb, "message")
+  jb = json.builder.value_str(jb, "hello")
+  jb = json.builder.end_object(jb)
+  body := json.builder.finish(jb)
+  println(body)
+  println(http.post("http://127.0.0.1:1/unreachable", body, 5))
+  0
+}

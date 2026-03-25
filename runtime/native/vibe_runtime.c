@@ -3611,29 +3611,659 @@ char *vibe_json_from_str_str_map(void *handle) {
     return builder.data;
 }
 
-char *vibe_json_parse(const char *raw) {
-    vibe_counter_inc(&vibe_json_parse_calls);
-    if (raw == NULL) {
-        vibe_counter_inc(&vibe_json_allocations);
-        return vibe_strdup_or_panic("");
+static const char *vibe_json_skip_ws(const char *p);
+static char *vibe_json_unquote_string(const char *start, const char *end);
+char *vibe_json_stringify_i64(int64_t value);
+
+typedef enum vibe_json_kind {
+    VIBE_JSON_NULL = 0,
+    VIBE_JSON_BOOL = 1,
+    VIBE_JSON_I64 = 2,
+    VIBE_JSON_F64 = 3,
+    VIBE_JSON_STR = 4,
+    VIBE_JSON_ARRAY = 5,
+    VIBE_JSON_OBJECT = 6,
+} vibe_json_kind;
+
+typedef struct vibe_json_value vibe_json_value;
+
+typedef struct vibe_json_array {
+    vibe_json_value **items;
+    int64_t count;
+    int64_t capacity;
+} vibe_json_array;
+
+typedef struct vibe_json_object {
+    char **keys;
+    vibe_json_value **values;
+    int64_t count;
+    int64_t capacity;
+} vibe_json_object;
+
+struct vibe_json_value {
+    int64_t kind;
+    union {
+        int64_t bool_value;
+        int64_t int_value;
+        double float_value;
+        char *str_value;
+        vibe_json_array array;
+        vibe_json_object object;
+    } as;
+};
+
+typedef struct vibe_json_builder_ctx {
+    int64_t kind;
+    int first;
+    int expecting_value;
+} vibe_json_builder_ctx;
+
+typedef struct vibe_json_builder_handle {
+    vibe_string_builder out;
+    vibe_json_builder_ctx *stack;
+    int64_t depth;
+    int64_t stack_cap;
+    int root_written;
+} vibe_json_builder_handle;
+
+static vibe_json_value *vibe_json_new_value(int64_t kind) {
+    vibe_json_value *value = (vibe_json_value *)calloc(1, sizeof(vibe_json_value));
+    if (value == NULL) {
+        vibe_panic("failed to allocate Json value");
     }
-    if (!vibe_json_is_valid(raw)) {
-        vibe_counter_inc(&vibe_json_allocations);
-        return vibe_strdup_or_panic("");
-    }
-    return vibe_json_canonical(raw);
+    value->kind = kind;
+    return value;
 }
 
-char *vibe_json_stringify(const char *raw) {
+static void vibe_json_array_push(vibe_json_array *array, vibe_json_value *value) {
+    if (array->count >= array->capacity) {
+        int64_t next_cap = array->capacity <= 0 ? 4 : array->capacity * 2;
+        vibe_json_value **next_items = (vibe_json_value **)realloc(
+            array->items,
+            (size_t)next_cap * sizeof(vibe_json_value *)
+        );
+        if (next_items == NULL) {
+            vibe_panic("failed to grow Json array");
+        }
+        array->items = next_items;
+        array->capacity = next_cap;
+    }
+    array->items[array->count++] = value;
+}
+
+static void vibe_json_object_put(vibe_json_object *object, const char *key, vibe_json_value *value) {
+    if (object->count >= object->capacity) {
+        int64_t next_cap = object->capacity <= 0 ? 4 : object->capacity * 2;
+        char **next_keys = (char **)realloc(object->keys, (size_t)next_cap * sizeof(char *));
+        vibe_json_value **next_values = (vibe_json_value **)realloc(
+            object->values,
+            (size_t)next_cap * sizeof(vibe_json_value *)
+        );
+        if (next_keys == NULL || next_values == NULL) {
+            vibe_panic("failed to grow Json object");
+        }
+        object->keys = next_keys;
+        object->values = next_values;
+        object->capacity = next_cap;
+    }
+    object->keys[object->count] = vibe_strdup_or_panic(key == NULL ? "" : key);
+    object->values[object->count] = value;
+    object->count += 1;
+}
+
+static const char *vibe_json_parse_value_internal(const char *p, vibe_json_value **out);
+
+static const char *vibe_json_parse_string_value(const char *p, char **out_str) {
+    if (p == NULL || *p != '"') {
+        return NULL;
+    }
+    const char *start = p;
+    int escaped = 0;
+    p += 1;
+    while (*p != '\0') {
+        if (escaped) {
+            escaped = 0;
+        } else if (*p == '\\') {
+            escaped = 1;
+        } else if (*p == '"') {
+            p += 1;
+            *out_str = vibe_json_unquote_string(start, p);
+            return p;
+        }
+        p += 1;
+    }
+    return NULL;
+}
+
+static const char *vibe_json_parse_number_value(const char *p, vibe_json_value **out) {
+    const char *start = p;
+    int saw_float = 0;
+    if (*p == '-') {
+        p += 1;
+    }
+    while (*p != '\0') {
+        if (*p >= '0' && *p <= '9') {
+            p += 1;
+            continue;
+        }
+        if (*p == '.' || *p == 'e' || *p == 'E' || *p == '+') {
+            saw_float = 1;
+            p += 1;
+            continue;
+        }
+        break;
+    }
+    if (p == start) {
+        return NULL;
+    }
+    if (!saw_float) {
+        int64_t value = 0;
+        if (!vibe_parse_i64_strict(start, p, &value)) {
+            return NULL;
+        }
+        vibe_json_value *json = vibe_json_new_value(VIBE_JSON_I64);
+        json->as.int_value = value;
+        *out = json;
+        return p;
+    }
+    size_t len = (size_t)(p - start);
+    char *buffer = (char *)calloc(len + 1, sizeof(char));
+    if (buffer == NULL) {
+        vibe_panic("failed to allocate JSON number buffer");
+    }
+    memcpy(buffer, start, len);
+    buffer[len] = '\0';
+    char *endptr = NULL;
+    double value = strtod(buffer, &endptr);
+    free(buffer);
+    if (endptr == NULL || *endptr != '\0') {
+        return NULL;
+    }
+    vibe_json_value *json = vibe_json_new_value(VIBE_JSON_F64);
+    json->as.float_value = value;
+    *out = json;
+    return p;
+}
+
+static const char *vibe_json_parse_array_value(const char *p, vibe_json_value **out) {
+    if (p == NULL || *p != '[') {
+        return NULL;
+    }
+    vibe_json_value *json = vibe_json_new_value(VIBE_JSON_ARRAY);
+    p = vibe_json_skip_ws(p + 1);
+    if (*p == ']') {
+        *out = json;
+        return p + 1;
+    }
+    while (*p != '\0') {
+        vibe_json_value *item = NULL;
+        p = vibe_json_parse_value_internal(p, &item);
+        if (p == NULL) {
+            return NULL;
+        }
+        vibe_json_array_push(&json->as.array, item);
+        p = vibe_json_skip_ws(p);
+        if (*p == ',') {
+            p = vibe_json_skip_ws(p + 1);
+            continue;
+        }
+        if (*p == ']') {
+            *out = json;
+            return p + 1;
+        }
+        return NULL;
+    }
+    return NULL;
+}
+
+static const char *vibe_json_parse_object_value(const char *p, vibe_json_value **out) {
+    if (p == NULL || *p != '{') {
+        return NULL;
+    }
+    vibe_json_value *json = vibe_json_new_value(VIBE_JSON_OBJECT);
+    p = vibe_json_skip_ws(p + 1);
+    if (*p == '}') {
+        *out = json;
+        return p + 1;
+    }
+    while (*p != '\0') {
+        char *key = NULL;
+        p = vibe_json_parse_string_value(p, &key);
+        if (p == NULL) {
+            return NULL;
+        }
+        p = vibe_json_skip_ws(p);
+        if (*p != ':') {
+            free(key);
+            return NULL;
+        }
+        p = vibe_json_skip_ws(p + 1);
+        vibe_json_value *value = NULL;
+        p = vibe_json_parse_value_internal(p, &value);
+        if (p == NULL) {
+            free(key);
+            return NULL;
+        }
+        vibe_json_object_put(&json->as.object, key, value);
+        free(key);
+        p = vibe_json_skip_ws(p);
+        if (*p == ',') {
+            p = vibe_json_skip_ws(p + 1);
+            continue;
+        }
+        if (*p == '}') {
+            *out = json;
+            return p + 1;
+        }
+        return NULL;
+    }
+    return NULL;
+}
+
+static const char *vibe_json_parse_value_internal(const char *p, vibe_json_value **out) {
+    p = vibe_json_skip_ws(p);
+    if (p == NULL || *p == '\0') {
+        return NULL;
+    }
+    if (*p == '{') {
+        return vibe_json_parse_object_value(p, out);
+    }
+    if (*p == '[') {
+        return vibe_json_parse_array_value(p, out);
+    }
+    if (*p == '"') {
+        char *value = NULL;
+        const char *after = vibe_json_parse_string_value(p, &value);
+        if (after == NULL) {
+            return NULL;
+        }
+        vibe_json_value *json = vibe_json_new_value(VIBE_JSON_STR);
+        json->as.str_value = value;
+        *out = json;
+        return after;
+    }
+    if (strncmp(p, "true", 4) == 0) {
+        vibe_json_value *json = vibe_json_new_value(VIBE_JSON_BOOL);
+        json->as.bool_value = 1;
+        *out = json;
+        return p + 4;
+    }
+    if (strncmp(p, "false", 5) == 0) {
+        vibe_json_value *json = vibe_json_new_value(VIBE_JSON_BOOL);
+        json->as.bool_value = 0;
+        *out = json;
+        return p + 5;
+    }
+    if (strncmp(p, "null", 4) == 0) {
+        *out = vibe_json_new_value(VIBE_JSON_NULL);
+        return p + 4;
+    }
+    return vibe_json_parse_number_value(p, out);
+}
+
+static void vibe_json_stringify_into(
+    vibe_string_builder *builder,
+    const vibe_json_value *value,
+    int pretty,
+    int indent,
+    int level
+) {
+    if (value == NULL) {
+        vibe_builder_append_bytes(builder, "null", 4);
+        return;
+    }
+    switch ((vibe_json_kind)value->kind) {
+        case VIBE_JSON_NULL:
+            vibe_builder_append_bytes(builder, "null", 4);
+            break;
+        case VIBE_JSON_BOOL:
+            vibe_builder_append_bytes(builder, value->as.bool_value ? "true" : "false", value->as.bool_value ? 4 : 5);
+            break;
+        case VIBE_JSON_I64: {
+            char *encoded = vibe_json_stringify_i64(value->as.int_value);
+            vibe_builder_append_bytes(builder, encoded, strlen(encoded));
+            free(encoded);
+            break;
+        }
+        case VIBE_JSON_F64: {
+            char out_num[64];
+            vibe_format_shortest_f64(value->as.float_value, out_num);
+            vibe_builder_append_bytes(builder, out_num, strlen(out_num));
+            break;
+        }
+        case VIBE_JSON_STR: {
+            char *quoted = vibe_json_quote_string(value->as.str_value);
+            vibe_builder_append_bytes(builder, quoted, strlen(quoted));
+            free(quoted);
+            break;
+        }
+        case VIBE_JSON_ARRAY: {
+            vibe_builder_append_bytes(builder, "[", 1);
+            for (int64_t i = 0; i < value->as.array.count; i++) {
+                if (i > 0) {
+                    vibe_builder_append_bytes(builder, ",", 1);
+                }
+                if (pretty) {
+                    vibe_builder_append_bytes(builder, "\n", 1);
+                    for (int j = 0; j < (level + 1) * indent; j++) {
+                        vibe_builder_append_bytes(builder, " ", 1);
+                    }
+                }
+                vibe_json_stringify_into(builder, value->as.array.items[i], pretty, indent, level + 1);
+            }
+            if (pretty && value->as.array.count > 0) {
+                vibe_builder_append_bytes(builder, "\n", 1);
+                for (int j = 0; j < level * indent; j++) {
+                    vibe_builder_append_bytes(builder, " ", 1);
+                }
+            }
+            vibe_builder_append_bytes(builder, "]", 1);
+            break;
+        }
+        case VIBE_JSON_OBJECT: {
+            vibe_builder_append_bytes(builder, "{", 1);
+            for (int64_t i = 0; i < value->as.object.count; i++) {
+                if (i > 0) {
+                    vibe_builder_append_bytes(builder, ",", 1);
+                }
+                if (pretty) {
+                    vibe_builder_append_bytes(builder, "\n", 1);
+                    for (int j = 0; j < (level + 1) * indent; j++) {
+                        vibe_builder_append_bytes(builder, " ", 1);
+                    }
+                }
+                char *quoted_key = vibe_json_quote_string(value->as.object.keys[i]);
+                vibe_builder_append_bytes(builder, quoted_key, strlen(quoted_key));
+                free(quoted_key);
+                vibe_builder_append_bytes(builder, pretty ? ": " : ":", pretty ? 2 : 1);
+                vibe_json_stringify_into(builder, value->as.object.values[i], pretty, indent, level + 1);
+            }
+            if (pretty && value->as.object.count > 0) {
+                vibe_builder_append_bytes(builder, "\n", 1);
+                for (int j = 0; j < level * indent; j++) {
+                    vibe_builder_append_bytes(builder, " ", 1);
+                }
+            }
+            vibe_builder_append_bytes(builder, "}", 1);
+            break;
+        }
+    }
+}
+
+void *vibe_json_null(void) {
+    return vibe_json_new_value(VIBE_JSON_NULL);
+}
+
+void *vibe_json_bool(int64_t value) {
+    vibe_json_value *json = vibe_json_new_value(VIBE_JSON_BOOL);
+    json->as.bool_value = value != 0 ? 1 : 0;
+    return json;
+}
+
+void *vibe_json_i64(int64_t value) {
+    vibe_json_value *json = vibe_json_new_value(VIBE_JSON_I64);
+    json->as.int_value = value;
+    return json;
+}
+
+void *vibe_json_f64(double value) {
+    vibe_json_value *json = vibe_json_new_value(VIBE_JSON_F64);
+    json->as.float_value = value;
+    return json;
+}
+
+void *vibe_json_str(const char *value) {
+    vibe_json_value *json = vibe_json_new_value(VIBE_JSON_STR);
+    json->as.str_value = vibe_strdup_or_panic(value == NULL ? "" : value);
+    return json;
+}
+
+void *vibe_json_parse(const char *raw) {
+    vibe_counter_inc(&vibe_json_parse_calls);
+    if (raw == NULL) {
+        vibe_panic("json.parse received null input");
+    }
+    vibe_json_value *value = NULL;
+    const char *end = vibe_json_parse_value_internal(raw, &value);
+    if (end == NULL) {
+        vibe_panic("json.parse invalid JSON");
+    }
+    end = vibe_json_skip_ws(end);
+    if (end == NULL || *end != '\0') {
+        vibe_panic("json.parse invalid trailing content");
+    }
+    return value;
+}
+
+char *vibe_json_stringify(void *raw) {
     vibe_counter_inc(&vibe_json_stringify_calls);
     if (raw == NULL) {
         vibe_counter_inc(&vibe_json_allocations);
-        return vibe_strdup_or_panic("null");
+        return vibe_strdup_or_panic("");
     }
-    if (vibe_json_is_valid(raw)) {
-        return vibe_json_canonical(raw);
+    vibe_string_builder builder;
+    vibe_builder_init(&builder, 128);
+    vibe_json_stringify_into(&builder, (const vibe_json_value *)raw, 0, 2, 0);
+    vibe_counter_inc(&vibe_json_allocations);
+    return builder.data;
+}
+
+char *vibe_json_stringify_pretty(void *raw) {
+    if (raw == NULL) {
+        vibe_counter_inc(&vibe_json_allocations);
+        return vibe_strdup_or_panic("");
     }
-    return vibe_json_quote_string(raw);
+    vibe_string_builder builder;
+    vibe_builder_init(&builder, 128);
+    vibe_json_stringify_into(&builder, (const vibe_json_value *)raw, 1, 2, 0);
+    vibe_counter_inc(&vibe_json_allocations);
+    return builder.data;
+}
+
+static void vibe_json_builder_push(vibe_json_builder_handle *builder, int64_t kind) {
+    if (builder->depth >= builder->stack_cap) {
+        int64_t next_cap = builder->stack_cap <= 0 ? 8 : builder->stack_cap * 2;
+        vibe_json_builder_ctx *next_stack = (vibe_json_builder_ctx *)realloc(
+            builder->stack,
+            (size_t)next_cap * sizeof(vibe_json_builder_ctx)
+        );
+        if (next_stack == NULL) {
+            vibe_panic("failed to grow json builder stack");
+        }
+        builder->stack = next_stack;
+        builder->stack_cap = next_cap;
+    }
+    builder->stack[builder->depth].kind = kind;
+    builder->stack[builder->depth].first = 1;
+    builder->stack[builder->depth].expecting_value = 0;
+    builder->depth += 1;
+}
+
+static void vibe_json_builder_begin_value(vibe_json_builder_handle *builder) {
+    if (builder->depth == 0) {
+        if (builder->root_written) {
+            vibe_panic("json.builder cannot write multiple root values");
+        }
+        builder->root_written = 1;
+        return;
+    }
+    vibe_json_builder_ctx *ctx = &builder->stack[builder->depth - 1];
+    if (ctx->kind == VIBE_JSON_OBJECT) {
+        if (!ctx->expecting_value) {
+            vibe_panic("json.builder expected object key before value");
+        }
+        ctx->expecting_value = 0;
+        return;
+    }
+    if (!ctx->first) {
+        vibe_builder_append_bytes(&builder->out, ",", 1);
+    }
+    ctx->first = 0;
+}
+
+void *vibe_json_builder_new(int64_t capacity) {
+    vibe_json_builder_handle *builder =
+        (vibe_json_builder_handle *)calloc(1, sizeof(vibe_json_builder_handle));
+    if (builder == NULL) {
+        vibe_panic("failed to allocate json builder");
+    }
+    vibe_builder_init(&builder->out, capacity <= 0 ? 128 : (size_t)capacity);
+    return builder;
+}
+
+void *vibe_json_builder_begin_object(void *handle) {
+    vibe_json_builder_handle *builder = (vibe_json_builder_handle *)handle;
+    if (builder == NULL) {
+        vibe_panic("json.builder handle is null");
+    }
+    vibe_json_builder_begin_value(builder);
+    vibe_builder_append_bytes(&builder->out, "{", 1);
+    vibe_json_builder_push(builder, VIBE_JSON_OBJECT);
+    return builder;
+}
+
+void *vibe_json_builder_end_object(void *handle) {
+    vibe_json_builder_handle *builder = (vibe_json_builder_handle *)handle;
+    if (builder == NULL || builder->depth <= 0) {
+        vibe_panic("json.builder end_object without object context");
+    }
+    vibe_json_builder_ctx *ctx = &builder->stack[builder->depth - 1];
+    if (ctx->kind != VIBE_JSON_OBJECT || ctx->expecting_value) {
+        vibe_panic("json.builder invalid end_object state");
+    }
+    builder->depth -= 1;
+    vibe_builder_append_bytes(&builder->out, "}", 1);
+    return builder;
+}
+
+void *vibe_json_builder_begin_array(void *handle) {
+    vibe_json_builder_handle *builder = (vibe_json_builder_handle *)handle;
+    if (builder == NULL) {
+        vibe_panic("json.builder handle is null");
+    }
+    vibe_json_builder_begin_value(builder);
+    vibe_builder_append_bytes(&builder->out, "[", 1);
+    vibe_json_builder_push(builder, VIBE_JSON_ARRAY);
+    return builder;
+}
+
+void *vibe_json_builder_end_array(void *handle) {
+    vibe_json_builder_handle *builder = (vibe_json_builder_handle *)handle;
+    if (builder == NULL || builder->depth <= 0) {
+        vibe_panic("json.builder end_array without array context");
+    }
+    vibe_json_builder_ctx *ctx = &builder->stack[builder->depth - 1];
+    if (ctx->kind != VIBE_JSON_ARRAY) {
+        vibe_panic("json.builder invalid end_array state");
+    }
+    builder->depth -= 1;
+    vibe_builder_append_bytes(&builder->out, "]", 1);
+    return builder;
+}
+
+void *vibe_json_builder_key(void *handle, const char *name) {
+    vibe_json_builder_handle *builder = (vibe_json_builder_handle *)handle;
+    if (builder == NULL || builder->depth <= 0) {
+        vibe_panic("json.builder key without object context");
+    }
+    vibe_json_builder_ctx *ctx = &builder->stack[builder->depth - 1];
+    if (ctx->kind != VIBE_JSON_OBJECT || ctx->expecting_value) {
+        vibe_panic("json.builder invalid key state");
+    }
+    if (!ctx->first) {
+        vibe_builder_append_bytes(&builder->out, ",", 1);
+    }
+    ctx->first = 0;
+    char *quoted = vibe_json_quote_string(name == NULL ? "" : name);
+    vibe_builder_append_bytes(&builder->out, quoted, strlen(quoted));
+    free(quoted);
+    vibe_builder_append_bytes(&builder->out, ":", 1);
+    ctx->expecting_value = 1;
+    return builder;
+}
+
+void *vibe_json_builder_value_null(void *handle) {
+    vibe_json_builder_handle *builder = (vibe_json_builder_handle *)handle;
+    if (builder == NULL) {
+        vibe_panic("json.builder handle is null");
+    }
+    vibe_json_builder_begin_value(builder);
+    vibe_builder_append_bytes(&builder->out, "null", 4);
+    return builder;
+}
+
+void *vibe_json_builder_value_bool(void *handle, int64_t value) {
+    vibe_json_builder_handle *builder = (vibe_json_builder_handle *)handle;
+    if (builder == NULL) {
+        vibe_panic("json.builder handle is null");
+    }
+    vibe_json_builder_begin_value(builder);
+    vibe_builder_append_bytes(&builder->out, value != 0 ? "true" : "false", value != 0 ? 4 : 5);
+    return builder;
+}
+
+void *vibe_json_builder_value_i64(void *handle, int64_t value) {
+    vibe_json_builder_handle *builder = (vibe_json_builder_handle *)handle;
+    if (builder == NULL) {
+        vibe_panic("json.builder handle is null");
+    }
+    vibe_json_builder_begin_value(builder);
+    char *encoded = vibe_json_stringify_i64(value);
+    vibe_builder_append_bytes(&builder->out, encoded, strlen(encoded));
+    free(encoded);
+    return builder;
+}
+
+void *vibe_json_builder_value_f64(void *handle, double value) {
+    vibe_json_builder_handle *builder = (vibe_json_builder_handle *)handle;
+    if (builder == NULL) {
+        vibe_panic("json.builder handle is null");
+    }
+    vibe_json_builder_begin_value(builder);
+    char out_num[64];
+    vibe_format_shortest_f64(value, out_num);
+    vibe_builder_append_bytes(&builder->out, out_num, strlen(out_num));
+    return builder;
+}
+
+void *vibe_json_builder_value_str(void *handle, const char *value) {
+    vibe_json_builder_handle *builder = (vibe_json_builder_handle *)handle;
+    if (builder == NULL) {
+        vibe_panic("json.builder handle is null");
+    }
+    vibe_json_builder_begin_value(builder);
+    char *quoted = vibe_json_quote_string(value == NULL ? "" : value);
+    vibe_builder_append_bytes(&builder->out, quoted, strlen(quoted));
+    free(quoted);
+    return builder;
+}
+
+void *vibe_json_builder_value_json(void *handle, void *value) {
+    vibe_json_builder_handle *builder = (vibe_json_builder_handle *)handle;
+    if (builder == NULL) {
+        vibe_panic("json.builder handle is null");
+    }
+    vibe_json_builder_begin_value(builder);
+    char *encoded = vibe_json_stringify(value);
+    vibe_builder_append_bytes(&builder->out, encoded, strlen(encoded));
+    free(encoded);
+    return builder;
+}
+
+char *vibe_json_builder_finish(void *handle) {
+    vibe_json_builder_handle *builder = (vibe_json_builder_handle *)handle;
+    if (builder == NULL) {
+        vibe_counter_inc(&vibe_json_allocations);
+        return vibe_strdup_or_panic("");
+    }
+    if (builder->depth != 0) {
+        vibe_panic("json.builder finish with unclosed object/array");
+    }
+    char *out = builder->out.data;
+    free(builder->stack);
+    free(builder);
+    vibe_counter_inc(&vibe_json_allocations);
+    return out;
 }
 
 static const char *vibe_json_skip_ws(const char *p) {

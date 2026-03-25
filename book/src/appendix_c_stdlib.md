@@ -222,43 +222,81 @@ fs.create_dir(path.join(base, "output"))?
 
 ## C.6 `json` — JSON Processing (Preview)
 
-Functions for validating and transforming JSON strings.
-Import: `import std.json`
+Structured JSON values (`Json`), text codecs, a **canonical** streaming builder for
+dynamic output, and **compatibility** helpers. Import: `import std.json`
 
 All functions are pure (no effects).
 
-### `is_valid(s: Str) -> Bool`
+### Value type: `Json`
 
-Returns `true` if the string is syntactically valid JSON.
+`json.parse` produces a `Json` value; `json.stringify` / `json.stringify_pretty`
+consume one. Scalar constructors wrap native values:
 
-```vibe
-json.is_valid("{\"name\": \"vibe\"}")  // true
-json.is_valid("not json")              // false
-```
+| Function | Signature | Role |
+|----------|-----------|------|
+| `json.null` | `() -> Json` | JSON `null` |
+| `json.bool` | `(Bool) -> Json` | JSON boolean |
+| `json.i64` | `(Int) -> Json` | JSON number (integer) |
+| `json.f64` | `(Float) -> Json` | JSON number (float) |
+| `json.str` | `(Str) -> Json` | JSON string |
 
-### `parse(s: Str) -> Str`
+### `parse(raw: Str) -> Json`
 
-Returns canonicalized JSON text when input is valid JSON, otherwise returns `""`.
-
-```vibe
-json.parse("{ \"a\" : 1 }")  // "{\"a\":1}"
-json.parse("nope")           // ""
-```
-
-### `stringify(s: Str) -> Str`
-
-If input is already valid JSON, returns canonicalized JSON text. Otherwise returns
-a quoted JSON string.
+Parses UTF-8 JSON text into a `Json` value. Invalid input is handled by the
+runtime (this is **not** a `Result`); validate first with `json.is_valid` when
+you need a soft check.
 
 ```vibe
-json.stringify("{\"a\":1}")  // "{\"a\":1}"
-json.stringify("hello")      // "\"hello\""
+doc := json.parse("{\"a\":1}")
+println(json.stringify(doc))              // compact wire text
+println(json.stringify_pretty(doc))       // indented, for debugging
+println(json.stringify(json.str("vibe"))) // "\"vibe\""
 ```
 
-### Generated typed codecs: `encode_<Type>` / `decode_<Type>`
+### `stringify(value: Json) -> Str`
 
-For nominal `type` declarations, the compiler exposes typed JSON codec entrypoints
-under `json.*`:
+Serializes a `Json` value to compact JSON text (UTF-8 `Str`).
+
+### `stringify_pretty(value: Json) -> Str`
+
+Same as `stringify`, with insignificant whitespace added for readability.
+
+### `json.builder` — canonical dynamic construction
+
+For objects and arrays whose shape is computed at runtime, **`json.builder` is
+the recommended path**: you write keys and typed values (`value_bool`,
+`value_i64`, `value_f64`, `value_str`, `value_null`, or nested `value_json`), not
+hand-escaped string literals. The builder returns a `Str` from `finish` (or you
+can treat that string as wire text for HTTP, files, and logs).
+
+```vibe
+jb := json.builder.new(128)
+jb = json.builder.begin_object(jb)
+jb = json.builder.key(jb, "ok")
+jb = json.builder.value_bool(jb, true)
+jb = json.builder.key(jb, "count")
+jb = json.builder.value_i64(jb, 2)
+jb = json.builder.key(jb, "items")
+jb = json.builder.begin_array(jb)
+jb = json.builder.value_str(jb, "a")
+jb = json.builder.value_str(jb, "b")
+jb = json.builder.end_array(jb)
+jb = json.builder.end_object(jb)
+body := json.builder.finish(jb)
+```
+
+Typical call sequence: `new` → `begin_object` or `begin_array` → (`key` +
+value)* in objects → matching `end_*` → `finish`. Use `value_json` to embed an
+already-built subtree when needed.
+
+Runnable examples: `examples/07_stdlib_io_json_regex_http/59_json_builder_object_basics.yb`
+through `62_json_builder_http_post_body.yb`, and `47_json_parse_stringify_and_codecs.yb`.
+
+### Compatibility: `encode_<Type>` / `decode_<Type>`
+
+For nominal `type` declarations, the compiler still exposes typed codec
+entrypoints on `json.*`. Prefer these when your domain model is a fixed `type`
+and you want field-level defaults on decode:
 
 ```vibe
 type User { id: Int, name: Str, active: Bool }
@@ -268,38 +306,40 @@ decoded := json.decode_User("{\"id\":7,\"name\":\"sam\",\"active\":true}", fallb
 wire := json.encode_User(decoded)
 ```
 
-### `parse_i64(s: Str) -> Int`
+### `is_valid(s: Str) -> Bool`
 
-Parses a JSON string containing a single integer value.
+Returns `true` if the string is syntactically valid JSON.
 
 ```vibe
-val := json.parse_i64("42")  // 42
-json.parse_i64("bad")        // 0
+json.is_valid("{\"name\": \"vibe\"}")  // true
+json.is_valid("not json")            // false
 ```
 
-### `stringify_i64(n: Int) -> Str`
+### `parse_i64(s: Str) -> Int` / `stringify_i64(n: Int) -> Str`
 
-Converts an integer to its JSON string representation.
+Parse or emit a JSON text fragment that is a single integer (compatibility /
+scalar helpers).
 
 ```vibe
-json.stringify_i64(42)   // "42"
-json.stringify_i64(-1)   // "-1"
+val := json.parse_i64("42")   // 42
+json.stringify_i64(42)        // "42"
 ```
 
 ### `minify(s: Str) -> Str`
 
-Removes insignificant whitespace from a JSON string.
+Removes insignificant whitespace from a JSON **text** string.
 
 ```vibe
 compact := json.minify("{ \"a\" : 1 }")  // "{\"a\":1}"
 ```
 
-### `from_map(map: Map<Str, Str>) -> Str`
+### `from_map(map: Map<Str, Str>) -> Str` — convenience / legacy
 
-Serializes a `Map<Str, Str>` to a JSON object string. Values are strings on the
-wire; the implementation uses **automatic type detection** so numeric-looking
-values (for example `"95"`) and boolean-looking values (`"true"` / `"false"`)
-are emitted as JSON numbers and booleans where appropriate.
+Serializes a `Map<Str, Str>` to JSON object text using **string values** plus
+heuristic coercion (numeric- and boolean-looking strings become JSON numbers and
+booleans). Handy when you already have stringly-typed maps; it is **not** the
+canonical way to build JSON—prefer `json.builder` (or `Json` values +
+`stringify`) for structured intent.
 
 ```vibe
 preview := {"title": "VibeLang", "score": "95", "active": "true"}
@@ -350,7 +390,15 @@ http.build_request_line("GET", "/api/users")
 Performs a sync HTTP request and returns response body text.
 
 ```vibe
-resp := http.request("POST", "http://127.0.0.1:8080/api", "{\"ok\":true}", 2000)
+import std.http
+import std.json
+
+jb := json.builder.new(64)
+jb = json.builder.begin_object(jb)
+jb = json.builder.key(jb, "ok")
+jb = json.builder.value_bool(jb, true)
+jb = json.builder.end_object(jb)
+resp := http.request("POST", "http://127.0.0.1:8080/api", json.builder.finish(jb), 2000)
 ```
 
 ### `request_status(method: Str, url: Str, body: Str, timeout_ms: Int) -> Int`
@@ -494,7 +542,7 @@ regex.replace_all("foo bar foo", "foo", "baz")   // "baz bar baz"
 | `convert` | **Preview** | None          | 10        |
 | `text` | **Preview** | None             | 10        |
 | `encoding` | **Preview** | None         | 6         |
-| `json` | **Preview** | None             | 7         |
+| `json` | **Preview** | None             | 13+       |
 | `http` | **Preview** | `net` (client ops) | 7      |
 | `log`  | **Preview** | `io`             | 3         |
 | `env`  | **Preview** | `nondet`         | 3         |
@@ -516,7 +564,7 @@ import std.net         // listen, listener_port, accept, connect, read, write, c
 import std.convert     // to_int, parse_i64, to_float, parse_f64, to_str, to_str_f64, format_f64, i64_to_f64, f64_to_bits, f64_from_bits
 import std.text        // trim, contains, starts_with, ends_with, replace, to_lower, to_upper, byte_len, split_part, index_of
 import std.encoding    // hex/base64/url encode/decode
-import std.json        // is_valid, parse, stringify, parse_i64, stringify_i64, minify, from_map
+import std.json        // Json: parse, stringify, stringify_pretty, null/bool/i64/f64/str; builder.*; is_valid, minify; parse_i64, stringify_i64; from_map; encode_<T>, decode_<T>
 import std.http        // status_text, default_port, build_request_line, request, request_status, get, post
 import std.log         // info, warn, error
 import std.env         // get, has, get_required
@@ -582,7 +630,9 @@ import std.regex       // count, replace_all
 | `url_decode(Str)`              | encoding | None   |
 | `is_valid(Str)`                | json   | None     |
 | `parse(Str)`                   | json   | None     |
-| `stringify(Str)`               | json   | None     |
+| `stringify(Json)`              | json   | None     |
+| `stringify_pretty(Json)`       | json   | None     |
+| `null()` … `str(Str)`          | json   | None     |
 | `parse_i64(Str)`               | json   | None     |
 | `stringify_i64(Int)`           | json   | None     |
 | `minify(Str)`                  | json   | None     |

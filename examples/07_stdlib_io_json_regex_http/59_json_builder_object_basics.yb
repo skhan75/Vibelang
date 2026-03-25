@@ -1,0 +1,14 @@
+pub main() -> Int {
+  @effect io
+  jb := json.builder.new(128)
+  jb = json.builder.begin_object(jb)
+  jb = json.builder.key(jb, "ok")
+  jb = json.builder.value_bool(jb, true)
+  jb = json.builder.key(jb, "score")
+  jb = json.builder.value_i64(jb, 91)
+  jb = json.builder.key(jb, "title")
+  jb = json.builder.value_str(jb, "Hello")
+  jb = json.builder.end_object(jb)
+  println(json.builder.finish(jb))
+  0
+}

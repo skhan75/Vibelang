@@ -65,6 +65,17 @@ Preferred names:
 - `EncodingError` (`std.encoding`)
 - `ConfigError` (`std.env`/configuration loading)
 
+### `std.json` today vs target
+
+- **`json.parse(raw: Str) -> Json`** is strict: invalid UTF-8 JSON terminates the
+  program (panic/trap). This matches the current executable surface; migrating
+  to **`Result<Json, JsonError>`** is tracked in
+  `docs/checklists/features_and_optimizations.md` (F-01 follow-up) alongside
+  richer decode diagnostics.
+- **`json.builder.finish`** produces JSON text; malformed builder sequences
+  (unbalanced objects/arrays, missing keys) panic at runtime. Static validation
+  of builder state is a possible future enhancement.
+
 ## Diagnostics and Reporting
 
 Error diagnostics SHOULD include:

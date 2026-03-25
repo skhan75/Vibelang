@@ -519,6 +519,12 @@ VibeLang v1 supports these map type combinations:
 | `Map<Str, Str>` | — | String metadata, headers, string props |
 | `Map<Int, Int>` | — | Common for counters and histograms   |
 
+When you need **JSON object text** from runtime-driven data, prefer
+`std.json` **`json.builder`** (or `Json` values plus `json.stringify`) so structure
+and types stay explicit. The stdlib helper **`json.from_map(Map<Str, Str>)`**
+remains a **convenience** for maps that are already string-to-string (with
+coercion heuristics on values); it is not the canonical JSON API—see Appendix C.6.
+
 This constraint is deliberate. By limiting key-value combinations in v1,
 VibeLang can optimize the underlying hash map implementation and provide
 stronger determinism guarantees. Additional combinations may appear in future

@@ -141,11 +141,30 @@ struct RuntimeFunctions {
     json_is_valid_fn: FuncId,
     json_parse_fn: FuncId,
     json_stringify_fn: FuncId,
+    json_stringify_pretty_fn: FuncId,
+    json_null_fn: FuncId,
+    json_bool_fn: FuncId,
+    json_i64_fn: FuncId,
+    json_f64_fn: FuncId,
+    json_str_fn: FuncId,
     json_parse_i64_fn: FuncId,
     json_stringify_i64_fn: FuncId,
     json_minify_fn: FuncId,
     json_encode_record_fn: FuncId,
     json_decode_record_fn: FuncId,
+    json_builder_new_fn: FuncId,
+    json_builder_begin_object_fn: FuncId,
+    json_builder_end_object_fn: FuncId,
+    json_builder_begin_array_fn: FuncId,
+    json_builder_end_array_fn: FuncId,
+    json_builder_key_fn: FuncId,
+    json_builder_value_null_fn: FuncId,
+    json_builder_value_bool_fn: FuncId,
+    json_builder_value_i64_fn: FuncId,
+    json_builder_value_f64_fn: FuncId,
+    json_builder_value_str_fn: FuncId,
+    json_builder_value_json_fn: FuncId,
+    json_builder_finish_fn: FuncId,
     regex_count_fn: FuncId,
     regex_replace_all_fn: FuncId,
     http_status_text_fn: FuncId,
@@ -1335,6 +1354,51 @@ fn declare_runtime_functions(
         .declare_function("vibe_json_stringify", Linkage::Import, &json_stringify_sig)
         .map_err(|e| format!("failed to declare runtime json_stringify symbol: {e}"))?;
 
+    let mut json_stringify_pretty_sig = module.make_signature();
+    json_stringify_pretty_sig.params.push(AbiParam::new(ptr_ty));
+    json_stringify_pretty_sig.returns.push(AbiParam::new(ptr_ty));
+    let json_stringify_pretty_fn = module
+        .declare_function(
+            "vibe_json_stringify_pretty",
+            Linkage::Import,
+            &json_stringify_pretty_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime json_stringify_pretty symbol: {e}"))?;
+
+    let mut json_null_sig = module.make_signature();
+    json_null_sig.returns.push(AbiParam::new(ptr_ty));
+    let json_null_fn = module
+        .declare_function("vibe_json_null", Linkage::Import, &json_null_sig)
+        .map_err(|e| format!("failed to declare runtime json_null symbol: {e}"))?;
+
+    let mut json_bool_sig = module.make_signature();
+    json_bool_sig.params.push(AbiParam::new(ir::types::I64));
+    json_bool_sig.returns.push(AbiParam::new(ptr_ty));
+    let json_bool_fn = module
+        .declare_function("vibe_json_bool", Linkage::Import, &json_bool_sig)
+        .map_err(|e| format!("failed to declare runtime json_bool symbol: {e}"))?;
+
+    let mut json_i64_sig = module.make_signature();
+    json_i64_sig.params.push(AbiParam::new(ir::types::I64));
+    json_i64_sig.returns.push(AbiParam::new(ptr_ty));
+    let json_i64_fn = module
+        .declare_function("vibe_json_i64", Linkage::Import, &json_i64_sig)
+        .map_err(|e| format!("failed to declare runtime json_i64 symbol: {e}"))?;
+
+    let mut json_f64_sig = module.make_signature();
+    json_f64_sig.params.push(AbiParam::new(ir::types::F64));
+    json_f64_sig.returns.push(AbiParam::new(ptr_ty));
+    let json_f64_fn = module
+        .declare_function("vibe_json_f64", Linkage::Import, &json_f64_sig)
+        .map_err(|e| format!("failed to declare runtime json_f64 symbol: {e}"))?;
+
+    let mut json_str_sig = module.make_signature();
+    json_str_sig.params.push(AbiParam::new(ptr_ty));
+    json_str_sig.returns.push(AbiParam::new(ptr_ty));
+    let json_str_fn = module
+        .declare_function("vibe_json_str", Linkage::Import, &json_str_sig)
+        .map_err(|e| format!("failed to declare runtime json_str symbol: {e}"))?;
+
     let mut json_parse_i64_sig = module.make_signature();
     json_parse_i64_sig.params.push(AbiParam::new(ptr_ty));
     json_parse_i64_sig
@@ -1389,6 +1453,128 @@ fn declare_runtime_functions(
             &json_decode_record_sig,
         )
         .map_err(|e| format!("failed to declare runtime json_decode_record symbol: {e}"))?;
+
+    let mut json_builder_new_sig = module.make_signature();
+    json_builder_new_sig.params.push(AbiParam::new(ir::types::I64));
+    json_builder_new_sig.returns.push(AbiParam::new(ptr_ty));
+    let json_builder_new_fn = module
+        .declare_function(
+            "vibe_json_builder_new",
+            Linkage::Import,
+            &json_builder_new_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime json_builder_new symbol: {e}"))?;
+
+    let mut json_builder_one_ptr_sig = module.make_signature();
+    json_builder_one_ptr_sig.params.push(AbiParam::new(ptr_ty));
+    json_builder_one_ptr_sig.returns.push(AbiParam::new(ptr_ty));
+    let json_builder_begin_object_fn = module
+        .declare_function(
+            "vibe_json_builder_begin_object",
+            Linkage::Import,
+            &json_builder_one_ptr_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime json_builder_begin_object symbol: {e}"))?;
+    let json_builder_end_object_fn = module
+        .declare_function(
+            "vibe_json_builder_end_object",
+            Linkage::Import,
+            &json_builder_one_ptr_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime json_builder_end_object symbol: {e}"))?;
+    let json_builder_begin_array_fn = module
+        .declare_function(
+            "vibe_json_builder_begin_array",
+            Linkage::Import,
+            &json_builder_one_ptr_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime json_builder_begin_array symbol: {e}"))?;
+    let json_builder_end_array_fn = module
+        .declare_function(
+            "vibe_json_builder_end_array",
+            Linkage::Import,
+            &json_builder_one_ptr_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime json_builder_end_array symbol: {e}"))?;
+    let json_builder_value_null_fn = module
+        .declare_function(
+            "vibe_json_builder_value_null",
+            Linkage::Import,
+            &json_builder_one_ptr_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime json_builder_value_null symbol: {e}"))?;
+    let json_builder_finish_fn = module
+        .declare_function(
+            "vibe_json_builder_finish",
+            Linkage::Import,
+            &json_builder_one_ptr_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime json_builder_finish symbol: {e}"))?;
+
+    let mut json_builder_key_sig = module.make_signature();
+    json_builder_key_sig.params.push(AbiParam::new(ptr_ty));
+    json_builder_key_sig.params.push(AbiParam::new(ptr_ty));
+    json_builder_key_sig.returns.push(AbiParam::new(ptr_ty));
+    let json_builder_key_fn = module
+        .declare_function(
+            "vibe_json_builder_key",
+            Linkage::Import,
+            &json_builder_key_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime json_builder_key symbol: {e}"))?;
+    let json_builder_value_bool_fn = module
+        .declare_function(
+            "vibe_json_builder_value_bool",
+            Linkage::Import,
+            &{
+                let mut sig = module.make_signature();
+                sig.params.push(AbiParam::new(ptr_ty));
+                sig.params.push(AbiParam::new(ir::types::I64));
+                sig.returns.push(AbiParam::new(ptr_ty));
+                sig
+            },
+        )
+        .map_err(|e| format!("failed to declare runtime json_builder_value_bool symbol: {e}"))?;
+    let json_builder_value_i64_fn = module
+        .declare_function(
+            "vibe_json_builder_value_i64",
+            Linkage::Import,
+            &{
+                let mut sig = module.make_signature();
+                sig.params.push(AbiParam::new(ptr_ty));
+                sig.params.push(AbiParam::new(ir::types::I64));
+                sig.returns.push(AbiParam::new(ptr_ty));
+                sig
+            },
+        )
+        .map_err(|e| format!("failed to declare runtime json_builder_value_i64 symbol: {e}"))?;
+    let json_builder_value_f64_fn = module
+        .declare_function(
+            "vibe_json_builder_value_f64",
+            Linkage::Import,
+            &{
+                let mut sig = module.make_signature();
+                sig.params.push(AbiParam::new(ptr_ty));
+                sig.params.push(AbiParam::new(ir::types::F64));
+                sig.returns.push(AbiParam::new(ptr_ty));
+                sig
+            },
+        )
+        .map_err(|e| format!("failed to declare runtime json_builder_value_f64 symbol: {e}"))?;
+    let json_builder_value_str_fn = module
+        .declare_function(
+            "vibe_json_builder_value_str",
+            Linkage::Import,
+            &json_builder_key_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime json_builder_value_str symbol: {e}"))?;
+    let json_builder_value_json_fn = module
+        .declare_function(
+            "vibe_json_builder_value_json",
+            Linkage::Import,
+            &json_builder_key_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime json_builder_value_json symbol: {e}"))?;
 
     let mut regex_count_sig = module.make_signature();
     regex_count_sig.params.push(AbiParam::new(ptr_ty));
@@ -1791,11 +1977,30 @@ fn declare_runtime_functions(
         json_is_valid_fn,
         json_parse_fn,
         json_stringify_fn,
+        json_stringify_pretty_fn,
+        json_null_fn,
+        json_bool_fn,
+        json_i64_fn,
+        json_f64_fn,
+        json_str_fn,
         json_parse_i64_fn,
         json_stringify_i64_fn,
         json_minify_fn,
         json_encode_record_fn,
         json_decode_record_fn,
+        json_builder_new_fn,
+        json_builder_begin_object_fn,
+        json_builder_end_object_fn,
+        json_builder_begin_array_fn,
+        json_builder_end_array_fn,
+        json_builder_key_fn,
+        json_builder_value_null_fn,
+        json_builder_value_bool_fn,
+        json_builder_value_i64_fn,
+        json_builder_value_f64_fn,
+        json_builder_value_str_fn,
+        json_builder_value_json_fn,
+        json_builder_finish_fn,
         regex_count_fn,
         regex_replace_all_fn,
         http_status_text_fn,
@@ -3922,10 +4127,12 @@ fn emit_expr(
                         enum_defs,
                     )?);
                 }
-                if let MirExpr::Var(namespace) = &**object {
+                if let Some((namespace, stdlib_field)) =
+                    extract_stdlib_call_target_mir(callee.as_ref())
+                {
                     if let Some(value) = emit_stdlib_namespace_call(
-                        namespace,
-                        field,
+                        &namespace,
+                        &stdlib_field,
                         &lowered_args,
                         module,
                         builder,
@@ -4595,6 +4802,58 @@ fn json_codec_schema(
     Some(schema)
 }
 
+fn collect_member_chain_mir(expr: &MirExpr, parts: &mut Vec<String>) -> bool {
+    match expr {
+        MirExpr::Var(name) => {
+            parts.push(name.clone());
+            true
+        }
+        MirExpr::Member { object, field, .. } => {
+            if collect_member_chain_mir(object, parts) {
+                parts.push(field.clone());
+                true
+            } else {
+                false
+            }
+        }
+        _ => false,
+    }
+}
+
+fn extract_stdlib_call_target_mir(callee: &MirExpr) -> Option<(String, String)> {
+    let MirExpr::Member { .. } = callee else {
+        return None;
+    };
+    let mut parts = Vec::new();
+    if !collect_member_chain_mir(callee, &mut parts) || parts.len() < 2 {
+        return None;
+    }
+    let root = parts.first()?;
+    if root != "time"
+        && root != "path"
+        && root != "fs"
+        && root != "net"
+        && root != "convert"
+        && root != "math"
+        && root != "str_builder"
+        && root != "simd"
+        && root != "text"
+        && root != "encoding"
+        && root != "log"
+        && root != "env"
+        && root != "cli"
+        && root != "json"
+        && root != "regex"
+        && root != "http"
+        && root != "bench"
+    {
+        return None;
+    }
+    let field = parts.pop()?;
+    let namespace = parts.join(".");
+    Some((namespace, field))
+}
+
 fn emit_stdlib_namespace_call(
     namespace: &str,
     field: &str,
@@ -4700,6 +4959,80 @@ fn emit_stdlib_namespace_call(
                 &[lowered_args[0], schema_ptr, lowered_args[1], out_record],
             );
             return Ok(Some(call_result_or_zero(builder, call)));
+        }
+        match field {
+            "parse" => {
+                expect_arity(1)?;
+                return Ok(Some(call_one_arg(
+                    runtime_fns.json_parse_fn,
+                    lowered_args[0],
+                    module,
+                    builder,
+                )));
+            }
+            "stringify" => {
+                expect_arity(1)?;
+                return Ok(Some(call_one_arg(
+                    runtime_fns.json_stringify_fn,
+                    lowered_args[0],
+                    module,
+                    builder,
+                )));
+            }
+            "stringify_pretty" => {
+                expect_arity(1)?;
+                return Ok(Some(call_one_arg(
+                    runtime_fns.json_stringify_pretty_fn,
+                    lowered_args[0],
+                    module,
+                    builder,
+                )));
+            }
+            "null" => {
+                expect_arity(0)?;
+                return Ok(Some(call_no_args(
+                    runtime_fns.json_null_fn,
+                    module,
+                    builder,
+                )));
+            }
+            "bool" => {
+                expect_arity(1)?;
+                return Ok(Some(call_one_arg(
+                    runtime_fns.json_bool_fn,
+                    lowered_args[0],
+                    module,
+                    builder,
+                )));
+            }
+            "i64" => {
+                expect_arity(1)?;
+                return Ok(Some(call_one_arg(
+                    runtime_fns.json_i64_fn,
+                    lowered_args[0],
+                    module,
+                    builder,
+                )));
+            }
+            "f64" => {
+                expect_arity(1)?;
+                return Ok(Some(call_one_arg(
+                    runtime_fns.json_f64_fn,
+                    lowered_args[0],
+                    module,
+                    builder,
+                )));
+            }
+            "str" => {
+                expect_arity(1)?;
+                return Ok(Some(call_one_arg(
+                    runtime_fns.json_str_fn,
+                    lowered_args[0],
+                    module,
+                    builder,
+                )));
+            }
+            _ => {}
         }
     }
 
@@ -5332,6 +5665,133 @@ fn emit_stdlib_namespace_call(
                 builder,
             )
         }
+        ("json.builder", "new") => {
+            expect_arity(1)?;
+            call_one_arg(
+                runtime_fns.json_builder_new_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
+        }
+        ("json.builder", "begin_object") => {
+            expect_arity(1)?;
+            call_one_arg(
+                runtime_fns.json_builder_begin_object_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
+        }
+        ("json.builder", "end_object") => {
+            expect_arity(1)?;
+            call_one_arg(
+                runtime_fns.json_builder_end_object_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
+        }
+        ("json.builder", "begin_array") => {
+            expect_arity(1)?;
+            call_one_arg(
+                runtime_fns.json_builder_begin_array_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
+        }
+        ("json.builder", "end_array") => {
+            expect_arity(1)?;
+            call_one_arg(
+                runtime_fns.json_builder_end_array_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
+        }
+        ("json.builder", "key") => {
+            expect_arity(2)?;
+            call_two_args(
+                runtime_fns.json_builder_key_fn,
+                lowered_args[0],
+                lowered_args[1],
+                module,
+                builder,
+            )
+        }
+        ("json.builder", "value_null") => {
+            expect_arity(1)?;
+            call_one_arg(
+                runtime_fns.json_builder_value_null_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
+        }
+        ("json.builder", "value_bool") => {
+            expect_arity(2)?;
+            // Bool lowers to I8; runtime ABI uses I64 for the flag.
+            let flag = builder
+                .ins()
+                .uextend(ir::types::I64, lowered_args[1]);
+            call_two_args(
+                runtime_fns.json_builder_value_bool_fn,
+                lowered_args[0],
+                flag,
+                module,
+                builder,
+            )
+        }
+        ("json.builder", "value_i64") => {
+            expect_arity(2)?;
+            call_two_args(
+                runtime_fns.json_builder_value_i64_fn,
+                lowered_args[0],
+                lowered_args[1],
+                module,
+                builder,
+            )
+        }
+        ("json.builder", "value_f64") => {
+            expect_arity(2)?;
+            call_two_args(
+                runtime_fns.json_builder_value_f64_fn,
+                lowered_args[0],
+                lowered_args[1],
+                module,
+                builder,
+            )
+        }
+        ("json.builder", "value_str") => {
+            expect_arity(2)?;
+            call_two_args(
+                runtime_fns.json_builder_value_str_fn,
+                lowered_args[0],
+                lowered_args[1],
+                module,
+                builder,
+            )
+        }
+        ("json.builder", "value_json") => {
+            expect_arity(2)?;
+            call_two_args(
+                runtime_fns.json_builder_value_json_fn,
+                lowered_args[0],
+                lowered_args[1],
+                module,
+                builder,
+            )
+        }
+        ("json.builder", "finish") => {
+            expect_arity(1)?;
+            call_one_arg(
+                runtime_fns.json_builder_finish_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
+        }
         ("regex", "count") => {
             expect_arity(2)?;
             call_two_args(
@@ -5581,7 +6041,7 @@ fn default_value(builder: &mut FunctionBuilder<'_>, ty: &MirType, ptr_ty: ir::Ty
         MirType::I64 | MirType::Unknown => builder.ins().iconst(ir::types::I64, 0),
         MirType::F64 => builder.ins().f64const(0.0),
         MirType::Bool => builder.ins().iconst(ir::types::I8, 0),
-        MirType::Str => builder.ins().iconst(ptr_ty, 0),
+        MirType::Str | MirType::Json | MirType::JsonBuilder => builder.ins().iconst(ptr_ty, 0),
         MirType::Void => builder.ins().iconst(ir::types::I64, 0),
     }
 }
@@ -5592,27 +6052,61 @@ fn is_known_string_expr(expr: &MirExpr) -> bool {
         MirExpr::Binary { left, op, right } if op == "Add" => {
             is_known_string_expr(left) || is_known_string_expr(right)
         }
-        MirExpr::Call { callee, .. }
-            if matches!(
-                &**callee,
-                MirExpr::Member { object, field, .. }
-                if matches!(&**object, MirExpr::Var(namespace)
-                    if (namespace == "path" && (field == "join" || field == "parent" || field == "basename"))
-                    || (namespace == "fs" && field == "read_text")
-                    || (namespace == "net" && (field == "read" || field == "resolve"))
-                    || (namespace == "convert" && (field == "to_str" || field == "to_str_f64" || field == "format_f64"))
-                    || (namespace == "text" && (field == "trim" || field == "replace" || field == "to_lower" || field == "to_upper" || field == "split_part"))
-                    || (namespace == "encoding" && (field == "hex_encode" || field == "hex_decode" || field == "base64_encode" || field == "base64_decode" || field == "url_encode" || field == "url_decode"))
-                    || (namespace == "env" && (field == "get" || field == "get_required"))
-                    || (namespace == "cli" && field == "arg")
-                    || (namespace == "json" && (field == "parse" || field == "stringify" || field.starts_with("encode_") || field == "stringify_i64" || field == "minify"))
-                    || (namespace == "regex" && field == "replace_all")
-                    || (namespace == "http" && (field == "status_text" || field == "build_request_line" || field == "get" || field == "post" || field == "request"))
-                    || (namespace == "bench" && (field == "md5_hex" || field == "md5_bytes_hex" || field == "json_canonical" || field == "json_repeat_array" || field == "secp256k1" || field == "edigits" || field == "net_read"))
-                )
-            ) =>
-        {
-            true
+        MirExpr::Call { callee, .. } => {
+            if let Some((namespace, field)) = extract_stdlib_call_target_mir(callee.as_ref()) {
+                return match namespace.as_str() {
+                    "path" => field == "join" || field == "parent" || field == "basename",
+                    "fs" => field == "read_text",
+                    "net" => field == "read" || field == "resolve",
+                    "convert" => {
+                        field == "to_str" || field == "to_str_f64" || field == "format_f64"
+                    }
+                    "text" => {
+                        field == "trim"
+                            || field == "replace"
+                            || field == "to_lower"
+                            || field == "to_upper"
+                            || field == "split_part"
+                    }
+                    "encoding" => {
+                        field == "hex_encode"
+                            || field == "hex_decode"
+                            || field == "base64_encode"
+                            || field == "base64_decode"
+                            || field == "url_encode"
+                            || field == "url_decode"
+                    }
+                    "env" => field == "get" || field == "get_required",
+                    "cli" => field == "arg",
+                    "json" => {
+                        field == "stringify"
+                            || field == "stringify_pretty"
+                            || field == "stringify_i64"
+                            || field == "minify"
+                            || field.starts_with("encode_")
+                    }
+                    "json.builder" => field == "finish",
+                    "regex" => field == "replace_all",
+                    "http" => {
+                        field == "status_text"
+                            || field == "build_request_line"
+                            || field == "get"
+                            || field == "post"
+                            || field == "request"
+                    }
+                    "bench" => {
+                        field == "md5_hex"
+                            || field == "md5_bytes_hex"
+                            || field == "json_canonical"
+                            || field == "json_repeat_array"
+                            || field == "secp256k1"
+                            || field == "edigits"
+                            || field == "net_read"
+                    }
+                    _ => false,
+                };
+            }
+            false
         }
         MirExpr::Slice { object_is_str, .. } => *object_is_str,
         _ => false,
@@ -5867,27 +6361,40 @@ fn infer_mir_expr_type(
                     return MirType::I64;
                 }
             }
-            if let MirExpr::Member { object, field, .. } = &**callee {
-                if let MirExpr::Var(ns) = &**object {
-                    if ns == "convert"
-                        && (field == "to_float"
-                            || field == "parse_f64"
-                            || field == "i64_to_f64"
-                            || field == "f64_from_bits")
-                    {
-                        return MirType::F64;
-                    }
-                    if ns == "math" && field == "sqrt" {
-                        return MirType::F64;
-                    }
-                    if ns == "simd" && field == "f64x2_extract" {
-                        return MirType::F64;
-                    }
-                    if ns == "convert"
-                        && (field == "to_str" || field == "to_str_f64" || field == "format_f64")
-                    {
-                        return MirType::Str;
-                    }
+            if let Some((namespace, field)) = extract_stdlib_call_target_mir(callee.as_ref()) {
+                if namespace == "convert"
+                    && (field == "to_float"
+                        || field == "parse_f64"
+                        || field == "i64_to_f64"
+                        || field == "f64_from_bits")
+                {
+                    return MirType::F64;
+                }
+                if namespace == "math" && field == "sqrt" {
+                    return MirType::F64;
+                }
+                if namespace == "simd" && field == "f64x2_extract" {
+                    return MirType::F64;
+                }
+                if namespace == "convert"
+                    && (field == "to_str" || field == "to_str_f64" || field == "format_f64")
+                {
+                    return MirType::Str;
+                }
+                if namespace == "json" && field == "parse" {
+                    return MirType::Json;
+                }
+                if namespace == "json" && matches!(field.as_str(), "null" | "bool" | "i64" | "f64" | "str") {
+                    return MirType::Json;
+                }
+                if namespace == "json" && matches!(field.as_str(), "stringify" | "stringify_pretty") {
+                    return MirType::Str;
+                }
+                if namespace == "json.builder" && field == "finish" {
+                    return MirType::Str;
+                }
+                if namespace == "json.builder" {
+                    return MirType::JsonBuilder;
                 }
             }
             MirType::I64
@@ -6037,12 +6544,11 @@ fn value_type_for_expr(
         }
         MirExpr::Call { callee, .. }
             if matches!(
-                &**callee,
-                MirExpr::Member { object, field, .. }
-                if matches!(&**object, MirExpr::Var(namespace)
+                extract_stdlib_call_target_mir(callee.as_ref()),
+                Some((ref namespace, ref field))
                     if (namespace == "convert" && (field == "to_float" || field == "parse_f64" || field == "i64_to_f64" || field == "f64_from_bits"))
-                    || (namespace == "math" && field == "sqrt")
-                    || (namespace == "simd" && field == "f64x2_extract"))
+                        || (namespace == "math" && field == "sqrt")
+                        || (namespace == "simd" && field == "f64x2_extract")
             ) =>
         {
             ir::types::F64
@@ -6052,6 +6558,16 @@ fn value_type_for_expr(
                 if matches!(function_returns.get(name), Some(MirType::Bool))) =>
         {
             ir::types::I8
+        }
+        MirExpr::Call { callee, .. }
+            if matches!(
+                extract_stdlib_call_target_mir(callee.as_ref()),
+                Some((ref namespace, ref field))
+                    if (namespace == "json" && matches!(field.as_str(), "parse" | "null" | "bool" | "i64" | "f64" | "str"))
+                        || (namespace == "json.builder" && field != "finish")
+            ) =>
+        {
+            ptr_ty
         }
         MirExpr::Call { callee, .. }
             if matches!(&**callee, MirExpr::Member { field, .. } if field == "get"
@@ -6110,7 +6626,7 @@ fn mir_ty_to_clif(ty: &MirType, ptr_ty: ir::Type) -> ir::Type {
         MirType::I64 | MirType::Unknown => ir::types::I64,
         MirType::F64 => ir::types::F64,
         MirType::Bool => ir::types::I8,
-        MirType::Str => ptr_ty,
+        MirType::Str | MirType::Json | MirType::JsonBuilder => ptr_ty,
         MirType::Void => ir::types::I64,
     }
 }

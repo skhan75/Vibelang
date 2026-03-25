@@ -54,8 +54,7 @@ pub load_port(default_port: Int) -> Int {
   if cfg.is_ok() {
     raw := cfg.unwrap()
     if json.is_valid(raw) {
-      // In preview, many JSON helpers operate on JSON text.
-      // Use the runnable examples below for the current semantics.
+      // Parse to Json (or use json.decode_<Type> for a fixed schema); see section 17.2.
       log.info("loaded config.json")
     }
   }
@@ -75,17 +74,37 @@ Runnables you can copy from:
 
 ## 17.2 JSON at boundaries (preview)
 
-For many apps, JSON is the boundary format: config files, HTTP APIs, logs.
+For many apps, JSON is the boundary format: config files, HTTP APIs, logs. Treat
+the **structured value** (`Json`) as the center of gravity: parse incoming text
+once, work with values or nominal `type`s, then serialize back to text only when
+you cross a boundary (socket, file, logger).
 
-In the current preview surface, `std.json` provides helpers for:
+**Inside your program**
 
-- validation (`json.is_valid`)
-- canonicalization / quoting (`json.parse`, `json.stringify`)
-- typed codec entrypoints for nominal `type` values (`json.decode_<Type>`, `json.encode_<Type>`)
+- **`json.builder`** — canonical way to build dynamic objects and arrays (keys
+  and typed `value_*` calls express intent; you are not hand-typing `{` and
+  escape sequences).
+- **`json.parse` / `json.stringify` / `json.stringify_pretty`** — text ↔ `Json`.
+  Use `json.null`, `json.bool`, `json.i64`, `json.f64`, `json.str` when you need
+  explicit scalar `Json` values (for example before `stringify`).
+
+**Compatibility paths (still supported)**
+
+- **`json.encode_<Type>` / `json.decode_<Type>`** — when you have a nominal
+  `type` and want field-aware decode with defaults.
+- **`json.from_map(Map<Str, Str>)`** — convenience for stringly-typed maps only;
+  not the primary modeling tool.
+
+**At the wire**
+
+- Validate unknown text with **`json.is_valid`** before **`json.parse`** if you
+  need a guard; HTTP bodies and file contents are still **`Str`** until parsed.
 
 Runnables:
 
 - `examples/07_stdlib_io_json_regex_http/47_json_parse_stringify_and_codecs.yb`
+- `examples/07_stdlib_io_json_regex_http/59_json_builder_object_basics.yb`
+- `examples/07_stdlib_io_json_regex_http/62_json_builder_http_post_body.yb`
 
 ---
 

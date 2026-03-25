@@ -1,0 +1,19 @@
+pub main() -> Int {
+  @effect io
+  jb := json.builder.new(128)
+  jb = json.builder.begin_object(jb)
+  jb = json.builder.key(jb, "ok")
+  jb = json.builder.value_bool(jb, true)
+  jb = json.builder.key(jb, "count")
+  jb = json.builder.value_i64(jb, 2)
+  jb = json.builder.key(jb, "items")
+  jb = json.builder.begin_array(jb)
+  jb = json.builder.value_str(jb, "a")
+  jb = json.builder.value_str(jb, "b")
+  jb = json.builder.end_array(jb)
+  jb = json.builder.key(jb, "meta")
+  jb = json.builder.value_json(jb, json.parse("{\"z\":9}"))
+  jb = json.builder.end_object(jb)
+  println(json.builder.finish(jb))
+  0
+}
