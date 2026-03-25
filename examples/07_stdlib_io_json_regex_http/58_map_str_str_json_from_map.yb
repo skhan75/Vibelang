@@ -24,7 +24,6 @@ pub main() -> Int {
   if cfg.host.len() > 0 { println("host-len-ok") } else { println("host-len-bad") }
   if cfg.host == "localhost" { println("host-eq-ok") } else { println("host-eq-bad") }
 
-  // json.encode_<Type> for struct serialization
-  println(json.encode_Config(cfg))
+  println(json.encode(cfg))
   0
 }

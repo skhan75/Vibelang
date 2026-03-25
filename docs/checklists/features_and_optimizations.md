@@ -290,7 +290,7 @@ without rewriting core functionality in another language.
 - [x] Provide a canonical way to convert between JSON and user-defined nominal types.
 - [x] Recursive nested struct encoding/decoding.
 - **Evidence**:
-  - Canonical generated entrypoints: `json.encode_<Type>` / `json.decode_<Type>(raw, fallback)`
+  - Canonical surface: `json.encode(value)` / `json.decode(raw, fallback)` — compiler infers the type from the argument. Legacy `json.encode_<Type>` / `json.decode_<Type>` still accepted.
   - Nested struct fields automatically serialize to/from nested JSON objects.
   - Schema generation: `json_codec_schema_recursive` in `crates/vibe_codegen/src/lib.rs` inlines nested type schemas with `{...}` delimiters.
   - Runtime: `vibe_json_encode_record_into` / `vibe_json_decode_record` in `runtime/native/vibe_runtime.c` recursively handle nested records.

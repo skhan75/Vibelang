@@ -2547,6 +2547,101 @@ fn infer_stdlib_namespace_call(
     call_span: Span,
 ) -> Option<TypeKind> {
     if namespace == "json" {
+        if field == "encode" {
+            if args.len() != 1 {
+                diagnostics.push(Diagnostic::new(
+                    "E2237",
+                    Severity::Error,
+                    format!("`json.encode` expects 1 argument, got {}", args.len()),
+                    call_span,
+                ));
+                return Some(TypeKind::Unknown);
+            }
+            if let Some(actual) = arg_types.first() {
+                match actual {
+                    TypeKind::UserType(name) => {
+                        if !type_defs.contains_key(name.as_str()) {
+                            diagnostics.push(Diagnostic::new(
+                                "E2239",
+                                Severity::Error,
+                                format!("unknown json codec target type `{name}`"),
+                                call_span,
+                            ));
+                            return Some(TypeKind::Unknown);
+                        }
+                    }
+                    TypeKind::Unknown => {}
+                    other => {
+                        diagnostics.push(Diagnostic::new(
+                            "E2238",
+                            Severity::Error,
+                            format!(
+                                "`json.encode` argument must be a user-defined struct type, got `{}`",
+                                type_name(other)
+                            ),
+                            args.first().map(|arg| arg.span()).unwrap_or(call_span),
+                        ));
+                    }
+                }
+            }
+            return Some(TypeKind::Str);
+        }
+        if field == "decode" {
+            if args.len() != 2 {
+                diagnostics.push(Diagnostic::new(
+                    "E2237",
+                    Severity::Error,
+                    format!("`json.decode` expects 2 arguments, got {}", args.len()),
+                    call_span,
+                ));
+                return Some(TypeKind::Unknown);
+            }
+            if let Some(actual) = arg_types.first() {
+                if !matches!(actual, TypeKind::Str | TypeKind::Unknown) {
+                    diagnostics.push(Diagnostic::new(
+                        "E2238",
+                        Severity::Error,
+                        format!(
+                            "`json.decode` argument 1 expects `Str`, got `{}`",
+                            type_name(actual)
+                        ),
+                        args.first().map(|arg| arg.span()).unwrap_or(call_span),
+                    ));
+                }
+            }
+            if let Some(fallback_ty) = arg_types.get(1) {
+                match fallback_ty {
+                    TypeKind::UserType(name) => {
+                        if !type_defs.contains_key(name.as_str()) {
+                            diagnostics.push(Diagnostic::new(
+                                "E2239",
+                                Severity::Error,
+                                format!("unknown json codec target type `{name}`"),
+                                call_span,
+                            ));
+                            return Some(TypeKind::Unknown);
+                        }
+                        return Some(TypeKind::UserType(name.clone()));
+                    }
+                    TypeKind::Unknown => {
+                        return Some(TypeKind::Unknown);
+                    }
+                    other => {
+                        diagnostics.push(Diagnostic::new(
+                            "E2238",
+                            Severity::Error,
+                            format!(
+                                "`json.decode` fallback must be a user-defined struct type, got `{}`",
+                                type_name(other)
+                            ),
+                            args.get(1).map(|arg| arg.span()).unwrap_or(call_span),
+                        ));
+                        return Some(TypeKind::Unknown);
+                    }
+                }
+            }
+            return Some(TypeKind::Unknown);
+        }
         if let Some(target_type_name) = field.strip_prefix("encode_") {
             if !type_defs.contains_key(target_type_name) {
                 diagnostics.push(Diagnostic::new(

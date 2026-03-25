@@ -106,7 +106,8 @@ The standard library treats JSON as a first-class boundary type:
   strings, arrays, and objects. Produced by `json.parse`, `json.null` /
   `json.bool` / `json.i64` / `json.f64` / `json.str`, and consumed by
   `json.stringify` / `json.stringify_pretty`. Typed records use
-  `json.encode_<Type>` / `json.decode_<Type>` at the boundary.
+  `json.encode` / `json.decode` at the boundary (the compiler infers the
+  target type from the argument).
 - **`JsonBuilder`** — incremental serializer handle for dynamic structure.
   Canonical API: `json.builder.new`, `begin_object` / `end_object`,
   `begin_array` / `end_array`, `key`, `value_*`, `finish` → `Str`.
@@ -117,10 +118,11 @@ user-defined types or payload enums before those features are fully executable.
 
 ### Nested struct encoding
 
-`json.encode_<Type>` recursively serializes nested user-defined struct fields
-into nested JSON objects. `json.decode_<Type>` recursively reconstructs nested
+`json.encode` recursively serializes nested user-defined struct fields
+into nested JSON objects. `json.decode` recursively reconstructs nested
 structs from JSON, using the fallback record's nested fields for any missing
-keys. This means idiomatic VibeLang code should model domain data as typed
+keys. The compiler infers the target type from the argument at compile time.
+This means idiomatic VibeLang code should model domain data as typed
 structs and let the codec handle serialization — no manual `json.builder`
 needed for structured data.
 

@@ -118,15 +118,15 @@ pub main() -> Int {{
   println(json.stringify(json.parse("{{\"b\":2}}")))
   println(json.stringify(json.str("hello-stdlib")))
   fallback := User {{ id: 1, name: "fallback", active: false }}
-  decoded := json.decode_User("{{\"id\":7,\"name\":\"sam\",\"active\":true}}", fallback)
-  println(json.encode_User(decoded))
+  decoded := json.decode("{{\"id\":7,\"name\":\"sam\",\"active\":true}}", fallback)
+  println(json.encode(decoded))
   println(json.stringify_i64(decoded.id))
   println(decoded.name)
   if decoded.active {{
     println("active")
   }}
-  decoded2 := json.decode_User("{{\"id\":2}}", fallback)
-  println(json.encode_User(decoded2))
+  decoded2 := json.decode("{{\"id\":2}}", fallback)
+  println(json.encode(decoded2))
   println(json.stringify_i64(decoded2.id))
   println(decoded2.name)
   if decoded2.active {{

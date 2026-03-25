@@ -19,17 +19,17 @@ pub main() -> Int {
   @effect alloc
 
   user := build_user(7, "sam", "NYC", 10001)
-  println(json.encode_User(user))
+  println(json.encode(user))
 
   parsed := json.parse("{\"a\":1}")
   println(json.stringify(parsed))
   println(json.stringify(json.str("vibe")))
 
   fallback := User { id: 0, name: "fb", active: false, address: Address { city: "none", zip: 0 } }
-  decoded := json.decode_User("{\"id\":7,\"name\":\"sam\",\"active\":true,\"address\":{\"city\":\"NYC\",\"zip\":10001}}", fallback)
-  println(json.encode_User(decoded))
+  decoded := json.decode("{\"id\":7,\"name\":\"sam\",\"active\":true,\"address\":{\"city\":\"NYC\",\"zip\":10001}}", fallback)
+  println(json.encode(decoded))
 
-  decoded2 := json.decode_User("{\"id\":9}", fallback)
-  println(json.encode_User(decoded2))
+  decoded2 := json.decode("{\"id\":9}", fallback)
+  println(json.encode(decoded2))
   0
 }

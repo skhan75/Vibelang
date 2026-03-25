@@ -54,7 +54,7 @@ pub load_port(default_port: Int) -> Int {
   if cfg.is_ok() {
     raw := cfg.unwrap()
     if json.is_valid(raw) {
-      // Parse to Json (or use json.decode_<Type> for a fixed schema); see section 17.2.
+      // Parse to Json (or use json.decode for a fixed schema); see section 17.2.
       log.info("loaded config.json")
     }
   }
@@ -90,8 +90,8 @@ you cross a boundary (socket, file, logger).
 
 **Compatibility paths (still supported)**
 
-- **`json.encode_<Type>` / `json.decode_<Type>`** — when you have a nominal
-  `type` and want field-aware decode with defaults.
+- **`json.encode(value)` / `json.decode(raw, fallback)`** — when you have a
+  nominal `type` and want field-aware decode with defaults.
 - **`json.from_map(Map<Str, Str>)`** — convenience for stringly-typed maps only;
   not the primary modeling tool.
 

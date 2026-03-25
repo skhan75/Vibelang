@@ -378,13 +378,45 @@ fn lower_expr(expr: &HirExpr) -> Result<MirExpr, String> {
                 .map(Box::new),
             object_is_str: object.ty == "Str",
         },
-        HirExprKind::Call { callee, args } => MirExpr::Call {
-            callee: Box::new(lower_expr(callee)?),
-            args: args
-                .iter()
-                .map(lower_expr)
-                .collect::<Result<Vec<_>, String>>()?,
-        },
+        HirExprKind::Call { callee, args } => {
+            let mut lowered_callee = lower_expr(callee)?;
+            if let MirExpr::Member {
+                ref object,
+                ref mut field,
+                ..
+            } = lowered_callee
+            {
+                if let MirExpr::Var(ns) = object.as_ref() {
+                    if ns == "json" && field == "encode" && args.len() == 1 {
+                        let arg_ty = &args[0].ty;
+                        if !arg_ty.is_empty()
+                            && arg_ty != "Unknown"
+                            && arg_ty.chars().next().map_or(false, |c| c.is_ascii_uppercase())
+                        {
+                            *field = format!("encode_{arg_ty}");
+                        }
+                    } else if ns == "json" && field == "decode" && args.len() == 2 {
+                        let fallback_ty = &args[1].ty;
+                        if !fallback_ty.is_empty()
+                            && fallback_ty != "Unknown"
+                            && fallback_ty
+                                .chars()
+                                .next()
+                                .map_or(false, |c| c.is_ascii_uppercase())
+                        {
+                            *field = format!("decode_{fallback_ty}");
+                        }
+                    }
+                }
+            }
+            MirExpr::Call {
+                callee: Box::new(lowered_callee),
+                args: args
+                    .iter()
+                    .map(lower_expr)
+                    .collect::<Result<Vec<_>, String>>()?,
+            }
+        }
         HirExprKind::Binary { left, op, right } => MirExpr::Binary {
             left: Box::new(lower_expr(left)?),
             op: format!("{op:?}"),

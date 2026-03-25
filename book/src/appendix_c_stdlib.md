@@ -292,22 +292,23 @@ already-built subtree when needed.
 Runnable examples: `examples/07_stdlib_io_json_regex_http/59_json_builder_object_basics.yb`
 through `62_json_builder_http_post_body.yb`, and `47_json_parse_stringify_and_codecs.yb`.
 
-### Typed codecs: `encode_<Type>` / `decode_<Type>`
+### Typed codecs: `json.encode` / `json.decode`
 
-For nominal `type` declarations, the compiler generates typed codec
-entrypoints on `json.*`. **This is the preferred approach** when your domain
-model is a fixed `type` — it eliminates manual JSON building entirely:
+For nominal `type` declarations, the compiler generates typed codecs that
+are invoked through `json.encode` and `json.decode`. The compiler infers the
+struct type from the argument — no type suffix needed. **This is the preferred
+approach** when your domain model is a fixed `type`:
 
 ```vibe
 type Address { city: Str, zip: Int }
 type User { id: Int, name: Str, active: Bool, address: Address }
 
 user := User { id: 7, name: "sam", active: true, address: Address { city: "NYC", zip: 10001 } }
-wire := json.encode_User(user)
+wire := json.encode(user)
 // {"id":7,"name":"sam","active":true,"address":{"city":"NYC","zip":10001}}
 
 fallback := User { id: 0, name: "fb", active: false, address: Address { city: "", zip: 0 } }
-decoded := json.decode_User(wire, fallback)
+decoded := json.decode(wire, fallback)
 ```
 
 Nested struct fields are recursively encoded to JSON objects and recursively

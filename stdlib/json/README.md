@@ -1,11 +1,11 @@
 # `json` module (preview)
 
-The module centers on the `Json` value type: parse text into `Json`, stringify `Json` back to text, and build JSON incrementally with `json.builder` when structure is dynamic. Typed boundaries use compiler-generated `json.encode_<Type>` / `json.decode_<Type>`.
+The module centers on the `Json` value type: parse text into `Json`, stringify `Json` back to text, and build JSON incrementally with `json.builder` when structure is dynamic. Typed boundaries use `json.encode` / `json.decode` with compiler-inferred types.
 
 **Recommended paths**
 
 - **Arbitrary / runtime-shaped JSON**: `json.parse` → `Json`, then `json.stringify` / `json.stringify_pretty`; or build with `json.builder.*` and `json.builder.finish`.
-- **Fixed nominal models**: `json.encode_<Type>` / `json.decode_<Type>`.
+- **Fixed nominal models**: `json.encode(value)` / `json.decode(raw, fallback)`.
 - **Legacy convenience**: `json.from_map` (string values only, heuristic typing) — not the primary API.
 
 `Result`-based JSON errors and richer typed codec surfaces are future work; today errors are panic-or-sentinel as noted below.
@@ -42,12 +42,14 @@ The module centers on the `Json` value type: parse text into `Json`, stringify `
 - `json.builder.value_json(builder: JsonBuilder, value: Json) -> JsonBuilder`
 - `json.builder.finish(builder: JsonBuilder) -> Str`
 
-**Typed codecs (compiler-generated)**
+**Typed codecs (type-inferred)**
 
-- `json.encode_<Type>(value: Type) -> Str`
-- `json.decode_<Type>(raw: Str, fallback: Type) -> Type`
+- `json.encode(value) -> Str` — the compiler infers the struct type from the argument
+- `json.decode(raw: Str, fallback) -> T` — the compiler infers the target type from the fallback argument
 
 Nested struct fields are recursively encoded/decoded. A `type Outer { inner: Inner }` where `Inner` is also a user-defined struct produces nested JSON objects automatically.
+
+The legacy `json.encode_<Type>` / `json.decode_<Type>` syntax with explicit type suffix is still accepted for backward compatibility.
 
 **Compatibility / utilities**
 
@@ -61,7 +63,7 @@ Nested struct fields are recursively encoded/decoded. A `type Outer { inner: Inn
 
 - **`parse` / `stringify` / `stringify_pretty`** operate on the `Json` AST: escapes and structure follow normal JSON rules. Output is deterministic for a given `Json` value.
 - **`json.builder`**: emit JSON by nesting `begin_object` / `end_object`, `begin_array` / `end_array`, `key` (in objects), then scalar/`value_json` calls. **`finish`** produces the final `Str`; invalid sequencing or misuse can **panic** (same spirit as `parse` strictness).
-- **`encode_<Type>` / `decode_<Type>`**: generated from nominal `type` declarations; field mapping is deterministic for supported field types (`Int`, `Str`, `Bool`, and nested user-defined struct types). Nested structs are recursively encoded to JSON objects and recursively decoded from JSON objects. **`decode_*`** uses **`fallback`** for missing or invalid fields where implemented.
+- **`encode` / `decode`**: the compiler resolves the struct type from the argument at compile time and generates the appropriate codec. Field mapping is deterministic for supported field types (`Int`, `Str`, `Bool`, `Json`, and nested user-defined struct types). Nested structs are recursively encoded to JSON objects and recursively decoded from JSON objects. **`decode`** uses **`fallback`** for missing or invalid fields.
 - **`from_map`**: serializes `Map<Str, Str>` to a JSON object. Values are still strings at the type level; runtime applies heuristics: integer-looking values unquoted, `"true"` / `"false"` as booleans, otherwise JSON strings. Prefer **`json.builder`** or **`Json`** + **`stringify`** when you need explicit types without guessing.
 - **`is_valid`**: structural/literal validation without building a full `Json` value for the caller; returns `false` for malformed input.
 - **`parse_i64`**: parses integer literals with surrounding whitespace.
@@ -82,5 +84,5 @@ Some benchmark parity helpers were intentionally moved out of the default stdlib
 - **`json.builder.finish`** / mismatched **`begin_*` / `end_*`**: **panic** on misuse.
 - **`json.is_valid`**: `false` for malformed input; non-panicking.
 - **`json.parse_i64`**: returns **`0`** for invalid numeric input.
-- **`json.decode_<Type>`**: uses provided **`fallback`** for recoverable decode issues (per generated codec behavior).
+- **`json.decode`**: uses provided **`fallback`** for recoverable decode issues (per generated codec behavior).
 - **`json.minify`**: non-panicking for arbitrary text input (best-effort minification).
