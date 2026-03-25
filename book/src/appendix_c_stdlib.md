@@ -297,7 +297,7 @@ through `62_json_builder_http_post_body.yb`, and `47_json_parse_stringify_and_co
 For nominal `type` declarations, the compiler generates typed codecs that
 are invoked through `json.encode` and `json.decode`. The compiler infers the
 struct type from the argument — no type suffix needed. **This is the preferred
-approach** when your domain model is a fixed `type`:
+approach for all structured data** — API payloads, config objects, domain models:
 
 ```vibe
 type Address { city: Str, zip: Int }
@@ -314,6 +314,17 @@ decoded := json.decode(wire, fallback)
 Nested struct fields are recursively encoded to JSON objects and recursively
 decoded back. Missing fields in the JSON fall back to the corresponding field
 in the `fallback` value.
+
+**`json.encode` vs `json.stringify` — when to use which:**
+
+- **`json.encode(value)`** takes a **typed struct** and serializes it to a
+  JSON `Str`. The compiler knows the fields at compile time.
+- **`json.stringify(json_val)`** takes a **runtime `Json` value** (from
+  `json.parse`, `json.i64`, `json.bool`, etc.) and converts it to a `Str`.
+
+Use `json.encode` when your data has a known shape (which is most of the time).
+Use `json.stringify` when working with dynamic/untyped `Json` values parsed from
+unknown sources.
 
 ### `is_valid(s: Str) -> Bool`
 
@@ -413,6 +424,15 @@ println(convert.to_str(resp.status))
 ### `post(url: Str, body: Str, timeout_ms: Int) -> HttpResponse`
 
 Convenience POST request. Returns structured `HttpResponse`.
+
+```vibe
+type LoginReq { email: Str, password: Str }
+
+resp := http.post("https://api.example.com/login", json.encode(LoginReq { email: "a@b.com", password: "secret" }), 5000)
+if resp.status == 200 {
+  println(resp.body)
+}
+```
 
 ### `response(resp: HttpResponse) -> Str`
 
