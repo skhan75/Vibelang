@@ -1,12 +1,56 @@
 # V1 Readiness Dashboard
 
-Date: 2026-02-23
+Date: 2026-03-25
 
 ## Overall Status
 
-- Release candidate cycle: `rc3-ci-cost-optimization`
+- Release candidate cycle: `v1.1.1-stdlib-migration`
 - Blocking `P0` gates open: `0`
 - `P1` gates open: `0`
+
+## v1.1.1 Patch Release — Stdlib C-to-YB Migration
+
+### Summary
+
+Migrated ~100 hardcoded C runtime stdlib functions from compiler-wired tables into
+self-hosted `.yb` modules under `stdlib/std/`, using `@native` FFI for C-backed
+primitives. This is a compiler architecture improvement with no user-facing API changes.
+
+### Modules Migrated
+
+| Module | Functions | Implementation |
+|--------|-----------|----------------|
+| `std.path` | 4 | Pure VibeLang |
+| `std.log` | 3 | `@native` wrappers |
+| `std.env` | 3 | `@native` wrappers |
+| `std.cli` | 2 | `@native` wrappers |
+| `std.time` | 4 | `@native` wrappers |
+| `std.fs` | 4 | `@native` wrappers |
+| `std.convert` | 10 | `@native` wrappers |
+| `std.text` | 10 | `@native` wrappers |
+| `std.encoding` | 6 | `@native` wrappers |
+| `std.regex` | 2 | `@native` wrappers |
+| `std.net` | 8 | `@native` wrappers |
+| `std.math` | 1 | `@native` wrapper |
+| `std.str_builder` | 4 | `@native` wrappers |
+| `std.json` | 12 | `@native` wrappers |
+| `std.http` | 10 + 2 types | `@native` wrappers |
+
+### Compiler Special Cases Retained
+
+- `json.encode`/`json.decode`: compile-time struct schema generation
+- `json.builder.*`: special `JsonBuilder` type
+- `json.from_map`: special map-to-JSON conversion
+- `simd.*`: Cranelift SIMD intrinsics
+- `bench.*`: benchmark feature-gated functions
+
+### Test Evidence
+
+- All 22 stdlib example programs pass (`examples/07_stdlib_io_json_regex_http/` + module import test)
+- `cargo test --lib` passes
+- `cargo clippy --workspace --all-targets -- -D warnings` clean
+- `cargo fmt --all --check` clean
+- CI checks: `fmt_lint`, `cargo-deny`, `secret-scan` all pass
 
 ## Gate Status Snapshot
 
