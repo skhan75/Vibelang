@@ -77,9 +77,17 @@ struct TypeContext<'a> {
     sigs: &'a BTreeMap<String, Option<TypeKind>>,
     type_defs: &'a BTreeMap<String, Vec<(String, TypeKind)>>,
     enum_defs: &'a BTreeMap<String, Vec<String>>,
+    namespace_map: &'a BTreeMap<(String, String), String>,
 }
 
 pub fn check_and_lower(ast: &FileAst) -> CheckOutput {
+    check_and_lower_with_ns(ast, &BTreeMap::new())
+}
+
+pub fn check_and_lower_with_ns(
+    ast: &FileAst,
+    namespace_map: &BTreeMap<(String, String), String>,
+) -> CheckOutput {
     let mut diagnostics = Diagnostics::default();
     let mut signatures: BTreeMap<String, Option<TypeKind>> = BTreeMap::new();
     let mut type_defs: BTreeMap<String, Vec<(String, TypeKind)>> = BTreeMap::new();
@@ -158,6 +166,7 @@ pub fn check_and_lower(ast: &FileAst) -> CheckOutput {
         sigs: &signatures,
         type_defs: &type_defs,
         enum_defs: &enum_defs,
+        namespace_map,
     };
 
     for decl in &ast.declarations {
@@ -1195,7 +1204,7 @@ fn expr_type_hint(expr: &Expr, env: &BTreeMap<String, TypeKind>) -> TypeKind {
                 };
             }
             if let Some((namespace, field)) = extract_stdlib_call_target(callee) {
-                if let Some(ty) = stdlib_namespace_return_hint(&namespace, &field) {
+                if let Some(ty) = stdlib_namespace_return_hint_static(&namespace, &field) {
                     return ty;
                 }
             }
@@ -1290,7 +1299,8 @@ fn infer_expr(
             if let Some(t) = env.get(name) {
                 return t.clone();
             }
-            if sigs.contains_key(name) || is_builtin_ident(name) {
+            let is_ns = ctx.namespace_map.keys().any(|(ns, _)| ns == name);
+            if sigs.contains_key(name) || is_builtin_ident(name) || is_ns {
                 return TypeKind::Unknown;
             }
             diagnostics.push(Diagnostic::new(
@@ -1687,13 +1697,15 @@ fn infer_expr(
                 }
             }
             if let Expr::Member { field, .. } = &**callee {
-                if let Some((namespace, stdlib_field)) = extract_stdlib_call_target(callee) {
+                if let Some((namespace, stdlib_field)) =
+                    extract_stdlib_call_target_with_ns(callee, ctx.namespace_map)
+                {
                     if let Some(ret) = infer_stdlib_namespace_call(
                         &namespace,
                         &stdlib_field,
                         args,
                         &arg_types,
-                        ctx.type_defs,
+                        ctx,
                         diagnostics,
                         observed_effects,
                         callee.span(),
@@ -2452,6 +2464,13 @@ fn collect_member_chain(expr: &Expr, parts: &mut Vec<String>) -> bool {
 }
 
 fn extract_stdlib_call_target(callee: &Expr) -> Option<(String, String)> {
+    extract_stdlib_call_target_with_ns(callee, &BTreeMap::new())
+}
+
+fn extract_stdlib_call_target_with_ns(
+    callee: &Expr,
+    namespace_map: &BTreeMap<(String, String), String>,
+) -> Option<(String, String)> {
     let Expr::Member { .. } = callee else {
         return None;
     };
@@ -2459,7 +2478,8 @@ fn extract_stdlib_call_target(callee: &Expr) -> Option<(String, String)> {
     if !collect_member_chain(callee, &mut parts) || parts.len() < 2 {
         return None;
     }
-    if !is_builtin_ident(&parts[0]) {
+    let is_dynamic_ns = namespace_map.keys().any(|(ns, _)| ns == &parts[0]);
+    if !is_builtin_ident(&parts[0]) && !is_dynamic_ns {
         return None;
     }
     let field = parts.pop()?;
@@ -2467,7 +2487,21 @@ fn extract_stdlib_call_target(callee: &Expr) -> Option<(String, String)> {
     Some((namespace, field))
 }
 
-fn stdlib_namespace_return_hint(namespace: &str, field: &str) -> Option<TypeKind> {
+fn stdlib_namespace_return_hint(
+    namespace: &str,
+    field: &str,
+    ctx: &TypeContext,
+) -> Option<TypeKind> {
+    let key = (namespace.to_string(), field.to_string());
+    if let Some(mangled) = ctx.namespace_map.get(&key) {
+        if let Some(ret_ty) = ctx.sigs.get(mangled).and_then(|t| t.clone()) {
+            return Some(ret_ty);
+        }
+    }
+    stdlib_namespace_return_hint_static(namespace, field)
+}
+
+fn stdlib_namespace_return_hint_static(namespace: &str, field: &str) -> Option<TypeKind> {
     match (namespace, field) {
         ("time", "now_ms") | ("time", "monotonic_now_ms") | ("time", "duration_ms") => {
             Some(TypeKind::Int)
@@ -2585,11 +2619,19 @@ fn infer_stdlib_namespace_call(
     field: &str,
     args: &[Expr],
     arg_types: &[TypeKind],
-    type_defs: &BTreeMap<String, Vec<(String, TypeKind)>>,
+    ctx: &TypeContext,
     diagnostics: &mut Diagnostics,
     observed_effects: &mut BTreeSet<String>,
     call_span: Span,
 ) -> Option<TypeKind> {
+    let ns_key = (namespace.to_string(), field.to_string());
+    if let Some(mangled) = ctx.namespace_map.get(&ns_key) {
+        if let Some(ret_ty) = ctx.sigs.get(mangled).and_then(|t| t.clone()) {
+            return Some(ret_ty);
+        }
+    }
+
+    let type_defs = ctx.type_defs;
     if namespace == "json" {
         if field == "encode" {
             if args.len() != 1 {
@@ -2927,7 +2969,7 @@ fn infer_stdlib_namespace_call(
         return Some(ret);
     }
 
-    let ret = stdlib_namespace_return_hint(namespace, field)?;
+    let ret = stdlib_namespace_return_hint(namespace, field, ctx)?;
     let expected = match (namespace, field) {
         ("time", "now_ms") | ("time", "monotonic_now_ms") => Some((&[][..], "nondet")),
         ("time", "duration_ms") => Some((&["Int"][..], "")),

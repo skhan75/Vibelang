@@ -220,7 +220,7 @@ struct LoopContext {
 }
 
 pub fn emit_object(program: &MirProgram, options: &CodegenOptions) -> Result<Vec<u8>, String> {
-    emit_object_with_types(program, options, &BTreeMap::new(), &BTreeMap::new())
+    emit_object_with_types(program, options, &BTreeMap::new(), &BTreeMap::new(), &BTreeMap::new())
 }
 
 #[allow(unused_variables)]
@@ -229,6 +229,7 @@ pub fn emit_object_with_types(
     options: &CodegenOptions,
     type_defs: &BTreeMap<String, Vec<(String, String)>>,
     enum_defs: &BTreeMap<String, Vec<String>>,
+    namespace_map: &BTreeMap<(String, String), String>,
 ) -> Result<Vec<u8>, String> {
     let triple = parse_target(&options.target)?;
     let isa = build_isa(triple, &options.profile, &options.debuginfo)?;

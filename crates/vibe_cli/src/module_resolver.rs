@@ -13,6 +13,7 @@ pub struct CompilationUnit {
     pub source: String,
     pub ast: FileAst,
     pub diagnostics: Diagnostics,
+    pub namespace_map: BTreeMap<(String, String), String>,
 }
 
 struct ParsedSource {
@@ -28,10 +29,18 @@ pub fn resolve_compilation_unit(entry_path: &Path) -> Result<CompilationUnit, St
     diagnostics.extend(entry_parsed.diagnostics.clone().into_sorted());
 
     if entry_parsed.ast.module.is_none() && entry_parsed.ast.imports.is_empty() {
+        let (ns_decls, namespace_map) = load_stdlib_namespace_functions();
+        let mut decls = entry_parsed.ast.declarations;
+        decls.extend(ns_decls);
         return Ok(CompilationUnit {
             source: entry_source,
-            ast: entry_parsed.ast,
+            ast: FileAst {
+                module: None,
+                imports: Vec::new(),
+                declarations: decls,
+            },
             diagnostics,
+            namespace_map,
         });
     }
 
@@ -44,17 +53,9 @@ pub fn resolve_compilation_unit(entry_path: &Path) -> Result<CompilationUnit, St
     let canonical_root = root_dir.canonicalize().unwrap_or(root_dir.clone());
     let mut files = crate::collect_vibe_files(&root_dir)?;
 
-    let needs_std = files.iter().any(|f| {
-        fs::read_to_string(f)
-            .ok()
-            .map(|src| parse_source(&src))
-            .map_or(false, |p| p.ast.imports.iter().any(|i| i.starts_with("std.")))
-    });
-    if needs_std {
-        if let Some(stdlib_root) = find_stdlib_root() {
-            if let Ok(stdlib_files) = crate::collect_vibe_files(&stdlib_root) {
-                files.extend(stdlib_files);
-            }
+    if let Some(stdlib_root) = find_stdlib_root() {
+        if let Ok(stdlib_files) = crate::collect_vibe_files(&stdlib_root) {
+            files.extend(stdlib_files);
         }
     }
 
@@ -131,6 +132,7 @@ pub fn resolve_compilation_unit(entry_path: &Path) -> Result<CompilationUnit, St
             source: entry_source,
             ast: entry_parsed.ast,
             diagnostics,
+            namespace_map: BTreeMap::new(),
         });
     };
 
@@ -145,6 +147,7 @@ pub fn resolve_compilation_unit(entry_path: &Path) -> Result<CompilationUnit, St
             source: entry_source,
             ast: entry_parsed.ast,
             diagnostics,
+            namespace_map: BTreeMap::new(),
         });
     };
 
@@ -241,6 +244,9 @@ pub fn resolve_compilation_unit(entry_path: &Path) -> Result<CompilationUnit, St
         }
     }
 
+    let (ns_decls, namespace_map) = load_stdlib_namespace_functions();
+    merged_decls.extend(ns_decls);
+
     let mut merged_source = String::new();
     for module in &order {
         if let Some(idx) = module_index.get(module).copied() {
@@ -258,6 +264,7 @@ pub fn resolve_compilation_unit(entry_path: &Path) -> Result<CompilationUnit, St
             declarations: merged_decls,
         },
         diagnostics,
+        namespace_map,
     })
 }
 
@@ -529,6 +536,48 @@ fn expected_module_name_from_path(root: &Path, source: &Path) -> Option<String> 
         return None;
     }
     Some(parts.join("."))
+}
+
+fn load_stdlib_namespace_functions() -> (Vec<Declaration>, BTreeMap<(String, String), String>) {
+    let mut ns_decls = Vec::new();
+    let mut ns_map = BTreeMap::new();
+
+    let Some(stdlib_root) = find_stdlib_root() else {
+        return (ns_decls, ns_map);
+    };
+    let Ok(files) = crate::collect_vibe_files(&stdlib_root) else {
+        return (ns_decls, ns_map);
+    };
+
+    for file in files {
+        let Ok(source) = fs::read_to_string(&file) else {
+            continue;
+        };
+        let parsed = parse_source(&source);
+        let Some(module_name) = &parsed.ast.module else {
+            continue;
+        };
+        if !module_name.starts_with("std.") {
+            continue;
+        }
+        let namespace = &module_name["std.".len()..];
+        for decl in &parsed.ast.declarations {
+            if let Declaration::Function(func) = decl {
+                if !func.is_public {
+                    continue;
+                }
+                let mangled = format!("__stdlib_{namespace}__{}", func.name);
+                let mut mangled_func = func.clone();
+                mangled_func.name = mangled.clone();
+                ns_decls.push(Declaration::Function(mangled_func));
+                ns_map.insert(
+                    (namespace.to_string(), func.name.clone()),
+                    mangled,
+                );
+            }
+        }
+    }
+    (ns_decls, ns_map)
 }
 
 fn find_stdlib_root() -> Option<PathBuf> {
