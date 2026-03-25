@@ -84,14 +84,13 @@ pub fn resolve_compilation_unit(entry_path: &Path) -> Result<CompilationUnit, St
         let Some(module_name) = &parsed.ast.module else {
             continue;
         };
-        let expected = expected_module_name_from_path(&canonical_root, &docs[idx].0)
-            .or_else(|| {
+        let expected =
+            expected_module_name_from_path(&canonical_root, &docs[idx].0).or_else(|| {
                 stdlib_parent
                     .as_ref()
                     .and_then(|sp| expected_module_name_from_path(sp, &docs[idx].0))
             });
-        if let Some(expected_module) = expected
-        {
+        if let Some(expected_module) = expected {
             if module_name != &expected_module {
                 diagnostics.push(Diagnostic::new(
                     "E2316",
@@ -199,7 +198,7 @@ pub fn resolve_compilation_unit(entry_path: &Path) -> Result<CompilationUnit, St
                                     "duplicate type `{}` — already defined in another imported module",
                                     t.name
                                 ),
-                                t.span.clone(),
+                                t.span,
                             ));
                         }
                         merged_decls.push(decl.clone());
@@ -215,7 +214,7 @@ pub fn resolve_compilation_unit(entry_path: &Path) -> Result<CompilationUnit, St
                                     "duplicate enum `{}` — already defined in another imported module",
                                     e.name
                                 ),
-                                e.span.clone(),
+                                e.span,
                             ));
                         }
                         merged_decls.push(decl.clone());
@@ -553,7 +552,9 @@ fn expected_module_name_from_path(root: &Path, source: &Path) -> Option<String> 
 }
 
 fn is_native_only(func: &vibe_ast::FunctionDecl) -> bool {
-    func.contracts.iter().any(|c| matches!(c, Contract::Native { .. }))
+    func.contracts
+        .iter()
+        .any(|c| matches!(c, Contract::Native { .. }))
         && func.body.is_empty()
         && func.tail_expr.is_none()
 }
@@ -594,10 +595,7 @@ fn load_stdlib_namespace_functions() -> (Vec<Declaration>, BTreeMap<(String, Str
                     mangled_func.name = mangled.clone();
                     ns_decls.push(Declaration::Function(mangled_func));
                     if func.is_public {
-                        ns_map.insert(
-                            (namespace.to_string(), func.name.clone()),
-                            mangled,
-                        );
+                        ns_map.insert((namespace.to_string(), func.name.clone()), mangled);
                     }
                 } else {
                     ns_decls.push(decl.clone());

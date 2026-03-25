@@ -449,7 +449,10 @@ fn1(a, b) { x := 1 }
         let src = "x := /*\n * multi\n * line\n */ 1";
         let (tokens, diags) = lex(src);
         assert!(!diags.has_errors());
-        let idents: Vec<_> = tokens.iter().filter(|t| t.kind == TokenKind::IntLit).collect();
+        let idents: Vec<_> = tokens
+            .iter()
+            .filter(|t| t.kind == TokenKind::IntLit)
+            .collect();
         assert_eq!(idents.len(), 1);
         assert_eq!(idents[0].lexeme, "1");
     }
@@ -459,7 +462,9 @@ fn1(a, b) { x := 1 }
         let src = "/** doc comment */\nmodule app";
         let (tokens, diags) = lex(src);
         assert!(!diags.has_errors());
-        let has_module = tokens.iter().any(|t| t.kind == TokenKind::Keyword(Keyword::Module));
+        let has_module = tokens
+            .iter()
+            .any(|t| t.kind == TokenKind::Keyword(Keyword::Module));
         assert!(has_module);
     }
 
@@ -474,7 +479,10 @@ fn1(a, b) { x := 1 }
     fn empty_block_comment() {
         let (tokens, diags) = lex("x := /**/ 1");
         assert!(!diags.has_errors());
-        let ints: Vec<_> = tokens.iter().filter(|t| t.kind == TokenKind::IntLit).collect();
+        let ints: Vec<_> = tokens
+            .iter()
+            .filter(|t| t.kind == TokenKind::IntLit)
+            .collect();
         assert_eq!(ints.len(), 1);
     }
 }

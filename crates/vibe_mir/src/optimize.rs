@@ -147,7 +147,7 @@ fn constant_fold_expr(expr: &MirExpr) -> MirExpr {
     }
 }
 
-fn constant_fold_stmts(stmts: &mut Vec<MirStmt>) {
+fn constant_fold_stmts(stmts: &mut [MirStmt]) {
     for stmt in stmts.iter_mut() {
         match stmt {
             MirStmt::Let { expr, .. } | MirStmt::Assign { expr, .. } => {
@@ -718,7 +718,7 @@ fn try_inline_call_expr(
     None
 }
 
-fn rewrite_returns_to_assign(stmts: &mut Vec<MirStmt>, target_var: &str) {
+fn rewrite_returns_to_assign(stmts: &mut [MirStmt], target_var: &str) {
     for stmt in stmts.iter_mut() {
         match stmt {
             MirStmt::Return(expr) => {

@@ -140,7 +140,13 @@ struct LoopContext {
 }
 
 pub fn emit_object(program: &MirProgram, options: &CodegenOptions) -> Result<Vec<u8>, String> {
-    emit_object_with_types(program, options, &BTreeMap::new(), &BTreeMap::new(), &BTreeMap::new())
+    emit_object_with_types(
+        program,
+        options,
+        &BTreeMap::new(),
+        &BTreeMap::new(),
+        &BTreeMap::new(),
+    )
 }
 
 #[allow(unused_variables)]
@@ -345,7 +351,9 @@ fn declare_runtime_functions(
     let mut container_get_str_str_sig = module.make_signature();
     container_get_str_str_sig.params.push(AbiParam::new(ptr_ty));
     container_get_str_str_sig.params.push(AbiParam::new(ptr_ty));
-    container_get_str_str_sig.returns.push(AbiParam::new(ptr_ty));
+    container_get_str_str_sig
+        .returns
+        .push(AbiParam::new(ptr_ty));
     let container_get_str_str_fn = module
         .declare_function(
             "vibe_map_get_str_str",
@@ -368,7 +376,9 @@ fn declare_runtime_functions(
 
     let mut json_from_str_str_map_sig = module.make_signature();
     json_from_str_str_map_sig.params.push(AbiParam::new(ptr_ty));
-    json_from_str_str_map_sig.returns.push(AbiParam::new(ptr_ty));
+    json_from_str_str_map_sig
+        .returns
+        .push(AbiParam::new(ptr_ty));
     let json_from_str_str_map_fn = module
         .declare_function(
             "vibe_json_from_str_str_map",
@@ -816,7 +826,9 @@ fn declare_runtime_functions(
         .map_err(|e| format!("failed to declare runtime json_decode_record symbol: {e}"))?;
 
     let mut json_builder_new_sig = module.make_signature();
-    json_builder_new_sig.params.push(AbiParam::new(ir::types::I64));
+    json_builder_new_sig
+        .params
+        .push(AbiParam::new(ir::types::I64));
     json_builder_new_sig.returns.push(AbiParam::new(ptr_ty));
     let json_builder_new_fn = module
         .declare_function(
@@ -884,43 +896,31 @@ fn declare_runtime_functions(
         )
         .map_err(|e| format!("failed to declare runtime json_builder_key symbol: {e}"))?;
     let json_builder_value_bool_fn = module
-        .declare_function(
-            "vibe_json_builder_value_bool",
-            Linkage::Import,
-            &{
-                let mut sig = module.make_signature();
-                sig.params.push(AbiParam::new(ptr_ty));
-                sig.params.push(AbiParam::new(ir::types::I64));
-                sig.returns.push(AbiParam::new(ptr_ty));
-                sig
-            },
-        )
+        .declare_function("vibe_json_builder_value_bool", Linkage::Import, &{
+            let mut sig = module.make_signature();
+            sig.params.push(AbiParam::new(ptr_ty));
+            sig.params.push(AbiParam::new(ir::types::I64));
+            sig.returns.push(AbiParam::new(ptr_ty));
+            sig
+        })
         .map_err(|e| format!("failed to declare runtime json_builder_value_bool symbol: {e}"))?;
     let json_builder_value_i64_fn = module
-        .declare_function(
-            "vibe_json_builder_value_i64",
-            Linkage::Import,
-            &{
-                let mut sig = module.make_signature();
-                sig.params.push(AbiParam::new(ptr_ty));
-                sig.params.push(AbiParam::new(ir::types::I64));
-                sig.returns.push(AbiParam::new(ptr_ty));
-                sig
-            },
-        )
+        .declare_function("vibe_json_builder_value_i64", Linkage::Import, &{
+            let mut sig = module.make_signature();
+            sig.params.push(AbiParam::new(ptr_ty));
+            sig.params.push(AbiParam::new(ir::types::I64));
+            sig.returns.push(AbiParam::new(ptr_ty));
+            sig
+        })
         .map_err(|e| format!("failed to declare runtime json_builder_value_i64 symbol: {e}"))?;
     let json_builder_value_f64_fn = module
-        .declare_function(
-            "vibe_json_builder_value_f64",
-            Linkage::Import,
-            &{
-                let mut sig = module.make_signature();
-                sig.params.push(AbiParam::new(ptr_ty));
-                sig.params.push(AbiParam::new(ir::types::F64));
-                sig.returns.push(AbiParam::new(ptr_ty));
-                sig
-            },
-        )
+        .declare_function("vibe_json_builder_value_f64", Linkage::Import, &{
+            let mut sig = module.make_signature();
+            sig.params.push(AbiParam::new(ptr_ty));
+            sig.params.push(AbiParam::new(ir::types::F64));
+            sig.returns.push(AbiParam::new(ptr_ty));
+            sig
+        })
         .map_err(|e| format!("failed to declare runtime json_builder_value_f64 symbol: {e}"))?;
     let json_builder_value_str_fn = module
         .declare_function(
@@ -1204,10 +1204,14 @@ fn define_function(
 
         let mut native_sig = module.make_signature();
         for p in &function.params {
-            native_sig.params.push(AbiParam::new(mir_ty_to_clif(&p.ty, ptr_ty)));
+            native_sig
+                .params
+                .push(AbiParam::new(mir_ty_to_clif(&p.ty, ptr_ty)));
         }
         if function.return_type != MirType::Void {
-            native_sig.returns.push(AbiParam::new(mir_ty_to_clif(&function.return_type, ptr_ty)));
+            native_sig
+                .returns
+                .push(AbiParam::new(mir_ty_to_clif(&function.return_type, ptr_ty)));
         }
         let native_id = module
             .declare_function(native_sym, Linkage::Import, &native_sig)
@@ -1228,8 +1232,10 @@ fn define_function(
         if function.return_type == MirType::Void {
             builder.ins().return_(&[]);
         } else {
-            let ret = builder.inst_results(call).first().copied()
-                .ok_or_else(|| format!("native function `{native_sym}` did not return a value"))?;
+            let ret =
+                builder.inst_results(call).first().copied().ok_or_else(|| {
+                    format!("native function `{native_sym}` did not return a value")
+                })?;
             builder.ins().return_(&[ret]);
         }
         builder.finalize();
@@ -2721,45 +2727,32 @@ fn emit_expr(
             } else {
                 let (first_key_expr, first_val_expr) = &entries[0];
                 let use_str_keys = is_known_string_expr_full(first_key_expr, owner, type_defs);
-                let use_str_vals = use_str_keys
-                    && is_known_string_expr_full(first_val_expr, owner, type_defs);
-                let local_new = if use_str_keys && use_str_vals {
-                    let cap = builder
-                        .ins()
-                        .iconst(ir::types::I64, entries.len() as i64);
-                    let new_fn =
-                        module.declare_func_in_func(runtime_fns.map_new_str_str_fn, builder.func);
-                    let call = builder.ins().call(new_fn, &[cap]);
-                    builder
-                        .inst_results(call)
-                        .first()
-                        .copied()
-                        .ok_or_else(|| {
+                let use_str_vals =
+                    use_str_keys && is_known_string_expr_full(first_val_expr, owner, type_defs);
+                let local_new =
+                    if use_str_keys && use_str_vals {
+                        let cap = builder.ins().iconst(ir::types::I64, entries.len() as i64);
+                        let new_fn = module
+                            .declare_func_in_func(runtime_fns.map_new_str_str_fn, builder.func);
+                        let call = builder.ins().call(new_fn, &[cap]);
+                        builder.inst_results(call).first().copied().ok_or_else(|| {
                             "map runtime call did not return map handle".to_string()
                         })?
-                } else if use_str_keys {
-                    let new_fn =
-                        module.declare_func_in_func(runtime_fns.map_new_str_i64_fn, builder.func);
-                    let call = builder.ins().call(new_fn, &[]);
-                    builder
-                        .inst_results(call)
-                        .first()
-                        .copied()
-                        .ok_or_else(|| {
+                    } else if use_str_keys {
+                        let new_fn = module
+                            .declare_func_in_func(runtime_fns.map_new_str_i64_fn, builder.func);
+                        let call = builder.ins().call(new_fn, &[]);
+                        builder.inst_results(call).first().copied().ok_or_else(|| {
                             "map runtime call did not return map handle".to_string()
                         })?
-                } else {
-                    let new_fn =
-                        module.declare_func_in_func(runtime_fns.map_new_i64_i64_fn, builder.func);
-                    let call = builder.ins().call(new_fn, &[]);
-                    builder
-                        .inst_results(call)
-                        .first()
-                        .copied()
-                        .ok_or_else(|| {
+                    } else {
+                        let new_fn = module
+                            .declare_func_in_func(runtime_fns.map_new_i64_i64_fn, builder.func);
+                        let call = builder.ins().call(new_fn, &[]);
+                        builder.inst_results(call).first().copied().ok_or_else(|| {
                             "map runtime call did not return map handle".to_string()
                         })?
-                };
+                    };
                 let map_handle = local_new;
                 for (key_expr, value_expr) in entries {
                     let key = emit_expr(
@@ -3611,8 +3604,18 @@ fn emit_expr(
         }
         MirExpr::Binary { left, op, right } if op == "And" || op == "Or" => {
             let l = emit_expr(
-                left, module, builder, locals, function_ids, function_returns,
-                runtime_fns, ptr_ty, str_data_counter, owner, type_defs, enum_defs,
+                left,
+                module,
+                builder,
+                locals,
+                function_ids,
+                function_returns,
+                runtime_fns,
+                ptr_ty,
+                str_data_counter,
+                owner,
+                type_defs,
+                enum_defs,
             )?;
             let l_ty = builder.func.dfg.value_type(l);
             let zero = builder.ins().iconst(l_ty, 0);
@@ -3621,11 +3624,11 @@ fn emit_expr(
             let rhs_block = builder.create_block();
             let merge_block = builder.create_block();
 
-            let slot = builder.create_sized_stack_slot(
-                cranelift_codegen::ir::StackSlotData::new(
-                    cranelift_codegen::ir::StackSlotKind::ExplicitSlot, 8, 8,
-                ),
-            );
+            let slot = builder.create_sized_stack_slot(cranelift_codegen::ir::StackSlotData::new(
+                cranelift_codegen::ir::StackSlotKind::ExplicitSlot,
+                8,
+                8,
+            ));
 
             if op == "And" {
                 let false_val = builder.ins().iconst(ir::types::I64, 0);
@@ -3640,8 +3643,18 @@ fn emit_expr(
             builder.switch_to_block(rhs_block);
             builder.seal_block(rhs_block);
             let r = emit_expr(
-                right, module, builder, locals, function_ids, function_returns,
-                runtime_fns, ptr_ty, str_data_counter, owner, type_defs, enum_defs,
+                right,
+                module,
+                builder,
+                locals,
+                function_ids,
+                function_returns,
+                runtime_fns,
+                ptr_ty,
+                str_data_counter,
+                owner,
+                type_defs,
+                enum_defs,
             )?;
             let r_ty = builder.func.dfg.value_type(r);
             let r_zero = builder.ins().iconst(r_ty, 0);
@@ -3652,7 +3665,9 @@ fn emit_expr(
 
             builder.switch_to_block(merge_block);
             builder.seal_block(merge_block);
-            builder.ins().stack_load(ir::types::I64, slot, Offset32::new(0))
+            builder
+                .ins()
+                .stack_load(ir::types::I64, slot, Offset32::new(0))
         }
         MirExpr::Binary { left, op, right } => {
             let l = emit_expr(
@@ -3927,7 +3942,12 @@ fn emit_expr(
                 type_defs,
                 enum_defs,
             )?;
-            let tag = builder.ins().load(ir::types::I64, MemFlags::new(), result_ptr, Offset32::new(0));
+            let tag = builder.ins().load(
+                ir::types::I64,
+                MemFlags::new(),
+                result_ptr,
+                Offset32::new(0),
+            );
             let one = builder.ins().iconst(ir::types::I64, 1);
             let is_err = builder.ins().icmp(IntCC::Equal, tag, one);
             let err_block = builder.create_block();
@@ -3940,7 +3960,12 @@ fn emit_expr(
 
             builder.switch_to_block(ok_block);
             builder.seal_block(ok_block);
-            builder.ins().load(ir::types::I64, MemFlags::new(), result_ptr, Offset32::new(8))
+            builder.ins().load(
+                ir::types::I64,
+                MemFlags::new(),
+                result_ptr,
+                Offset32::new(8),
+            )
         }
         MirExpr::ResultOk { expr } => {
             let inner = emit_expr(
@@ -3957,20 +3982,28 @@ fn emit_expr(
                 type_defs,
                 enum_defs,
             )?;
-            let local_alloc = module.declare_func_in_func(runtime_fns.record_alloc_fn, builder.func);
+            let local_alloc =
+                module.declare_func_in_func(runtime_fns.record_alloc_fn, builder.func);
             let slot_count = builder.ins().iconst(ir::types::I64, 2);
             let alloc_call = builder.ins().call(local_alloc, &[slot_count]);
-            let ptr = builder.inst_results(alloc_call).first().copied()
+            let ptr = builder
+                .inst_results(alloc_call)
+                .first()
+                .copied()
                 .ok_or_else(|| "record_alloc did not return".to_string())?;
             let tag = builder.ins().iconst(ir::types::I64, 0);
-            builder.ins().store(MemFlags::new(), tag, ptr, Offset32::new(0));
+            builder
+                .ins()
+                .store(MemFlags::new(), tag, ptr, Offset32::new(0));
             let inner_ty = builder.func.dfg.value_type(inner);
             let to_store = if inner_ty == ir::types::I8 {
                 builder.ins().sextend(ir::types::I64, inner)
             } else {
                 inner
             };
-            builder.ins().store(MemFlags::new(), to_store, ptr, Offset32::new(8));
+            builder
+                .ins()
+                .store(MemFlags::new(), to_store, ptr, Offset32::new(8));
             ptr
         }
         MirExpr::ResultErr { expr } => {
@@ -3988,20 +4021,28 @@ fn emit_expr(
                 type_defs,
                 enum_defs,
             )?;
-            let local_alloc = module.declare_func_in_func(runtime_fns.record_alloc_fn, builder.func);
+            let local_alloc =
+                module.declare_func_in_func(runtime_fns.record_alloc_fn, builder.func);
             let slot_count = builder.ins().iconst(ir::types::I64, 2);
             let alloc_call = builder.ins().call(local_alloc, &[slot_count]);
-            let ptr = builder.inst_results(alloc_call).first().copied()
+            let ptr = builder
+                .inst_results(alloc_call)
+                .first()
+                .copied()
                 .ok_or_else(|| "record_alloc did not return".to_string())?;
             let tag = builder.ins().iconst(ir::types::I64, 1);
-            builder.ins().store(MemFlags::new(), tag, ptr, Offset32::new(0));
+            builder
+                .ins()
+                .store(MemFlags::new(), tag, ptr, Offset32::new(0));
             let inner_ty = builder.func.dfg.value_type(inner);
             let to_store = if inner_ty == ir::types::I8 {
                 builder.ins().sextend(ir::types::I64, inner)
             } else {
                 inner
             };
-            builder.ins().store(MemFlags::new(), to_store, ptr, Offset32::new(8));
+            builder
+                .ins()
+                .store(MemFlags::new(), to_store, ptr, Offset32::new(8));
             ptr
         }
         MirExpr::DotResult => builder.ins().iconst(ir::types::I64, 0),
@@ -4185,16 +4226,29 @@ fn extract_stdlib_call_target_mir(
         return None;
     }
     let root = parts.first()?;
-    let is_dynamic = function_ids.keys().any(|k| {
-        k.starts_with("__ns_call__") && k[11..].starts_with(root.as_str())
-    });
+    let is_dynamic = function_ids
+        .keys()
+        .any(|k| k.starts_with("__ns_call__") && k[11..].starts_with(root.as_str()));
     if !is_dynamic
         && !matches!(
             root.as_str(),
-            "simd" | "json" | "bench"
-                | "time" | "path" | "fs" | "net" | "convert" | "math"
-                | "str_builder" | "text" | "encoding" | "log" | "env"
-                | "cli" | "regex" | "http"
+            "simd"
+                | "json"
+                | "bench"
+                | "time"
+                | "path"
+                | "fs"
+                | "net"
+                | "convert"
+                | "math"
+                | "str_builder"
+                | "text"
+                | "encoding"
+                | "log"
+                | "env"
+                | "cli"
+                | "regex"
+                | "http"
         )
     {
         return None;
@@ -4204,6 +4258,7 @@ fn extract_stdlib_call_target_mir(
     Some((namespace, field))
 }
 
+#[allow(clippy::too_many_arguments)]
 fn emit_stdlib_namespace_call(
     namespace: &str,
     field: &str,
@@ -4220,7 +4275,7 @@ fn emit_stdlib_namespace_call(
     let ns_key = format!("__ns_call__{namespace}.{field}");
     if let Some(&func_id) = function_ids.get(&ns_key) {
         let local = module.declare_func_in_func(func_id, builder.func);
-        let call = builder.ins().call(local, &lowered_args[..]);
+        let call = builder.ins().call(local, lowered_args);
         return Ok(Some(call_result_or_zero(builder, call)));
     }
 
@@ -4500,9 +4555,7 @@ fn emit_stdlib_namespace_call(
         ("json.builder", "value_bool") => {
             expect_arity(2)?;
             // Bool lowers to I8; runtime ABI uses I64 for the flag.
-            let flag = builder
-                .ins()
-                .uextend(ir::types::I64, lowered_args[1]);
+            let flag = builder.ins().uextend(ir::types::I64, lowered_args[1]);
             call_two_args(
                 runtime_fns.json_builder_value_bool_fn,
                 lowered_args[0],
@@ -4729,7 +4782,8 @@ fn is_known_string_expr(expr: &MirExpr) -> bool {
             is_known_string_expr(left) || is_known_string_expr(right)
         }
         MirExpr::Call { callee, .. } => {
-            if let Some((namespace, field)) = extract_stdlib_call_target_mir_static(callee.as_ref()) {
+            if let Some((namespace, field)) = extract_stdlib_call_target_mir_static(callee.as_ref())
+            {
                 return match namespace.as_str() {
                     "path" => field == "join" || field == "parent" || field == "basename",
                     "fs" => field == "read_text",
@@ -4941,9 +4995,7 @@ fn is_known_string_expr_full(
         } => {
             if let Some(type_name) = object_type {
                 if let Some(fields) = type_defs.get(type_name) {
-                    return fields
-                        .iter()
-                        .any(|(f, t)| f == field && t == "Str");
+                    return fields.iter().any(|(f, t)| f == field && t == "Str");
                 }
             }
             false
@@ -5034,7 +5086,8 @@ fn infer_mir_expr_type(
                     return MirType::I64;
                 }
             }
-            if let Some((namespace, field)) = extract_stdlib_call_target_mir_static(callee.as_ref()) {
+            if let Some((namespace, field)) = extract_stdlib_call_target_mir_static(callee.as_ref())
+            {
                 let ns_key = format!("__ns_call__{namespace}.{field}");
                 if let Some(ret) = function_returns.get(&ns_key) {
                     return ret.clone();
@@ -5219,7 +5272,9 @@ fn value_type_for_expr(
             } =>
         {
             let (ns, f) = extract_stdlib_call_target_mir_static(callee.as_ref()).unwrap();
-            let ret_ty = function_returns.get(&format!("__ns_call__{ns}.{f}")).unwrap();
+            let ret_ty = function_returns
+                .get(&format!("__ns_call__{ns}.{f}"))
+                .unwrap();
             mir_ty_to_clif(ret_ty, ptr_ty)
         }
         MirExpr::Call { callee, .. }
@@ -5227,7 +5282,7 @@ fn value_type_for_expr(
                 extract_stdlib_call_target_mir_static(callee.as_ref()),
                 Some((ref namespace, ref field))
                     if (namespace == "convert" && (field == "to_float" || field == "parse_f64" || field == "i64_to_f64" || field == "f64_from_bits"))
-                        || (namespace == "math" && field == "sqrt")
+                    || (namespace == "math" && field == "sqrt")
                         || (namespace == "simd" && field == "f64x2_extract")
             ) =>
         {

@@ -771,8 +771,12 @@ fn eval_binary(
         BinaryOp::Le => compare_numeric(left, right, |a, b| a <= b),
         BinaryOp::Gt => compare_numeric(left, right, |a, b| a > b),
         BinaryOp::Ge => compare_numeric(left, right, |a, b| a >= b),
-        BinaryOp::And => Ok(DeterministicValue::Bool(left.as_bool()? && right.as_bool()?)),
-        BinaryOp::Or => Ok(DeterministicValue::Bool(left.as_bool()? || right.as_bool()?)),
+        BinaryOp::And => Ok(DeterministicValue::Bool(
+            left.as_bool()? && right.as_bool()?,
+        )),
+        BinaryOp::Or => Ok(DeterministicValue::Bool(
+            left.as_bool()? || right.as_bool()?,
+        )),
     }
 }
 

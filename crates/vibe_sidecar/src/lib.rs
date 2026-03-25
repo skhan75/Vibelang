@@ -1,10 +1,10 @@
 // Copyright 2025-2026 VibeLang Contributors
 // SPDX-License-Identifier: Apache-2.0
 
-pub mod config;
-pub mod index_access;
 #[cfg(feature = "cloud")]
 pub mod ai_analyzer;
+pub mod config;
+pub mod index_access;
 #[cfg(feature = "cloud")]
 pub mod llm_cache;
 #[cfg(feature = "cloud")]

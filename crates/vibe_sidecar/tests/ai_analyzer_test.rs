@@ -47,7 +47,13 @@ mod cloud_tests {
         let dir = tempdir();
         let cache = ResponseCache::new(dir.path(), 24);
 
-        cache.put("sig123", "sort ascending", "claude-sonnet-4-20250514", 1, r#"{"aligned":true}"#);
+        cache.put(
+            "sig123",
+            "sort ascending",
+            "claude-sonnet-4-20250514",
+            1,
+            r#"{"aligned":true}"#,
+        );
         let result = cache.get("sig123", "sort ascending", "claude-sonnet-4-20250514", 1);
         assert_eq!(result, Some(r#"{"aligned":true}"#.to_string()));
     }
@@ -57,7 +63,13 @@ mod cloud_tests {
         let dir = tempdir();
         let cache = ResponseCache::new(dir.path(), 24);
 
-        cache.put("sig123", "sort ascending", "claude-sonnet-4-20250514", 1, r#"{"aligned":true}"#);
+        cache.put(
+            "sig123",
+            "sort ascending",
+            "claude-sonnet-4-20250514",
+            1,
+            r#"{"aligned":true}"#,
+        );
         let result = cache.get("sig123", "sort ascending", "claude-3-opus-20240229", 1);
         assert_eq!(result, None);
     }
@@ -67,7 +79,13 @@ mod cloud_tests {
         let dir = tempdir();
         let cache = ResponseCache::new(dir.path(), 24);
 
-        cache.put("sig123", "sort ascending", "claude-sonnet-4-20250514", 1, r#"{"aligned":true}"#);
+        cache.put(
+            "sig123",
+            "sort ascending",
+            "claude-sonnet-4-20250514",
+            1,
+            r#"{"aligned":true}"#,
+        );
         let result = cache.get("sig123", "sort ascending", "claude-sonnet-4-20250514", 2);
         assert_eq!(result, None);
     }
@@ -77,7 +95,13 @@ mod cloud_tests {
         let dir = tempdir();
         let cache = ResponseCache::new(dir.path(), 24);
 
-        cache.put("sig123", "sort ascending", "claude-sonnet-4-20250514", 1, r#"{"aligned":true}"#);
+        cache.put(
+            "sig123",
+            "sort ascending",
+            "claude-sonnet-4-20250514",
+            1,
+            r#"{"aligned":true}"#,
+        );
 
         // Manually tamper with the cache file to set created_at far in the past
         let cache_dir = dir.path().join("cache").join("sidecar");

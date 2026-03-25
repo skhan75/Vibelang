@@ -54,10 +54,11 @@ pub fn bench_runtime_source_path() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../runtime/native/vibe_runtime_bench.c")
 }
 
+#[cfg(feature = "bench-runtime")]
 fn gmp_available() -> bool {
     Path::new("/usr/include/gmp.h").exists()
         || Path::new("/usr/local/include/gmp.h").exists()
-        || std::env::var("VIBE_USE_GMP").map_or(false, |v| v == "1")
+        || std::env::var("VIBE_USE_GMP").is_ok_and(|v| v == "1")
 }
 
 fn compile_runtime_c_object(

@@ -227,9 +227,8 @@ impl SidecarService {
                 suggestions.push(CandidateSuggestion {
                     id: format!("intent:{}:{}", meta.file, meta.function_name),
                     title: format!("Add @intent for `{}`", meta.function_name),
-                    summary:
-                        "Add a single-sentence behavior intent before executable statements."
-                            .to_string(),
+                    summary: "Add a single-sentence behavior intent before executable statements."
+                        .to_string(),
                     confidence: 0.78,
                     evidence: vec![EvidenceRef {
                         file: meta.file.clone(),
@@ -258,8 +257,7 @@ impl SidecarService {
             findings.push(IntentFinding {
                 code: "I9002".to_string(),
                 severity: FindingSeverity::Warning,
-                message: "intent lint exceeded latency budget; results may be partial"
-                    .to_string(),
+                message: "intent lint exceeded latency budget; results may be partial".to_string(),
                 confidence: 1.0,
                 evidence: Vec::new(),
                 incomplete: true,

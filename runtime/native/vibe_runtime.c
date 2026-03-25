@@ -4536,7 +4536,7 @@ static void vibe_json_encode_record_into(vibe_string_builder *builder, const int
             void *json_handle = (void *)(intptr_t)slot_value;
             if (json_handle == NULL) {
                 vibe_builder_append_bytes(builder, "null", 4);
-            } else {
+        } else {
                 char *encoded = vibe_json_stringify(json_handle);
                 if (encoded == NULL || encoded[0] == '\0') {
                     vibe_builder_append_bytes(builder, "null", 4);

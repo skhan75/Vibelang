@@ -1671,17 +1671,11 @@ fn infer_expr(
                     }
                     "ok" => {
                         let ok_ty = arg_types.first().cloned().unwrap_or(TypeKind::Void);
-                        return TypeKind::Result(
-                            Box::new(ok_ty),
-                            Box::new(TypeKind::Unknown),
-                        );
+                        return TypeKind::Result(Box::new(ok_ty), Box::new(TypeKind::Unknown));
                     }
                     "err" => {
                         let err_ty = arg_types.first().cloned().unwrap_or(TypeKind::Unknown);
-                        return TypeKind::Result(
-                            Box::new(TypeKind::Unknown),
-                            Box::new(err_ty),
-                        );
+                        return TypeKind::Result(Box::new(TypeKind::Unknown), Box::new(err_ty));
                     }
                     _ => {}
                 }
@@ -2321,7 +2315,7 @@ fn parse_type_ref(t: &TypeRef) -> TypeKind {
             raw: inner.to_string(),
         })));
     }
-    if raw.chars().next().map_or(false, |c| c.is_ascii_uppercase())
+    if raw.chars().next().is_some_and(|c| c.is_ascii_uppercase())
         && raw.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
     {
         return TypeKind::UserType(raw);
@@ -2537,6 +2531,7 @@ fn stdlib_namespace_return_hint_static(namespace: &str, field: &str) -> Option<T
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn infer_stdlib_namespace_call(
     namespace: &str,
     field: &str,
@@ -2765,7 +2760,10 @@ fn infer_stdlib_namespace_call(
                     diagnostics.push(Diagnostic::new(
                         "E2238",
                         Severity::Error,
-                        format!("`json.parse` argument 1 expects `Str`, got `{}`", type_name(actual)),
+                        format!(
+                            "`json.parse` argument 1 expects `Str`, got `{}`",
+                            type_name(actual)
+                        ),
                         args.first().map(|arg| arg.span()).unwrap_or(call_span),
                     ));
                 }
@@ -2787,7 +2785,10 @@ fn infer_stdlib_namespace_call(
                     diagnostics.push(Diagnostic::new(
                         "E2238",
                         Severity::Error,
-                        format!("`json.{field}` argument 1 expects `Json`, got `{}`", type_name(actual)),
+                        format!(
+                            "`json.{field}` argument 1 expects `Json`, got `{}`",
+                            type_name(actual)
+                        ),
                         args.first().map(|arg| arg.span()).unwrap_or(call_span),
                     ));
                 }
@@ -2807,20 +2808,24 @@ fn infer_stdlib_namespace_call(
                 diagnostics.push(Diagnostic::new(
                     "E2237",
                     Severity::Error,
-                    format!("`json.{field}` expects {} argument(s), got {}", expected.0.len(), args.len()),
+                    format!(
+                        "`json.{field}` expects {} argument(s), got {}",
+                        expected.0.len(),
+                        args.len()
+                    ),
                     call_span,
                 ));
                 return Some(TypeKind::Unknown);
             }
             for (idx, expect_name) in expected.0.iter().enumerate() {
                 let actual = arg_types.get(idx).cloned().unwrap_or(TypeKind::Unknown);
-                let ok = match (*expect_name, &actual) {
-                    ("Bool", TypeKind::Bool | TypeKind::Unknown) => true,
-                    ("Int", TypeKind::Int | TypeKind::Unknown) => true,
-                    ("Float", TypeKind::Float | TypeKind::Unknown) => true,
-                    ("Str", TypeKind::Str | TypeKind::Unknown) => true,
-                    _ => false,
-                };
+                let ok = matches!(
+                    (*expect_name, &actual),
+                    ("Bool", TypeKind::Bool | TypeKind::Unknown)
+                        | ("Int", TypeKind::Int | TypeKind::Unknown)
+                        | ("Float", TypeKind::Float | TypeKind::Unknown)
+                        | ("Str", TypeKind::Str | TypeKind::Unknown)
+                );
                 if !ok {
                     diagnostics.push(Diagnostic::new(
                         "E2238",
@@ -2857,22 +2862,28 @@ fn infer_stdlib_namespace_call(
             diagnostics.push(Diagnostic::new(
                 "E2237",
                 Severity::Error,
-                format!("`{}.{} ` expects {} argument(s), got {}", namespace, field, expected.len(), args.len()),
+                format!(
+                    "`{}.{} ` expects {} argument(s), got {}",
+                    namespace,
+                    field,
+                    expected.len(),
+                    args.len()
+                ),
                 call_span,
             ));
             return Some(TypeKind::Unknown);
         }
         for (idx, expect_name) in expected.iter().enumerate() {
             let actual = arg_types.get(idx).cloned().unwrap_or(TypeKind::Unknown);
-            let ok = match (*expect_name, &actual) {
-                ("JsonBuilder", TypeKind::JsonBuilder | TypeKind::Unknown) => true,
-                ("Json", TypeKind::Json | TypeKind::Unknown) => true,
-                ("Str", TypeKind::Str | TypeKind::Unknown) => true,
-                ("Bool", TypeKind::Bool | TypeKind::Unknown) => true,
-                ("Int", TypeKind::Int | TypeKind::Unknown) => true,
-                ("Float", TypeKind::Float | TypeKind::Unknown) => true,
-                _ => false,
-            };
+            let ok = matches!(
+                (*expect_name, &actual),
+                ("JsonBuilder", TypeKind::JsonBuilder | TypeKind::Unknown)
+                    | ("Json", TypeKind::Json | TypeKind::Unknown)
+                    | ("Str", TypeKind::Str | TypeKind::Unknown)
+                    | ("Bool", TypeKind::Bool | TypeKind::Unknown)
+                    | ("Int", TypeKind::Int | TypeKind::Unknown)
+                    | ("Float", TypeKind::Float | TypeKind::Unknown)
+            );
             if !ok {
                 diagnostics.push(Diagnostic::new(
                     "E2238",

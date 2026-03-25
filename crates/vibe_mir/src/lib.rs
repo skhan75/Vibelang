@@ -400,7 +400,10 @@ fn lower_expr(expr: &HirExpr) -> Result<MirExpr, String> {
                         let arg_ty = &args[0].ty;
                         if !arg_ty.is_empty()
                             && arg_ty != "Unknown"
-                            && arg_ty.chars().next().map_or(false, |c| c.is_ascii_uppercase())
+                            && arg_ty
+                                .chars()
+                                .next()
+                                .is_some_and(|c| c.is_ascii_uppercase())
                         {
                             *field = format!("encode_{arg_ty}");
                         }
@@ -411,7 +414,7 @@ fn lower_expr(expr: &HirExpr) -> Result<MirExpr, String> {
                             && fallback_ty
                                 .chars()
                                 .next()
-                                .map_or(false, |c| c.is_ascii_uppercase())
+                                .is_some_and(|c| c.is_ascii_uppercase())
                         {
                             *field = format!("decode_{fallback_ty}");
                         }
