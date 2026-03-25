@@ -86,6 +86,25 @@ pub fn check_and_lower(ast: &FileAst) -> CheckOutput {
     let mut hir = HirProgram::default();
     let mut effect_summaries: Vec<FunctionEffectSummary> = Vec::new();
 
+    type_defs.insert(
+        "HttpRequest".to_string(),
+        vec![
+            ("method".to_string(), TypeKind::Str),
+            ("url".to_string(), TypeKind::Str),
+            ("headers".to_string(), TypeKind::Str),
+            ("body".to_string(), TypeKind::Str),
+            ("timeout_ms".to_string(), TypeKind::Int),
+        ],
+    );
+    type_defs.insert(
+        "HttpResponse".to_string(),
+        vec![
+            ("status".to_string(), TypeKind::Int),
+            ("headers".to_string(), TypeKind::Str),
+            ("body".to_string(), TypeKind::Str),
+        ],
+    );
+
     for decl in &ast.declarations {
         match decl {
             Declaration::Type(t) => {
@@ -2512,9 +2531,11 @@ fn stdlib_namespace_return_hint(namespace: &str, field: &str) -> Option<TypeKind
         ("http", "status_text")
         | ("http", "build_request_line")
         | ("http", "build_response")
-        | ("http", "get")
-        | ("http", "post")
+        | ("http", "response")
         | ("http", "request") => Some(TypeKind::Str),
+        ("http", "send")
+        | ("http", "get")
+        | ("http", "post") => Some(TypeKind::UserType("HttpResponse".to_string())),
         ("http", "default_port") | ("http", "request_status") => Some(TypeKind::Int),
         #[cfg(feature = "bench-runtime")]
         ("bench", "md5_hex")
@@ -2954,6 +2975,8 @@ fn infer_stdlib_namespace_call(
         ("http", "default_port") => Some((&["Str"][..], "")),
         ("http", "build_request_line") => Some((&["Str", "Str"][..], "")),
         ("http", "build_response") => Some((&["Int", "Str"][..], "")),
+        ("http", "send") => Some((&["HttpRequest"][..], "net")),
+        ("http", "response") => Some((&["HttpResponse"][..], "")),
         ("http", "get") => Some((&["Str", "Int"][..], "net")),
         ("http", "post") => Some((&["Str", "Str", "Int"][..], "net")),
         ("http", "request") | ("http", "request_status") => {

@@ -4869,6 +4869,16 @@ char *vibe_http_build_response(int64_t status, const char *body) {
     return sb.data;
 }
 
+char *vibe_http_format_response(void *record) {
+    if (record == NULL) {
+        return vibe_http_build_response(500, "");
+    }
+    int64_t *slots = (int64_t *)record;
+    int64_t status = slots[0];
+    const char *body = (const char *)(intptr_t)slots[2];
+    return vibe_http_build_response(status, body);
+}
+
 static const char *vibe_http_find_body(const char *req);
 
 static char *vibe_shell_single_quote(const char *raw) {
@@ -5030,6 +5040,99 @@ static int64_t vibe_http_parse_status_code(const char *raw_response) {
     return (int64_t)code;
 }
 
+static void vibe_http_fill_response_record(void *record, int64_t status, const char *headers, const char *body) {
+    int64_t *slots = (int64_t *)record;
+    slots[0] = status;
+    slots[1] = (int64_t)(intptr_t)vibe_strdup_or_panic(headers == NULL ? "" : headers);
+    slots[2] = (int64_t)(intptr_t)vibe_strdup_or_panic(body == NULL ? "" : body);
+}
+
+static void vibe_http_parse_raw_response(const char *raw, int64_t *out_status, const char **out_headers, const char **out_body) {
+    *out_status = 0;
+    *out_headers = "";
+    *out_body = "";
+    if (raw == NULL || raw[0] == '\0') return;
+    *out_status = vibe_http_parse_status_code(raw);
+    const char *hdr_start = strchr(raw, '\n');
+    if (hdr_start != NULL) hdr_start++;
+    else hdr_start = raw;
+    const char *body_sep = strstr(raw, "\r\n\r\n");
+    if (body_sep != NULL) {
+        *out_headers = hdr_start;
+        *out_body = body_sep + 4;
+    } else {
+        *out_headers = hdr_start;
+    }
+}
+
+static void vibe_http_curl_send(
+    const char *method,
+    const char *url,
+    const char *custom_headers,
+    const char *body,
+    int64_t timeout_ms,
+    void *out_record
+) {
+    const char *verb = (method == NULL || method[0] == '\0') ? "GET" : method;
+    const char *payload = body == NULL ? "" : body;
+    const char *hdrs = custom_headers == NULL ? "" : custom_headers;
+    double timeout_sec = timeout_ms > 0 ? ((double)timeout_ms / 1000.0) : 10.0;
+    if (timeout_sec < 0.001) timeout_sec = 0.001;
+    char timeout_buf[32];
+    snprintf(timeout_buf, sizeof(timeout_buf), "%.3f", timeout_sec);
+    char *q_method = vibe_shell_single_quote(verb);
+    char *q_url = vibe_shell_single_quote(url == NULL ? "" : url);
+    char *q_body = vibe_shell_single_quote(payload);
+    vibe_string_builder cmd;
+    vibe_builder_init(&cmd, strlen(url == NULL ? "" : url) + strlen(payload) + strlen(hdrs) + 256);
+    vibe_builder_append_bytes(&cmd, "curl -sS -L -i --max-time ", 26);
+    vibe_builder_append_bytes(&cmd, timeout_buf, strlen(timeout_buf));
+    vibe_builder_append_bytes(&cmd, " -X ", 4);
+    vibe_builder_append_bytes(&cmd, q_method, strlen(q_method));
+
+    if (hdrs[0] != '\0') {
+        const char *p = hdrs;
+        while (*p != '\0') {
+            const char *line_end = p;
+            while (*line_end != '\0' && *line_end != '\r' && *line_end != '\n') line_end++;
+            size_t line_len = (size_t)(line_end - p);
+            if (line_len > 0) {
+                char *hdr_line = (char *)calloc(line_len + 1, 1);
+                if (hdr_line) {
+                    memcpy(hdr_line, p, line_len);
+                    char *q_hdr = vibe_shell_single_quote(hdr_line);
+                    vibe_builder_append_bytes(&cmd, " -H ", 4);
+                    vibe_builder_append_bytes(&cmd, q_hdr, strlen(q_hdr));
+                    free(q_hdr);
+                    free(hdr_line);
+                }
+            }
+            p = line_end;
+            while (*p == '\r' || *p == '\n') p++;
+        }
+    }
+
+    if (payload[0] != '\0') {
+        vibe_builder_append_bytes(&cmd, " --data-binary ", 15);
+        vibe_builder_append_bytes(&cmd, q_body, strlen(q_body));
+    }
+    vibe_builder_append_bytes(&cmd, " ", 1);
+    vibe_builder_append_bytes(&cmd, q_url, strlen(q_url));
+    vibe_builder_append_bytes(&cmd, " 2>/dev/null", 12);
+    char *raw = vibe_exec_capture_stdout(cmd.data);
+    free(q_method);
+    free(q_url);
+    free(q_body);
+    free(cmd.data);
+
+    int64_t status = 0;
+    const char *resp_hdrs = "";
+    const char *resp_body = "";
+    vibe_http_parse_raw_response(raw, &status, &resp_hdrs, &resp_body);
+    vibe_http_fill_response_record(out_record, status, resp_hdrs, resp_body);
+    free(raw);
+}
+
 static char *vibe_http_request_body_curl(
     const char *method,
     const char *url,
@@ -5115,6 +5218,7 @@ static int64_t vibe_http_request_status_curl(
 static char *vibe_http_request_raw_plain(
     const char *method,
     const char *url,
+    const char *custom_headers,
     const char *body,
     int64_t timeout_ms
 ) {
@@ -5142,28 +5246,57 @@ static char *vibe_http_request_raw_plain(
     vibe_http_apply_timeout(fd, timeout_ms);
     const char *verb = (method == NULL || method[0] == '\0') ? "GET" : method;
     const char *payload = body == NULL ? "" : body;
+    const char *hdrs = custom_headers == NULL ? "" : custom_headers;
     size_t payload_len = strlen(payload);
-    size_t cap = strlen(verb) + strlen(path) + strlen(host) + payload_len + 256;
-    char *req = (char *)calloc(cap, sizeof(char));
-    if (req == NULL) {
-        (void)vibe_net_close(conn);
-        vibe_panic("failed to allocate http request buffer");
+    size_t hdrs_len = strlen(hdrs);
+    size_t cap = strlen(verb) + strlen(path) + strlen(host) + hdrs_len + payload_len + 256;
+    vibe_string_builder sb;
+    vibe_builder_init(&sb, cap);
+    char line_buf[512];
+    int n = snprintf(line_buf, sizeof(line_buf), "%s %s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n", verb, path, host);
+    vibe_builder_append_bytes(&sb, line_buf, (size_t)(n > 0 ? n : 0));
+    if (hdrs_len > 0) {
+        const char *p = hdrs;
+        while (*p != '\0') {
+            const char *le = p;
+            while (*le != '\0' && *le != '\r' && *le != '\n') le++;
+            size_t ll = (size_t)(le - p);
+            if (ll > 0) {
+                vibe_builder_append_bytes(&sb, p, ll);
+                vibe_builder_append_bytes(&sb, "\r\n", 2);
+            }
+            p = le;
+            while (*p == '\r' || *p == '\n') p++;
+        }
     }
-    snprintf(
-        req,
-        cap,
-        "%s %s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\nContent-Length: %zu\r\n\r\n%s",
-        verb,
-        path,
-        host,
-        payload_len,
-        payload
-    );
-    (void)vibe_net_write(conn, req);
-    free(req);
+    n = snprintf(line_buf, sizeof(line_buf), "Content-Length: %zu\r\n\r\n", payload_len);
+    vibe_builder_append_bytes(&sb, line_buf, (size_t)(n > 0 ? n : 0));
+    vibe_builder_append_bytes(&sb, payload, payload_len);
+    (void)vibe_net_write(conn, sb.data);
+    free(sb.data);
     char *raw_response = vibe_http_read_all_response(fd, 4 * 1024 * 1024);
     (void)vibe_net_close(conn);
     return raw_response;
+}
+
+void *vibe_http_send(const char *method, const char *url, const char *headers, const char *body, int64_t timeout_ms) {
+    void *record = vibe_record_alloc(3);
+    if (url == NULL || url[0] == '\0') {
+        vibe_http_fill_response_record(record, 0, "", "");
+        return record;
+    }
+    if (strncmp(url, "https://", 8) == 0) {
+        vibe_http_curl_send(method, url, headers, body, timeout_ms, record);
+        return record;
+    }
+    char *raw_response = vibe_http_request_raw_plain(method, url, headers, body, timeout_ms);
+    int64_t status = 0;
+    const char *resp_hdrs = "";
+    const char *resp_body = "";
+    vibe_http_parse_raw_response(raw_response, &status, &resp_hdrs, &resp_body);
+    vibe_http_fill_response_record(record, status, resp_hdrs, resp_body);
+    free(raw_response);
+    return record;
 }
 
 char *vibe_http_request(const char *method, const char *url, const char *body, int64_t timeout_ms) {
@@ -5173,7 +5306,7 @@ char *vibe_http_request(const char *method, const char *url, const char *body, i
     if (strncmp(url, "https://", 8) == 0) {
         return vibe_http_request_body_curl(method, url, body, timeout_ms);
     }
-    char *raw_response = vibe_http_request_raw_plain(method, url, body, timeout_ms);
+    char *raw_response = vibe_http_request_raw_plain(method, url, "", body, timeout_ms);
     if (raw_response == NULL || raw_response[0] == '\0') {
         free(raw_response);
         return vibe_strdup_or_panic("");
@@ -5196,18 +5329,18 @@ int64_t vibe_http_request_status(const char *method, const char *url, const char
     if (strncmp(url, "https://", 8) == 0) {
         return vibe_http_request_status_curl(method, url, body, timeout_ms);
     }
-    char *raw_response = vibe_http_request_raw_plain(method, url, body, timeout_ms);
+    char *raw_response = vibe_http_request_raw_plain(method, url, "", body, timeout_ms);
     int64_t code = vibe_http_parse_status_code(raw_response);
     free(raw_response);
     return code;
 }
 
-char *vibe_http_get(const char *url, int64_t timeout_ms) {
-    return vibe_http_request("GET", url, "", timeout_ms);
+void *vibe_http_get(const char *url, int64_t timeout_ms) {
+    return vibe_http_send("GET", url, "", "", timeout_ms);
 }
 
-char *vibe_http_post(const char *url, const char *body, int64_t timeout_ms) {
-    return vibe_http_request("POST", url, body, timeout_ms);
+void *vibe_http_post(const char *url, const char *body, int64_t timeout_ms) {
+    return vibe_http_send("POST", url, "", body, timeout_ms);
 }
 
 static int64_t vibe_http_extract_i64(const char *text) {

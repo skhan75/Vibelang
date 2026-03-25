@@ -148,9 +148,11 @@ pub main() -> Int {{
   println(json.stringify_i64(cli.args_len()))
   println(cli.arg(0))
   log.error("phase12-log")
-  println(http.get("http://127.0.0.1:{http_port}/ready", 2000))
+  get_resp := http.get("http://127.0.0.1:{http_port}/ready", 2000)
+  println(get_resp.body)
   println(json.stringify_i64(http.request_status("GET", "http://127.0.0.1:{http_port}/ready", "", 2000)))
-  println(http.post("http://127.0.0.1:{http_port}/submit", "payload", 2000))
+  post_resp := http.post("http://127.0.0.1:{http_port}/submit", "payload", 2000)
+  println(post_resp.body)
   listener := net.listen("127.0.0.1", 0)
   if net.listener_port(listener) > 0 {{
     println("listen-ok")

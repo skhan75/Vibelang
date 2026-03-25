@@ -171,6 +171,8 @@ struct RuntimeFunctions {
     http_default_port_fn: FuncId,
     http_build_request_line_fn: FuncId,
     http_build_response_fn: FuncId,
+    http_send_fn: FuncId,
+    http_format_response_fn: FuncId,
     http_request_fn: FuncId,
     http_request_status_fn: FuncId,
     http_get_fn: FuncId,
@@ -1660,6 +1662,32 @@ fn declare_runtime_functions(
         )
         .map_err(|e| format!("failed to declare runtime http_build_response symbol: {e}"))?;
 
+    let mut http_send_sig = module.make_signature();
+    http_send_sig.params.push(AbiParam::new(ptr_ty));
+    http_send_sig.params.push(AbiParam::new(ptr_ty));
+    http_send_sig.params.push(AbiParam::new(ptr_ty));
+    http_send_sig.params.push(AbiParam::new(ptr_ty));
+    http_send_sig.params.push(AbiParam::new(ir::types::I64));
+    http_send_sig.returns.push(AbiParam::new(ptr_ty));
+    let http_send_fn = module
+        .declare_function("vibe_http_send", Linkage::Import, &http_send_sig)
+        .map_err(|e| format!("failed to declare runtime http_send symbol: {e}"))?;
+
+    let mut http_format_response_sig = module.make_signature();
+    http_format_response_sig
+        .params
+        .push(AbiParam::new(ptr_ty));
+    http_format_response_sig
+        .returns
+        .push(AbiParam::new(ptr_ty));
+    let http_format_response_fn = module
+        .declare_function(
+            "vibe_http_format_response",
+            Linkage::Import,
+            &http_format_response_sig,
+        )
+        .map_err(|e| format!("failed to declare runtime http_format_response symbol: {e}"))?;
+
     let mut http_request_sig = module.make_signature();
     http_request_sig.params.push(AbiParam::new(ptr_ty));
     http_request_sig.params.push(AbiParam::new(ptr_ty));
@@ -2026,6 +2054,8 @@ fn declare_runtime_functions(
         http_default_port_fn,
         http_build_request_line_fn,
         http_build_response_fn,
+        http_send_fn,
+        http_format_response_fn,
         http_request_fn,
         http_request_status_fn,
         http_get_fn,
@@ -5890,6 +5920,28 @@ fn emit_stdlib_namespace_call(
                 builder,
             )
         }
+        ("http", "send") => {
+            expect_arity(1)?;
+            let req_ptr = lowered_args[0];
+            let method = builder.ins().load(ptr_ty, ir::MemFlags::trusted(), req_ptr, 0);
+            let url = builder.ins().load(ptr_ty, ir::MemFlags::trusted(), req_ptr, 8);
+            let headers = builder.ins().load(ptr_ty, ir::MemFlags::trusted(), req_ptr, 16);
+            let body = builder.ins().load(ptr_ty, ir::MemFlags::trusted(), req_ptr, 24);
+            let timeout = builder.ins().load(ir::types::I64, ir::MemFlags::trusted(), req_ptr, 32);
+            let local =
+                module.declare_func_in_func(runtime_fns.http_send_fn, builder.func);
+            let call = builder.ins().call(local, &[method, url, headers, body, timeout]);
+            call_result_or_zero(builder, call)
+        }
+        ("http", "response") => {
+            expect_arity(1)?;
+            call_one_arg(
+                runtime_fns.http_format_response_fn,
+                lowered_args[0],
+                module,
+                builder,
+            )
+        }
         ("http", "request") => {
             expect_arity(4)?;
             call_four_args(
@@ -6140,6 +6192,8 @@ fn is_known_string_expr(expr: &MirExpr) -> bool {
                         field == "status_text"
                             || field == "build_request_line"
                             || field == "build_response"
+                            || field == "send"
+                            || field == "response"
                             || field == "get"
                             || field == "post"
                             || field == "request"
@@ -6650,7 +6704,7 @@ fn value_type_for_expr(
                     || (namespace == "cli" && field == "arg")
                     || (namespace == "json" && (field == "parse" || field == "stringify" || field.starts_with("encode_") || field.starts_with("decode_") || field == "stringify_i64" || field == "minify" || field == "canonical" || field == "repeat_array"))
                     || (namespace == "regex" && field == "replace_all")
-                    || (namespace == "http" && (field == "status_text" || field == "build_request_line" || field == "build_response" || field == "get" || field == "post" || field == "request"))
+                    || (namespace == "http" && (field == "status_text" || field == "build_request_line" || field == "build_response" || field == "send" || field == "response" || field == "get" || field == "post" || field == "request"))
                     || (namespace == "hash" && field == "md5_hex")
                     || (namespace == "crypto" && field == "secp256k1_bench")
                     || (namespace == "math" && field == "edigits")

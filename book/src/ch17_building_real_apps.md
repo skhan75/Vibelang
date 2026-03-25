@@ -111,7 +111,10 @@ Runnables:
 ## 17.3 Making HTTP requests (sync-first, explicit effects)
 
 Network calls are never “pure” in VibeLang—request APIs require `@effect net`.
-The sync-first client returns response body text and/or status.
+The HTTP client uses structured `HttpRequest` / `HttpResponse` types
+(auto-injected by the compiler). `http.send(req)` gives full control over
+method, URL, headers, and body. Convenience functions `http.get` / `http.post`
+return `HttpResponse` with `.status`, `.headers`, and `.body` fields.
 
 Runnables:
 
