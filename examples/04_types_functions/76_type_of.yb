@@ -1,0 +1,10 @@
+pub main() -> Int {
+  @effect io
+  x := 42
+  s := "hello"
+  b := true
+  println(type_of(x))
+  println(type_of(s))
+  println(type_of(b))
+  0
+}

@@ -1,0 +1,37 @@
+// Error handling patterns: ok/err, `?`, if/else on Result, nested propagation,
+// and std.result helpers (wrap_err, is_ok, unwrap_or).
+
+parse_digit(s: Str) -> Result<Int, Str> {
+  if s == "7" {
+    return ok(7)
+  }
+  err("not a digit")
+}
+
+scaled(s: Str) -> Result<Int, Str> {
+  n := parse_digit(s)?
+  ok(n * 10)
+}
+
+main() {
+  @effect io
+
+  ok_r := scaled("7")
+  if result.is_ok(ok_r) {
+    v := result.unwrap_or(ok_r, 0)
+    println(convert.to_str(v))
+  }
+
+  bad := scaled("x")
+  wrapped := result.wrap_err(bad, "scaled")
+  if result.is_err(wrapped) {
+    println("err-path")
+  }
+
+  nested := result.wrap_err(scaled("nope"), "outer")
+  if result.is_err(nested) {
+    println("nested-err")
+  }
+
+  println("error-patterns-done")
+}

@@ -388,6 +388,20 @@ fn lower_expr(expr: &HirExpr) -> Result<MirExpr, String> {
             object_is_str: object.ty == "Str",
         },
         HirExprKind::Call { callee, args } => {
+            if let HirExprKind::Ident(name) = &callee.kind {
+                if name == "type_of" {
+                    if args.len() != 1 {
+                        return Err("`type_of` expects exactly one argument".to_string());
+                    }
+                    let raw = args[0].ty.trim();
+                    let label = if raw.is_empty() || raw == "Unknown" {
+                        "Unknown".to_string()
+                    } else {
+                        raw.to_string()
+                    };
+                    return Ok(MirExpr::Str(label));
+                }
+            }
             let mut lowered_callee = lower_expr(callee)?;
             if let MirExpr::Member {
                 ref object,
@@ -750,7 +764,39 @@ mod tests {
 
     use vibe_hir::{HirExpr, HirExprKind, HirFunction, HirProgram, HirStmt};
 
-    use super::{lower_hir_to_mir, mir_debug_dump, verify_mir, MirStmt};
+    use super::{lower_hir_to_mir, mir_debug_dump, verify_mir, MirExpr, MirStmt};
+
+    #[test]
+    fn type_of_call_lowers_to_string_of_hir_type() {
+        let hir = HirProgram {
+            functions: vec![HirFunction {
+                name: "main".to_string(),
+                is_public: true,
+                params: vec![],
+                return_type: None,
+                inferred_return_type: Some("Int".to_string()),
+                effects_declared: BTreeSet::new(),
+                effects_observed: BTreeSet::new(),
+                body: vec![],
+                tail_expr: Some(HirExpr::new(
+                    HirExprKind::Call {
+                        callee: Box::new(HirExpr::new(
+                            HirExprKind::Ident("type_of".to_string()),
+                            "Unknown",
+                        )),
+                        args: vec![HirExpr::new(HirExprKind::Int(1), "Int")],
+                    },
+                    "Str",
+                )),
+                native_symbol: None,
+            }],
+        };
+        let mir = lower_hir_to_mir(&hir).expect("lowering should succeed");
+        assert!(matches!(
+            mir.functions[0].body.as_slice(),
+            [MirStmt::Return(MirExpr::Str(s))] if s == "Int"
+        ));
+    }
 
     #[test]
     fn lower_hir_program_to_mir_program() {

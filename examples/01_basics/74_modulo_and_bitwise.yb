@@ -1,0 +1,32 @@
+pub main() -> Int {
+  @effect io
+
+  // Modulo
+  println(convert.to_str(10 % 3))
+  println(convert.to_str(17 % 5))
+  println(convert.to_str(100 % 10))
+
+  // Bitwise AND
+  println(convert.to_str(255 & 15))
+  println(convert.to_str(12 & 10))
+
+  // Bitwise OR
+  println(convert.to_str(5 | 3))
+  println(convert.to_str(12 | 3))
+
+  // Bitwise XOR
+  println(convert.to_str(6 ^ 3))
+  println(convert.to_str(15 ^ 9))
+
+  // Shift left / right
+  println(convert.to_str(1 << 4))
+  println(convert.to_str(32 >> 2))
+  println(convert.to_str(255 << 8))
+
+  // Combined: extract low nibble
+  value := 43981
+  low_nibble := value & 15
+  println(convert.to_str(low_nibble))
+
+  0
+}

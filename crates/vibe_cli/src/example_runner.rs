@@ -756,6 +756,42 @@ fn eval_binary(
             }
             _ => Err("Mul expects numeric operands".to_string()),
         },
+        BinaryOp::Mod => match (left, right) {
+            (DeterministicValue::Int(a), DeterministicValue::Int(b)) => {
+                Ok(DeterministicValue::Int(a % b))
+            }
+            _ => Err("Mod expects integer operands".to_string()),
+        },
+        BinaryOp::BitAnd => match (left, right) {
+            (DeterministicValue::Int(a), DeterministicValue::Int(b)) => {
+                Ok(DeterministicValue::Int(a & b))
+            }
+            _ => Err("BitAnd expects integer operands".to_string()),
+        },
+        BinaryOp::BitOr => match (left, right) {
+            (DeterministicValue::Int(a), DeterministicValue::Int(b)) => {
+                Ok(DeterministicValue::Int(a | b))
+            }
+            _ => Err("BitOr expects integer operands".to_string()),
+        },
+        BinaryOp::BitXor => match (left, right) {
+            (DeterministicValue::Int(a), DeterministicValue::Int(b)) => {
+                Ok(DeterministicValue::Int(a ^ b))
+            }
+            _ => Err("BitXor expects integer operands".to_string()),
+        },
+        BinaryOp::Shl => match (left, right) {
+            (DeterministicValue::Int(a), DeterministicValue::Int(b)) => {
+                Ok(DeterministicValue::Int(a << b))
+            }
+            _ => Err("Shl expects integer operands".to_string()),
+        },
+        BinaryOp::Shr => match (left, right) {
+            (DeterministicValue::Int(a), DeterministicValue::Int(b)) => {
+                Ok(DeterministicValue::Int(a >> b))
+            }
+            _ => Err("Shr expects integer operands".to_string()),
+        },
         BinaryOp::Div => match (left, right) {
             (DeterministicValue::Int(a), DeterministicValue::Int(b)) => {
                 Ok(DeterministicValue::Int(a / b))

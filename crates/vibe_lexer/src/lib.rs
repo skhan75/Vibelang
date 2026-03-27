@@ -58,7 +58,13 @@ pub enum TokenKind {
     Minus,
     Star,
     Slash,
+    Percent,
     Bang,
+    Amp,
+    Pipe,
+    Caret,
+    LtLt,
+    GtGt,
     AmpAmp,
     PipePipe,
     EqEq,
@@ -160,16 +166,16 @@ impl Lexer {
                 '\\' => {
                     self.bump();
                     if let Some(escaped) = self.peek() {
-                        let resolved = match escaped {
-                            'n' => '\n',
-                            't' => '\t',
-                            'r' => '\r',
-                            '"' => '"',
-                            '\\' => '\\',
-                            other => other,
-                        };
-                        self.bump();
-                        value.push(resolved);
+                        match escaped {
+                            'n' => { self.bump(); value.push('\n'); }
+                            't' => { self.bump(); value.push('\t'); }
+                            'r' => { self.bump(); value.push('\r'); }
+                            '"' => { self.bump(); value.push('"'); }
+                            '\\' => { self.bump(); value.push('\\'); }
+                            '{' => { self.bump(); value.push('\x00'); value.push('{'); }
+                            '}' => { self.bump(); value.push('\x00'); value.push('}'); }
+                            other => { self.bump(); value.push(other); }
+                        }
                     }
                 }
                 c => {
@@ -269,6 +275,8 @@ impl Lexer {
             '+' => (TokenKind::Plus, "+".to_string()),
             '*' => (TokenKind::Star, "*".to_string()),
             '/' => (TokenKind::Slash, "/".to_string()),
+            '%' => (TokenKind::Percent, "%".to_string()),
+            '^' => (TokenKind::Caret, "^".to_string()),
             ':' if self.peek() == Some('=') => {
                 self.bump();
                 (TokenKind::Bind, ":=".to_string())
@@ -297,15 +305,25 @@ impl Lexer {
                 self.bump();
                 (TokenKind::AmpAmp, "&&".to_string())
             }
+            '&' => (TokenKind::Amp, "&".to_string()),
             '|' if self.peek() == Some('|') => {
                 self.bump();
                 (TokenKind::PipePipe, "||".to_string())
+            }
+            '|' => (TokenKind::Pipe, "|".to_string()),
+            '<' if self.peek() == Some('<') => {
+                self.bump();
+                (TokenKind::LtLt, "<<".to_string())
             }
             '<' if self.peek() == Some('=') => {
                 self.bump();
                 (TokenKind::Le, "<=".to_string())
             }
             '<' => (TokenKind::Lt, "<".to_string()),
+            '>' if self.peek() == Some('>') => {
+                self.bump();
+                (TokenKind::GtGt, ">>".to_string())
+            }
             '>' if self.peek() == Some('=') => {
                 self.bump();
                 (TokenKind::Ge, ">=".to_string())

@@ -1,0 +1,30 @@
+// Copyright 2026 Vibelang Contributors
+// SPDX-License-Identifier: Apache-2.0
+
+/**
+ * HTTP/1.1 request parsing and response formatting for simple servers.
+ */
+module std.http_server
+
+pub type HttpServerRequest {
+  method: Str,
+  path: Str,
+  query: Str,
+  headers: Str,
+  body: Str
+}
+
+pub parse_request(raw: Str) -> HttpServerRequest {
+  @intent "parse a raw HTTP request string into a structured request"
+  @native("vibe_http_server_parse_request")
+}
+
+pub format_response(status: Int, headers: Str, body: Str) -> Str {
+  @intent "build an HTTP/1.1 response with custom headers and correct Content-Length"
+  @native("vibe_http_server_format_response")
+}
+
+pub cors_headers() -> Str {
+  @intent "return standard CORS headers for API responses"
+  @native("vibe_http_server_cors_headers")
+}

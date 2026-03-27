@@ -1,0 +1,21 @@
+main() -> Int {
+  @effect io
+
+  name := "World"
+  println("Hello {name}!")
+
+  count := 3
+  println("You have {count} items")
+
+  greeting := "Hi"
+  target := "VibeLang"
+  println("{greeting}, {target}!")
+
+  // Escaped braces should be literal
+  println("Use \{braces\} for interpolation")
+
+  // Plain strings without interpolation still work
+  println("No interpolation here")
+
+  0
+}

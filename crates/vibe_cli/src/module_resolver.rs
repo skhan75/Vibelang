@@ -846,11 +846,16 @@ fn find_stdlib_root() -> Option<PathBuf> {
 
     let exe = std::env::current_exe().ok()?;
     let exe_dir = exe.parent()?;
-    for ancestor in [exe_dir, exe_dir.parent()?].iter() {
-        let candidate = ancestor.join("stdlib").join("std");
+    let mut cur = Some(exe_dir);
+    for _ in 0..10 {
+        let Some(dir) = cur else {
+            break;
+        };
+        let candidate = dir.join("stdlib").join("std");
         if candidate.is_dir() {
             return Some(candidate);
         }
+        cur = dir.parent();
     }
 
     if !EMBEDDED_STDLIB.is_empty() {
@@ -866,7 +871,10 @@ fn extract_embedded_stdlib() -> Option<PathBuf> {
     let cache_dir = std::env::temp_dir()
         .join("vibe-stdlib")
         .join(env!("CARGO_PKG_VERSION"));
-    if cache_dir.join("path.yb").exists() {
+    let cache_has_all_embedded = EMBEDDED_STDLIB
+        .iter()
+        .all(|(name, _)| cache_dir.join(name).is_file());
+    if cache_has_all_embedded {
         return Some(cache_dir);
     }
     fs::create_dir_all(&cache_dir).ok()?;

@@ -583,7 +583,7 @@ fn json_escape(input: &str) -> String {
 
 fn run_check(path: &str) -> Result<ExitCode, String> {
     let unit = resolve_compilation_unit(Path::new(path))?;
-    let checked = check_and_lower(&unit.ast);
+    let checked = check_and_lower_with_ns(&unit.ast, &unit.namespace_map);
     let mut merged_diags = unit.diagnostics.clone().into_sorted();
     merged_diags.extend(checked.diagnostics.clone().into_sorted());
     let mut all = Diagnostics::default();
@@ -626,7 +626,7 @@ fn run_ast(path: &str) -> Result<ExitCode, String> {
 
 fn run_hir(path: &str) -> Result<ExitCode, String> {
     let unit = resolve_compilation_unit(Path::new(path))?;
-    let checked = check_and_lower(&unit.ast);
+    let checked = check_and_lower_with_ns(&unit.ast, &unit.namespace_map);
     println!("{:#?}", checked.hir);
     let mut all = Diagnostics::default();
     all.extend(unit.diagnostics.into_sorted());
@@ -644,7 +644,7 @@ fn run_hir(path: &str) -> Result<ExitCode, String> {
 
 fn run_mir(path: &str) -> Result<ExitCode, String> {
     let unit = resolve_compilation_unit(Path::new(path))?;
-    let checked = check_and_lower(&unit.ast);
+    let checked = check_and_lower_with_ns(&unit.ast, &unit.namespace_map);
     let mut all = Diagnostics::default();
     all.extend(unit.diagnostics.clone().into_sorted());
     all.extend(checked.diagnostics.clone().into_sorted());

@@ -37,6 +37,8 @@
   "examples/04_algorithms/30_fibonacci_recursive.yb": { "expect": "pass" },
   "examples/04_algorithms/31_factorial_recursive.yb": { "expect": "pass" },
 
+  "examples/04_types_functions/76_type_of.yb": { "expect": "pass" },
+
   "examples/05_graphs_recursion_patterns/32_graph_bfs_small.yb": { "expect": "runtime-fail", "reason": "list.get(Int) not supported; only Map<Str, Int>" },
   "examples/05_graphs_recursion_patterns/33_graph_dfs_small.yb": { "expect": "runtime-fail", "reason": "list.remove(Int) not supported; only Map<Str, Int>" },
   "examples/05_graphs_recursion_patterns/34_tree_sum_recursive.yb": { "expect": "runtime-fail", "reason": "list.get(Int) not supported; only Map<Str, Int>" },
@@ -72,6 +74,9 @@
   "examples/07_stdlib_io_json_regex_http/60_json_builder_nested_and_arrays.yb": { "expect": "pass" },
   "examples/07_stdlib_io_json_regex_http/61_json_builder_dynamic_fields.yb": { "expect": "pass" },
   "examples/07_stdlib_io_json_regex_http/62_json_builder_http_post_body.yb": { "expect": "pass" },
+  "examples/07_stdlib_io_json_regex_http/65_crypto_basics.yb": { "expect": "pass" },
+
+  "examples/08_error_handling/80_error_patterns.yb": { "expect": "pass" },
 
   "examples/08_modules_packages/project_math/demo/main.yb": { "expect": "pass" },
   "examples/08_modules_packages/project_math/demo/math.yb": { "expect": "compile-fail", "reason": "library module with no main; run via project_math/demo/main.yb" },

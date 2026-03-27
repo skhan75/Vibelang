@@ -1100,10 +1100,18 @@ fn lower_expr(expr: &Expr, env: &BTreeMap<String, TypeKind>, ctx: &TypeContext) 
                 .map(|(n, e)| (n.clone(), lower_expr(e, env, ctx)))
                 .collect(),
         },
-        Expr::Call { callee, args, .. } => HirExprKind::Call {
-            callee: Box::new(lower_expr(callee, env, ctx)),
-            args: args.iter().map(|a| lower_expr(a, env, ctx)).collect(),
-        },
+        Expr::Call { callee, args, .. } => {
+            if is_convert_to_str_call(callee, args) {
+                let arg_ty = expr_type_hint(&args[0], env);
+                if matches!(arg_ty, TypeKind::Str) {
+                    return lower_expr(&args[0], env, ctx);
+                }
+            }
+            HirExprKind::Call {
+                callee: Box::new(lower_expr(callee, env, ctx)),
+                args: args.iter().map(|a| lower_expr(a, env, ctx)).collect(),
+            }
+        }
         Expr::Binary {
             left, op, right, ..
         } => HirExprKind::Binary {
@@ -1136,6 +1144,20 @@ fn lower_expr(expr: &Expr, env: &BTreeMap<String, TypeKind>, ctx: &TypeContext) 
         },
     };
     HirExpr::new(kind, ty)
+}
+
+fn is_convert_to_str_call(callee: &Expr, args: &[Expr]) -> bool {
+    if args.len() != 1 {
+        return false;
+    }
+    if let Expr::Member { object, field, .. } = callee {
+        if field == "to_str" {
+            if let Expr::Ident { name, .. } = &**object {
+                return name == "convert";
+            }
+        }
+    }
+    false
 }
 
 fn expr_type_hint(
@@ -1203,6 +1225,7 @@ fn expr_type_hint_with_sigs(
                 let builtin = match name.as_str() {
                     "len" | "min" | "cpu_count" => Some(TypeKind::Int),
                     "sorted_desc" => Some(TypeKind::Bool),
+                    "type_of" => Some(TypeKind::Str),
                     "print" | "println" => Some(TypeKind::Void),
                     _ => None,
                 };
@@ -1281,6 +1304,12 @@ fn expr_type_hint_with_sigs(
                     TypeKind::Int
                 }
             }
+            BinaryOp::Mod
+            | BinaryOp::BitAnd
+            | BinaryOp::BitOr
+            | BinaryOp::BitXor
+            | BinaryOp::Shl
+            | BinaryOp::Shr => TypeKind::Int,
         },
         Expr::Unary { op, expr, .. } => match op {
             UnaryOp::Not => TypeKind::Bool,
@@ -1663,7 +1692,7 @@ fn infer_expr(
                 }
             }
         }
-        Expr::Call { callee, args, .. } => {
+        Expr::Call { callee, args, span } => {
             let callee_ty = infer_expr(callee, env, ctx, context, diagnostics, observed_effects);
             let mut arg_types = Vec::with_capacity(args.len());
             for arg in args {
@@ -1685,6 +1714,21 @@ fn infer_expr(
                     }
                     "len" | "min" | "cpu_count" => return TypeKind::Int,
                     "sorted_desc" => return TypeKind::Bool,
+                    "type_of" => {
+                        if args.len() != 1 {
+                            diagnostics.push(Diagnostic::new(
+                                "E2240",
+                                Severity::Error,
+                                format!(
+                                    "`type_of` expects exactly one argument, got {}",
+                                    args.len()
+                                ),
+                                *span,
+                            ));
+                            return TypeKind::Unknown;
+                        }
+                        return TypeKind::Str;
+                    }
                     "print" | "println" => {
                         observed_effects.insert("io".to_string());
                         return TypeKind::Void;
@@ -2084,6 +2128,41 @@ fn infer_expr(
                     } else {
                         TypeKind::Int
                     }
+                }
+                BinaryOp::Mod
+                | BinaryOp::BitAnd
+                | BinaryOp::BitOr
+                | BinaryOp::BitXor
+                | BinaryOp::Shl
+                | BinaryOp::Shr => {
+                    if (matches!(lt, TypeKind::Str) || matches!(rt, TypeKind::Str))
+                        && !matches!(lt, TypeKind::Unknown)
+                        && !matches!(rt, TypeKind::Unknown)
+                    {
+                        diagnostics.push(Diagnostic::new(
+                            "E2229",
+                            Severity::Error,
+                            "string operands are only supported with `+` and both sides must be Str",
+                            *span,
+                        ));
+                        return TypeKind::Unknown;
+                    }
+                    if !type_compatible(&lt, &rt)
+                        && !matches!(lt, TypeKind::Unknown)
+                        && !matches!(rt, TypeKind::Unknown)
+                    {
+                        diagnostics.push(Diagnostic::new(
+                            "E2202",
+                            Severity::Error,
+                            format!(
+                                "binary operation type mismatch: left `{}`, right `{}`",
+                                type_name(&lt),
+                                type_name(&rt)
+                            ),
+                            *span,
+                        ));
+                    }
+                    TypeKind::Int
                 }
             }
         }
@@ -2510,6 +2589,16 @@ fn stdlib_namespace_return_hint(
 
 fn stdlib_namespace_return_hint_static(namespace: &str, field: &str) -> Option<TypeKind> {
     match (namespace, field) {
+        ("convert", "to_str") | ("convert", "to_str_f64") | ("convert", "format_f64") => {
+            Some(TypeKind::Str)
+        }
+        ("convert", "to_float")
+        | ("convert", "parse_f64")
+        | ("convert", "i64_to_f64")
+        | ("convert", "f64_from_bits") => Some(TypeKind::Float),
+        ("convert", "to_int") | ("convert", "parse_i64") | ("convert", "f64_to_bits") => {
+            Some(TypeKind::Int)
+        }
         ("json.builder", "new")
         | ("json.builder", "begin_object")
         | ("json.builder", "end_object")
@@ -2547,7 +2636,174 @@ fn stdlib_namespace_return_hint_static(namespace: &str, field: &str) -> Option<T
         ("bench", "net_read") => Some(TypeKind::Str),
         #[cfg(feature = "bench-runtime")]
         ("bench", "net_close") => Some(TypeKind::Bool),
+        ("result", "wrap_err") => Some(TypeKind::Result(
+            Box::new(TypeKind::Int),
+            Box::new(TypeKind::Str),
+        )),
+        ("result", "unwrap_or") => Some(TypeKind::Int),
+        ("result", "is_ok") | ("result", "is_err") => Some(TypeKind::Bool),
         _ => None,
+    }
+}
+
+fn infer_result_stdlib_namespace_call(
+    field: &str,
+    args: &[Expr],
+    arg_types: &[TypeKind],
+    diagnostics: &mut Diagnostics,
+    call_span: Span,
+) -> TypeKind {
+    match field {
+        "wrap_err" => {
+            if args.len() != 2 {
+                diagnostics.push(Diagnostic::new(
+                    "E2237",
+                    Severity::Error,
+                    format!("`result.wrap_err` expects 2 argument(s), got {}", args.len()),
+                    call_span,
+                ));
+                return TypeKind::Unknown;
+            }
+            let r = arg_types.first().cloned().unwrap_or(TypeKind::Unknown);
+            let ctx_ty = arg_types.get(1).cloned().unwrap_or(TypeKind::Unknown);
+            match r {
+                TypeKind::Result(ok, err_ty) => {
+                    if !matches!(&*err_ty, TypeKind::Str | TypeKind::Unknown) {
+                        diagnostics.push(Diagnostic::new(
+                            "E2238",
+                            Severity::Error,
+                            format!(
+                                "`result.wrap_err` requires `Result<_, Str>` (string errors); error type is `{}`",
+                                type_name(&err_ty)
+                            ),
+                            args.first().map(|a| a.span()).unwrap_or(call_span),
+                        ));
+                    }
+                    if !matches!(ctx_ty, TypeKind::Str | TypeKind::Unknown) {
+                        diagnostics.push(Diagnostic::new(
+                            "E2238",
+                            Severity::Error,
+                            format!(
+                                "`result.wrap_err` argument 2 expects `Str`, got `{}`",
+                                type_name(&ctx_ty)
+                            ),
+                            args.get(1).map(|a| a.span()).unwrap_or(call_span),
+                        ));
+                    }
+                    TypeKind::Result(ok, Box::new(TypeKind::Str))
+                }
+                TypeKind::Unknown => TypeKind::Unknown,
+                other => {
+                    diagnostics.push(Diagnostic::new(
+                        "E2238",
+                        Severity::Error,
+                        format!(
+                            "`result.wrap_err` argument 1 expects `Result`, got `{}`",
+                            type_name(&other)
+                        ),
+                        args.first().map(|a| a.span()).unwrap_or(call_span),
+                    ));
+                    TypeKind::Unknown
+                }
+            }
+        }
+        "unwrap_or" => {
+            if args.len() != 2 {
+                diagnostics.push(Diagnostic::new(
+                    "E2237",
+                    Severity::Error,
+                    format!("`result.unwrap_or` expects 2 argument(s), got {}", args.len()),
+                    call_span,
+                ));
+                return TypeKind::Unknown;
+            }
+            let r = arg_types.first().cloned().unwrap_or(TypeKind::Unknown);
+            let def = arg_types.get(1).cloned().unwrap_or(TypeKind::Unknown);
+            match r {
+                TypeKind::Result(ok, _) => {
+                    if !matches!(&*ok, TypeKind::Int | TypeKind::Unknown) {
+                        diagnostics.push(Diagnostic::new(
+                            "E2238",
+                            Severity::Error,
+                            format!(
+                                "`result.unwrap_or` supports `Result<Int, _>` only; ok type is `{}`",
+                                type_name(&ok)
+                            ),
+                            args.first().map(|a| a.span()).unwrap_or(call_span),
+                        ));
+                    }
+                    if !type_compatible(&def, ok.as_ref())
+                        && !matches!(def, TypeKind::Unknown)
+                        && !matches!(ok.as_ref(), TypeKind::Unknown)
+                    {
+                        diagnostics.push(Diagnostic::new(
+                            "E2238",
+                            Severity::Error,
+                            format!(
+                                "`result.unwrap_or` default type `{}` does not match ok type `{}`",
+                                type_name(&def),
+                                type_name(ok.as_ref())
+                            ),
+                            args.get(1).map(|a| a.span()).unwrap_or(call_span),
+                        ));
+                    }
+                    (*ok).clone()
+                }
+                TypeKind::Unknown => TypeKind::Unknown,
+                other => {
+                    diagnostics.push(Diagnostic::new(
+                        "E2238",
+                        Severity::Error,
+                        format!(
+                            "`result.unwrap_or` argument 1 expects `Result`, got `{}`",
+                            type_name(&other)
+                        ),
+                        args.first().map(|a| a.span()).unwrap_or(call_span),
+                    ));
+                    TypeKind::Unknown
+                }
+            }
+        }
+        "is_ok" | "is_err" => {
+            if args.len() != 1 {
+                diagnostics.push(Diagnostic::new(
+                    "E2237",
+                    Severity::Error,
+                    format!(
+                        "`result.{}` expects 1 argument(s), got {}",
+                        field,
+                        args.len()
+                    ),
+                    call_span,
+                ));
+                return TypeKind::Unknown;
+            }
+            match arg_types.first().cloned().unwrap_or(TypeKind::Unknown) {
+                TypeKind::Result(_, _) | TypeKind::Unknown => TypeKind::Bool,
+                other => {
+                    diagnostics.push(Diagnostic::new(
+                        "E2238",
+                        Severity::Error,
+                        format!(
+                            "`result.{}` expects `Result`, got `{}`",
+                            field,
+                            type_name(&other)
+                        ),
+                        args.first().map(|a| a.span()).unwrap_or(call_span),
+                    ));
+                    TypeKind::Bool
+                }
+            }
+        }
+        _ => {
+            diagnostics.push(Diagnostic::new(
+                "E2239",
+                Severity::Error,
+                format!("unknown stdlib API `result.{field}`"),
+                call_span,
+            ));
+            TypeKind::Unknown
+        }
     }
 }
 
@@ -2562,6 +2818,11 @@ fn infer_stdlib_namespace_call(
     observed_effects: &mut BTreeSet<String>,
     call_span: Span,
 ) -> Option<TypeKind> {
+    if namespace == "result" {
+        return Some(infer_result_stdlib_namespace_call(
+            field, args, arg_types, diagnostics, call_span,
+        ));
+    }
     let ns_key = (namespace.to_string(), field.to_string());
     if let Some(mangled) = ctx.namespace_map.get(&ns_key) {
         if let Some(ret_ty) = ctx.sigs.get(mangled).and_then(|t| t.clone()) {
@@ -2925,6 +3186,16 @@ fn infer_stdlib_namespace_call(
 
     let ret = stdlib_namespace_return_hint(namespace, field, ctx)?;
     let expected = match (namespace, field) {
+        ("convert", "to_str") | ("convert", "to_str_f64") | ("convert", "format_f64") => {
+            Some((&["_any"][..], ""))
+        }
+        ("convert", "to_float")
+        | ("convert", "parse_f64")
+        | ("convert", "i64_to_f64")
+        | ("convert", "f64_from_bits") => Some((&["_any"][..], "")),
+        ("convert", "to_int") | ("convert", "parse_i64") | ("convert", "f64_to_bits") => {
+            Some((&["_any"][..], ""))
+        }
         ("simd", "f64x2_splat") => Some((&["Float"][..], "")),
         ("simd", "f64x2_make") => Some((&["Float", "Float"][..], "")),
         ("simd", "f64x2_add")
@@ -3017,10 +3288,13 @@ fn is_builtin_ident(name: &str) -> bool {
             | "chan"
             | "ok"
             | "err"
+            | "type_of"
             | "print"
             | "println"
             | "simd"
             | "json"
+            | "convert"
+            | "result"
             | "true"
             | "false"
     ) {

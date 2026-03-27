@@ -1,0 +1,41 @@
+// Blocking echo server: run manually with `vibe run` (not listed in examples_manifest.json).
+
+pub main() -> Int {
+  @effect io
+  @effect net
+  @effect concurrency
+
+  port := 8080
+  listener := net.listen("0.0.0.0", port)
+  log.info("Server listening on port 8080")
+
+  while true {
+    conn := net.accept(listener)
+    go handle(conn)
+  }
+  0
+}
+
+handle(conn: Int) -> Int {
+  @effect io
+  @effect net
+  raw := net.read(conn, 16384)
+  if raw.len() == 0 {
+    net.close(conn)
+    return 0
+  }
+  req := http_server.parse_request(raw)
+
+  if req.method == "OPTIONS" {
+    response := http_server.format_response(200, http_server.cors_headers(), "")
+    net.write(conn, response)
+    net.close(conn)
+    return 0
+  }
+
+  body := "\{\"method\":\"" + req.method + "\",\"path\":\"" + req.path + "\"}"
+  response := http_server.format_response(200, http_server.cors_headers() + "\r\nContent-Type: application/json\r\n", body)
+  net.write(conn, response)
+  net.close(conn)
+  0
+}
