@@ -4169,6 +4169,10 @@ fn json_codec_schema_recursive(
     depth: usize,
 ) -> Option<String> {
     if depth > 16 {
+        eprintln!(
+            "warning: json codec schema for `{type_name}` exceeds maximum nesting depth (16); \
+             deeply nested fields will be serialized as empty objects"
+        );
         return None;
     }
     let fields = type_defs.get(type_name)?;
@@ -4180,11 +4184,13 @@ fn json_codec_schema_recursive(
         schema.push_str(field_name);
         schema.push(':');
         if type_defs.contains_key(field_ty.as_str()) {
-            schema.push('{');
             if let Some(nested) = json_codec_schema_recursive(field_ty, type_defs, depth + 1) {
+                schema.push('{');
                 schema.push_str(&nested);
+                schema.push('}');
+            } else {
+                schema.push_str("Str");
             }
-            schema.push('}');
         } else {
             schema.push_str(field_ty);
         }
@@ -4343,6 +4349,18 @@ fn emit_stdlib_namespace_call(
                 &[lowered_args[0], schema_ptr, lowered_args[1], out_record],
             );
             return Ok(Some(call_result_or_zero(builder, call)));
+        }
+        if field == "encode" && lowered_args.len() == 1 {
+            return Err(format!(
+                "E3411: `json.encode` could not determine the struct type of its argument. \
+                 Bind the argument to a variable first: `tmp := expr; json.encode(tmp)`"
+            ));
+        }
+        if field == "decode" && lowered_args.len() == 2 {
+            return Err(format!(
+                "E3411: `json.decode` could not determine the struct type of its fallback argument. \
+                 Bind the fallback to a variable first: `fb := expr; json.decode(raw, fb)`"
+            ));
         }
     }
 

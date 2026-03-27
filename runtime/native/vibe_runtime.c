@@ -3031,8 +3031,13 @@ int64_t vibe_net_write(int64_t fd_raw, const char *data) {
     if (fd <= 0 || len == 0) {
         return 0;
     }
-    ssize_t n = send(fd, raw, len, 0);
-    return n < 0 ? 0 : (int64_t)n;
+    size_t total = 0;
+    while (total < len) {
+        ssize_t n = send(fd, raw + total, len - total, 0);
+        if (n <= 0) break;
+        total += (size_t)n;
+    }
+    return (int64_t)total;
 #endif
 }
 

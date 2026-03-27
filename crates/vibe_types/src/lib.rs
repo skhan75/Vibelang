@@ -1044,7 +1044,7 @@ fn lower_contract_expr(
 }
 
 fn lower_expr(expr: &Expr, env: &BTreeMap<String, TypeKind>, ctx: &TypeContext) -> HirExpr {
-    let ty = type_name(&expr_type_hint(expr, env));
+    let ty = type_name(&expr_type_hint_with_sigs(expr, env, Some(ctx.sigs)));
     let kind = match expr {
         Expr::Ident { name, .. } => HirExprKind::Ident(name.clone()),
         Expr::Int { value, .. } => HirExprKind::Int(*value),
@@ -1138,7 +1138,18 @@ fn lower_expr(expr: &Expr, env: &BTreeMap<String, TypeKind>, ctx: &TypeContext) 
     HirExpr::new(kind, ty)
 }
 
-fn expr_type_hint(expr: &Expr, env: &BTreeMap<String, TypeKind>) -> TypeKind {
+fn expr_type_hint(
+    expr: &Expr,
+    env: &BTreeMap<String, TypeKind>,
+) -> TypeKind {
+    expr_type_hint_with_sigs(expr, env, None)
+}
+
+fn expr_type_hint_with_sigs(
+    expr: &Expr,
+    env: &BTreeMap<String, TypeKind>,
+    sigs: Option<&BTreeMap<String, Option<TypeKind>>>,
+) -> TypeKind {
     match expr {
         Expr::Ident { name, .. } => env.get(name).cloned().unwrap_or(TypeKind::Unknown),
         Expr::Int { .. } => TypeKind::Int,
@@ -1189,12 +1200,21 @@ fn expr_type_hint(expr: &Expr, env: &BTreeMap<String, TypeKind>) -> TypeKind {
         },
         Expr::Call { callee, args, .. } => {
             if let Expr::Ident { name, .. } = &**callee {
-                return match name.as_str() {
-                    "len" | "min" | "cpu_count" => TypeKind::Int,
-                    "sorted_desc" => TypeKind::Bool,
-                    "print" | "println" => TypeKind::Void,
-                    _ => TypeKind::Unknown,
+                let builtin = match name.as_str() {
+                    "len" | "min" | "cpu_count" => Some(TypeKind::Int),
+                    "sorted_desc" => Some(TypeKind::Bool),
+                    "print" | "println" => Some(TypeKind::Void),
+                    _ => None,
                 };
+                if let Some(ty) = builtin {
+                    return ty;
+                }
+                if let Some(s) = sigs {
+                    if let Some(ret) = s.get(name).and_then(|r| r.clone()) {
+                        return ret;
+                    }
+                }
+                return TypeKind::Unknown;
             }
             if let Some((namespace, field)) = extract_stdlib_call_target(callee) {
                 if let Some(ty) = stdlib_namespace_return_hint_static(&namespace, &field) {

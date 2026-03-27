@@ -13,42 +13,42 @@ pub is_valid(raw: Str) -> Bool {
   @native("vibe_json_is_valid")
 }
 
-pub parse(raw: Str) -> Int {
-  @intent "parse a JSON string into a DOM node handle"
+pub parse(raw: Str) -> Json {
+  @intent "parse a JSON string into a DOM node"
   @native("vibe_json_parse")
 }
 
-pub stringify(node: Int) -> Str {
+pub stringify(node: Json) -> Str {
   @intent "serialize a DOM node to a compact JSON string"
   @native("vibe_json_stringify")
 }
 
-pub stringify_pretty(node: Int) -> Str {
+pub stringify_pretty(node: Json) -> Str {
   @intent "serialize a DOM node to a pretty-printed JSON string"
   @native("vibe_json_stringify_pretty")
 }
 
-pub null() -> Int {
+pub null() -> Json {
   @intent "create a JSON null DOM node"
   @native("vibe_json_null")
 }
 
-pub bool(value: Bool) -> Int {
+pub bool(value: Bool) -> Json {
   @intent "create a JSON boolean DOM node"
   @native("vibe_json_bool")
 }
 
-pub i64(value: Int) -> Int {
+pub i64(value: Int) -> Json {
   @intent "create a JSON integer DOM node"
   @native("vibe_json_i64")
 }
 
-pub f64(value: Float) -> Int {
+pub f64(value: Float) -> Json {
   @intent "create a JSON float DOM node"
   @native("vibe_json_f64")
 }
 
-pub str(value: Str) -> Int {
+pub str(value: Str) -> Json {
   @intent "create a JSON string DOM node"
   @native("vibe_json_str")
 }

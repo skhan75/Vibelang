@@ -1,0 +1,4 @@
+module app.types
+
+pub type Point { x: Int, y: Int }
+pub type Color { r: Int, g: Int, b: Int }

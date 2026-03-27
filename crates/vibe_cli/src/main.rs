@@ -27,9 +27,10 @@ use vibe_mir::MirProgram;
 use vibe_mir::{lower_hir_to_mir, mir_debug_dump};
 use vibe_parser::parse_source;
 use vibe_pkg::{
-    audit_project, default_mirror_root, default_registry_root, install_project, publish_project,
-    resolve_project, semver_delta, upgrade_plan, write_lockfile, SemverDelta, LOCK_FILENAME,
-    MANIFEST_FILENAME,
+    add_dependency, audit_project, default_mirror_root, default_registry_root,
+    install_project, install_with_fetch, load_manifest, publish_project, remove_dependency,
+    resolve_project, semver_delta, upgrade_plan, write_lockfile, DependencySpec, DetailedDep,
+    InstallReport, SemverDelta, LOCK_FILENAME, MANIFEST_FILENAME,
 };
 use vibe_runtime::{compile_runtime_object, link_executable, RuntimeBuildOptions};
 use vibe_sidecar::models::FindingSeverity;
@@ -170,6 +171,44 @@ fn run() -> Result<ExitCode, String> {
             let new_args = parse_new_args(&args)?;
             run_new(&new_args)
         }
+        "install" => {
+            parse_empty_project_args("install", &args)?;
+            let project_root = require_project_root_from_cwd()?;
+            let report = install_with_fetch(&project_root)?;
+            print_install_report(&report);
+            Ok(ExitCode::SUCCESS)
+        }
+        "add" => {
+            let (name, spec) = parse_add_args(&args)?;
+            let project_root = require_project_root_from_cwd()?;
+            add_dependency(&project_root, &name, &spec)?;
+            let report = install_with_fetch(&project_root)?;
+            print_install_report(&report);
+            Ok(ExitCode::SUCCESS)
+        }
+        "remove" => {
+            let name = parse_remove_args(&args)?;
+            let project_root = require_project_root_from_cwd()?;
+            remove_dependency(&project_root, &name)?;
+            println!("removed dependency `{name}`");
+            Ok(ExitCode::SUCCESS)
+        }
+        "update" => {
+            parse_empty_project_args("update", &args)?;
+            let project_root = require_project_root_from_cwd()?;
+            let lock_path = project_root.join(LOCK_FILENAME);
+            if lock_path.is_file() {
+                fs::remove_file(&lock_path).map_err(|e| {
+                    format!(
+                        "failed to remove lockfile `{}`: {e}",
+                        lock_path.display()
+                    )
+                })?;
+            }
+            let report = install_with_fetch(&project_root)?;
+            print_install_report(&report);
+            Ok(ExitCode::SUCCESS)
+        }
         "pkg" => {
             let pkg_args = parse_pkg_args(&args)?;
             run_pkg(&pkg_args)
@@ -222,6 +261,10 @@ COMMANDS
   fmt [path] [flags]        Format source files
   doc [path] [flags]        Generate markdown API docs
   new <name> [flags]        Scaffold app/service/cli/library project
+  install                   Fetch deps and install into project store (from cwd)
+  add <name> [opts]         Add a dependency to vibe.toml and install
+  remove <name>             Remove a dependency from vibe.toml
+  update                    Delete vibe.lock and re-resolve/install dependencies
   pkg <resolve|lock|install|publish|audit|upgrade-plan|semver-check> [flags]
                             Dependency lifecycle + registry + audit + semver tools
   lint [path] --intent [flags]
@@ -392,6 +435,63 @@ FLAGS
   --cli                     Scaffold multi-module CLI template
   --lib, --library          Scaffold library template
   --ext <ext>               Source extension for generated template
+
+NOTES
+  Generated vibe.toml includes [vibelang] with a compiler version requirement.
+"#,
+        ),
+        "install" => Some(
+            r#"vibe install
+
+USAGE
+  vibe install
+
+DESCRIPTION
+  Resolves dependencies from the nearest vibe.toml (cwd or parents), fetches
+  sources, and installs packages into the project store. Prints an install report.
+"#,
+        ),
+        "add" => Some(
+            r#"vibe add
+
+USAGE
+  vibe add <name> [<version>] [--version <ver>] [--git <url>] [--tag <tag>]
+              [--branch <branch>] [--path <path>]
+
+DESCRIPTION
+  Adds a dependency entry to [dependencies] in vibe.toml and runs install.
+
+OPTIONS
+  --git <url>               Git repository URL
+  --tag <tag>               Git tag (with --git)
+  --branch <branch>         Git branch (with --git)
+  --path <path>             Local path dependency
+  --version <ver>           Version requirement (e.g. "^1.0"); optional if using --git alone
+
+NOTES
+  Provide a semver/version as the second positional argument or via --version
+  when not using --git or --path.
+"#,
+        ),
+        "remove" => Some(
+            r#"vibe remove
+
+USAGE
+  vibe remove <name>
+
+DESCRIPTION
+  Removes the named dependency from vibe.toml (and related store layout).
+"#,
+        ),
+        "update" => Some(
+            r#"vibe update
+
+USAGE
+  vibe update
+
+DESCRIPTION
+  Deletes vibe.lock (if present) and re-runs a full fetch + install for the
+  nearest project manifest.
 "#,
         ),
         "pkg" => Some(
@@ -1271,6 +1371,149 @@ fn parse_pkg_args(args: &[String]) -> Result<PkgArgs, String> {
     })
 }
 
+fn parse_empty_project_args(command: &str, args: &[String]) -> Result<(), String> {
+    if !args.is_empty() {
+        return Err(format!("usage: vibe {command}"));
+    }
+    Ok(())
+}
+
+fn require_project_root_from_cwd() -> Result<PathBuf, String> {
+    let cwd = env::current_dir().map_err(|e| format!("failed to get current directory: {e}"))?;
+    find_project_root(&cwd).ok_or_else(|| {
+        format!(
+            "no `{}` found in current directory or parent directories",
+            MANIFEST_FILENAME
+        )
+    })
+}
+
+fn print_install_report(report: &InstallReport) {
+    println!(
+        "install complete: packages={} lock={} store={}",
+        report.installed,
+        report.lock_path.display(),
+        report.store_root.display()
+    );
+}
+
+fn parse_add_args(args: &[String]) -> Result<(String, DependencySpec), String> {
+    let mut git = None::<String>;
+    let mut tag = None::<String>;
+    let mut branch = None::<String>;
+    let mut path_dep = None::<String>;
+    let mut version_opt = None::<String>;
+    let mut positionals = Vec::<String>::new();
+    let mut idx = 0usize;
+    while idx < args.len() {
+        match args[idx].as_str() {
+            "--git" => {
+                idx += 1;
+                let val = args
+                    .get(idx)
+                    .ok_or_else(|| "missing value for `--git`".to_string())?;
+                git = Some(val.clone());
+            }
+            "--tag" => {
+                idx += 1;
+                let val = args
+                    .get(idx)
+                    .ok_or_else(|| "missing value for `--tag`".to_string())?;
+                tag = Some(val.clone());
+            }
+            "--branch" => {
+                idx += 1;
+                let val = args
+                    .get(idx)
+                    .ok_or_else(|| "missing value for `--branch`".to_string())?;
+                branch = Some(val.clone());
+            }
+            "--path" => {
+                idx += 1;
+                let val = args
+                    .get(idx)
+                    .ok_or_else(|| "missing value for `--path`".to_string())?;
+                path_dep = Some(val.clone());
+            }
+            "--version" => {
+                idx += 1;
+                let val = args
+                    .get(idx)
+                    .ok_or_else(|| "missing value for `--version`".to_string())?;
+                version_opt = Some(val.clone());
+            }
+            other if other.starts_with('-') => {
+                return Err(format!("unknown argument `{other}`"));
+            }
+            _ => positionals.push(args[idx].clone()),
+        }
+        idx += 1;
+    }
+
+    let name = positionals
+        .first()
+        .cloned()
+        .ok_or_else(|| "missing dependency name (usage: vibe add <name> [options])".to_string())?;
+    if positionals.len() > 2 {
+        return Err(
+            "too many positional arguments (expected <name> and optional <version>)".to_string(),
+        );
+    }
+    let positional_version = positionals.get(1).cloned();
+    if version_opt.is_some() && positional_version.is_some() {
+        return Err("cannot combine `--version` with a positional version".to_string());
+    }
+    let version_merged = version_opt.or(positional_version);
+
+    if git.is_some() && path_dep.is_some() {
+        return Err("`--git` and `--path` cannot be used together".to_string());
+    }
+
+    let spec = if let Some(g) = git {
+        DependencySpec::Detailed(DetailedDep {
+            git: Some(g),
+            tag,
+            branch,
+            rev: None,
+            path: None,
+            version: version_merged,
+        })
+    } else if let Some(p) = path_dep {
+        if tag.is_some() || branch.is_some() {
+            return Err("`--tag` and `--branch` are only valid with `--git`".to_string());
+        }
+        DependencySpec::Detailed(DetailedDep {
+            git: None,
+            tag: None,
+            branch: None,
+            rev: None,
+            path: Some(p),
+            version: version_merged,
+        })
+    } else {
+        let v = version_merged.ok_or_else(|| {
+            "missing version: pass a second positional argument, `--version <ver>`, or use `--git` / `--path`"
+                .to_string()
+        })?;
+        DependencySpec::Version(v)
+    };
+
+    Ok((name, spec))
+}
+
+fn parse_remove_args(args: &[String]) -> Result<String, String> {
+    if args.is_empty() {
+        return Err("missing dependency name (usage: vibe remove <name>)".to_string());
+    }
+    if args[0].starts_with('-') {
+        return Err("missing dependency name (usage: vibe remove <name>)".to_string());
+    }
+    if args.len() > 1 {
+        return Err("unexpected arguments for `vibe remove`".to_string());
+    }
+    Ok(args[0].clone())
+}
+
 fn parse_sidecar_mode(raw: &str) -> Result<SidecarMode, String> {
     match raw {
         "local" | "local-only" => Ok(SidecarMode::LocalOnly),
@@ -1926,9 +2169,10 @@ pub run_command() -> Int {{
             .map_err(|e| format!("failed to write source template `{}`: {e}", path.display()))?;
     }
 
+    let compiler_ver = env!("CARGO_PKG_VERSION");
     let manifest = format!(
-        "[package]\nname = \"{}\"\nversion = \"0.1.0\"\n\n[dependencies]\n",
-        args.name
+        "[package]\nname = \"{}\"\nversion = \"0.1.0\"\n\n[vibelang]\nversion = \">={}\"\n\n[dependencies]\n",
+        args.name, compiler_ver
     );
     fs::write(project_dir.join("vibe.toml"), manifest).map_err(|e| {
         format!(
@@ -2135,6 +2379,14 @@ fn build_source(args: &BuildArgs) -> Result<BuildArtifacts, String> {
         .as_ref()
         .map(|start| start.elapsed().as_millis())
         .unwrap_or(0);
+
+    if let Some(project_root) = find_project_root(&args.source_path) {
+        let manifest_path = project_root.join(MANIFEST_FILENAME);
+        if manifest_path.is_file() {
+            let manifest = load_manifest(&manifest_path)?;
+            manifest.check_compiler_version(env!("CARGO_PKG_VERSION"))?;
+        }
+    }
 
     let resolve_start = if timing_enabled {
         Some(std::time::Instant::now())
