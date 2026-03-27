@@ -22,6 +22,7 @@ vibe_pkg.workspace = true
 vibe_runtime.workspace = true
 vibe_sidecar.workspace = true
 vibe_types.workspace = true
+toml = "0.8"
 
 [[bin]]
 name = "vibe"

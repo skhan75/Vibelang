@@ -243,8 +243,8 @@ pub main() -> Int {
   println(path.join("/a", "b"))
   println(convert.to_str(convert.to_int("88")))
   println(convert.to_str_f64(convert.parse_f64("1.75")))
-  println(json.minify("{ \"k\" : 1 }"))
-  println(json.stringify(json.parse("{\"k\":1}")))
+  println(json.minify("\{ \"k\" : 1 }"))
+  println(json.stringify(json.parse("\{\"k\":1}")))
   println(json.stringify(json.str("k=v")))
   println(http.build_request_line("POST", "/submit"))
   println(json.stringify_i64(time.duration_ms(3)))
@@ -307,7 +307,8 @@ fn phase12_stdlib_type_errors_are_reported_for_invalid_calls() {
         r#"
 pub main() -> Int {
   @effect io
-  fs.write_text("x.txt", 1)
+  json.decode("\{\}", 1)
+  0
 }
 "#,
     );
@@ -320,7 +321,7 @@ pub main() -> Int {
     );
     assert!(
         out.stdout
-            .contains("`fs.write_text` argument 2 expects `Str`, got `Int`"),
+            .contains("`json.decode` fallback must be a user-defined struct type, got `Int`"),
         "expected stdlib argument type mismatch diagnostic:\n{}",
         out.stdout
     );

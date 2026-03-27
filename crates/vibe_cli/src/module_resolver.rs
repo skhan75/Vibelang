@@ -8,6 +8,8 @@ use std::path::{Path, PathBuf};
 use vibe_ast::{Contract, Declaration, Expr, FileAst, SelectPattern, Stmt};
 use vibe_diagnostics::{Diagnostic, Diagnostics, Severity, Span};
 use vibe_parser::parse_source;
+#[allow(clippy::single_component_path_imports)] // Ensures `vibe_pkg` is linked; required by project conventions.
+use vibe_pkg;
 
 pub struct CompilationUnit {
     pub source: String,
@@ -28,6 +30,21 @@ pub fn resolve_compilation_unit(entry_path: &Path) -> Result<CompilationUnit, St
     let mut diagnostics = Diagnostics::default();
     diagnostics.extend(entry_parsed.diagnostics.clone().into_sorted());
 
+    let root_dir = crate::find_project_root(entry_path).unwrap_or_else(|| {
+        entry_path
+            .parent()
+            .unwrap_or_else(|| Path::new("."))
+            .to_path_buf()
+    });
+    let root_dir = if root_dir.as_os_str().is_empty() {
+        PathBuf::from(".")
+    } else {
+        root_dir
+    };
+    if let Some(d) = check_vibelang_version(&root_dir) {
+        diagnostics.push(d);
+    }
+
     if entry_parsed.ast.module.is_none() && entry_parsed.ast.imports.is_empty() {
         let (ns_decls, namespace_map) = load_stdlib_namespace_functions();
         let mut decls = entry_parsed.ast.declarations;
@@ -44,18 +61,40 @@ pub fn resolve_compilation_unit(entry_path: &Path) -> Result<CompilationUnit, St
         });
     }
 
-    let root_dir = crate::find_project_root(entry_path).unwrap_or_else(|| {
-        entry_path
-            .parent()
-            .unwrap_or_else(|| Path::new("."))
-            .to_path_buf()
-    });
     let canonical_root = root_dir.canonicalize().unwrap_or(root_dir.clone());
     let mut files = crate::collect_vibe_files(&root_dir)?;
 
     if let Some(stdlib_root) = find_stdlib_root() {
         if let Ok(stdlib_files) = crate::collect_vibe_files(&stdlib_root) {
             files.extend(stdlib_files);
+        }
+    }
+
+    let manifest_opt = load_project_manifest_optional(&canonical_root);
+    let lock_opt: Option<vibe_pkg::Lockfile> = match &manifest_opt {
+        Some(_) => try_load_lockfile(&canonical_root)?,
+        None => None,
+    };
+    let foreign_package_names: BTreeSet<String> = manifest_opt
+        .as_ref()
+        .map(|m| dependency_package_names(m, lock_opt.as_ref()))
+        .unwrap_or_default();
+    if let (Some(manifest), Some(store_root)) = (
+        manifest_opt.as_ref(),
+        find_package_store_root(&canonical_root),
+    ) {
+        let allowed = resolved_dependency_store_dirs(&store_root, manifest, lock_opt.as_ref())?;
+        if !allowed.is_empty() {
+            let pkg_files_all = collect_package_files(&store_root)?;
+            let filtered: Vec<PathBuf> = pkg_files_all
+                .into_iter()
+                .filter(|p| {
+                    package_name_version_under_store(&store_root, p)
+                        .map(|nv| allowed.contains(&nv))
+                        .unwrap_or(false)
+                })
+                .collect();
+            files.extend(filtered);
         }
     }
 
@@ -79,6 +118,9 @@ pub fn resolve_compilation_unit(entry_path: &Path) -> Result<CompilationUnit, St
         .and_then(|p| p.parent().map(|pp| pp.to_path_buf()))
         .and_then(|p| p.canonicalize().ok());
 
+    let package_store_canonical = find_package_store_root(&canonical_root)
+        .and_then(|p| p.canonicalize().ok());
+
     let mut module_index = BTreeMap::<String, usize>::new();
     for (idx, (_path, parsed)) in docs.iter().enumerate() {
         let Some(module_name) = &parsed.ast.module else {
@@ -89,6 +131,10 @@ pub fn resolve_compilation_unit(entry_path: &Path) -> Result<CompilationUnit, St
                 stdlib_parent
                     .as_ref()
                     .and_then(|sp| expected_module_name_from_path(sp, &docs[idx].0))
+            }).or_else(|| {
+                package_store_canonical
+                    .as_ref()
+                    .and_then(|ps| expected_package_module_name(ps, &docs[idx].0))
             });
         if let Some(expected_module) = expected {
             if module_name != &expected_module {
@@ -161,6 +207,7 @@ pub fn resolve_compilation_unit(entry_path: &Path) -> Result<CompilationUnit, St
     visit_module(
         &entry_module,
         &root_package,
+        &foreign_package_names,
         &module_index,
         &docs,
         &mut visited,
@@ -285,6 +332,7 @@ pub fn resolve_compilation_unit(entry_path: &Path) -> Result<CompilationUnit, St
 fn visit_module(
     module_name: &str,
     root_package: &str,
+    foreign_packages: &BTreeSet<String>,
     module_index: &BTreeMap<String, usize>,
     docs: &[(PathBuf, ParsedSource)],
     visited: &mut BTreeSet<String>,
@@ -320,7 +368,10 @@ fn visit_module(
     let imports = docs[idx].1.ast.imports.clone();
     for import in imports {
         let imported_package = import.split('.').next().unwrap_or(import.as_str());
-        if imported_package != root_package && imported_package != "std" {
+        if imported_package != root_package
+            && imported_package != "std"
+            && !foreign_packages.contains(imported_package)
+        {
             diagnostics.push(Diagnostic::new(
                 "E2313",
                 Severity::Error,
@@ -343,6 +394,7 @@ fn visit_module(
         visit_module(
             &import,
             root_package,
+            foreign_packages,
             module_index,
             docs,
             visited,
@@ -551,6 +603,176 @@ fn expected_module_name_from_path(root: &Path, source: &Path) -> Option<String> 
     Some(parts.join("."))
 }
 
+/// Returns `.yb/pkg/store/` under the project root when it exists as a directory.
+pub(crate) fn find_package_store_root(project_root: &Path) -> Option<PathBuf> {
+    let store = project_root.join(".yb").join("pkg").join("store");
+    store.is_dir().then_some(store)
+}
+
+/// Walks `<store_root>/<name>/<version>/` trees and collects supported Vibe source files (e.g. `.yb`).
+pub(crate) fn collect_package_files(store_root: &Path) -> Result<Vec<PathBuf>, String> {
+    if !store_root.is_dir() {
+        return Ok(Vec::new());
+    }
+    let mut entries: Vec<PathBuf> = fs::read_dir(store_root)
+        .map_err(|e| format!("failed to read `{}`: {e}", store_root.display()))?
+        .filter_map(|e| e.ok())
+        .map(|e| e.path())
+        .collect();
+    entries.sort();
+    let mut out = Vec::new();
+    for name_path in entries {
+        if !name_path.is_dir() {
+            continue;
+        }
+        let mut vers: Vec<PathBuf> = fs::read_dir(&name_path)
+            .map_err(|e| format!("failed to read `{}`: {e}", name_path.display()))?
+            .filter_map(|e| e.ok())
+            .map(|e| e.path())
+            .collect();
+        vers.sort();
+        for ver_path in vers {
+            if !ver_path.is_dir() {
+                continue;
+            }
+            out.extend(crate::collect_vibe_files(&ver_path)?);
+        }
+    }
+    out.sort();
+    Ok(out)
+}
+
+/// Validates `[vibelang].version` from `vibe.toml` against this compiler build.
+pub(crate) fn check_vibelang_version(project_root: &Path) -> Option<Diagnostic> {
+    let manifest_path = project_root.join(vibe_pkg::MANIFEST_FILENAME);
+    if !manifest_path.is_file() {
+        return None;
+    }
+    let manifest = match vibe_pkg::load_manifest(&manifest_path) {
+        Ok(m) => m,
+        Err(msg) => {
+            return Some(Diagnostic::new(
+                "E2318",
+                Severity::Error,
+                msg,
+                Span::new(1, 1, 1, 1),
+            ));
+        }
+    };
+    match manifest.check_compiler_version(env!("CARGO_PKG_VERSION")) {
+        Ok(()) => None,
+        Err(msg) => Some(Diagnostic::new(
+            "E2318",
+            Severity::Error,
+            msg,
+            Span::new(1, 1, 1, 1),
+        )),
+    }
+}
+
+fn load_project_manifest_optional(project_root: &Path) -> Option<vibe_pkg::Manifest> {
+    let path = project_root.join(vibe_pkg::MANIFEST_FILENAME);
+    vibe_pkg::load_manifest(&path).ok()
+}
+
+fn try_load_lockfile(project_root: &Path) -> Result<Option<vibe_pkg::Lockfile>, String> {
+    let path = project_root.join(vibe_pkg::LOCK_FILENAME);
+    if !path.is_file() {
+        return Ok(None);
+    }
+    let raw = fs::read_to_string(&path)
+        .map_err(|e| format!("failed to read `{}`: {e}", path.display()))?;
+    toml::from_str(&raw).map_err(|e| format!("failed to parse `{}`: {e}", path.display()))
+}
+
+fn dependency_package_names(
+    manifest: &vibe_pkg::Manifest,
+    lock: Option<&vibe_pkg::Lockfile>,
+) -> BTreeSet<String> {
+    let root = &manifest.package.name;
+    if let Some(lock) = lock {
+        lock.package
+            .iter()
+            .filter(|p| &p.name != root)
+            .map(|p| p.name.clone())
+            .collect()
+    } else {
+        manifest.dependencies.keys().cloned().collect()
+    }
+}
+
+fn resolved_dependency_store_dirs(
+    store_root: &Path,
+    manifest: &vibe_pkg::Manifest,
+    lock: Option<&vibe_pkg::Lockfile>,
+) -> Result<BTreeSet<(String, String)>, String> {
+    let root = manifest.package.name.clone();
+    if let Some(lock) = lock {
+        return Ok(lock
+            .package
+            .iter()
+            .filter(|p| p.name != root)
+            .map(|p| (p.name.clone(), p.version.clone()))
+            .collect());
+    }
+    let mut set = BTreeSet::new();
+    for name in manifest.dependencies.keys() {
+        let dir = store_root.join(name);
+        if !dir.is_dir() {
+            continue;
+        }
+        let mut vers: Vec<String> = fs::read_dir(&dir)
+            .map_err(|e| format!("failed to read `{}`: {e}", dir.display()))?
+            .filter_map(|e| e.ok())
+            .filter_map(|e| {
+                let p = e.path();
+                p.is_dir()
+                    .then_some(e.file_name().to_str().map(str::to_string))
+                    .flatten()
+            })
+            .collect();
+        vers.sort();
+        match vers.len() {
+            0 => {}
+            1 => {
+                set.insert((name.clone(), vers[0].clone()));
+            }
+            _ => {
+                return Err(format!(
+                    "multiple installed versions of dependency `{name}` under `{}` without a lockfile; run `vibe install`",
+                    dir.display()
+                ));
+            }
+        }
+    }
+    Ok(set)
+}
+
+fn package_name_version_under_store(store_root: &Path, file: &Path) -> Option<(String, String)> {
+    let rel = file.strip_prefix(store_root).ok()?;
+    let mut c = rel
+        .components()
+        .filter_map(|comp| comp.as_os_str().to_str().map(str::to_string));
+    let name = c.next()?;
+    let version = c.next()?;
+    Some((name, version))
+}
+
+fn expected_package_module_name(store_root: &Path, file: &Path) -> Option<String> {
+    let rel = file.strip_prefix(store_root).ok()?;
+    let parts: Vec<String> = rel
+        .components()
+        .filter_map(|c| c.as_os_str().to_str().map(str::to_string))
+        .collect();
+    if parts.len() < 3 {
+        return None;
+    }
+    let pkg_name = parts[0].clone();
+    let content_root = store_root.join(&parts[0]).join(&parts[1]);
+    let inner = expected_module_name_from_path(&content_root, file)?;
+    Some(format!("{pkg_name}.{inner}"))
+}
+
 fn is_native_only(func: &vibe_ast::FunctionDecl) -> bool {
     func.contracts
         .iter()
@@ -612,6 +834,8 @@ fn load_stdlib_namespace_functions() -> (Vec<Declaration>, BTreeMap<(String, Str
     (ns_decls, ns_map)
 }
 
+include!(concat!(env!("OUT_DIR"), "/embedded_stdlib.rs"));
+
 fn find_stdlib_root() -> Option<PathBuf> {
     if let Ok(p) = std::env::var("VIBE_STDLIB_PATH") {
         let path = PathBuf::from(p);
@@ -622,12 +846,40 @@ fn find_stdlib_root() -> Option<PathBuf> {
 
     let exe = std::env::current_exe().ok()?;
     let exe_dir = exe.parent()?;
-    for ancestor in [exe_dir, exe_dir.parent()?].iter() {
-        let candidate = ancestor.join("stdlib").join("std");
+    let mut cur = Some(exe_dir);
+    for _ in 0..10 {
+        let Some(dir) = cur else {
+            break;
+        };
+        let candidate = dir.join("stdlib").join("std");
         if candidate.is_dir() {
             return Some(candidate);
+        }
+        cur = dir.parent();
+    }
+
+    if !EMBEDDED_STDLIB.is_empty() {
+        if let Some(dir) = extract_embedded_stdlib() {
+            return Some(dir);
         }
     }
 
     None
+}
+
+fn extract_embedded_stdlib() -> Option<PathBuf> {
+    let cache_dir = std::env::temp_dir()
+        .join("vibe-stdlib")
+        .join(env!("CARGO_PKG_VERSION"));
+    let cache_has_all_embedded = EMBEDDED_STDLIB
+        .iter()
+        .all(|(name, _)| cache_dir.join(name).is_file());
+    if cache_has_all_embedded {
+        return Some(cache_dir);
+    }
+    fs::create_dir_all(&cache_dir).ok()?;
+    for (name, content) in EMBEDDED_STDLIB {
+        fs::write(cache_dir.join(name), content).ok()?;
+    }
+    Some(cache_dir)
 }

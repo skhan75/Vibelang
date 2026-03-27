@@ -854,7 +854,42 @@ This program demonstrates:
 - A `for` loop iterating over a list
 - Expression-oriented style throughout
 
-## 3.8 Summary
+## 3.8 String Interpolation
+
+VibeLang supports string interpolation using `{variable}` inside string literals.
+Variables are automatically converted to strings:
+
+```vibe
+name := "VibeLang"
+count := 42
+println("Hello {name}, you have {count} items!")
+// Output: Hello VibeLang, you have 42 items!
+```
+
+Interpolation works with any variable type — `Str` values are inserted directly,
+`Int` and `Float` values are automatically converted via `convert.to_str`:
+
+```vibe
+score := 95
+grade := "A"
+println("Score: {score}, Grade: {grade}")
+// Output: Score: 95, Grade: A
+```
+
+To include a literal `{` in a string, escape it with `\{`:
+
+```vibe
+println("Use \\{braces\\} for interpolation")
+// Output: Use {braces} for interpolation
+```
+
+String interpolation only activates when `{` is followed by a letter or underscore
+(identifier start). JSON-style braces like `{"key": "value"}` are not treated as
+interpolation.
+
+---
+
+## 3.9 Summary
 
 This chapter covered the core syntax and semantics of VibeLang:
 

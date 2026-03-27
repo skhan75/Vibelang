@@ -1,0 +1,21 @@
+pub main() -> Int {
+  @effect io
+  @effect nondet
+
+  hash := crypto.sha256("hello world")
+  println(hash)
+
+  hmac := crypto.hmac_sha256("secret-key", "message-data")
+  println(hmac)
+
+  id := crypto.uuid_v4()
+  println(id)
+
+  same := crypto.constant_time_eq("abc", "abc")
+  if same { println("match") } else { println("no-match") }
+
+  diff := crypto.constant_time_eq("abc", "xyz")
+  if diff { println("match") } else { println("no-match") }
+
+  0
+}

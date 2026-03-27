@@ -4,6 +4,7 @@
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 use semver::{Version, VersionReq};
 use serde::{Deserialize, Serialize};
@@ -21,11 +22,91 @@ pub struct PackageSection {
     pub license: Option<String>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Default)]
+pub struct VibelangSection {
+    #[serde(default)]
+    pub version: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum DependencySpec {
+    Version(String),
+    Detailed(DetailedDep),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+pub struct DetailedDep {
+    #[serde(default)]
+    pub git: Option<String>,
+    #[serde(default)]
+    pub tag: Option<String>,
+    #[serde(default)]
+    pub branch: Option<String>,
+    #[serde(default)]
+    pub rev: Option<String>,
+    #[serde(default)]
+    pub path: Option<String>,
+    #[serde(default)]
+    pub version: Option<String>,
+}
+
+impl DependencySpec {
+    pub fn is_git(&self) -> bool {
+        matches!(self, DependencySpec::Detailed(d) if d.git.is_some())
+    }
+
+    pub fn is_path(&self) -> bool {
+        matches!(self, DependencySpec::Detailed(d) if d.path.is_some())
+    }
+
+    pub fn version_req_str(&self) -> Option<&str> {
+        match self {
+            DependencySpec::Version(v) => Some(v.as_str()),
+            DependencySpec::Detailed(d) => d.version.as_deref(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct Manifest {
     pub package: PackageSection,
     #[serde(default)]
-    pub dependencies: BTreeMap<String, String>,
+    pub vibelang: Option<VibelangSection>,
+    #[serde(default)]
+    pub dependencies: BTreeMap<String, DependencySpec>,
+}
+
+impl Manifest {
+    pub fn check_compiler_version(&self, compiler_version: &str) -> Result<(), String> {
+        let Some(ref vl) = self.vibelang else {
+            return Ok(());
+        };
+        let Some(ref req_str) = vl.version else {
+            return Ok(());
+        };
+        let req = VersionReq::parse(req_str)
+            .map_err(|e| format!("invalid [vibelang] version requirement `{req_str}`: {e}"))?;
+        let current = Version::parse(compiler_version).map_err(|e| {
+            format!("invalid compiler version `{compiler_version}`: {e}")
+        })?;
+        if !req.matches(&current) {
+            return Err(format!(
+                "project requires VibeLang {req_str}, but the current compiler is {compiler_version}"
+            ));
+        }
+        Ok(())
+    }
+
+    pub fn simple_deps(&self) -> BTreeMap<String, String> {
+        self.dependencies
+            .iter()
+            .filter_map(|(name, spec)| {
+                spec.version_req_str()
+                    .map(|v| (name.clone(), v.to_string()))
+            })
+            .collect()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
@@ -169,8 +250,8 @@ pub fn load_manifest(path: &Path) -> Result<Manifest, String> {
 pub fn resolve_project(project_root: &Path, mirror_root: &Path) -> Result<Resolution, String> {
     let manifest_path = project_root.join(MANIFEST_FILENAME);
     let manifest = load_manifest(&manifest_path)?;
-    let mut pending = manifest
-        .dependencies
+    let simple_deps = manifest.simple_deps();
+    let mut pending = simple_deps
         .iter()
         .map(|(name, raw_req)| {
             parse_req(raw_req).map(|req| PendingReq {
@@ -195,7 +276,7 @@ pub fn resolve_project(project_root: &Path, mirror_root: &Path) -> Result<Resolu
                 format!("internal resolver error: missing selected version for `{name}`")
             })?;
             let mut deps = BTreeMap::new();
-            for dep_name in pkg_manifest.dependencies.keys() {
+            for dep_name in pkg_manifest.simple_deps().keys() {
                 if let Some(dep_version) = selected_versions.get(dep_name) {
                     deps.insert(dep_name.clone(), dep_version.to_string());
                 }
@@ -420,7 +501,8 @@ pub fn upgrade_plan(project_root: &Path, mirror_root: &Path) -> Result<UpgradeRe
         .map(|pkg| (pkg.name.clone(), pkg.version.clone()))
         .collect::<BTreeMap<_, _>>();
     let mut entries = Vec::new();
-    for (name, raw_req) in &manifest.dependencies {
+    let simple_deps = manifest.simple_deps();
+    for (name, raw_req) in &simple_deps {
         let Some(current) = selected.get(name) else {
             continue;
         };
@@ -497,7 +579,8 @@ fn solve_recursive(
         next_manifests.insert(next.name.clone(), manifest.clone());
 
         let mut next_pending = pending.clone();
-        for (dep_name, raw_req) in &manifest.dependencies {
+        let transitive_deps = manifest.simple_deps();
+        for (dep_name, raw_req) in &transitive_deps {
             let req = parse_req(raw_req).ok()?;
             next_pending.push(PendingReq {
                 name: dep_name.clone(),
@@ -687,6 +770,235 @@ fn copy_publish_sources(project_root: &Path, destination: &Path) -> Result<(), S
                 target.display()
             )
         })?;
+    }
+    Ok(())
+}
+
+// ── Git-based dependency fetching ──────────────────────────────────────
+
+pub fn default_cache_root(project_root: &Path) -> PathBuf {
+    project_root.join(".yb").join("pkg").join("cache")
+}
+
+fn cache_dir_for_url(cache_root: &Path, url: &str) -> PathBuf {
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
+    let mut hasher = DefaultHasher::new();
+    url.hash(&mut hasher);
+    let hash = hasher.finish();
+    let short_name = url
+        .rsplit('/')
+        .find(|s| !s.is_empty())
+        .unwrap_or("repo")
+        .trim_end_matches(".git");
+    cache_root.join(format!("{short_name}-{hash:016x}"))
+}
+
+fn git_clone_or_fetch(cache_root: &Path, url: &str) -> Result<PathBuf, String> {
+    let dir = cache_dir_for_url(cache_root, url);
+    if dir.join(".git").exists() {
+        let status = Command::new("git")
+            .args(["fetch", "--all", "--tags", "--prune"])
+            .current_dir(&dir)
+            .status()
+            .map_err(|e| format!("failed to run `git fetch` in `{}`: {e}", dir.display()))?;
+        if !status.success() {
+            return Err(format!("git fetch failed in `{}`", dir.display()));
+        }
+    } else {
+        fs::create_dir_all(&dir).map_err(|e| {
+            format!("failed to create cache dir `{}`: {e}", dir.display())
+        })?;
+        let status = Command::new("git")
+            .args(["clone", url, "."])
+            .current_dir(&dir)
+            .status()
+            .map_err(|e| format!("failed to run `git clone {url}`: {e}"))?;
+        if !status.success() {
+            let _ = fs::remove_dir_all(&dir);
+            return Err(format!("git clone failed for `{url}`"));
+        }
+    }
+    Ok(dir)
+}
+
+fn git_checkout(repo_dir: &Path, refspec: &str) -> Result<(), String> {
+    let status = Command::new("git")
+        .args(["checkout", refspec])
+        .current_dir(repo_dir)
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .map_err(|e| format!("failed to run `git checkout {refspec}`: {e}"))?;
+    if !status.success() {
+        return Err(format!(
+            "git checkout `{refspec}` failed in `{}`",
+            repo_dir.display()
+        ));
+    }
+    Ok(())
+}
+
+pub fn fetch_git_dep(
+    cache_root: &Path,
+    name: &str,
+    dep: &DetailedDep,
+) -> Result<PathBuf, String> {
+    let url = dep
+        .git
+        .as_deref()
+        .ok_or_else(|| format!("dependency `{name}` is not a git dependency"))?;
+    let repo_dir = git_clone_or_fetch(cache_root, url)?;
+    let refspec = dep
+        .tag
+        .as_deref()
+        .or(dep.branch.as_deref())
+        .or(dep.rev.as_deref())
+        .unwrap_or("main");
+    git_checkout(&repo_dir, refspec)?;
+    Ok(repo_dir)
+}
+
+pub fn fetch_all_deps(
+    project_root: &Path,
+    cache_root: &Path,
+) -> Result<BTreeMap<String, PathBuf>, String> {
+    let manifest = load_manifest(&project_root.join(MANIFEST_FILENAME))?;
+    let mut fetched = BTreeMap::new();
+
+    for (name, spec) in &manifest.dependencies {
+        match spec {
+            DependencySpec::Detailed(d) if d.git.is_some() => {
+                let dir = fetch_git_dep(cache_root, name, d)?;
+                fetched.insert(name.clone(), dir);
+            }
+            DependencySpec::Detailed(d) if d.path.is_some() => {
+                let rel = d.path.as_deref().unwrap();
+                let abs = project_root.join(rel).canonicalize().map_err(|e| {
+                    format!("path dependency `{name}` at `{rel}` not found: {e}")
+                })?;
+                fetched.insert(name.clone(), abs);
+            }
+            _ => {}
+        }
+    }
+    Ok(fetched)
+}
+
+pub fn install_with_fetch(project_root: &Path) -> Result<InstallReport, String> {
+    let cache_root = default_cache_root(project_root);
+    let mirror_root = default_mirror_root(project_root);
+    fs::create_dir_all(&cache_root).map_err(|e| {
+        format!("failed to create cache root `{}`: {e}", cache_root.display())
+    })?;
+    fs::create_dir_all(&mirror_root).map_err(|e| {
+        format!(
+            "failed to create mirror root `{}`: {e}",
+            mirror_root.display()
+        )
+    })?;
+
+    let fetched = fetch_all_deps(project_root, &cache_root)?;
+
+    for (name, source_dir) in &fetched {
+        let dep_manifest_path = source_dir.join(MANIFEST_FILENAME);
+        if dep_manifest_path.exists() {
+            let dep_manifest = load_manifest(&dep_manifest_path)?;
+            let version = &dep_manifest.package.version;
+            let mirror_dest = mirror_root.join(name).join(version);
+            if !mirror_dest.exists() {
+                copy_dir_recursive(source_dir, &mirror_dest)?;
+            }
+        } else {
+            let mirror_dest = mirror_root.join(name).join("0.0.0");
+            if !mirror_dest.exists() {
+                copy_dir_recursive(source_dir, &mirror_dest)?;
+                let fallback_manifest = format!(
+                    "[package]\nname = \"{name}\"\nversion = \"0.0.0\"\n"
+                );
+                fs::write(mirror_dest.join(MANIFEST_FILENAME), fallback_manifest)
+                    .map_err(|e| format!("failed to write fallback manifest: {e}"))?;
+            }
+        }
+    }
+
+    install_project(project_root, &mirror_root)
+}
+
+// ── Manifest editing helpers ──────────────────────────────────────────
+
+pub fn add_dependency(project_root: &Path, name: &str, spec: &DependencySpec) -> Result<(), String> {
+    let manifest_path = project_root.join(MANIFEST_FILENAME);
+    let raw = fs::read_to_string(&manifest_path)
+        .map_err(|e| format!("failed to read `{}`: {e}", manifest_path.display()))?;
+
+    let mut doc: toml::Table = raw
+        .parse()
+        .map_err(|e| format!("failed to parse `{}`: {e}", manifest_path.display()))?;
+
+    let deps = doc
+        .entry("dependencies")
+        .or_insert_with(|| toml::Value::Table(toml::Table::new()))
+        .as_table_mut()
+        .ok_or("dependencies is not a table")?;
+
+    let value = match spec {
+        DependencySpec::Version(v) => toml::Value::String(v.clone()),
+        DependencySpec::Detailed(d) => {
+            let mut t = toml::Table::new();
+            if let Some(ref git) = d.git {
+                t.insert("git".into(), toml::Value::String(git.clone()));
+            }
+            if let Some(ref tag) = d.tag {
+                t.insert("tag".into(), toml::Value::String(tag.clone()));
+            }
+            if let Some(ref branch) = d.branch {
+                t.insert("branch".into(), toml::Value::String(branch.clone()));
+            }
+            if let Some(ref rev) = d.rev {
+                t.insert("rev".into(), toml::Value::String(rev.clone()));
+            }
+            if let Some(ref path) = d.path {
+                t.insert("path".into(), toml::Value::String(path.clone()));
+            }
+            if let Some(ref version) = d.version {
+                t.insert("version".into(), toml::Value::String(version.clone()));
+            }
+            toml::Value::Table(t)
+        }
+    };
+    deps.insert(name.into(), value);
+
+    let out = doc.to_string();
+    fs::write(&manifest_path, out)
+        .map_err(|e| format!("failed to write `{}`: {e}", manifest_path.display()))?;
+    Ok(())
+}
+
+pub fn remove_dependency(project_root: &Path, name: &str) -> Result<(), String> {
+    let manifest_path = project_root.join(MANIFEST_FILENAME);
+    let raw = fs::read_to_string(&manifest_path)
+        .map_err(|e| format!("failed to read `{}`: {e}", manifest_path.display()))?;
+
+    let mut doc: toml::Table = raw
+        .parse()
+        .map_err(|e| format!("failed to parse `{}`: {e}", manifest_path.display()))?;
+
+    let Some(deps) = doc.get_mut("dependencies").and_then(|v| v.as_table_mut()) else {
+        return Err(format!("dependency `{name}` not found"));
+    };
+
+    if deps.remove(name).is_none() {
+        return Err(format!("dependency `{name}` not found in [dependencies]"));
+    }
+
+    let out = doc.to_string();
+    fs::write(&manifest_path, out)
+        .map_err(|e| format!("failed to write `{}`: {e}", manifest_path.display()))?;
+
+    let store_dir = project_root.join(".yb").join("pkg").join("store").join(name);
+    if store_dir.exists() {
+        let _ = fs::remove_dir_all(&store_dir);
     }
     Ok(())
 }

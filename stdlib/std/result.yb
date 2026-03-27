@@ -1,0 +1,28 @@
+// Copyright 2026 VibeLang Contributors
+// SPDX-License-Identifier: Apache-2.0
+
+/**
+ * Result helpers: context on string errors, branching, and Int fallbacks.
+ * `wrap_err` prepends `context + ": "` to `Result<_, Str>` error messages.
+ */
+module std.result
+
+pub wrap_err(result: Result<Int, Str>, context: Str) -> Result<Int, Str> {
+  @intent "wrap an error result with additional context (Str errors only)"
+  @native("vibe_result_wrap_err")
+}
+
+pub unwrap_or(result: Result<Int, Str>, default_value: Int) -> Int {
+  @intent "return the ok value or a default if error"
+  @native("vibe_result_unwrap_or")
+}
+
+pub is_ok(result: Result<Int, Str>) -> Bool {
+  @intent "check if a result is Ok"
+  @native("vibe_result_is_ok")
+}
+
+pub is_err(result: Result<Int, Str>) -> Bool {
+  @intent "check if a result is Err"
+  @native("vibe_result_is_err")
+}

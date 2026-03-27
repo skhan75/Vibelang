@@ -22,6 +22,10 @@ vibelang/stdlib/
     str_builder.yb   # module std.str_builder
     json.yb          # module std.json  (DOM + validation)
     http.yb          # module std.http  (client + types)
+    http_server.yb   # module std.http_server (server helpers)
+    crypto.yb        # module std.crypto (SHA-256, HMAC, UUID)
+    ws.yb            # module std.ws (WebSocket)
+    result.yb        # module std.result (Result helpers)
   CONTRIBUTING.md    # this file
   stability_policy.md
 ```

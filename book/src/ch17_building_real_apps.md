@@ -138,7 +138,7 @@ Runnables:
 
 Network calls are never “pure” in VibeLang—request APIs require `@effect net`.
 The HTTP client uses structured `HttpRequest` / `HttpResponse` types
-(auto-injected by the compiler — you never need to define them yourself).
+(defined in `std.http` and loaded automatically — you never need to define them yourself).
 
 **Quick GET**
 

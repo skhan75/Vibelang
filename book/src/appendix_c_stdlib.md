@@ -606,6 +606,99 @@ regex.replace_all("foo bar foo", "foo", "baz")   // "baz bar baz"
 | `cli`  | **Preview** | `nondet`         | 2         |
 | `str_builder` | **Preview** | None      | 4         |
 | `regex` | **Preview** | None            | 2         |
+| `crypto` | **Preview** | `nondet` (random) | 5     |
+| `http_server` | **Preview** | `net`    | 3         |
+| `ws`    | **Preview** | `net`            | 4         |
+| `result` | **Preview** | None           | 4         |
+
+---
+
+## C.11a `crypto` — Cryptographic Primitives (Preview)
+
+Hashing, HMAC, random generation, and constant-time comparison.
+
+### `sha256(data: Str) -> Str`
+
+Returns the SHA-256 hash of `data` as a lowercase hex string.
+
+```vibe
+hash := crypto.sha256("hello world")
+// "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9"
+```
+
+### `hmac_sha256(key: Str, data: Str) -> Str`
+
+Computes HMAC-SHA256 for webhook signature verification and message authentication.
+
+### `uuid_v4() -> Str`
+
+Generates a random UUID v4 string. Requires `@effect nondet`.
+
+### `random_bytes(n: Int) -> Str`
+
+Generates `n` cryptographically secure random bytes as a hex string. Requires `@effect nondet`.
+
+### `constant_time_eq(a: Str, b: Str) -> Bool`
+
+Compares two strings in constant time to prevent timing attacks.
+
+---
+
+## C.11b `http_server` — HTTP Server Helpers (Preview)
+
+Structured HTTP request parsing and response building for servers.
+
+### `parse_request(raw: Str) -> HttpServerRequest`
+
+Parses a raw HTTP request into a structured `HttpServerRequest` with `method`, `path`, `query`, `headers`, and `body` fields.
+
+### `format_response(status: Int, headers: Str, body: Str) -> Str`
+
+Builds a complete HTTP/1.1 response with correct Content-Length and custom headers.
+
+### `cors_headers() -> Str`
+
+Returns standard CORS headers for API responses.
+
+---
+
+## C.11c `ws` — WebSocket (Preview)
+
+WebSocket handshake and frame handling for real-time communication.
+
+### `upgrade(conn: Int, raw_request: Str) -> Bool`
+
+Performs the WebSocket handshake on an accepted TCP connection.
+
+### `read_frame(conn: Int) -> Str`
+
+Reads and decodes the next WebSocket text frame.
+
+### `write_frame(conn: Int, data: Str)`
+
+Sends a WebSocket text frame.
+
+### `close_frame(conn: Int)`
+
+Sends a WebSocket close frame.
+
+---
+
+## C.11d `result` — Result Helpers (Preview)
+
+Utilities for working with `Result` values.
+
+### `is_ok(result) -> Bool` / `is_err(result) -> Bool`
+
+Check the status of a Result value.
+
+### `unwrap_or(result, default: Int) -> Int`
+
+Extract the Ok value or return a default.
+
+### `wrap_err(result, context: Str) -> Result`
+
+Add context to an error message.
 
 ---
 
@@ -628,6 +721,10 @@ import std.env         // get, has, get_required
 import std.cli         // args_len, arg
 import std.str_builder // new, append, append_char, finish
 import std.regex       // count, replace_all
+import std.crypto      // sha256, hmac_sha256, uuid_v4, random_bytes, constant_time_eq
+import std.http_server // parse_request, format_response, cors_headers
+import std.ws          // upgrade, read_frame, write_frame, close_frame
+import std.result      // is_ok, is_err, unwrap_or, wrap_err
 ```
 
 ---

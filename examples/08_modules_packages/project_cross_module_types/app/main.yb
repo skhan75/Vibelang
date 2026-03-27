@@ -1,0 +1,13 @@
+module app.main
+
+import app.types
+
+pub main() -> Int {
+  @effect io
+  p := Point { x: 10, y: 20 }
+  c := Color { r: 255, g: 128, b: 0 }
+  println(convert.to_str(p.x + p.y))
+  println(convert.to_str(c.r))
+  println(json.encode(p))
+  0
+}

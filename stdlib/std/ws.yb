@@ -1,0 +1,31 @@
+// Copyright 2026 Vibelang Contributors
+// SPDX-License-Identifier: Apache-2.0
+
+/**
+ * WebSocket server helpers: upgrade an HTTP connection, then framed read/write.
+ */
+module std.ws
+
+pub upgrade(conn: Int, raw_request: Str) -> Bool {
+  @intent "perform WebSocket handshake upgrade on an accepted TCP connection"
+  @effect net
+  @native("vibe_ws_upgrade")
+}
+
+pub read_frame(conn: Int) -> Str {
+  @intent "read and decode the next WebSocket text frame"
+  @effect net
+  @native("vibe_ws_read_frame")
+}
+
+pub write_frame(conn: Int, data: Str) {
+  @intent "send a WebSocket text frame"
+  @effect net
+  @native("vibe_ws_write_frame")
+}
+
+pub close_frame(conn: Int) {
+  @intent "send a WebSocket close frame"
+  @effect net
+  @native("vibe_ws_close_frame")
+}

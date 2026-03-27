@@ -260,6 +260,8 @@ pub fn link_executable(
     if !is_windows_target(&options.target) {
         cmd.arg("-pthread");
         cmd.arg("-lm");
+    } else {
+        cmd.arg("-lbcrypt");
     }
     #[cfg(feature = "bench-runtime")]
     if gmp_available() {

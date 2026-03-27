@@ -1,4 +1,10 @@
 #define _POSIX_C_SOURCE 200809L
+#if defined(__linux__)
+#define _DEFAULT_SOURCE 1
+#endif
+#if defined(__APPLE__)
+#include <sys/random.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -13,6 +19,8 @@
 #include <unistd.h>
 #ifdef _WIN32
 #include <direct.h>
+#include <windows.h>
+#include <bcrypt.h>
 #else
 #include <regex.h>
 #include <arpa/inet.h>
@@ -1643,6 +1651,55 @@ void *vibe_str_concat(const char *left, const char *right) {
     return (void *)out;
 }
 
+/*
+ * Result layout (from codegen): 2 x int64 slots — [0] tag (0 = Ok, 1 = Err),
+ * [1] payload (Ok/Err value as int64; Str uses char* bitcast).
+ */
+void *vibe_result_wrap_err(void *result, const char *context) {
+    if (result == NULL) {
+        return NULL;
+    }
+    int64_t *slots = (int64_t *)result;
+    if (slots[0] == 0) {
+        return result;
+    }
+    const char *ctx = context == NULL ? "" : context;
+    char *part1 = (char *)vibe_str_concat(ctx, ": ");
+    const char *err_part = (const char *)(intptr_t)slots[1];
+    void *combined = vibe_str_concat(part1, err_part == NULL ? "" : err_part);
+    free(part1);
+    void *out = vibe_record_alloc(2);
+    int64_t *out_slots = (int64_t *)out;
+    out_slots[0] = 1;
+    out_slots[1] = (int64_t)(intptr_t)combined;
+    return out;
+}
+
+int64_t vibe_result_unwrap_or(void *result, int64_t default_value) {
+    if (result == NULL) {
+        return default_value;
+    }
+    int64_t *slots = (int64_t *)result;
+    if (slots[0] != 0) {
+        return default_value;
+    }
+    return slots[1];
+}
+
+int8_t vibe_result_is_ok(void *result) {
+    if (result == NULL) {
+        return 0;
+    }
+    return (int8_t)(((int64_t *)result)[0] == 0 ? 1 : 0);
+}
+
+int8_t vibe_result_is_err(void *result) {
+    if (result == NULL) {
+        return 0;
+    }
+    return (int8_t)(((int64_t *)result)[0] != 0 ? 1 : 0);
+}
+
 typedef struct vibe_str_builder {
     char *buf;
     size_t len;
@@ -3031,8 +3088,13 @@ int64_t vibe_net_write(int64_t fd_raw, const char *data) {
     if (fd <= 0 || len == 0) {
         return 0;
     }
-    ssize_t n = send(fd, raw, len, 0);
-    return n < 0 ? 0 : (int64_t)n;
+    size_t total = 0;
+    while (total < len) {
+        ssize_t n = send(fd, raw + total, len - total, 0);
+        if (n <= 0) break;
+        total += (size_t)n;
+    }
+    return (int64_t)total;
 #endif
 }
 
@@ -4840,6 +4902,168 @@ char *vibe_http_build_request_line(const char *method, const char *path) {
     return out;
 }
 
+static char *vibe_http_server_dup_range(const char *start, size_t len) {
+    if (start == NULL || len == 0) {
+        return vibe_strdup_or_panic("");
+    }
+    char *out = (char *)calloc(len + 1, sizeof(char));
+    if (out == NULL) {
+        vibe_panic("vibe_http_server_dup_range: allocation failed");
+    }
+    memcpy(out, start, len);
+    out[len] = '\0';
+    return out;
+}
+
+void *vibe_http_server_parse_request(const char *raw) {
+    void *record = vibe_record_alloc(5);
+    int64_t *slots = (int64_t *)record;
+    if (raw == NULL || raw[0] == '\0') {
+        slots[0] = (int64_t)(intptr_t)vibe_strdup_or_panic("");
+        slots[1] = (int64_t)(intptr_t)vibe_strdup_or_panic("");
+        slots[2] = (int64_t)(intptr_t)vibe_strdup_or_panic("");
+        slots[3] = (int64_t)(intptr_t)vibe_strdup_or_panic("");
+        slots[4] = (int64_t)(intptr_t)vibe_strdup_or_panic("");
+        return record;
+    }
+
+    const char *r = raw;
+    const char *line_end = strstr(r, "\r\n");
+    size_t line_term = 2;
+    if (line_end == NULL) {
+        line_end = strchr(r, '\n');
+        line_term = line_end != NULL ? 1 : 0;
+    }
+
+    size_t line1_len;
+    if (line_end != NULL) {
+        line1_len = (size_t)(line_end - r);
+    } else {
+        line1_len = strlen(r);
+        line_end = r + line1_len;
+        line_term = 0;
+    }
+
+    const char *l1 = r;
+    const char *l1_end = r + line1_len;
+    while (l1 < l1_end && isspace((unsigned char)*l1)) {
+        l1++;
+    }
+
+    const char *m_start = l1;
+    const char *m_end = m_start;
+    while (m_end < l1_end && !isspace((unsigned char)*m_end)) {
+        m_end++;
+    }
+
+    const char *u_start = m_end;
+    while (u_start < l1_end && isspace((unsigned char)*u_start)) {
+        u_start++;
+    }
+    const char *u_end = u_start;
+    while (u_end < l1_end && !isspace((unsigned char)*u_end)) {
+        u_end++;
+    }
+
+    char *method = vibe_http_server_dup_range(m_start, (size_t)(m_end - m_start));
+
+    char *path = vibe_strdup_or_panic("");
+    char *query = vibe_strdup_or_panic("");
+    size_t uri_len = (size_t)(u_end - u_start);
+    if (uri_len > 0) {
+        char *uri = vibe_http_server_dup_range(u_start, uri_len);
+        char *qm = strchr(uri, '?');
+        if (qm != NULL) {
+            *qm = '\0';
+            free(path);
+            path = vibe_strdup_or_panic(uri);
+            char *q_src = qm + 1;
+            char *hash = strchr(q_src, '#');
+            size_t q_len = hash != NULL ? (size_t)(hash - q_src) : strlen(q_src);
+            free(query);
+            query = vibe_http_server_dup_range(q_src, q_len);
+        } else {
+            char *hash = strchr(uri, '#');
+            if (hash != NULL) {
+                *hash = '\0';
+            }
+            free(path);
+            path = uri;
+            uri = NULL;
+        }
+        if (uri != NULL) {
+            free(uri);
+        }
+    }
+
+    const char *hdr_start = line_term > 0 ? line_end + line_term : line_end;
+    char *headers = vibe_strdup_or_panic("");
+    char *body = vibe_strdup_or_panic("");
+
+    const char *body_sep = strstr(hdr_start, "\r\n\r\n");
+    size_t body_skip = 4;
+    if (body_sep == NULL) {
+        body_sep = strstr(hdr_start, "\n\n");
+        body_skip = 2;
+    }
+
+    if (body_sep != NULL) {
+        free(headers);
+        headers = vibe_http_server_dup_range(hdr_start, (size_t)(body_sep - hdr_start));
+        body = vibe_strdup_or_panic(body_sep + body_skip);
+    } else if (*hdr_start != '\0') {
+        free(headers);
+        headers = vibe_strdup_or_panic(hdr_start);
+    }
+
+    slots[0] = (int64_t)(intptr_t)method;
+    slots[1] = (int64_t)(intptr_t)path;
+    slots[2] = (int64_t)(intptr_t)query;
+    slots[3] = (int64_t)(intptr_t)headers;
+    slots[4] = (int64_t)(intptr_t)body;
+    return record;
+}
+
+char *vibe_http_server_format_response(int64_t status, const char *headers, const char *body) {
+    const char *b = body == NULL ? "" : body;
+    const char *hdrs = headers == NULL ? "" : headers;
+    char *reason = vibe_http_status_text(status);
+    size_t body_len = strlen(b);
+    char cl_buf[32];
+    snprintf(cl_buf, sizeof(cl_buf), "%zu", body_len);
+
+    vibe_string_builder sb;
+    vibe_builder_init(&sb, 256 + strlen(reason) + strlen(hdrs) + body_len);
+    vibe_builder_append_bytes(&sb, "HTTP/1.1 ", 9);
+    char sc_buf[16];
+    int sc_len = snprintf(sc_buf, sizeof(sc_buf), "%lld", (long long)status);
+    vibe_builder_append_bytes(&sb, sc_buf, sc_len);
+    vibe_builder_append_bytes(&sb, " ", 1);
+    vibe_builder_append_bytes(&sb, reason, strlen(reason));
+    vibe_builder_append_bytes(&sb, "\r\nContent-Length: ", 18);
+    vibe_builder_append_bytes(&sb, cl_buf, strlen(cl_buf));
+    vibe_builder_append_bytes(&sb, "\r\n", 2);
+    if (hdrs[0] != '\0') {
+        vibe_builder_append_bytes(&sb, hdrs, strlen(hdrs));
+        size_t hlen = strlen(hdrs);
+        if (hlen < 2 || hdrs[hlen - 2] != '\r' || hdrs[hlen - 1] != '\n') {
+            vibe_builder_append_bytes(&sb, "\r\n", 2);
+        }
+    }
+    vibe_builder_append_bytes(&sb, "Connection: close\r\n\r\n", 21);
+    vibe_builder_append_bytes(&sb, b, body_len);
+    free(reason);
+    return sb.data;
+}
+
+char *vibe_http_server_cors_headers(void) {
+    static const char cors[] =
+        "Access-Control-Allow-Origin: *\r\n"
+        "Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS\r\n"
+        "Access-Control-Allow-Headers: Content-Type, Authorization\r\n";
+    return vibe_strdup_or_panic(cors);
+}
+
 char *vibe_http_build_response(int64_t status, const char *body) {
     const char *b = (body == NULL) ? "" : body;
     const char *status_text = "Unknown";
@@ -6363,4 +6587,646 @@ char *vibe_edigits(int64_t n) {
     }
     free(digits);
     return builder.data;
+}
+
+/* -------------------------------------------------------------------------- */
+/* std.crypto: SHA-256, HMAC-SHA256, CSPRNG, UUID v4, constant-time compare   */
+/* -------------------------------------------------------------------------- */
+
+typedef struct {
+    uint32_t state[8];
+    uint64_t bitcount;
+    uint8_t buf[64];
+    size_t buflen;
+} vibe_sha256_ctx;
+
+#define VIBE_SHA256_ROTR(n, x) (((x) >> (n)) | ((x) << (32 - (n))))
+#define VIBE_SHA256_CH(x, y, z) (((x) & (y)) ^ (~(x) & (z)))
+#define VIBE_SHA256_MAJ(x, y, z) (((x) & (y)) ^ ((x) & (z)) ^ ((y) & (z)))
+#define VIBE_SHA256_EP0(x) (VIBE_SHA256_ROTR(2, x) ^ VIBE_SHA256_ROTR(13, x) ^ VIBE_SHA256_ROTR(22, x))
+#define VIBE_SHA256_EP1(x) (VIBE_SHA256_ROTR(6, x) ^ VIBE_SHA256_ROTR(11, x) ^ VIBE_SHA256_ROTR(25, x))
+#define VIBE_SHA256_SIG0(x) (VIBE_SHA256_ROTR(7, x) ^ VIBE_SHA256_ROTR(18, x) ^ ((x) >> 3))
+#define VIBE_SHA256_SIG1(x) (VIBE_SHA256_ROTR(17, x) ^ VIBE_SHA256_ROTR(19, x) ^ ((x) >> 10))
+
+static void vibe_sha256_transform(uint32_t state[8], const uint8_t block[64]) {
+    static const uint32_t K[64] = {
+        0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+        0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+        0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+        0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+        0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+        0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+        0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+        0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
+    };
+    uint32_t W[64];
+    for (int i = 0; i < 16; i++) {
+        W[i] = ((uint32_t)block[i * 4] << 24) | ((uint32_t)block[i * 4 + 1] << 16) |
+               ((uint32_t)block[i * 4 + 2] << 8) | ((uint32_t)block[i * 4 + 3]);
+    }
+    for (int i = 16; i < 64; i++) {
+        W[i] = VIBE_SHA256_SIG1(W[i - 2]) + W[i - 7] + VIBE_SHA256_SIG0(W[i - 15]) + W[i - 16];
+    }
+
+    uint32_t a = state[0];
+    uint32_t b = state[1];
+    uint32_t c = state[2];
+    uint32_t d = state[3];
+    uint32_t e = state[4];
+    uint32_t f = state[5];
+    uint32_t g = state[6];
+    uint32_t h = state[7];
+
+    for (int i = 0; i < 64; i++) {
+        uint32_t t1 = h + VIBE_SHA256_EP1(e) + VIBE_SHA256_CH(e, f, g) + K[i] + W[i];
+        uint32_t t2 = VIBE_SHA256_EP0(a) + VIBE_SHA256_MAJ(a, b, c);
+        h = g;
+        g = f;
+        f = e;
+        e = d + t1;
+        d = c;
+        c = b;
+        b = a;
+        a = t1 + t2;
+    }
+
+    state[0] += a;
+    state[1] += b;
+    state[2] += c;
+    state[3] += d;
+    state[4] += e;
+    state[5] += f;
+    state[6] += g;
+    state[7] += h;
+}
+
+static void vibe_sha256_init(vibe_sha256_ctx *ctx) {
+    ctx->state[0] = 0x6a09e667;
+    ctx->state[1] = 0xbb67ae85;
+    ctx->state[2] = 0x3c6ef372;
+    ctx->state[3] = 0xa54ff53a;
+    ctx->state[4] = 0x510e527f;
+    ctx->state[5] = 0x9b05688c;
+    ctx->state[6] = 0x1f83d9ab;
+    ctx->state[7] = 0x5be0cd19;
+    ctx->bitcount = 0;
+    ctx->buflen = 0;
+}
+
+static void vibe_sha256_update(vibe_sha256_ctx *ctx, const uint8_t *data, size_t len) {
+    ctx->bitcount += (uint64_t)len * 8;
+    while (len > 0) {
+        size_t space = 64 - ctx->buflen;
+        size_t take = len < space ? len : space;
+        memcpy(ctx->buf + ctx->buflen, data, take);
+        ctx->buflen += take;
+        data += take;
+        len -= take;
+        if (ctx->buflen == 64) {
+            vibe_sha256_transform(ctx->state, ctx->buf);
+            ctx->buflen = 0;
+        }
+    }
+}
+
+static void vibe_sha256_final(vibe_sha256_ctx *ctx, uint8_t hash[32]) {
+    uint64_t orig_bits = ctx->bitcount;
+    uint8_t pad[128];
+    size_t n = ctx->buflen;
+    memcpy(pad, ctx->buf, n);
+    pad[n++] = 0x80;
+    while ((n % 64) != 56) {
+        pad[n++] = 0;
+    }
+    for (int i = 7; i >= 0; i--) {
+        pad[n++] = (uint8_t)((orig_bits >> (i * 8)) & 0xff);
+    }
+    for (size_t off = 0; off < n; off += 64) {
+        vibe_sha256_transform(ctx->state, pad + off);
+    }
+    for (int i = 0; i < 8; i++) {
+        hash[i * 4] = (uint8_t)(ctx->state[i] >> 24);
+        hash[i * 4 + 1] = (uint8_t)(ctx->state[i] >> 16);
+        hash[i * 4 + 2] = (uint8_t)(ctx->state[i] >> 8);
+        hash[i * 4 + 3] = (uint8_t)(ctx->state[i]);
+    }
+}
+
+static char *vibe_crypto_bytes_to_hex_lower(const uint8_t *buf, size_t len) {
+    static const char hex[] = "0123456789abcdef";
+    char *out = (char *)calloc(len * 2 + 1, sizeof(char));
+    if (out == NULL) {
+        vibe_panic("vibe_crypto_bytes_to_hex_lower: allocation failed");
+    }
+    for (size_t i = 0; i < len; i++) {
+        out[i * 2] = hex[(buf[i] >> 4) & 0x0f];
+        out[i * 2 + 1] = hex[buf[i] & 0x0f];
+    }
+    return out;
+}
+
+char *vibe_crypto_sha256(const char *data) {
+    const unsigned char *p = (const unsigned char *)(data == NULL ? "" : data);
+    size_t len = strlen((const char *)p);
+    vibe_sha256_ctx ctx;
+    vibe_sha256_init(&ctx);
+    vibe_sha256_update(&ctx, p, len);
+    uint8_t h[32];
+    vibe_sha256_final(&ctx, h);
+    return vibe_crypto_bytes_to_hex_lower(h, 32);
+}
+
+char *vibe_crypto_hmac_sha256(const char *key, const char *data) {
+    const char *k = key == NULL ? "" : key;
+    const char *d = data == NULL ? "" : data;
+    size_t key_len = strlen(k);
+    size_t data_len = strlen(d);
+    uint8_t key_block[64];
+    memset(key_block, 0, sizeof(key_block));
+    if (key_len > 64) {
+        vibe_sha256_ctx kctx;
+        vibe_sha256_init(&kctx);
+        vibe_sha256_update(&kctx, (const uint8_t *)k, key_len);
+        uint8_t kh[32];
+        vibe_sha256_final(&kctx, kh);
+        memcpy(key_block, kh, 32);
+        key_len = 32;
+    } else {
+        memcpy(key_block, k, key_len);
+    }
+    uint8_t ipad[64];
+    uint8_t opad[64];
+    for (int i = 0; i < 64; i++) {
+        ipad[i] = (uint8_t)(key_block[i] ^ 0x36u);
+        opad[i] = (uint8_t)(key_block[i] ^ 0x5cu);
+    }
+    vibe_sha256_ctx ictx;
+    vibe_sha256_init(&ictx);
+    vibe_sha256_update(&ictx, ipad, 64);
+    vibe_sha256_update(&ictx, (const uint8_t *)d, data_len);
+    uint8_t ihash[32];
+    vibe_sha256_final(&ictx, ihash);
+
+    vibe_sha256_ctx octx;
+    vibe_sha256_init(&octx);
+    vibe_sha256_update(&octx, opad, 64);
+    vibe_sha256_update(&octx, ihash, 32);
+    uint8_t ohash[32];
+    vibe_sha256_final(&octx, ohash);
+    return vibe_crypto_bytes_to_hex_lower(ohash, 32);
+}
+
+static int vibe_crypto_fill_random(uint8_t *buf, size_t n) {
+#if defined(__linux__) || defined(__APPLE__)
+    size_t off = 0;
+    while (off < n) {
+        size_t chunk = n - off;
+        if (chunk > 256) {
+            chunk = 256;
+        }
+        if (getentropy(buf + off, chunk) != 0) {
+            return -1;
+        }
+        off += chunk;
+    }
+    return 0;
+#elif defined(_WIN32)
+    {
+        NTSTATUS st = BCryptGenRandom(NULL, buf, (ULONG)n, BCRYPT_USE_SYSTEM_PREFERRED_RNG);
+        return NT_SUCCESS(st) ? 0 : -1;
+    }
+#else
+    (void)buf;
+    (void)n;
+    return -1;
+#endif
+}
+
+char *vibe_crypto_random_bytes(int64_t n) {
+    if (n <= 0) {
+        return vibe_strdup_or_panic("");
+    }
+    if (n > (int64_t)(16 * 1024 * 1024)) {
+        vibe_panic("vibe_crypto_random_bytes: n too large");
+    }
+    size_t len = (size_t)n;
+    uint8_t *raw = (uint8_t *)malloc(len);
+    if (raw == NULL) {
+        vibe_panic("vibe_crypto_random_bytes: allocation failed");
+    }
+    if (vibe_crypto_fill_random(raw, len) != 0) {
+        free(raw);
+        vibe_panic("vibe_crypto_random_bytes: CSPRNG failed");
+    }
+    char *hex = vibe_crypto_bytes_to_hex_lower(raw, len);
+    memset(raw, 0, len);
+    free(raw);
+    return hex;
+}
+
+char *vibe_crypto_uuid_v4(void) {
+    uint8_t b[16];
+    if (vibe_crypto_fill_random(b, 16) != 0) {
+        vibe_panic("vibe_crypto_uuid_v4: CSPRNG failed");
+    }
+    b[6] = (uint8_t)((b[6] & 0x0fu) | 0x40u);
+    b[8] = (uint8_t)((b[8] & 0x3fu) | 0x80u);
+    static const char hex[] = "0123456789abcdef";
+    char *out = (char *)calloc(37, sizeof(char));
+    if (out == NULL) {
+        vibe_panic("vibe_crypto_uuid_v4: allocation failed");
+    }
+    size_t k = 0;
+    for (int i = 0; i < 16; i++) {
+        if (i == 4 || i == 6 || i == 8 || i == 10) {
+            out[k++] = '-';
+        }
+        out[k++] = hex[(b[i] >> 4) & 0x0f];
+        out[k++] = hex[b[i] & 0x0f];
+    }
+    out[36] = '\0';
+    return out;
+}
+
+int64_t vibe_crypto_constant_time_eq(const char *a, const char *b) {
+    const unsigned char *pa = (const unsigned char *)(a == NULL ? "" : a);
+    const unsigned char *pb = (const unsigned char *)(b == NULL ? "" : b);
+    size_t la = strlen((const char *)pa);
+    size_t lb = strlen((const char *)pb);
+    if (la != lb) {
+        return 0;
+    }
+    volatile uint8_t diff = 0;
+    for (size_t i = 0; i < la; i++) {
+        diff |= (uint8_t)(pa[i] ^ pb[i]);
+    }
+    return diff == 0 ? 1 : 0;
+}
+
+/* -------------------------------------------------------------------------- */
+/* std.ws: SHA-1 (minimal, RFC 3174 style) + WebSocket server framing        */
+/* -------------------------------------------------------------------------- */
+
+typedef struct {
+    uint64_t bitlen;
+    uint32_t h[5];
+    uint8_t buf[64];
+    size_t buflen;
+} vibe_sha1_ctx;
+
+#define VIBE_SHA1_ROL(x, n) (((uint32_t)(x) << (n)) | ((uint32_t)(x) >> (32 - (n))))
+
+static void vibe_sha1_transform(uint32_t state[5], const uint8_t block[64]) {
+    uint32_t w[80];
+    int i;
+    for (i = 0; i < 16; i++) {
+        w[i] = ((uint32_t)block[i * 4] << 24) | ((uint32_t)block[i * 4 + 1] << 16) |
+               ((uint32_t)block[i * 4 + 2] << 8) | ((uint32_t)block[i * 4 + 3]);
+    }
+    for (; i < 80; i++) {
+        uint32_t x = w[i - 3] ^ w[i - 8] ^ w[i - 14] ^ w[i - 16];
+        w[i] = VIBE_SHA1_ROL(x, 1);
+    }
+    uint32_t a = state[0];
+    uint32_t b = state[1];
+    uint32_t c = state[2];
+    uint32_t d = state[3];
+    uint32_t e = state[4];
+    for (i = 0; i < 80; i++) {
+        uint32_t f;
+        uint32_t k;
+        if (i < 20) {
+            f = (b & c) | ((~b) & d);
+            k = 0x5a827999u;
+        } else if (i < 40) {
+            f = b ^ c ^ d;
+            k = 0x6ed9eba1u;
+        } else if (i < 60) {
+            f = (b & c) | (b & d) | (c & d);
+            k = 0x8f1bbcdcu;
+        } else {
+            f = b ^ c ^ d;
+            k = 0xca62c1d6u;
+        }
+        uint32_t temp = VIBE_SHA1_ROL(a, 5) + f + e + k + w[i];
+        e = d;
+        d = c;
+        c = VIBE_SHA1_ROL(b, 30);
+        b = a;
+        a = temp;
+    }
+    state[0] += a;
+    state[1] += b;
+    state[2] += c;
+    state[3] += d;
+    state[4] += e;
+}
+
+static void vibe_sha1_init(vibe_sha1_ctx *ctx) {
+    ctx->bitlen = 0;
+    ctx->h[0] = 0x67452301u;
+    ctx->h[1] = 0xefcdab89u;
+    ctx->h[2] = 0x98badcfeu;
+    ctx->h[3] = 0x10325476u;
+    ctx->h[4] = 0xc3d2e1f0u;
+    ctx->buflen = 0;
+}
+
+static void vibe_sha1_update(vibe_sha1_ctx *ctx, const uint8_t *data, size_t len) {
+    ctx->bitlen += (uint64_t)len * 8;
+    while (len > 0) {
+        size_t space = 64 - ctx->buflen;
+        size_t take = len < space ? len : space;
+        memcpy(ctx->buf + ctx->buflen, data, take);
+        ctx->buflen += take;
+        data += take;
+        len -= take;
+        if (ctx->buflen == 64) {
+            vibe_sha1_transform(ctx->h, ctx->buf);
+            ctx->buflen = 0;
+        }
+    }
+}
+
+static void vibe_sha1_final(vibe_sha1_ctx *ctx, uint8_t out[20]) {
+    uint64_t orig_bits = ctx->bitlen;
+    uint8_t pad[128];
+    size_t n = ctx->buflen;
+    memcpy(pad, ctx->buf, n);
+    pad[n++] = 0x80;
+    while ((n % 64) != 56) {
+        pad[n++] = 0;
+    }
+    for (int i = 7; i >= 0; i--) {
+        pad[n++] = (uint8_t)((orig_bits >> (i * 8)) & 0xff);
+    }
+    for (size_t off = 0; off < n; off += 64) {
+        vibe_sha1_transform(ctx->h, pad + off);
+    }
+    for (int i = 0; i < 5; i++) {
+        out[i * 4] = (uint8_t)(ctx->h[i] >> 24);
+        out[i * 4 + 1] = (uint8_t)(ctx->h[i] >> 16);
+        out[i * 4 + 2] = (uint8_t)(ctx->h[i] >> 8);
+        out[i * 4 + 3] = (uint8_t)(ctx->h[i]);
+    }
+}
+
+static char *vibe_ws_base64_encode_bytes(const uint8_t *data, size_t len) {
+    static const char b64[] =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    size_t out_len = ((len + 2) / 3) * 4;
+    char *out = (char *)calloc(out_len + 1, sizeof(char));
+    if (out == NULL) {
+        vibe_panic("vibe_ws_base64_encode_bytes: allocation failed");
+    }
+    size_t in_idx = 0;
+    size_t out_idx = 0;
+    while (in_idx < len) {
+        size_t rem = len - in_idx;
+        uint32_t octet_a = data[in_idx++];
+        uint32_t octet_b = rem > 1 ? data[in_idx++] : 0;
+        uint32_t octet_c = rem > 2 ? data[in_idx++] : 0;
+        uint32_t triple = (octet_a << 16) | (octet_b << 8) | octet_c;
+        out[out_idx++] = b64[(triple >> 18) & 0x3f];
+        out[out_idx++] = b64[(triple >> 12) & 0x3f];
+        out[out_idx++] = rem > 1 ? b64[(triple >> 6) & 0x3f] : '=';
+        out[out_idx++] = rem > 2 ? b64[triple & 0x3f] : '=';
+    }
+    out[out_len] = '\0';
+    return out;
+}
+
+#ifndef _WIN32
+static int vibe_ws_recv_exact(int fd, void *buf, size_t n) {
+    uint8_t *p = (uint8_t *)buf;
+    size_t got = 0;
+    while (got < n) {
+        ssize_t r = recv(fd, (char *)(p + got), n - got, 0);
+        if (r <= 0) {
+            return -1;
+        }
+        got += (size_t)r;
+    }
+    return 0;
+}
+
+static int vibe_ws_send_exact(int fd, const void *buf, size_t n) {
+    const uint8_t *p = (const uint8_t *)buf;
+    size_t total = 0;
+    while (total < n) {
+        ssize_t w = send(fd, (const char *)(p + total), n - total, 0);
+        if (w <= 0) {
+            return -1;
+        }
+        total += (size_t)w;
+    }
+    return 0;
+}
+
+static int vibe_ws_copy_header_value(const char *req, const char *hdr, char *out, size_t cap) {
+    const char *line_start = req == NULL ? "" : req;
+    size_t hn = strlen(hdr);
+    while (*line_start != '\0') {
+        const char *nl = strchr(line_start, '\n');
+        const char *line_end = nl != NULL ? nl : line_start + strlen(line_start);
+        const char *s = line_start;
+        size_t slen = (size_t)(line_end - s);
+        while (slen > 0 && s[slen - 1] == '\r') {
+            slen -= 1;
+        }
+        if (slen >= hn && strncasecmp(s, hdr, hn) == 0) {
+            const char *v = s + hn;
+            while (v < s + slen && (*v == ' ' || *v == '\t')) {
+                v += 1;
+            }
+            size_t vl = (size_t)(s + slen - v);
+            if (vl == 0 || vl >= cap) {
+                return -1;
+            }
+            memcpy(out, v, vl);
+            out[vl] = '\0';
+            return 0;
+        }
+        if (nl == NULL) {
+            break;
+        }
+        line_start = nl + 1;
+    }
+    return -1;
+}
+#endif
+
+int64_t vibe_ws_upgrade(int64_t conn_raw, const char *raw_request) {
+#ifdef _WIN32
+    (void)conn_raw;
+    (void)raw_request;
+    return 0;
+#else
+    int fd = (int)conn_raw;
+    if (fd <= 0) {
+        return 0;
+    }
+    char key_buf[160];
+    if (vibe_ws_copy_header_value(raw_request, "Sec-WebSocket-Key:", key_buf, sizeof(key_buf)) != 0) {
+        return 0;
+    }
+    static const char magic[] = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+    size_t key_len = strlen(key_buf);
+    size_t magic_len = sizeof(magic) - 1;
+    uint8_t *concat = (uint8_t *)malloc(key_len + magic_len + 1);
+    if (concat == NULL) {
+        return 0;
+    }
+    memcpy(concat, key_buf, key_len);
+    memcpy(concat + key_len, magic, magic_len);
+
+    vibe_sha1_ctx sha1;
+    vibe_sha1_init(&sha1);
+    vibe_sha1_update(&sha1, concat, key_len + magic_len);
+    free(concat);
+
+    uint8_t digest[20];
+    vibe_sha1_final(&sha1, digest);
+    char *accept_b64 = vibe_ws_base64_encode_bytes(digest, 20);
+
+    char response[512];
+    int nw = snprintf(response, sizeof(response),
+                      "HTTP/1.1 101 Switching Protocols\r\n"
+                      "Upgrade: websocket\r\n"
+                      "Connection: Upgrade\r\n"
+                      "Sec-WebSocket-Accept: %s\r\n"
+                      "\r\n",
+                      accept_b64);
+    free(accept_b64);
+    if (nw <= 0 || (size_t)nw >= sizeof(response)) {
+        return 0;
+    }
+    if (vibe_ws_send_exact(fd, response, (size_t)nw) != 0) {
+        return 0;
+    }
+    return 1;
+#endif
+}
+
+char *vibe_ws_read_frame(int64_t conn_raw) {
+#ifdef _WIN32
+    (void)conn_raw;
+    return vibe_strdup_or_panic("");
+#else
+    int fd = (int)conn_raw;
+    if (fd <= 0) {
+        return vibe_strdup_or_panic("");
+    }
+    const uint64_t max_payload = 4ull * 1024ull * 1024ull;
+    uint8_t hdr[2];
+    if (vibe_ws_recv_exact(fd, hdr, 2) != 0) {
+        return vibe_strdup_or_panic("");
+    }
+    int fin = (hdr[0] & 0x80) != 0;
+    (void)fin;
+    uint8_t opcode = (uint8_t)(hdr[0] & 0x0f);
+    int masked = (hdr[1] & 0x80) != 0;
+    uint64_t payload_len = (uint64_t)(hdr[1] & 0x7f);
+    if (payload_len == 126) {
+        uint8_t ext[2];
+        if (vibe_ws_recv_exact(fd, ext, 2) != 0) {
+            return vibe_strdup_or_panic("");
+        }
+        payload_len = ((uint64_t)ext[0] << 8) | (uint64_t)ext[1];
+    } else if (payload_len == 127) {
+        uint8_t ext[8];
+        if (vibe_ws_recv_exact(fd, ext, 8) != 0) {
+            return vibe_strdup_or_panic("");
+        }
+        if ((ext[0] & 0x80) != 0) {
+            return vibe_strdup_or_panic("");
+        }
+        payload_len = 0;
+        for (int i = 0; i < 8; i++) {
+            payload_len = (payload_len << 8) | (uint64_t)ext[i];
+        }
+    }
+    if (payload_len > max_payload) {
+        return vibe_strdup_or_panic("");
+    }
+    uint8_t mask_key[4] = {0, 0, 0, 0};
+    if (masked) {
+        if (vibe_ws_recv_exact(fd, mask_key, 4) != 0) {
+            return vibe_strdup_or_panic("");
+        }
+    } else {
+        /* Client frames must be masked (RFC 6455). */
+        return vibe_strdup_or_panic("");
+    }
+    size_t pl = (size_t)payload_len;
+    uint8_t *rawpl = (uint8_t *)calloc(pl + 1, sizeof(uint8_t));
+    if (rawpl == NULL) {
+        vibe_panic("vibe_ws_read_frame: payload alloc failed");
+    }
+    if (pl > 0 && vibe_ws_recv_exact(fd, rawpl, pl) != 0) {
+        free(rawpl);
+        return vibe_strdup_or_panic("");
+    }
+    for (size_t i = 0; i < pl; i++) {
+        rawpl[i] = (uint8_t)(rawpl[i] ^ mask_key[i % 4]);
+    }
+    if (opcode == 0x8) {
+        free(rawpl);
+        return vibe_strdup_or_panic("");
+    }
+    if (opcode != 0x1 && opcode != 0x0) {
+        free(rawpl);
+        return vibe_strdup_or_panic("");
+    }
+    rawpl[pl] = '\0';
+    return (char *)rawpl;
+#endif
+}
+
+void vibe_ws_write_frame(int64_t conn_raw, const char *data) {
+#ifdef _WIN32
+    (void)conn_raw;
+    (void)data;
+#else
+    int fd = (int)conn_raw;
+    if (fd <= 0) {
+        return;
+    }
+    const unsigned char *raw = (const unsigned char *)(data == NULL ? "" : data);
+    size_t len = strlen((const char *)raw);
+    uint8_t header[14];
+    size_t hlen = 0;
+    header[hlen++] = (uint8_t)(0x80 | 0x1);
+    if (len < 126) {
+        header[hlen++] = (uint8_t)len;
+    } else if (len < 65536) {
+        header[hlen++] = 126;
+        header[hlen++] = (uint8_t)((len >> 8) & 0xff);
+        header[hlen++] = (uint8_t)(len & 0xff);
+    } else {
+        header[hlen++] = 127;
+        for (int i = 7; i >= 0; i--) {
+            header[hlen++] = (uint8_t)((len >> (i * 8)) & 0xff);
+        }
+    }
+    if (vibe_ws_send_exact(fd, header, hlen) != 0) {
+        return;
+    }
+    if (len > 0 && vibe_ws_send_exact(fd, raw, len) != 0) {
+        return;
+    }
+#endif
+}
+
+void vibe_ws_close_frame(int64_t conn_raw) {
+#ifdef _WIN32
+    (void)conn_raw;
+#else
+    int fd = (int)conn_raw;
+    if (fd <= 0) {
+        return;
+    }
+    uint8_t frame[2] = {0x88, 0x00};
+    (void)vibe_ws_send_exact(fd, frame, 2);
+#endif
 }

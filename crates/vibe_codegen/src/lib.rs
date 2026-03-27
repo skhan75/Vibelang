@@ -3101,6 +3101,28 @@ fn emit_expr(
                     }
                     return Err("E3499: __assign requires record field Member target".to_string());
                 }
+                // Normal compilation lowers `type_of(e)` to `MirExpr::Str` in vibe_mir; this arm
+                // handles MIR that still contains a direct `type_of` call (e.g. tests).
+                if name == "type_of" {
+                    if args.len() != 1 {
+                        return Err("`type_of` expects exactly one argument".to_string());
+                    }
+                    let mut locals_ty: BTreeMap<String, MirType> = BTreeMap::new();
+                    for p in &owner.params {
+                        locals_ty.insert(p.name.clone(), p.ty.clone());
+                    }
+                    collect_local_types(&owner.body, owner, function_returns, &mut locals_ty);
+                    let mty = infer_mir_expr_type(&args[0], owner, function_returns, &locals_ty);
+                    let label = mir_type_display_for_typeof(&mty);
+                    return emit_string_data(
+                        module,
+                        builder,
+                        label,
+                        ptr_ty,
+                        str_data_counter,
+                        owner,
+                    );
+                }
                 if name == "print" || name == "println" {
                     if args.len() != 1 {
                         return Err(format!("`{name}` expects one argument"));
@@ -3749,6 +3771,12 @@ fn emit_expr(
                         builder.ins().sdiv(l, r)
                     }
                 }
+                "Mod" => builder.ins().srem(l, r),
+                "BitAnd" => builder.ins().band(l, r),
+                "BitOr" => builder.ins().bor(l, r),
+                "BitXor" => builder.ins().bxor(l, r),
+                "Shl" => builder.ins().ishl(l, r),
+                "Shr" => builder.ins().sshr(l, r),
                 "Eq" | "Ne" => {
                     let is_ne = op == "Ne";
                     if is_known_string_expr_full(left, owner, type_defs)
@@ -4169,6 +4197,10 @@ fn json_codec_schema_recursive(
     depth: usize,
 ) -> Option<String> {
     if depth > 16 {
+        eprintln!(
+            "warning: json codec schema for `{type_name}` exceeds maximum nesting depth (16); \
+             deeply nested fields will be serialized as empty objects"
+        );
         return None;
     }
     let fields = type_defs.get(type_name)?;
@@ -4180,11 +4212,13 @@ fn json_codec_schema_recursive(
         schema.push_str(field_name);
         schema.push(':');
         if type_defs.contains_key(field_ty.as_str()) {
-            schema.push('{');
             if let Some(nested) = json_codec_schema_recursive(field_ty, type_defs, depth + 1) {
+                schema.push('{');
                 schema.push_str(&nested);
+                schema.push('}');
+            } else {
+                schema.push_str("Str");
             }
-            schema.push('}');
         } else {
             schema.push_str(field_ty);
         }
@@ -4249,6 +4283,10 @@ fn extract_stdlib_call_target_mir(
                 | "cli"
                 | "regex"
                 | "http"
+                | "http_server"
+                | "crypto"
+                | "ws"
+                | "result"
         )
     {
         return None;
@@ -4343,6 +4381,18 @@ fn emit_stdlib_namespace_call(
                 &[lowered_args[0], schema_ptr, lowered_args[1], out_record],
             );
             return Ok(Some(call_result_or_zero(builder, call)));
+        }
+        if field == "encode" && lowered_args.len() == 1 {
+            return Err(format!(
+                "E3411: `json.encode` could not determine the struct type of its argument. \
+                 Bind the argument to a variable first: `tmp := expr; json.encode(tmp)`"
+            ));
+        }
+        if field == "decode" && lowered_args.len() == 2 {
+            return Err(format!(
+                "E3411: `json.decode` could not determine the struct type of its fallback argument. \
+                 Bind the fallback to a variable first: `fb := expr; json.decode(raw, fb)`"
+            ));
         }
     }
 
@@ -4821,6 +4871,12 @@ fn is_known_string_expr(expr: &MirExpr) -> bool {
                             || field == "post"
                             || field == "request"
                     }
+                    "http_server" => {
+                        field == "parse_request"
+                            || field == "format_response"
+                            || field == "cors_headers"
+                    }
+                    "ws" => field == "read_frame",
                     "bench" => {
                         field == "md5_hex"
                             || field == "md5_bytes_hex"
@@ -5126,6 +5182,21 @@ fn infer_mir_expr_type(
     }
 }
 
+/// Surface-style name for `type_of` codegen fallback (MIR normally uses HIR type strings).
+fn mir_type_display_for_typeof(ty: &MirType) -> &'static str {
+    match ty {
+        MirType::I64 => "Int",
+        MirType::F64 => "Float",
+        MirType::Bool => "Bool",
+        MirType::Str => "Str",
+        MirType::Json => "Json",
+        MirType::JsonBuilder => "JsonBuilder",
+        MirType::Result => "Result",
+        MirType::Void => "Void",
+        MirType::Unknown => "Unknown",
+    }
+}
+
 fn collect_local_types(
     stmts: &[MirStmt],
     owner: &MirFunction,
@@ -5235,6 +5306,11 @@ fn value_type_for_expr(
             ptr_ty
         }
         MirExpr::Call { callee, .. }
+            if matches!(&**callee, MirExpr::Var(name) if name == "type_of") =>
+        {
+            ptr_ty
+        }
+        MirExpr::Call { callee, .. }
             if matches!(&**callee, MirExpr::Var(name)
                 if name == "len"
                     || name == "cpu_count"
@@ -5336,6 +5412,8 @@ fn value_type_for_expr(
                     || (namespace == "json" && (field.starts_with("encode_") || field.starts_with("decode_") || field == "canonical" || field == "repeat_array"))
                     || (namespace == "regex" && field == "replace_all")
                     || (namespace == "http" && (field == "status_text" || field == "build_request_line" || field == "build_response" || field == "send" || field == "response" || field == "get" || field == "post" || field == "request"))
+                    || (namespace == "http_server" && (field == "parse_request" || field == "format_response" || field == "cors_headers"))
+                    || (namespace == "ws" && field == "read_frame")
                     || (namespace == "hash" && field == "md5_hex")
                     || (namespace == "crypto" && field == "secp256k1_bench")
                     || (namespace == "math" && field == "edigits")

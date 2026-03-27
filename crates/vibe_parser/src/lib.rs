@@ -804,6 +804,9 @@ impl Parser {
             let (op, prec) = match self.peek().kind {
                 TokenKind::Star => (BinaryOp::Mul, 40),
                 TokenKind::Slash => (BinaryOp::Div, 40),
+                TokenKind::Percent => (BinaryOp::Mod, 40),
+                TokenKind::LtLt => (BinaryOp::Shl, 35),
+                TokenKind::GtGt => (BinaryOp::Shr, 35),
                 TokenKind::Plus => (BinaryOp::Add, 30),
                 TokenKind::Minus => (BinaryOp::Sub, 30),
                 TokenKind::Lt => (BinaryOp::Lt, 25),
@@ -812,6 +815,9 @@ impl Parser {
                 TokenKind::Ge => (BinaryOp::Ge, 25),
                 TokenKind::EqEq => (BinaryOp::Eq, 20),
                 TokenKind::NotEq => (BinaryOp::Ne, 20),
+                TokenKind::Amp => (BinaryOp::BitAnd, 18),
+                TokenKind::Caret => (BinaryOp::BitXor, 16),
+                TokenKind::Pipe => (BinaryOp::BitOr, 14),
                 TokenKind::AmpAmp => (BinaryOp::And, 10),
                 TokenKind::PipePipe => (BinaryOp::Or, 5),
                 _ => break,
@@ -1150,9 +1156,14 @@ impl Parser {
             }
             TokenKind::StringLit => {
                 let t = self.bump();
-                Expr::String {
-                    value: t.lexeme,
-                    span: t.span,
+                if let Some(interp) = self.try_desugar_string_interp(&t.lexeme, t.span) {
+                    interp
+                } else {
+                    let cleaned = t.lexeme.replace('\x00', "");
+                    Expr::String {
+                        value: cleaned,
+                        span: t.span,
+                    }
                 }
             }
             TokenKind::Keyword(Keyword::True) => {
@@ -1233,6 +1244,134 @@ impl Parser {
             }
         };
         Some(expr)
+    }
+
+    fn try_desugar_string_interp(&mut self, raw: &str, span: Span) -> Option<Expr> {
+        let chars: Vec<char> = raw.chars().collect();
+        let len = chars.len();
+
+        let mut has_interp = false;
+        let mut i = 0;
+        while i < len {
+            if chars[i] == '\x00' {
+                i += 2;
+                continue;
+            }
+            if chars[i] == '{'
+                && i + 1 < len
+                && (chars[i + 1].is_ascii_alphabetic() || chars[i + 1] == '_')
+            {
+                has_interp = true;
+                break;
+            }
+            i += 1;
+        }
+        if !has_interp {
+            return None;
+        }
+
+        enum Part {
+            Text(String),
+            Ident(String),
+        }
+
+        let mut parts: Vec<Part> = Vec::new();
+        let mut current_text = String::new();
+        let mut i = 0;
+
+        while i < len {
+            if chars[i] == '\x00' && i + 1 < len {
+                current_text.push(chars[i + 1]);
+                i += 2;
+                continue;
+            }
+            if chars[i] == '{'
+                && i + 1 < len
+                && (chars[i + 1].is_ascii_alphabetic() || chars[i + 1] == '_')
+            {
+                if !current_text.is_empty() {
+                    parts.push(Part::Text(std::mem::take(&mut current_text)));
+                }
+                i += 1;
+                let mut ident = String::new();
+                while i < len && chars[i] != '}' {
+                    ident.push(chars[i]);
+                    i += 1;
+                }
+                if i < len {
+                    i += 1; // skip '}'
+                }
+                let ident = ident.trim().to_string();
+                if ident.is_empty() {
+                    self.diagnostics.push(Diagnostic::new(
+                        "E1413",
+                        Severity::Error,
+                        "empty interpolation expression `{}`",
+                        span,
+                    ));
+                } else {
+                    parts.push(Part::Ident(ident));
+                }
+            } else {
+                current_text.push(chars[i]);
+                i += 1;
+            }
+        }
+        if !current_text.is_empty() {
+            parts.push(Part::Text(current_text));
+        }
+
+        if parts.is_empty() {
+            return Some(Expr::String {
+                value: String::new(),
+                span,
+            });
+        }
+
+        fn text_expr(s: String, span: Span) -> Expr {
+            Expr::String { value: s, span }
+        }
+
+        fn ident_to_str_call(ident_name: String, span: Span) -> Expr {
+            Expr::Call {
+                callee: Box::new(Expr::Member {
+                    object: Box::new(Expr::Ident {
+                        name: "convert".to_string(),
+                        span,
+                    }),
+                    field: "to_str".to_string(),
+                    span,
+                }),
+                args: vec![Expr::Ident {
+                    name: ident_name,
+                    span,
+                }],
+                span,
+            }
+        }
+
+        fn concat(left: Expr, right: Expr, span: Span) -> Expr {
+            Expr::Binary {
+                left: Box::new(left),
+                op: BinaryOp::Add,
+                right: Box::new(right),
+                span,
+            }
+        }
+
+        let mut result: Option<Expr> = None;
+        for part in parts {
+            let expr = match part {
+                Part::Text(s) => text_expr(s, span),
+                Part::Ident(name) => ident_to_str_call(name, span),
+            };
+            result = Some(match result {
+                None => expr,
+                Some(acc) => concat(acc, expr, span),
+            });
+        }
+
+        result
     }
 
     fn error_expr(&mut self, code: &str, message: &str) -> Expr {

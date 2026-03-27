@@ -17,14 +17,18 @@ operators are left-associative unless noted.
 | 3          | `?`                    | Error propagation        | Postfix       |
 | 4          | `!`  `-` (unary)       | Logical NOT / Negation   | Prefix        |
 | 5          | `*` `/` `%`            | Multiply / Divide / Mod  | Left          |
-| 6          | `+` `-`                | Add / Subtract           | Left          |
-| 7          | `..`                   | Range                    | None          |
-| 8          | `<` `>` `<=` `>=`      | Comparison               | Left          |
-| 9          | `==` `!=`              | Equality                 | Left          |
-| 10         | `&&`                   | Logical AND              | Left          |
-| 11         | `\|\|`                 | Logical OR               | Left          |
-| 12         | `\|>`                  | Pipe                     | Left          |
-| 13         | `:=` `=`               | Binding / Assignment     | Right         |
+| 6          | `<<` `>>`              | Bitwise shift            | Left          |
+| 7          | `+` `-`                | Add / Subtract           | Left          |
+| 8          | `..`                   | Range                    | None          |
+| 9          | `<` `>` `<=` `>=`      | Comparison               | Left          |
+| 10         | `==` `!=`              | Equality                 | Left          |
+| 11         | `&`                    | Bitwise AND              | Left          |
+| 12         | `^`                    | Bitwise XOR              | Left          |
+| 13         | `\|`                   | Bitwise OR               | Left          |
+| 14         | `&&`                   | Logical AND              | Left          |
+| 15         | `\|\|`                 | Logical OR               | Left          |
+| 16         | `\|>`                  | Pipe                     | Left          |
+| 17         | `:=` `=`               | Binding / Assignment     | Right         |
 
 When in doubt, use parentheses.
 
@@ -73,6 +77,47 @@ Returns the remainder of integer division. Result sign matches the dividend.
 remainder := 17 % 5   // 2
 is_even := n % 2 == 0
 ```
+
+---
+
+## B.2a Bitwise Operators
+
+Bitwise operators work on `Int` values only. They operate on the binary representation
+of integers.
+
+### `&` — Bitwise AND
+
+```vibe
+mask := 255 & 15    // 15 (0xFF & 0x0F = 0x0F)
+flag := value & 1   // extract lowest bit
+```
+
+### `|` — Bitwise OR
+
+```vibe
+combined := 5 | 3   // 7 (0b101 | 0b011 = 0b111)
+```
+
+### `^` — Bitwise XOR
+
+```vibe
+toggled := 6 ^ 3    // 5 (0b110 ^ 0b011 = 0b101)
+```
+
+### `<<` — Left Shift
+
+```vibe
+doubled := 1 << 4   // 16 (shift 1 left by 4 positions)
+```
+
+### `>>` — Right Shift (Arithmetic)
+
+```vibe
+halved := 32 >> 2   // 8 (shift 32 right by 2 positions)
+```
+
+Bitwise operators are useful for flag manipulation, hash computation, encoding
+algorithms, and low-level data processing.
 
 ---
 

@@ -1,0 +1,41 @@
+// Blocking WebSocket echo server: run manually with `vibe run` (not listed in examples_manifest.json).
+
+pub main() -> Int {
+  @effect io
+  @effect net
+  @effect concurrency
+
+  port := 8765
+  listener := net.listen("0.0.0.0", port)
+  log.info("WebSocket echo on port 8765 (connect with a WS client)")
+
+  while true {
+    conn := net.accept(listener)
+    go ws_handle(conn)
+  }
+  0
+}
+
+ws_handle(conn: Int) -> Int {
+  @effect io
+  @effect net
+  raw := net.read(conn, 16384)
+  if raw.len() == 0 {
+    net.close(conn)
+    return 0
+  }
+  if !ws.upgrade(conn, raw) {
+    net.close(conn)
+    return 0
+  }
+  while true {
+    msg := ws.read_frame(conn)
+    if msg.len() == 0 {
+      ws.close_frame(conn)
+      net.close(conn)
+      return 0
+    }
+    ws.write_frame(conn, msg)
+  }
+  0
+}
