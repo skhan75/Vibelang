@@ -1,0 +1,25 @@
+// Structured enum errors: payload fields, construction with `{ field: expr }`,
+// and `match` arms that destructure payloads (`{ id }` is shorthand for `id: id`).
+
+enum AppError {
+  NotFound { id: Str },
+  Timeout { ms: Int }
+}
+
+pub main() -> Int {
+  @effect io
+
+  e1 := AppError.NotFound { id: "user-9" }
+  match e1 {
+    case AppError.NotFound { id } => println(id)
+    case AppError.Timeout { ms } => println(convert.to_str(ms))
+  }
+
+  e2 := AppError.Timeout { ms: 500 }
+  match e2 {
+    case AppError.NotFound { id } => println(id)
+    case AppError.Timeout { ms } => println(convert.to_str(ms))
+  }
+
+  0
+}

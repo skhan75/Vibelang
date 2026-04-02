@@ -12,6 +12,7 @@ cranelift-native = "0.121.2"
 cranelift-object = "0.121.2"
 target-lexicon = "0.13.5"
 vibe_mir.workspace = true
+vibe_types.workspace = true
 
 [features]
 bench-runtime = []

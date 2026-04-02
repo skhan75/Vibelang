@@ -719,7 +719,7 @@ and now they might be able to remove it too):
 // Before: allocates a new list
 pub double_all(items: List<i64>) -> List<i64> {
     @effect alloc
-    items.map(|x| { x * 2 })
+    items.map(fn(x: i64) -> i64 { x * 2 })
 }
 
 // After: modifies in place (if the API supports it)

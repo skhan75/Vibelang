@@ -1,0 +1,121 @@
+// Copyright 2026 VibeLang Contributors
+// SPDX-License-Identifier: Apache-2.0
+
+/**
+ * Small composable helpers for HTTP servers: header/query lookup, canned responses,
+ * and a single-route dispatcher that accepts a handler closure.
+ * Built on `std.http_server` (`parse_request` / `format_response`).
+ */
+module std.http_router
+
+header_line_key_matches_line(line: Str, want_lower: Str) -> Bool {
+  colon := text.index_of(line, ":")
+  if colon < 0 {
+    return false
+  }
+  key := text.trim(line[0:colon])
+  text.to_lower(key) == want_lower
+}
+
+header_line_value(line: Str) -> Str {
+  colon := text.index_of(line, ":")
+  rest := line[colon + 1:line.len()]
+  text.trim(rest)
+}
+
+scan_headers_for_key(headers: Str, want_lower: Str, pos: Int, total: Int) -> Str {
+  if pos >= total {
+    return ""
+  }
+  rem := headers[pos:total]
+  a := text.index_of(rem, "\r\n")
+  b := text.index_of(rem, "\n")
+  line_rel_end := total - pos
+  adv := 0
+  if a >= 0 && (b < 0 || a <= b) {
+    line_rel_end = a
+    adv = 2
+  } else {
+    if b >= 0 {
+      line_rel_end = b
+      adv = 1
+    } else {
+      line_rel_end = rem.len()
+      adv = 0
+    }
+  }
+  line := headers[pos:pos + line_rel_end]
+  next_pos := pos + line_rel_end + adv
+  if header_line_key_matches_line(line, want_lower) {
+    return header_line_value(line)
+  }
+  return scan_headers_for_key(headers, want_lower, next_pos, total)
+}
+
+scan_query_for_key(query: Str, want: Str, pos: Int, total: Int) -> Str {
+  if pos >= total {
+    return ""
+  }
+  rem := query[pos:total]
+  amp := text.index_of(rem, "&")
+  chunk_len := rem.len()
+  if amp >= 0 {
+    chunk_len = amp
+  }
+  part := query[pos:pos + chunk_len]
+  next_pos := total
+  if amp >= 0 {
+    next_pos = pos + chunk_len + 1
+  }
+  eq := text.index_of(part, "=")
+  if eq < 0 {
+    if part == want {
+      return ""
+    }
+  } else {
+    k := part[0:eq]
+    v := part[eq + 1:part.len()]
+    if k == want {
+      return v
+    }
+  }
+  return scan_query_for_key(query, want, next_pos, total)
+}
+
+pub header_get(headers: Str, name: Str) -> Str {
+  @intent "return the trimmed header value for name, or empty string if missing (case-insensitive name match)"
+  want := text.to_lower(text.trim(name))
+  if want == "" {
+    return ""
+  }
+  return scan_headers_for_key(headers, want, 0, headers.len())
+}
+
+pub query_get(query: Str, name: Str) -> Str {
+  @intent "return the query parameter value for an exact key match, or empty if absent"
+  want := name
+  if want == "" {
+    return ""
+  }
+  return scan_query_for_key(query, want, 0, query.len())
+}
+
+pub json_response(status: Int, body_json: Str) -> Str {
+  @intent "build a full HTTP response with JSON content-type and CORS headers via http_server.format_response"
+  hdr := http_server.cors_headers() + "\r\nContent-Type: application/json; charset=utf-8\r\n"
+  http_server.format_response(status, hdr, body_json)
+}
+
+pub text_response(status: Int, body: Str) -> Str {
+  @intent "build a full HTTP response with plain text content-type and CORS headers"
+  hdr := http_server.cors_headers() + "\r\nContent-Type: text/plain; charset=utf-8\r\n"
+  http_server.format_response(status, hdr, body)
+}
+
+pub route(req: HttpServerRequest, method: Str, path: Str, handler: fn(HttpServerRequest) -> Str, fallback: Str) -> Str {
+  @intent "invoke handler when method and path match the parsed request, otherwise return fallback"
+  if req.method == method && req.path == path {
+    return handler(req)
+  }
+  return fallback
+}

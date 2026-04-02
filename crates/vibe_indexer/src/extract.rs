@@ -606,6 +606,192 @@ fn collect_stmt_refs(
     }
 }
 
+/// Walk closure/function-literal statement bodies for cross-references only (no new local symbols).
+fn collect_closure_stmt_expr_refs(
+    stmt: &Stmt,
+    file: &str,
+    locals: &BTreeMap<String, SymbolId>,
+    function_symbol_ids: &BTreeMap<String, SymbolId>,
+    references: &mut Vec<Reference>,
+    dependencies: &mut BTreeSet<String>,
+) {
+    match stmt {
+        Stmt::Binding { expr, .. }
+        | Stmt::Return { expr, .. }
+        | Stmt::ExprStmt { expr, .. }
+        | Stmt::Go { expr, .. }
+        | Stmt::Thread { expr, .. } => {
+            collect_expr_refs(
+                expr,
+                file,
+                locals,
+                function_symbol_ids,
+                references,
+                dependencies,
+            );
+        }
+        Stmt::Assignment { target, expr, .. } => {
+            collect_expr_refs(
+                target,
+                file,
+                locals,
+                function_symbol_ids,
+                references,
+                dependencies,
+            );
+            collect_expr_refs(
+                expr,
+                file,
+                locals,
+                function_symbol_ids,
+                references,
+                dependencies,
+            );
+        }
+        Stmt::For { iter, body, .. } | Stmt::While { cond: iter, body, .. } => {
+            collect_expr_refs(
+                iter,
+                file,
+                locals,
+                function_symbol_ids,
+                references,
+                dependencies,
+            );
+            for s in body {
+                collect_closure_stmt_expr_refs(
+                    s,
+                    file,
+                    locals,
+                    function_symbol_ids,
+                    references,
+                    dependencies,
+                );
+            }
+        }
+        Stmt::Repeat { count, body, .. } => {
+            collect_expr_refs(
+                count,
+                file,
+                locals,
+                function_symbol_ids,
+                references,
+                dependencies,
+            );
+            for s in body {
+                collect_closure_stmt_expr_refs(
+                    s,
+                    file,
+                    locals,
+                    function_symbol_ids,
+                    references,
+                    dependencies,
+                );
+            }
+        }
+        Stmt::If {
+            cond,
+            then_body,
+            else_body,
+            ..
+        } => {
+            collect_expr_refs(
+                cond,
+                file,
+                locals,
+                function_symbol_ids,
+                references,
+                dependencies,
+            );
+            for s in then_body {
+                collect_closure_stmt_expr_refs(
+                    s,
+                    file,
+                    locals,
+                    function_symbol_ids,
+                    references,
+                    dependencies,
+                );
+            }
+            for s in else_body {
+                collect_closure_stmt_expr_refs(
+                    s,
+                    file,
+                    locals,
+                    function_symbol_ids,
+                    references,
+                    dependencies,
+                );
+            }
+        }
+        Stmt::Select { cases, .. } => {
+            for c in cases {
+                if let SelectPattern::Receive { expr, .. } = &c.pattern {
+                    collect_expr_refs(
+                        expr,
+                        file,
+                        locals,
+                        function_symbol_ids,
+                        references,
+                        dependencies,
+                    );
+                }
+                collect_expr_refs(
+                    &c.action,
+                    file,
+                    locals,
+                    function_symbol_ids,
+                    references,
+                    dependencies,
+                );
+            }
+        }
+        Stmt::Match {
+            scrutinee,
+            arms,
+            default_action,
+            ..
+        } => {
+            collect_expr_refs(
+                scrutinee,
+                file,
+                locals,
+                function_symbol_ids,
+                references,
+                dependencies,
+            );
+            for a in arms {
+                collect_expr_refs(
+                    &a.pattern,
+                    file,
+                    locals,
+                    function_symbol_ids,
+                    references,
+                    dependencies,
+                );
+                collect_expr_refs(
+                    &a.action,
+                    file,
+                    locals,
+                    function_symbol_ids,
+                    references,
+                    dependencies,
+                );
+            }
+            if let Some(e) = default_action {
+                collect_expr_refs(
+                    e,
+                    file,
+                    locals,
+                    function_symbol_ids,
+                    references,
+                    dependencies,
+                );
+            }
+        }
+        Stmt::Break { .. } | Stmt::Continue { .. } => {}
+    }
+}
+
 fn collect_expr_refs(
     expr: &Expr,
     file: &str,
@@ -765,6 +951,32 @@ fn collect_expr_refs(
             for (_, e) in fields {
                 collect_expr_refs(
                     e,
+                    file,
+                    locals,
+                    function_symbol_ids,
+                    references,
+                    dependencies,
+                );
+            }
+        }
+        Expr::FnLiteral {
+            body,
+            tail_expr,
+            ..
+        } => {
+            for s in body {
+                collect_closure_stmt_expr_refs(
+                    s,
+                    file,
+                    locals,
+                    function_symbol_ids,
+                    references,
+                    dependencies,
+                );
+            }
+            if let Some(t) = tail_expr {
+                collect_expr_refs(
+                    t.as_ref(),
                     file,
                     locals,
                     function_symbol_ids,

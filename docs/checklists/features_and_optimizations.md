@@ -1,6 +1,6 @@
 # VibeLang Features and Optimizations Checklist
 
-Last updated: 2026-03-25
+Last updated: 2026-04-02
 
 ## Purpose
 
@@ -15,7 +15,7 @@ This is the canonical implementation checklist for feature gaps, limitations, an
 
 ## Current Snapshot
 
-- Example corpus: `106` programs under `examples/` (includes `59_json_builder_*`–`62_json_builder_*`, text.index_of, unfurld smoke, `json.from_map` demo)
+- Example corpus: `108` programs under `examples/` (includes `59_json_builder_*`–`62_json_builder_*`, text.index_of, unfurld smoke, `json.from_map` demo, `77_closures_and_callbacks.yb`)
 - Static status: all examples pass `vibe check`
 - Runtime status (source-built CLI sweep): `73` pass / `5` fail
 - Non-entry helper module files now fail with explicit entrypoint diagnostics (expected):
@@ -243,6 +243,41 @@ Benchmark publication and benchmarking execution checklists are maintained in on
 ### C-07 (P2) Numeric width fidelity (`i32`, `u64`, `f64`) in executable surface
 - [ ] Implement first-class width-aware numeric behavior and conversion checks.
 
+### C-08 (P0) Closures and first-class function calls (callbacks)
+- [x] Implement closure literals, environment capture, and native lowering for **calling** a value of function type (higher-order calls such as `f(x)` when `f` is a parameter).
+- **Why**: callbacks are required for composable APIs (sort predicates, iterators, async-style continuations) and match documented book patterns.
+- **Symptoms**: `codegen failed: E3403: unknown call target` when invoking a `(T) -> U`-typed binding or parameter.
+- **Evidence**:
+  - Typechecker + lowering + codegen now support `fn(...) { ... }` expression literals, value calls, and captured environments across the full pipeline.
+  - Runnable example: `examples/04_types_functions/77_closures_and_callbacks.yb`
+  - Negative ownership/sendability fixture: `compiler/tests/fixtures/ownership_err/go_closure_non_sendable_capture.yb`
+- **Acceptance**:
+  - `77_closures_and_callbacks.yb` passes `vibe run`.
+  - Closure literals parse, typecheck, capture lexical bindings by value, and invoke through first-class function values.
+  - `go` rejects non-sendable captured values with `E3205`.
+
+### C-09 (P1) Function-level generics
+- [x] Implement single-parameter generic functions with deterministic MIR monomorphization.
+- **Why**: reusable utility functions should not require type-specific duplication for every container/algorithm helper.
+- **Evidence**:
+  - Compiler pipeline: `crates/vibe_ast/src/lib.rs`, `crates/vibe_parser/src/lib.rs`, `crates/vibe_types/src/lib.rs`, `crates/vibe_mir/src/lib.rs`, `crates/vibe_codegen/src/lib.rs`
+  - Example: `examples/04_types_functions/78_generics_basics.yb`
+- **Acceptance**:
+  - `identity<T>(x: T) -> T` and `first<T>(items: List<T>) -> T` pass `vibe run`
+  - Type arguments are inferred from call sites
+  - Monomorphized function names are deterministic
+
+### C-10 (P1) Payloaded enum variants and destructuring match
+- [x] Implement enum variants with associated payload fields plus destructuring `match` arms.
+- **Why**: production-grade error and state modeling needs richer enums than plain tag-only variants.
+- **Evidence**:
+  - Compiler/runtime: `crates/vibe_ast/src/lib.rs`, `crates/vibe_parser/src/lib.rs`, `crates/vibe_types/src/lib.rs`, `crates/vibe_codegen/src/lib.rs`
+  - Example: `examples/08_error_handling/81_structured_errors.yb`
+- **Acceptance**:
+  - Construction syntax `AppError.NotFound { id: "user-9" }` works
+  - `match` arms can bind payload fields with `{ id }`
+  - Exhaustiveness and field-name validation are enforced
+
 ---
 
 ## F) Production Standard Library + Boundary APIs (Missing for real apps)
@@ -455,6 +490,15 @@ without rewriting core functionality in another language.
   - Fixtures: `compiler/tests/fixtures/stdlib/log/basic.yb`
   - Example: `examples/07_stdlib_io_json_regex_http/54_log_primitives_smoke.yb`
 
+### F-09a (P1) In-process metrics (counters/gauges + JSON snapshot)
+- [x] Minimal dependency-free metrics store for services (not OpenTelemetry; export by scraping `snapshot_json()` or logs).
+- **Acceptance**:
+  - `metrics.counter_inc/get`, `metrics.gauge_set/get`, `metrics.snapshot_json()` backed by process-local C storage.
+- **Evidence**:
+  - APIs: `stdlib/std/metrics.yb` (`vibe_metrics_*` in `runtime/native/vibe_runtime.c`)
+  - Example: `examples/07_stdlib_io_json_regex_http/69_metrics_basics.yb`
+  - Docs: `book/src/ch16_production.md`, `book/src/appendix_c_stdlib.md`
+
 ### F-10 (P1) Env/config/CLI args surface (robust apps without bespoke glue)
 - [x] Provide standard APIs for environment variables, argv parsing, and exit codes.
 - **Why**: CLIs and services need config; production teams expect these utilities.
@@ -554,7 +598,7 @@ without rewriting core functionality in another language.
 ## E) Recommended Execution Order
 
 1. **P0 runtime/codegen parity**: A-01..A-07
-2. **P0 language data-modeling core**: C-00, C-01, C-01a, C-02
+2. **P0 language data-modeling core**: C-00, C-01, C-01a, C-02, C-08 (closures / callback calls)
 3. **P1 benchmark strict-publication blockers**: B-01..B-04
 4. **P0/P1 production stdlib boundary surface**: F-01..F-05 (then F-06..F-10)
 5. **P1 modeling decisions and ergonomics**: C-03, C-04, C-04a, C-05, C-05a, C-06

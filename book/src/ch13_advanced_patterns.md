@@ -487,7 +487,7 @@ its input and postconditions on its output:
 @effect alloc
 pub parallel_transform(
     items: List<Input>,
-    transform_fn: (Input) -> Output,
+    transform_fn: fn(Input) -> Output,
     num_workers: Int
 ) -> List<Output> {
     jobs := chan(items.len())
@@ -511,6 +511,12 @@ pub parallel_transform(
     output
 }
 ```
+
+The `transform_fn: fn(Input) -> Output` parameter and inline closure literals
+such as `fn(x: Int) -> Int { x * 2 }` are the callback surface for higher-order
+code. See `examples/04_types_functions/77_closures_and_callbacks.yb` for a
+runnable regression example that covers binding, returning, and passing
+closures.
 
 The postcondition `result.len() == items.len()` is the critical invariant: the
 parallel transformation must produce exactly one output for each input. If a
@@ -579,7 +585,7 @@ pub test_parallel_sum() -> Int {
     @effect alloc
 
     input := [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    result := parallel_transform(input, |x| { x * 2 }, 4)
+    result := parallel_transform(input, fn(x: Int) -> Int { x * 2 }, 4)
 
     mut sum := 0
     for v in result { sum = sum + v }

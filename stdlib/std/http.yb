@@ -64,3 +64,44 @@ pub post(url: Str, body: Str, timeout_ms: Int) -> HttpResponse {
   @native("vibe_http_post")
   @effect net
 }
+
+pub ok(resp: HttpResponse) -> Bool {
+  resp.status >= 200 && resp.status < 300
+}
+
+pub get_with_headers(url: Str, headers: Str, timeout_ms: Int) -> HttpResponse {
+  @effect net
+  @effect alloc
+  http.send(HttpRequest { method: "GET", url: url, headers: headers, body: "", timeout_ms: timeout_ms })
+}
+
+pub post_with_headers(url: Str, headers: Str, body: Str, timeout_ms: Int) -> HttpResponse {
+  @effect net
+  @effect alloc
+  http.send(HttpRequest { method: "POST", url: url, headers: headers, body: body, timeout_ms: timeout_ms })
+}
+
+pub post_json(url: Str, body_json: Str, timeout_ms: Int) -> HttpResponse {
+  @effect net
+  @effect alloc
+  json_hdr := "Content-Type: application/json\r\n"
+  http.post_with_headers(url, json_hdr, body_json, timeout_ms)
+}
+
+http_retryable_transport(resp: HttpResponse) -> Bool {
+  resp.status == 0
+}
+
+pub get_retry(url: Str, timeout_ms: Int, retries: Int, retry_delay_ms: Int) -> HttpResponse {
+  @effect net
+  @effect io
+  @effect alloc
+  resp := http.get(url, timeout_ms)
+  r := 0
+  while r < retries && http_retryable_transport(resp) {
+    time.sleep_ms(retry_delay_ms)
+    resp = http.get(url, timeout_ms)
+    r = r + 1
+  }
+  resp
+}

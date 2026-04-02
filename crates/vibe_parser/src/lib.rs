@@ -2,8 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use vibe_ast::{
-    BinaryOp, Contract, Declaration, EnumDecl, ExampleCase, Expr, FileAst, FunctionDecl, MatchArm,
-    Param, SelectCase, SelectPattern, Stmt, TypeDecl, TypeField, TypeRef, UnaryOp,
+    BinaryOp, Contract, Declaration, EnumDecl, EnumVariantDecl, ExampleCase, Expr, FileAst,
+    FunctionDecl, MatchArm, Param, SelectCase, SelectPattern, Stmt, TypeDecl, TypeField, TypeRef,
+    UnaryOp,
 };
 use vibe_diagnostics::{Diagnostic, Diagnostics, Severity, Span};
 use vibe_lexer::{lex, Keyword, Token, TokenKind};
@@ -158,8 +159,56 @@ impl Parser {
         let mut variants = Vec::new();
         self.consume_newlines();
         while !self.at(&TokenKind::RBrace) && !self.is_eof() {
+            let v_start = self.peek().span;
             let variant = self.expect_ident("E1142", "expected variant name");
-            variants.push(variant);
+            let (fields, variant_span) = if self.at(&TokenKind::LBrace) {
+                self.bump();
+                let mut fs = Vec::new();
+                self.consume_newlines();
+                while !self.at(&TokenKind::RBrace) && !self.is_eof() {
+                    let field_name = self.expect_ident("E1140", "expected field name in enum variant");
+                    self.expect(
+                        TokenKind::Colon,
+                        "E1141",
+                        "expected `:` after field name in enum variant",
+                    );
+                    let ty = self.parse_type_ref_until(&[TokenKind::Comma, TokenKind::RBrace]);
+                    fs.push(TypeField {
+                        name: field_name,
+                        ty,
+                    });
+                    if self.match_kind(&TokenKind::Comma) {
+                        self.consume_newlines();
+                    } else {
+                        break;
+                    }
+                }
+                self.consume_newlines();
+                let fe = self.expect(
+                    TokenKind::RBrace,
+                    "E1106",
+                    "expected `}` to close enum variant payload",
+                );
+                (
+                    fs,
+                    Span::new(v_start.line_start, v_start.col_start, fe.line_end, fe.col_end),
+                )
+            } else {
+                (
+                    Vec::new(),
+                    Span::new(
+                        v_start.line_start,
+                        v_start.col_start,
+                        v_start.line_end,
+                        v_start.col_end,
+                    ),
+                )
+            };
+            variants.push(EnumVariantDecl {
+                name: variant,
+                fields,
+                span: variant_span,
+            });
             if self.match_kind(&TokenKind::Comma) {
                 self.consume_newlines();
             } else {
@@ -180,9 +229,35 @@ impl Parser {
         }
     }
 
+    fn parse_optional_type_params(&mut self) -> Vec<String> {
+        if !self.match_kind(&TokenKind::Lt) {
+            return Vec::new();
+        }
+        let mut params = Vec::new();
+        loop {
+            if self.at(&TokenKind::Gt) {
+                break;
+            }
+            params.push(
+                self.expect_ident("E1102a", "expected type parameter name after `<`"),
+            );
+            if self.match_kind(&TokenKind::Comma) {
+                continue;
+            }
+            break;
+        }
+        self.expect(
+            TokenKind::Gt,
+            "E1102b",
+            "expected `>` to close type parameter list",
+        );
+        params
+    }
+
     fn parse_function(&mut self) -> FunctionDecl {
         let start = self.peek().span;
         let name = self.expect_ident("E1102", "expected function name");
+        let type_params = self.parse_optional_type_params();
         self.expect(
             TokenKind::LParen,
             "E1103",
@@ -265,12 +340,95 @@ impl Parser {
         FunctionDecl {
             is_public: false,
             name,
+            type_params,
             params,
             return_type,
             contracts,
             body,
             tail_expr,
             span: Span::new(start.line_start, start.col_start, end.line_end, end.col_end),
+        }
+    }
+
+    fn parse_fn_literal_expression(&mut self) -> Expr {
+        let start = self.bump().span;
+        self.expect(
+            TokenKind::LParen,
+            "E1110",
+            "expected `(` after `fn` in function literal",
+        );
+        let params = self.parse_params();
+        self.expect(
+            TokenKind::RParen,
+            "E1111",
+            "expected `)` after closure parameters",
+        );
+        let return_type = if self.match_kind(&TokenKind::Arrow) {
+            Some(self.parse_type_ref_until(&[TokenKind::LBrace]))
+        } else {
+            None
+        };
+        self.expect(
+            TokenKind::LBrace,
+            "E1112",
+            "expected `{` to start function literal body",
+        );
+        let mut body = Vec::new();
+        let mut seen_exec = false;
+        self.consume_newlines();
+        while !self.at(&TokenKind::RBrace) && !self.is_eof() {
+            let before = self.idx;
+            self.consume_newlines();
+            if self.at(&TokenKind::RBrace) || self.is_eof() {
+                break;
+            }
+            if self.at(&TokenKind::At) {
+                self.diagnostics.push(Diagnostic::new(
+                    "E1310",
+                    Severity::Error,
+                    "closures cannot carry `@` contracts",
+                    self.peek().span,
+                ));
+                let _ = self.parse_contract();
+                self.consume_newlines();
+                continue;
+            }
+            if !seen_exec {
+                seen_exec = true;
+            }
+            if let Some(stmt) = self.parse_stmt() {
+                body.push(stmt);
+            } else {
+                self.sync_to_stmt_boundary();
+            }
+            self.consume_newlines();
+            if self.idx == before && !self.at(&TokenKind::RBrace) && !self.is_eof() {
+                self.diagnostics.push(Diagnostic::new(
+                    "E1199",
+                    Severity::Error,
+                    "parser recovery made no progress inside function literal body",
+                    self.peek().span,
+                ));
+                self.bump();
+            }
+        }
+        let end = self.expect(
+            TokenKind::RBrace,
+            "E1113",
+            "expected `}` to close function literal body",
+        );
+        let mut tail_expr = None;
+        if let Some(Stmt::ExprStmt { expr, .. }) = body.last() {
+            tail_expr = Some(Box::new(expr.clone()));
+            body.pop();
+        }
+        let span = Span::new(start.line_start, start.col_start, end.line_end, end.col_end);
+        Expr::FnLiteral {
+            params,
+            return_type,
+            body,
+            tail_expr,
+            span,
         }
     }
 
@@ -298,15 +456,18 @@ impl Parser {
     fn parse_type_ref_until(&mut self, stops: &[TokenKind]) -> TypeRef {
         let mut raw = String::new();
         let mut angle_depth = 0i32;
+        let mut paren_depth = 0i32;
         while !self.is_eof() {
-            if angle_depth == 0 && stops.iter().any(|s| self.at(s)) {
+            if angle_depth == 0 && paren_depth == 0 && stops.iter().any(|s| self.at(s)) {
                 break;
             }
-            if angle_depth == 0 && self.at(&TokenKind::Newline) {
+            if angle_depth == 0 && paren_depth == 0 && self.at(&TokenKind::Newline) {
                 break;
             }
             let tok = self.bump();
             match tok.kind {
+                TokenKind::LParen => paren_depth += 1,
+                TokenKind::RParen if paren_depth > 0 => paren_depth -= 1,
                 TokenKind::Lt => angle_depth += 1,
                 TokenKind::Gt if angle_depth > 0 => angle_depth -= 1,
                 _ => {}
@@ -976,6 +1137,77 @@ impl Parser {
                 };
                 continue;
             }
+            let is_enum_variant_ctor = matches!(
+                &expr,
+                Expr::Member { object, .. } if matches!(&**object, Expr::Ident { .. })
+            ) && self.at(&TokenKind::LBrace);
+            if is_enum_variant_ctor {
+                let (enum_name, variant, span_lo) = match &expr {
+                    Expr::Member { object, field, span } => {
+                        let Expr::Ident { name, .. } = &**object else {
+                            unreachable!()
+                        };
+                        (name.clone(), field.clone(), *span)
+                    }
+                    _ => unreachable!(),
+                };
+                self.bump(); // `{`
+                let mut fields = Vec::new();
+                self.consume_newlines();
+                while !self.at(&TokenKind::RBrace) && !self.is_eof() {
+                    if !self.at_ident() {
+                        self.diagnostics.push(Diagnostic::new(
+                            "E1140",
+                            Severity::Error,
+                            "expected field name in enum variant expression",
+                            self.peek().span,
+                        ));
+                        break;
+                    }
+                    let ftok = self.bump();
+                    let field_name = ftok.lexeme;
+                    let field_span = ftok.span;
+                    if self.at(&TokenKind::Comma) || self.at(&TokenKind::RBrace) {
+                        fields.push((
+                            field_name.clone(),
+                            Expr::Ident {
+                                name: field_name,
+                                span: field_span,
+                            },
+                        ));
+                    } else {
+                        self.expect(
+                            TokenKind::Colon,
+                            "E1141",
+                            "expected `:` after field name in enum variant expression",
+                        );
+                        let value = self.parse_expr_until(&[StopToken::Comma, StopToken::RBrace]);
+                        fields.push((field_name, value));
+                    }
+                    if self.match_kind(&TokenKind::Comma) {
+                        self.consume_newlines();
+                    } else {
+                        break;
+                    }
+                }
+                let end = self.expect(
+                    TokenKind::RBrace,
+                    "E1412",
+                    "expected `}` to close enum variant expression",
+                );
+                expr = Expr::EnumVariant {
+                    enum_name,
+                    variant,
+                    fields,
+                    span: Span::new(
+                        span_lo.line_start,
+                        span_lo.col_start,
+                        end.line_end,
+                        end.col_end,
+                    ),
+                };
+                continue;
+            }
             if self.match_kind(&TokenKind::Dot) {
                 if !self.at_ident() {
                     self.diagnostics.push(Diagnostic::new(
@@ -1180,6 +1412,7 @@ impl Parser {
                     span: t.span,
                 }
             }
+            TokenKind::Keyword(Keyword::Fn) => self.parse_fn_literal_expression(),
             TokenKind::LBracket => {
                 let start = self.bump().span;
                 let mut items = Vec::new();
@@ -1530,6 +1763,7 @@ impl Parser {
 #[cfg(test)]
 mod tests {
     use super::parse_source;
+    use vibe_ast::Declaration;
 
     #[test]
     fn parses_basic_function() {
@@ -1547,6 +1781,20 @@ topK(xs, k) {
             "{}",
             out.diagnostics.to_golden()
         );
+    }
+
+    #[test]
+    fn parses_generic_function_decl() {
+        let src = r#"identity<T>(x: T) -> T { x }"#;
+        let out = parse_source(src);
+        assert!(!out.diagnostics.has_errors(), "{}", out.diagnostics.to_golden());
+        match &out.ast.declarations[0] {
+            Declaration::Function(f) => {
+                assert_eq!(f.type_params, vec!["T".to_string()]);
+                assert_eq!(f.name, "identity");
+            }
+            _ => panic!("expected function decl"),
+        }
     }
 
     #[test]

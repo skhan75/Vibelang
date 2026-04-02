@@ -23,9 +23,12 @@ vibelang/stdlib/
     json.yb          # module std.json  (DOM + validation)
     http.yb          # module std.http  (client + types)
     http_server.yb   # module std.http_server (server helpers)
+    http_router.yb   # module std.http_router (tiny routing + response helpers on http_server)
     crypto.yb        # module std.crypto (SHA-256, HMAC, UUID)
     ws.yb            # module std.ws (WebSocket)
     result.yb        # module std.result (Result helpers)
+    concurrent.yb    # module std.concurrent (spawn, timeout, order-preserving map)
+    metrics.yb       # module std.metrics (counters, gauges, JSON snapshot)
   CONTRIBUTING.md    # this file
   stability_policy.md
 ```

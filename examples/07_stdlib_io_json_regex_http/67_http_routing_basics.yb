@@ -1,0 +1,31 @@
+// std.http_router: header/query helpers, canned responses, and closure-based routing
+// on top of std.http_server.parse_request (no live server — deterministic smoke).
+// Note: keep `route(...)` calls on one line; the parser does not accept calls split across lines.
+
+pub main() -> Int {
+  @effect io
+
+  raw := "GET /api/items?q=hi HTTP/1.1\r\nHost: example.test\r\nX-Trace: abc\r\n\r\n"
+  req := http_server.parse_request(raw)
+
+  println(http_router.query_get(req.query, "q"))
+  println(http_router.header_get(req.headers, "X-Trace"))
+
+  miss := http_router.route(req, "POST", "/api/items", fn(r: HttpServerRequest) -> Str { http_router.json_response(200, "\{\"hit\":" + "true" + "}") }, http_router.text_response(404, "miss"))
+  println(miss[0:12])
+
+  hit := http_router.route(req, "GET", "/api/items", fn(r: HttpServerRequest) -> Str { q := http_router.query_get(r.query, "q") return http_router.json_response(200, "\{\"echo\":\"" + q + "\"}") }, http_router.text_response(404, "miss"))
+  if text.contains(hit, "application/json") {
+    println("json-content-type-ok")
+  } else {
+    println("json-content-type-bad")
+  }
+  if text.contains(hit, "\"echo\"") && text.contains(hit, "hi") {
+    println("echo-body-ok")
+  } else {
+    println("echo-body-bad")
+  }
+
+  println("http-router-basics-ok")
+  0
+}

@@ -31,6 +31,8 @@ pub enum Keyword {
     In,
     True,
     False,
+    /// Function literal / function type prefix (`fn (...)`).
+    Fn,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -434,6 +436,7 @@ fn keyword_of(text: &str) -> Option<Keyword> {
         "in" => Keyword::In,
         "true" => Keyword::True,
         "false" => Keyword::False,
+        "fn" => Keyword::Fn,
         _ => return None,
     })
 }

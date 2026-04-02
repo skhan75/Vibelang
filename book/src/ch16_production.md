@@ -75,6 +75,15 @@ any manual optimization. When you do need to optimize:
 4. **Batch I/O.** Functions with `@effect io` or `@effect net` in loops should
    be restructured to batch operations where possible.
 
+### Observability (logs and in-process metrics)
+
+Use `std.log` for human-readable lines (`@effect io`). For small services that
+only need request counts, worker tallies, or a JSON blob on a health endpoint,
+`std.metrics` exposes counters, gauges, and `metrics.snapshot_json()` backed by a
+process-local store in the C runtime. It is intentionally not OpenTelemetry: you
+wire export yourself (HTTP handler, sidecar, or log line) if you need
+aggregation across instances.
+
 ---
 
 ## 16.2 Deterministic Builds

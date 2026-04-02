@@ -708,6 +708,95 @@ help: add `@effect io` to `load_settings`
 Effect propagation is covered in depth in Chapter 7. The key point here is
 that functions are the boundary where effects are declared and checked.
 
+## 4.6a Closures, callbacks, and function values
+
+VibeLang treats **function types** as ordinary types in signatures. You write a
+function that accepts another function using arrow syntax:
+
+```vibe
+pub apply_twice(x: Int, f: fn(Int) -> Int) -> Int {
+  f(f(x))
+}
+
+pub inc(x: Int) -> Int {
+  x + 1
+}
+
+pub main() -> Int {
+  apply_twice(1, inc)
+}
+```
+
+Here `f` has type `fn(Int) -> Int`: a function from `Int` to `Int`. The call
+`apply_twice(1, inc)` passes the **named function** `inc` as the callback.
+
+### Closure literals
+
+For local, throwaway behavior, VibeLang supports **closure literals**
+that capture variables from the enclosing scope by value:
+
+```vibe
+pub make_adder(base: Int) -> fn(Int) -> Int {
+  fn(y: Int) -> Int { base + y }
+}
+```
+
+Closure values are regular expressions: you can bind them to variables, pass
+them as arguments, return them from functions, and call them later.
+
+### Callbacks at API boundaries
+
+Higher-order functions are the right shape for generic algorithms (sort keys,
+`map`/`filter`-style transforms, retry policies). Public APIs should keep
+callback parameter types explicit — the same “explicit at boundaries” rule as
+for other types — so callers know the contract without relying on inference at
+call sites.
+
+```vibe
+pub apply_twice(x: Int, f: fn(Int) -> Int) -> Int {
+  f(f(x))
+}
+
+pub inc(x: Int) -> Int { x + 1 }
+
+pub main() -> Int {
+  apply_twice(1, inc)
+}
+```
+
+### Generic functions
+
+VibeLang supports function-level generics for reusable helpers. In this first
+phase, generics are available on functions (not on structs, enums, or traits),
+and the compiler monomorphizes concrete call sites:
+
+```vibe
+identity<T>(x: T) -> T { x }
+
+first<T>(items: List<T>) -> T {
+  items[0]
+}
+
+pub main() -> Int {
+  @effect alloc
+
+  a := identity(0)
+  xs := [0, 1, 2]
+  b := first(xs)
+  a + b
+}
+```
+
+Type arguments are inferred from the call site in the current implementation.
+The compiler emits deterministic specialized functions such as
+`identity__Int` and `first__Int` in the lowered program.
+
+### Concurrency and capture
+
+Values moved into `go { ... }`, async tasks, or channel payloads must satisfy
+**sendability** rules (see the ownership and concurrency chapters). When closures
+capture state, those rules apply to everything the closure closes over.
+
 ## 4.7 Type Declarations
 
 VibeLang lets you define custom types to model your domain.
@@ -1055,6 +1144,9 @@ This chapter covered VibeLang's type system and function model:
   exhaustiveness by the compiler.
 - **Functions are the unit of contracts**: `@intent`, `@require`, `@ensure`,
   and `@effect` attach to functions.
+- **Function values and callbacks**: types like `fn(Int) -> Int` describe
+  higher-order parameters; closure literals and full native support for
+  invoking function values are tracked as **C-08** in the features checklist.
 
 These building blocks — types, functions, structs, enums, and match — are the
 vocabulary you will use to express every VibeLang program. The chapters ahead

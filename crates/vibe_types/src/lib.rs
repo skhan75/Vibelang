@@ -1,14 +1,20 @@
 // Copyright 2025-2026 VibeLang Contributors
 // SPDX-License-Identifier: Apache-2.0
 
+use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet};
+use std::rc::Rc;
 
+mod closure_support;
 mod effect_diagnostics;
 mod effect_propagation;
 mod ownership;
 
+use closure_support::{process_fn_literal, FnLiteralCache};
+
 use vibe_ast::{
-    BinaryOp, Contract, Declaration, Expr, FileAst, SelectPattern, Stmt, TypeRef, UnaryOp,
+    BinaryOp, Contract, Declaration, Expr, FileAst, FunctionDecl, Param, SelectPattern, Stmt,
+    TypeRef, UnaryOp,
 };
 use vibe_diagnostics::{Diagnostic, Diagnostics, Severity, Span};
 use vibe_hir::{
@@ -23,6 +29,13 @@ use crate::effect_propagation::{
 use crate::ownership::{
     check_go_sendability, check_shared_mutation_in_concurrent_context, is_sendable_type,
 };
+
+/// Layout of one enum variant (unit or payload fields) for checking and codegen.
+#[derive(Debug, Clone)]
+pub struct EnumVariantLayout {
+    pub name: String,
+    pub fields: Vec<(String, TypeKind)>,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TypeKind {
@@ -40,6 +53,10 @@ pub enum TypeKind {
     Enum(String),
     Void,
     Unknown,
+    /// Function value: parameters and return type (closures and top-level function references).
+    Fn(Vec<TypeKind>, Box<TypeKind>),
+    /// Type parameter placeholder for generic function signatures (e.g. `T` in `identity<T>`).
+    TypeParam(String),
 }
 
 #[derive(Debug, Clone)]
@@ -47,7 +64,7 @@ pub struct CheckOutput {
     pub diagnostics: Diagnostics,
     pub hir: HirProgram,
     pub type_defs: BTreeMap<String, Vec<(String, TypeKind)>>,
-    pub enum_defs: BTreeMap<String, Vec<String>>,
+    pub enum_defs: BTreeMap<String, Vec<EnumVariantLayout>>,
 }
 
 /// Convert TypeKind to a string for codegen (Int, Bool, Str, etc).
@@ -62,6 +79,7 @@ pub fn type_kind_to_codegen_str(t: &TypeKind) -> String {
         TypeKind::UserType(name) => name.clone(),
         TypeKind::Enum(name) => name.clone(),
         TypeKind::Result(_, _) => "Result".to_string(),
+        TypeKind::TypeParam(_) => "Unknown".to_string(),
         _ => "Unknown".to_string(),
     }
 }
@@ -76,8 +94,16 @@ enum ContractContext {
 struct TypeContext<'a> {
     sigs: &'a BTreeMap<String, Option<TypeKind>>,
     type_defs: &'a BTreeMap<String, Vec<(String, TypeKind)>>,
-    enum_defs: &'a BTreeMap<String, Vec<String>>,
+    enum_defs: &'a BTreeMap<String, Vec<EnumVariantLayout>>,
     namespace_map: &'a BTreeMap<(String, String), String>,
+    function_value_types: &'a BTreeMap<String, TypeKind>,
+    generic_templates: &'a BTreeMap<String, FunctionDecl>,
+    pending_monomorphs: Rc<RefCell<BTreeMap<(String, String), TypeKind>>>,
+    /// When type-checking a monomorph, rewrite `Ident` callee/base name to the mangled symbol.
+    monomorph_rename: Option<(String, String)>,
+    closure_slot_map: RefCell<Option<BTreeMap<String, u32>>>,
+    fn_literal_cache: Option<Rc<RefCell<FnLiteralCache>>>,
+    closure_binding_meta: Rc<RefCell<BTreeMap<String, Vec<TypeKind>>>>,
 }
 
 pub fn check_and_lower(ast: &FileAst) -> CheckOutput {
@@ -91,7 +117,7 @@ pub fn check_and_lower_with_ns(
     let mut diagnostics = Diagnostics::default();
     let mut signatures: BTreeMap<String, Option<TypeKind>> = BTreeMap::new();
     let mut type_defs: BTreeMap<String, Vec<(String, TypeKind)>> = BTreeMap::new();
-    let mut enum_defs: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    let mut enum_defs: BTreeMap<String, Vec<EnumVariantLayout>> = BTreeMap::new();
     let mut hir = HirProgram::default();
     let mut effect_summaries: Vec<FunctionEffectSummary> = Vec::new();
 
@@ -122,7 +148,19 @@ pub fn check_and_lower_with_ns(
                         e.span,
                     ));
                 }
-                enum_defs.insert(e.name.clone(), e.variants.clone());
+                let mut layouts = Vec::new();
+                for v in &e.variants {
+                    let mut fields = Vec::new();
+                    for tf in &v.fields {
+                        let field_ty = resolve_type_ref(&tf.ty, &type_defs, &enum_defs);
+                        fields.push((tf.name.clone(), field_ty));
+                    }
+                    layouts.push(EnumVariantLayout {
+                        name: v.name.clone(),
+                        fields,
+                    });
+                }
+                enum_defs.insert(e.name.clone(), layouts);
             }
             Declaration::Function(f) => {
                 if signatures.contains_key(&f.name) {
@@ -133,26 +171,121 @@ pub fn check_and_lower_with_ns(
                         f.span,
                     ));
                 }
+                if !f.type_params.is_empty() && f.type_params.len() != 1 {
+                    diagnostics.push(Diagnostic::new(
+                        "E2002b",
+                        Severity::Error,
+                        format!(
+                            "generic function `{}` must use exactly one type parameter (`<T>`) in this phase",
+                            f.name
+                        ),
+                        f.span,
+                    ));
+                }
                 signatures.insert(
                     f.name.clone(),
-                    f.return_type
-                        .as_ref()
-                        .map(|t| resolve_type_ref(t, &type_defs, &enum_defs)),
+                    if f.type_params.is_empty() {
+                        f.return_type
+                            .as_ref()
+                            .map(|t| resolve_type_ref(t, &type_defs, &enum_defs))
+                    } else {
+                        None
+                    },
                 );
             }
         }
     }
 
+    let mut function_value_types: BTreeMap<String, TypeKind> = BTreeMap::new();
+    let mut generic_templates: BTreeMap<String, FunctionDecl> = BTreeMap::new();
+    for decl in &ast.declarations {
+        let Declaration::Function(f) = decl else {
+            continue;
+        };
+        if !f.type_params.is_empty() {
+            if f.type_params.len() == 1 {
+                generic_templates.insert(f.name.clone(), f.clone());
+                let p = &f.type_params[0];
+                let mut ps = Vec::new();
+                for param in &f.params {
+                    ps.push(
+                        param
+                            .ty
+                            .as_ref()
+                            .map(|t| resolve_type_ref_with_type_param(t, &type_defs, &enum_defs, p))
+                            .unwrap_or(TypeKind::Unknown),
+                    );
+                }
+                let ret = f
+                    .return_type
+                    .as_ref()
+                    .map(|t| resolve_type_ref_with_type_param(t, &type_defs, &enum_defs, p))
+                    .unwrap_or(TypeKind::Unknown);
+                function_value_types.insert(f.name.clone(), TypeKind::Fn(ps, Box::new(ret)));
+            }
+            continue;
+        }
+        let mut ps = Vec::new();
+        for p in &f.params {
+            ps.push(
+                p.ty
+                    .as_ref()
+                    .map(|t| resolve_type_ref(t, &type_defs, &enum_defs))
+                    .unwrap_or(TypeKind::Unknown),
+            );
+        }
+        let ret = f
+            .return_type
+            .as_ref()
+            .map(|t| resolve_type_ref(t, &type_defs, &enum_defs))
+            .unwrap_or(TypeKind::Unknown);
+        function_value_types.insert(f.name.clone(), TypeKind::Fn(ps, Box::new(ret)));
+    }
+
+    let pending_monomorphs: Rc<RefCell<BTreeMap<(String, String), TypeKind>>> =
+        Rc::new(RefCell::new(BTreeMap::new()));
+    let empty_closure_meta: Rc<RefCell<BTreeMap<String, Vec<TypeKind>>>> =
+        Rc::new(RefCell::new(BTreeMap::new()));
     let ctx = TypeContext {
         sigs: &signatures,
         type_defs: &type_defs,
         enum_defs: &enum_defs,
         namespace_map,
+        function_value_types: &function_value_types,
+        generic_templates: &generic_templates,
+        pending_monomorphs: pending_monomorphs.clone(),
+        monomorph_rename: None,
+        closure_slot_map: RefCell::new(None),
+        fn_literal_cache: None,
+        closure_binding_meta: empty_closure_meta,
     };
 
     for decl in &ast.declarations {
         let Declaration::Function(func) = decl else {
             continue;
+        };
+        if !func.type_params.is_empty() {
+            continue;
+        }
+        let fn_cache = Rc::new(RefCell::new(FnLiteralCache {
+            owner: func.name.clone(),
+            next_id: 0,
+            entries: BTreeMap::new(),
+            synthetic: Vec::new(),
+        }));
+        let closure_binding_meta = Rc::new(RefCell::new(BTreeMap::new()));
+        let fn_ctx = TypeContext {
+            sigs: &signatures,
+            type_defs: &type_defs,
+            enum_defs: &enum_defs,
+            namespace_map,
+            function_value_types: &function_value_types,
+            generic_templates: &generic_templates,
+            pending_monomorphs: pending_monomorphs.clone(),
+            monomorph_rename: None,
+            closure_slot_map: RefCell::new(None),
+            fn_literal_cache: Some(fn_cache.clone()),
+            closure_binding_meta: closure_binding_meta.clone(),
         };
         let mut env: BTreeMap<String, TypeKind> = BTreeMap::new();
         let mut observed_effects: BTreeSet<String> = BTreeSet::new();
@@ -297,7 +430,7 @@ pub fn check_and_lower_with_ns(
             check_stmt(
                 stmt,
                 &mut env,
-                &ctx,
+                &fn_ctx,
                 &mut diagnostics,
                 &mut observed_effects,
                 &mut inferred_returns,
@@ -311,13 +444,13 @@ pub fn check_and_lower_with_ns(
             let t = infer_expr(
                 expr,
                 &env,
-                &ctx,
+                &fn_ctx,
                 ContractContext::Other,
                 &mut diagnostics,
                 &mut observed_effects,
             );
             inferred_returns.push(t);
-            let lowered_tail = lower_expr(expr, &env, &ctx);
+            let lowered_tail = lower_expr(expr, &env, &fn_ctx);
             for contract_expr in &ensure_contract_exprs {
                 hir_body.push(HirStmt::ContractCheck {
                     kind: HirContractKind::Ensure,
@@ -380,6 +513,320 @@ pub fn check_and_lower_with_ns(
             }
         });
 
+        let mut synth = std::mem::take(&mut fn_cache.borrow_mut().synthetic);
+        hir.functions.append(&mut synth);
+        hir.functions.push(HirFunction {
+            name: func.name.clone(),
+            is_public: func.is_public,
+            params: func
+                .params
+                .iter()
+                .map(|p| HirParam {
+                    name: p.name.clone(),
+                    ty: p.ty.clone(),
+                })
+                .collect(),
+            return_type: func.return_type.clone(),
+            inferred_return_type: Some(type_name(&inferred_return)),
+            effects_declared: declared_effects,
+            effects_observed: observed_effects,
+            body: hir_body,
+            tail_expr: hir_tail_expr,
+            native_symbol,
+        });
+    }
+
+    let mut mono_pass_items: Vec<(FunctionDecl, String)> = Vec::new();
+    for ((base, suffix), t) in pending_monomorphs.borrow().iter() {
+        if let Some(template) = generic_templates.get(base) {
+            if template.type_params.len() != 1 {
+                continue;
+            }
+            let mono_fn = build_generic_monomorph(template, t, suffix, &type_defs, &enum_defs);
+            mono_pass_items.push((mono_fn, base.clone()));
+        }
+    }
+    mono_pass_items.sort_by(|a, b| a.0.name.cmp(&b.0.name));
+
+    let mut signatures_ext = signatures.clone();
+    let mut fvt_ext = function_value_types.clone();
+    for (f, _) in &mono_pass_items {
+        signatures_ext.insert(
+            f.name.clone(),
+            f.return_type
+                .as_ref()
+                .map(|tr| resolve_type_ref(tr, &type_defs, &enum_defs)),
+        );
+        let mut ps = Vec::new();
+        for p in &f.params {
+            ps.push(
+                p.ty
+                    .as_ref()
+                    .map(|tr| resolve_type_ref(tr, &type_defs, &enum_defs))
+                    .unwrap_or(TypeKind::Unknown),
+            );
+        }
+        let ret = f
+            .return_type
+            .as_ref()
+            .map(|tr| resolve_type_ref(tr, &type_defs, &enum_defs))
+            .unwrap_or(TypeKind::Unknown);
+        fvt_ext.insert(f.name.clone(), TypeKind::Fn(ps, Box::new(ret)));
+    }
+
+    for (func, generic_base) in mono_pass_items {
+        let fn_cache = Rc::new(RefCell::new(FnLiteralCache {
+            owner: func.name.clone(),
+            next_id: 0,
+            entries: BTreeMap::new(),
+            synthetic: Vec::new(),
+        }));
+        let closure_binding_meta = Rc::new(RefCell::new(BTreeMap::new()));
+        let rename = (generic_base.clone(), func.name.clone());
+        let fn_ctx = TypeContext {
+            sigs: &signatures_ext,
+            type_defs: &type_defs,
+            enum_defs: &enum_defs,
+            namespace_map,
+            function_value_types: &fvt_ext,
+            generic_templates: &generic_templates,
+            pending_monomorphs: pending_monomorphs.clone(),
+            monomorph_rename: Some(rename),
+            closure_slot_map: RefCell::new(None),
+            fn_literal_cache: Some(fn_cache.clone()),
+            closure_binding_meta: closure_binding_meta.clone(),
+        };
+        let mut env: BTreeMap<String, TypeKind> = BTreeMap::new();
+        if let Some(ft) = fvt_ext.get(&func.name) {
+            env.insert(generic_base.clone(), ft.clone());
+        }
+        let mut observed_effects: BTreeSet<String> = BTreeSet::new();
+        let mut declared_effects: BTreeSet<String> = BTreeSet::new();
+        let mut require_contract_exprs: Vec<Expr> = Vec::new();
+        let mut ensure_contract_exprs: Vec<Expr> = Vec::new();
+
+        if func.is_public {
+            for p in &func.params {
+                if p.ty.is_none() {
+                    diagnostics.push(Diagnostic::new(
+                        "E2003",
+                        Severity::Warning,
+                        format!(
+                            "public function `{}` parameter `{}` should have explicit type",
+                            func.name, p.name
+                        ),
+                        func.span,
+                    ));
+                }
+            }
+            if func.return_type.is_none() {
+                diagnostics.push(Diagnostic::new(
+                    "E2004",
+                    Severity::Warning,
+                    format!(
+                        "public function `{}` should have explicit return type",
+                        func.name
+                    ),
+                    func.span,
+                ));
+            }
+        }
+
+        for p in &func.params {
+            env.insert(
+                p.name.clone(),
+                p.ty.as_ref()
+                    .map(|t| resolve_type_ref(t, &type_defs, &enum_defs))
+                    .unwrap_or(TypeKind::Unknown),
+            );
+        }
+
+        for c in &func.contracts {
+            match c {
+                Contract::Effect { name, span } => {
+                    if !is_known_effect(name) {
+                        diagnostics.push(Diagnostic::new(
+                            "E3001",
+                            Severity::Error,
+                            format!("unknown effect `{name}`"),
+                            *span,
+                        ));
+                    }
+                    declared_effects.insert(name.clone());
+                }
+                Contract::Require { expr, span } => {
+                    validate_contract_expr(expr, ContractContext::Require, &mut diagnostics);
+                    infer_expr(
+                        expr,
+                        &env,
+                        &ctx,
+                        ContractContext::Require,
+                        &mut diagnostics,
+                        &mut observed_effects,
+                    );
+                    if !matches!(
+                        infer_expr(
+                            expr,
+                            &env,
+                            &ctx,
+                            ContractContext::Require,
+                            &mut diagnostics,
+                            &mut observed_effects
+                        ),
+                        TypeKind::Bool | TypeKind::Unknown
+                    ) {
+                        diagnostics.push(Diagnostic::new(
+                            "E3004",
+                            Severity::Error,
+                            "@require expression should evaluate to Bool",
+                            *span,
+                        ));
+                    }
+                    require_contract_exprs.push(expr.clone());
+                }
+                Contract::Ensure { expr, span } => {
+                    validate_contract_expr(expr, ContractContext::Ensure, &mut diagnostics);
+                    if !matches!(
+                        infer_expr(
+                            expr,
+                            &env,
+                            &ctx,
+                            ContractContext::Ensure,
+                            &mut diagnostics,
+                            &mut observed_effects
+                        ),
+                        TypeKind::Bool | TypeKind::Unknown
+                    ) {
+                        diagnostics.push(Diagnostic::new(
+                            "E3005",
+                            Severity::Error,
+                            "@ensure expression should evaluate to Bool",
+                            *span,
+                        ));
+                    }
+                    ensure_contract_exprs.push(expr.clone());
+                }
+                Contract::Examples { cases, .. } => {
+                    for case in cases {
+                        infer_expr(
+                            &case.call,
+                            &env,
+                            &ctx,
+                            ContractContext::Other,
+                            &mut diagnostics,
+                            &mut observed_effects,
+                        );
+                        infer_expr(
+                            &case.expected,
+                            &env,
+                            &ctx,
+                            ContractContext::Other,
+                            &mut diagnostics,
+                            &mut observed_effects,
+                        );
+                    }
+                }
+                Contract::Intent { .. } | Contract::Native { .. } => {}
+            }
+        }
+
+        let mut inferred_returns: Vec<TypeKind> = Vec::new();
+        let mut hir_body: Vec<HirStmt> = Vec::new();
+        for expr in &require_contract_exprs {
+            hir_body.push(HirStmt::ContractCheck {
+                kind: HirContractKind::Require,
+                expr: lower_contract_expr(expr, &env, None, &ctx),
+            });
+        }
+        for stmt in &func.body {
+            check_stmt(
+                stmt,
+                &mut env,
+                &fn_ctx,
+                &mut diagnostics,
+                &mut observed_effects,
+                &mut inferred_returns,
+                &mut hir_body,
+                &ensure_contract_exprs,
+                0,
+            );
+        }
+        let mut hir_tail_expr = None;
+        if let Some(expr) = &func.tail_expr {
+            let t = infer_expr(
+                expr,
+                &env,
+                &fn_ctx,
+                ContractContext::Other,
+                &mut diagnostics,
+                &mut observed_effects,
+            );
+            inferred_returns.push(t);
+            let lowered_tail = lower_expr(expr, &env, &fn_ctx);
+            for contract_expr in &ensure_contract_exprs {
+                hir_body.push(HirStmt::ContractCheck {
+                    kind: HirContractKind::Ensure,
+                    expr: lower_contract_expr(contract_expr, &env, Some(&lowered_tail), &ctx),
+                });
+            }
+            hir_tail_expr = Some(lowered_tail);
+        }
+
+        let is_native = func
+            .contracts
+            .iter()
+            .any(|c| matches!(c, Contract::Native { .. }));
+
+        let inferred_return = unify_return_types(&inferred_returns);
+        if !is_native {
+            if let Some(declared) = func.return_type.as_ref() {
+                let declared = resolve_type_ref(declared, &type_defs, &enum_defs);
+                if !type_compatible(&declared, &inferred_return) {
+                    diagnostics.push(Diagnostic::new(
+                        "E2201",
+                        Severity::Error,
+                        format!(
+                            "return type mismatch in `{}`: declared `{}`, inferred `{}`",
+                            func.name,
+                            type_name(&declared),
+                            type_name(&inferred_return)
+                        ),
+                        func.span,
+                    ));
+                }
+            }
+        }
+
+        check_shared_mutation_in_concurrent_context(
+            &func.body,
+            observed_effects.contains("concurrency"),
+            &mut diagnostics,
+            func.span,
+        );
+
+        let effective_observed = if is_native {
+            declared_effects.clone()
+        } else {
+            observed_effects.clone()
+        };
+        effect_summaries.push(FunctionEffectSummary {
+            name: func.name.clone(),
+            span: func.span,
+            declared_effects: declared_effects.clone(),
+            direct_observed_effects: effective_observed,
+            direct_calls: collect_direct_calls(&func),
+        });
+
+        let native_symbol = func.contracts.iter().find_map(|c| {
+            if let Contract::Native { symbol, .. } = c {
+                Some(symbol.clone())
+            } else {
+                None
+            }
+        });
+
+        let mut synth = std::mem::take(&mut fn_cache.borrow_mut().synthetic);
+        hir.functions.append(&mut synth);
         hir.functions.push(HirFunction {
             name: func.name.clone(),
             is_public: func.is_public,
@@ -427,7 +874,7 @@ pub fn check_and_lower_with_ns(
 }
 
 #[allow(clippy::too_many_arguments)]
-fn check_stmt(
+pub(crate) fn check_stmt(
     stmt: &Stmt,
     env: &mut BTreeMap<String, TypeKind>,
     ctx: &TypeContext,
@@ -448,6 +895,16 @@ fn check_stmt(
                 diagnostics,
                 observed_effects,
             );
+            if let Expr::FnLiteral { .. } = expr {
+                if let Some(cache) = &ctx.fn_literal_cache {
+                    let ptr = expr as *const Expr as usize;
+                    if let Some(ent) = cache.borrow().entries.get(&ptr) {
+                        ctx.closure_binding_meta
+                            .borrow_mut()
+                            .insert(name.clone(), ent.capture_types.clone());
+                    }
+                }
+            }
             let lowered_expr = lower_expr(expr, env, ctx);
             env.insert(name.clone(), t);
             hir_out.push(HirStmt::Binding {
@@ -812,7 +1269,13 @@ fn check_stmt(
                 diagnostics,
                 observed_effects,
             );
-            check_go_sendability(expr, env, expr_type_hint, diagnostics);
+            check_go_sendability(
+                expr,
+                env,
+                expr_type_hint,
+                &ctx.closure_binding_meta.borrow(),
+                diagnostics,
+            );
             hir_out.push(HirStmt::Go {
                 expr: lower_expr(expr, env, ctx),
             });
@@ -827,7 +1290,13 @@ fn check_stmt(
                 diagnostics,
                 observed_effects,
             );
-            check_go_sendability(expr, env, expr_type_hint, diagnostics);
+            check_go_sendability(
+                expr,
+                env,
+                expr_type_hint,
+                &ctx.closure_binding_meta.borrow(),
+                diagnostics,
+            );
             hir_out.push(HirStmt::Thread {
                 expr: lower_expr(expr, env, ctx),
             });
@@ -871,12 +1340,13 @@ fn check_stmt(
                             }
                         }
                         for v in variants {
-                            if !covered.contains(v) {
+                            if !covered.contains(&v.name) {
                                 diagnostics.push(Diagnostic::new(
                                     "E2258",
                                     Severity::Error,
                                     format!(
-                                        "match on enum `{enum_name}` is not exhaustive: missing variant `{v}`",
+                                        "match on enum `{enum_name}` is not exhaustive: missing variant `{}`",
+                                        v.name,
                                     ),
                                     *span,
                                 ));
@@ -888,9 +1358,16 @@ fn check_stmt(
             let scrutinee_hir = lower_expr(scrutinee, env, ctx);
             let hir_arms: Vec<_> = arms
                 .iter()
-                .map(|a| HirMatchArm {
-                    pattern: lower_expr(&a.pattern, env, ctx),
-                    action: lower_expr(&a.action, env, ctx),
+                .map(|a| {
+                    let mut arm_env = env.clone();
+                    if let TypeKind::Enum(en) = &scrutinee_ty {
+                        let ext = match_arm_enum_bindings(&a.pattern, en, ctx, diagnostics);
+                        arm_env.extend(ext);
+                    }
+                    HirMatchArm {
+                        pattern: lower_expr(&a.pattern, env, ctx),
+                        action: lower_expr(&a.action, &arm_env, ctx),
+                    }
                 })
                 .collect();
             let default_hir = default_action.as_ref().map(|e| lower_expr(e, env, ctx));
@@ -901,6 +1378,145 @@ fn check_stmt(
             });
         }
     }
+}
+
+fn enum_variant_layout<'a>(
+    layouts: &'a [EnumVariantLayout],
+    variant: &str,
+) -> Option<&'a EnumVariantLayout> {
+    layouts.iter().find(|v| v.name == variant)
+}
+
+/// Bindings introduced by a `match` arm pattern when the scrutinee is an enum.
+fn match_arm_enum_bindings(
+    pattern: &Expr,
+    scrutinee_enum: &str,
+    ctx: &TypeContext,
+    diagnostics: &mut Diagnostics,
+) -> BTreeMap<String, TypeKind> {
+    let mut out = BTreeMap::new();
+    let (en, vn, field_pats, span): (&str, &str, &[(String, Expr)], Span) = match pattern {
+        Expr::EnumVariant {
+            enum_name,
+            variant,
+            fields,
+            span,
+        } => (
+            enum_name.as_str(),
+            variant.as_str(),
+            fields.as_slice(),
+            *span,
+        ),
+        Expr::Member {
+            object,
+            field,
+            span,
+        } => {
+            if let Expr::Ident { name, .. } = &**object {
+                if ctx.enum_defs.contains_key(name) {
+                    let empty: &[(String, Expr)] = &[];
+                    (name.as_str(), field.as_str(), empty, *span)
+                } else {
+                    diagnostics.push(Diagnostic::new(
+                        "E2260",
+                        Severity::Error,
+                        "match arm pattern must be an enum variant (`Type.Variant` or `Type.Variant { fields }`)",
+                        *span,
+                    ));
+                    return out;
+                }
+            } else {
+                diagnostics.push(Diagnostic::new(
+                    "E2260",
+                    Severity::Error,
+                    "match arm pattern must be an enum variant (`Type.Variant` or `Type.Variant { fields }`)",
+                    *span,
+                ));
+                return out;
+            }
+        }
+        _ => {
+            diagnostics.push(Diagnostic::new(
+                "E2260",
+                Severity::Error,
+                "match arm pattern must be an enum variant (`Type.Variant` or `Type.Variant { fields }`)",
+                pattern.span(),
+            ));
+            return out;
+        }
+    };
+    if en != scrutinee_enum {
+        diagnostics.push(Diagnostic::new(
+            "E2261",
+            Severity::Error,
+            format!(
+                "match arm pattern enum `{en}` does not match scrutinee enum `{scrutinee_enum}`"
+            ),
+            span,
+        ));
+        return out;
+    }
+    let Some(layouts) = ctx.enum_defs.get(en) else {
+        return out;
+    };
+    let Some(vl) = enum_variant_layout(layouts, vn) else {
+        diagnostics.push(Diagnostic::new(
+            "E2250",
+            Severity::Error,
+            format!("enum `{en}` has no variant `{vn}`"),
+            span,
+        ));
+        return out;
+    };
+    if vl.fields.len() != field_pats.len() {
+        diagnostics.push(Diagnostic::new(
+            "E2262",
+            Severity::Error,
+            format!(
+                "pattern for `{en}.{vn}` must bind {} payload field(s), got {}",
+                vl.fields.len(),
+                field_pats.len()
+            ),
+            span,
+        ));
+        return out;
+    }
+    for (fname, expected_ty) in &vl.fields {
+        let Some((_, pe)) = field_pats.iter().find(|(n, _)| n == fname) else {
+            diagnostics.push(Diagnostic::new(
+                "E2263",
+                Severity::Error,
+                format!("missing pattern field `{fname}` for variant `{vn}`"),
+                span,
+            ));
+            continue;
+        };
+        match pe {
+            Expr::Ident { name, .. } if name == "_" => {}
+            Expr::Ident { name, .. } => {
+                out.insert(name.clone(), expected_ty.clone());
+            }
+            _ => diagnostics.push(Diagnostic::new(
+                "E2264",
+                Severity::Error,
+                format!(
+                    "pattern field `{fname}` must be an identifier (or `_`), not an arbitrary expression"
+                ),
+                pe.span(),
+            )),
+        }
+    }
+    for (pn, _) in field_pats {
+        if !vl.fields.iter().any(|(n, _)| n == pn) {
+            diagnostics.push(Diagnostic::new(
+                "E2265",
+                Severity::Error,
+                format!("unknown pattern field `{pn}` for enum variant `{en}.{vn}`"),
+                span,
+            ));
+        }
+    }
+    out
 }
 
 fn lower_select_pattern(
@@ -968,6 +1584,7 @@ fn lower_contract_expr(
                         HirExprKind::EnumVariant {
                             enum_name: enum_name.clone(),
                             variant: field.clone(),
+                            fields: vec![],
                         },
                         enum_name.clone(),
                     );
@@ -1034,19 +1651,44 @@ fn lower_contract_expr(
                 .collect(),
         },
         Expr::EnumVariant {
-            enum_name, variant, ..
+            enum_name,
+            variant,
+            fields,
+            ..
         } => HirExprKind::EnumVariant {
             enum_name: enum_name.clone(),
             variant: variant.clone(),
+            fields: fields
+                .iter()
+                .map(|(n, e)| (n.clone(), lower_contract_expr(e, env, dot_result, ctx)))
+                .collect(),
         },
+        Expr::FnLiteral { .. } => HirExprKind::Int(0),
     };
     HirExpr::new(kind, ty)
 }
 
-fn lower_expr(expr: &Expr, env: &BTreeMap<String, TypeKind>, ctx: &TypeContext) -> HirExpr {
-    let ty = type_name(&expr_type_hint_with_sigs(expr, env, Some(ctx.sigs)));
+pub(crate) fn lower_expr(expr: &Expr, env: &BTreeMap<String, TypeKind>, ctx: &TypeContext) -> HirExpr {
+    let ty = type_name(&expr_type_hint_with_ctx(expr, env, Some(ctx)));
     let kind = match expr {
-        Expr::Ident { name, .. } => HirExprKind::Ident(name.clone()),
+        Expr::Ident { name, .. } => {
+            if let Some(map) = ctx.closure_slot_map.borrow().as_ref() {
+                if let Some(slot) = map.get(name) {
+                    let t = type_name(&env.get(name).cloned().unwrap_or(TypeKind::Unknown));
+                    return HirExpr::new(HirExprKind::EnvLoad { slot: *slot }, t);
+                }
+            }
+            let ident_out = if let Some((ref base, ref mangled)) = ctx.monomorph_rename {
+                if name == base {
+                    mangled.clone()
+                } else {
+                    name.clone()
+                }
+            } else {
+                name.clone()
+            };
+            HirExprKind::Ident(ident_out)
+        }
         Expr::Int { value, .. } => HirExprKind::Int(*value),
         Expr::Float { value, .. } => HirExprKind::Float(*value),
         Expr::Bool { value, .. } => HirExprKind::Bool(*value),
@@ -1070,6 +1712,7 @@ fn lower_expr(expr: &Expr, env: &BTreeMap<String, TypeKind>, ctx: &TypeContext) 
                         HirExprKind::EnumVariant {
                             enum_name: enum_name.clone(),
                             variant: field.clone(),
+                            fields: vec![],
                         },
                         enum_name.clone(),
                     );
@@ -1107,8 +1750,30 @@ fn lower_expr(expr: &Expr, env: &BTreeMap<String, TypeKind>, ctx: &TypeContext) 
                     return lower_expr(&args[0], env, ctx);
                 }
             }
+            let callee_hir = if let Expr::Ident { name, .. } = &**callee {
+                if let Some(template) = ctx.generic_templates.get(name.as_str()) {
+                    if let Some(conc) = infer_generic_concrete_type(template, args, env, ctx) {
+                        let suffix = mangle_type_for_mono(&conc);
+                        let mangled = format!("{}__{}", name, suffix);
+                        lower_expr(
+                            &Expr::Ident {
+                                name: mangled,
+                                span: callee.span(),
+                            },
+                            env,
+                            ctx,
+                        )
+                    } else {
+                        lower_expr(callee, env, ctx)
+                    }
+                } else {
+                    lower_expr(callee, env, ctx)
+                }
+            } else {
+                lower_expr(callee, env, ctx)
+            };
             HirExprKind::Call {
-                callee: Box::new(lower_expr(callee, env, ctx)),
+                callee: Box::new(callee_hir),
                 args: args.iter().map(|a| lower_expr(a, env, ctx)).collect(),
             }
         }
@@ -1137,11 +1802,27 @@ fn lower_expr(expr: &Expr, env: &BTreeMap<String, TypeKind>, ctx: &TypeContext) 
             expr: Box::new(lower_expr(expr, env, ctx)),
         },
         Expr::EnumVariant {
-            enum_name, variant, ..
+            enum_name,
+            variant,
+            fields,
+            ..
         } => HirExprKind::EnumVariant {
             enum_name: enum_name.clone(),
             variant: variant.clone(),
+            fields: fields
+                .iter()
+                .map(|(n, e)| (n.clone(), lower_expr(e, env, ctx)))
+                .collect(),
         },
+        Expr::FnLiteral { .. } => {
+            let ptr = expr as *const Expr as usize;
+            if let Some(cache) = &ctx.fn_literal_cache {
+                if let Some(ent) = cache.borrow().entries.get(&ptr) {
+                    return ent.make_hir.clone();
+                }
+            }
+            HirExprKind::Int(0)
+        }
     };
     HirExpr::new(kind, ty)
 }
@@ -1164,23 +1845,34 @@ fn expr_type_hint(
     expr: &Expr,
     env: &BTreeMap<String, TypeKind>,
 ) -> TypeKind {
-    expr_type_hint_with_sigs(expr, env, None)
+    expr_type_hint_with_ctx(expr, env, None)
 }
 
-fn expr_type_hint_with_sigs(
+fn expr_type_hint_with_ctx(
     expr: &Expr,
     env: &BTreeMap<String, TypeKind>,
-    sigs: Option<&BTreeMap<String, Option<TypeKind>>>,
+    ctx: Option<&TypeContext<'_>>,
 ) -> TypeKind {
+    let sigs = ctx.map(|c| c.sigs);
     match expr {
-        Expr::Ident { name, .. } => env.get(name).cloned().unwrap_or(TypeKind::Unknown),
+        Expr::Ident { name, .. } => {
+            if let Some(t) = env.get(name) {
+                return t.clone();
+            }
+            if let Some(c) = ctx {
+                if let Some(t) = c.function_value_types.get(name) {
+                    return t.clone();
+                }
+            }
+            TypeKind::Unknown
+        }
         Expr::Int { .. } => TypeKind::Int,
         Expr::Float { .. } => TypeKind::Float,
         Expr::Bool { .. } => TypeKind::Bool,
         Expr::String { .. } => TypeKind::Str,
         Expr::List { items, .. } => {
             if let Some(first) = items.first() {
-                TypeKind::List(Box::new(expr_type_hint(first, env)))
+                TypeKind::List(Box::new(expr_type_hint_with_ctx(first, env, ctx)))
             } else {
                 TypeKind::List(Box::new(TypeKind::Unknown))
             }
@@ -1188,15 +1880,15 @@ fn expr_type_hint_with_sigs(
         Expr::Map { entries, .. } => {
             if let Some((first_key, first_value)) = entries.first() {
                 TypeKind::Map(
-                    Box::new(expr_type_hint(first_key, env)),
-                    Box::new(expr_type_hint(first_value, env)),
+                    Box::new(expr_type_hint_with_ctx(first_key, env, ctx)),
+                    Box::new(expr_type_hint_with_ctx(first_value, env, ctx)),
                 )
             } else {
                 TypeKind::Map(Box::new(TypeKind::Unknown), Box::new(TypeKind::Unknown))
             }
         }
         Expr::Member { object, field, .. } => {
-            let object_ty = expr_type_hint(object, env);
+            let object_ty = expr_type_hint_with_ctx(object, env, ctx);
             match field.as_str() {
                 "len" | "balance" => TypeKind::Int,
                 _ => match object_ty {
@@ -1209,13 +1901,13 @@ fn expr_type_hint_with_sigs(
                 },
             }
         }
-        Expr::Index { object, .. } => match expr_type_hint(object, env) {
+        Expr::Index { object, .. } => match expr_type_hint_with_ctx(object, env, ctx) {
             TypeKind::List(inner) => *inner,
             TypeKind::Map(_, value) => *value,
             TypeKind::Str => TypeKind::Int,
             _ => TypeKind::Unknown,
         },
-        Expr::Slice { object, .. } => match expr_type_hint(object, env) {
+        Expr::Slice { object, .. } => match expr_type_hint_with_ctx(object, env, ctx) {
             TypeKind::List(inner) => TypeKind::List(inner),
             TypeKind::Str => TypeKind::Str,
             _ => TypeKind::Unknown,
@@ -1232,6 +1924,28 @@ fn expr_type_hint_with_sigs(
                 if let Some(ty) = builtin {
                     return ty;
                 }
+                if let Some(c) = ctx {
+                    if let Some(template) = c.generic_templates.get(name.as_str()) {
+                        if template.type_params.len() == 1 {
+                            if let Some(conc) = infer_generic_concrete_type(template, args, env, c) {
+                                let tp = &template.type_params[0];
+                                return template
+                                    .return_type
+                                    .as_ref()
+                                    .map(|tr| {
+                                        let k = resolve_type_ref_with_type_param(
+                                            tr,
+                                            c.type_defs,
+                                            c.enum_defs,
+                                            tp,
+                                        );
+                                        substitute_type_param_in_kind(&k, tp, &conc)
+                                    })
+                                    .unwrap_or(TypeKind::Unknown);
+                            }
+                        }
+                    }
+                }
                 if let Some(s) = sigs {
                     if let Some(ret) = s.get(name).and_then(|r| r.clone()) {
                         return ret;
@@ -1245,7 +1959,7 @@ fn expr_type_hint_with_sigs(
                 }
             }
             if let Expr::Member { object, field, .. } = &**callee {
-                let object_ty = expr_type_hint(object, env);
+                let object_ty = expr_type_hint_with_ctx(object, env, ctx);
                 return match field.as_str() {
                     "len" => TypeKind::Int,
                     "append" | "set" => TypeKind::Void,
@@ -1269,12 +1983,23 @@ fn expr_type_hint_with_sigs(
                         } else if field == "sort_desc" || field == "take" || field == "listen" {
                             TypeKind::Unknown
                         } else if let Some(first_arg) = args.first() {
-                            expr_type_hint(first_arg, env)
+                            expr_type_hint_with_ctx(first_arg, env, ctx)
                         } else {
                             TypeKind::Unknown
                         }
                     }
                 };
+            }
+            TypeKind::Unknown
+        }
+        Expr::FnLiteral { .. } => {
+            if let Some(c) = ctx {
+                let ptr = expr as *const Expr as usize;
+                if let Some(cache) = &c.fn_literal_cache {
+                    if let Some(ent) = cache.borrow().entries.get(&ptr) {
+                        return ent.ty.clone();
+                    }
+                }
             }
             TypeKind::Unknown
         }
@@ -1290,8 +2015,8 @@ fn expr_type_hint_with_sigs(
             | BinaryOp::And
             | BinaryOp::Or => TypeKind::Bool,
             BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div => {
-                let lt = expr_type_hint(left, env);
-                let rt = expr_type_hint(right, env);
+                let lt = expr_type_hint_with_ctx(left, env, ctx);
+                let rt = expr_type_hint_with_ctx(right, env, ctx);
                 if matches!(lt, TypeKind::Str)
                     && matches!(rt, TypeKind::Str)
                     && matches!(op, BinaryOp::Add)
@@ -1313,21 +2038,23 @@ fn expr_type_hint_with_sigs(
         },
         Expr::Unary { op, expr, .. } => match op {
             UnaryOp::Not => TypeKind::Bool,
-            UnaryOp::Neg => expr_type_hint(expr, env),
+            UnaryOp::Neg => expr_type_hint_with_ctx(expr, env, ctx),
         },
-        Expr::Async { expr, .. } | Expr::Await { expr, .. } => expr_type_hint(expr, env),
-        Expr::Question { expr, .. } => match expr_type_hint(expr, env) {
+        Expr::Async { expr, .. } | Expr::Await { expr, .. } => {
+            expr_type_hint_with_ctx(expr, env, ctx)
+        },
+        Expr::Question { expr, .. } => match expr_type_hint_with_ctx(expr, env, ctx) {
             TypeKind::Result(ok, _) => *ok,
             _ => TypeKind::Unknown,
         },
         Expr::DotResult { .. } => TypeKind::Unknown,
-        Expr::Old { expr, .. } => expr_type_hint(expr, env),
+        Expr::Old { expr, .. } => expr_type_hint_with_ctx(expr, env, ctx),
         Expr::Constructor { type_name, .. } => TypeKind::UserType(type_name.clone()),
         Expr::EnumVariant { enum_name, .. } => TypeKind::Enum(enum_name.clone()),
     }
 }
 
-fn infer_expr(
+pub(crate) fn infer_expr(
     expr: &Expr,
     env: &BTreeMap<String, TypeKind>,
     ctx: &TypeContext,
@@ -1339,6 +2066,9 @@ fn infer_expr(
     match expr {
         Expr::Ident { name, span } => {
             if let Some(t) = env.get(name) {
+                return t.clone();
+            }
+            if let Some(t) = ctx.function_value_types.get(name) {
                 return t.clone();
             }
             let is_ns = ctx.namespace_map.keys().any(|(ns, _)| ns == name);
@@ -1508,10 +2238,73 @@ fn infer_expr(
         Expr::EnumVariant {
             enum_name,
             variant,
+            fields,
             span,
         } => {
-            if let Some(variants) = ctx.enum_defs.get(enum_name) {
-                if !variants.contains(variant) {
+            observed_effects.insert("alloc".to_string());
+            if let Some(layouts) = ctx.enum_defs.get(enum_name) {
+                if let Some(vl) = enum_variant_layout(layouts, variant) {
+                    if vl.fields.len() != fields.len() {
+                        diagnostics.push(Diagnostic::new(
+                            "E2266",
+                            Severity::Error,
+                            format!(
+                                "enum variant `{enum_name}.{variant}` expects {} payload field(s), got {}",
+                                vl.fields.len(),
+                                fields.len()
+                            ),
+                            *span,
+                        ));
+                    }
+                    for (fname, expected_ty) in &vl.fields {
+                        if let Some((_, field_expr)) = fields.iter().find(|(n, _)| n == fname) {
+                            let actual = infer_expr(
+                                field_expr,
+                                env,
+                                ctx,
+                                context,
+                                diagnostics,
+                                observed_effects,
+                            );
+                            if !type_compatible(expected_ty, &actual)
+                                && !matches!(actual, TypeKind::Unknown)
+                                && !matches!(expected_ty, TypeKind::Unknown)
+                            {
+                                diagnostics.push(Diagnostic::new(
+                                    "E2254",
+                                    Severity::Error,
+                                    format!(
+                                        "enum variant field `{fname}` type mismatch: expected `{}`, got `{}`",
+                                        type_name(expected_ty),
+                                        type_name(&actual)
+                                    ),
+                                    field_expr.span(),
+                                ));
+                            }
+                        } else {
+                            diagnostics.push(Diagnostic::new(
+                                "E2255",
+                                Severity::Error,
+                                format!(
+                                    "missing field `{fname}` for enum variant `{enum_name}.{variant}`"
+                                ),
+                                *span,
+                            ));
+                        }
+                    }
+                    for (fname, _) in fields {
+                        if !vl.fields.iter().any(|(n, _)| n == fname) {
+                            diagnostics.push(Diagnostic::new(
+                                "E2265",
+                                Severity::Error,
+                                format!(
+                                    "unknown field `{fname}` for enum variant `{enum_name}.{variant}`"
+                                ),
+                                *span,
+                            ));
+                        }
+                    }
+                } else {
                     diagnostics.push(Diagnostic::new(
                         "E2250",
                         Severity::Error,
@@ -1529,6 +2322,14 @@ fn infer_expr(
             }
             TypeKind::Enum(enum_name.clone())
         }
+        Expr::FnLiteral { .. } => process_fn_literal(
+            expr,
+            env,
+            ctx,
+            diagnostics,
+            observed_effects,
+            context,
+        ),
         Expr::Member {
             object,
             field,
@@ -1539,8 +2340,19 @@ fn infer_expr(
             } = &**object
             {
                 if ctx.enum_defs.contains_key(enum_name) {
-                    if let Some(variants) = ctx.enum_defs.get(enum_name) {
-                        if !variants.contains(field) {
+                    if let Some(layouts) = ctx.enum_defs.get(enum_name) {
+                        if let Some(vl) = enum_variant_layout(layouts, field) {
+                            if !vl.fields.is_empty() {
+                                diagnostics.push(Diagnostic::new(
+                                    "E2267",
+                                    Severity::Error,
+                                    format!(
+                                        "enum variant `{enum_name}.{field}` carries payload; use `{{ ... }}` after the variant name"
+                                    ),
+                                    *span,
+                                ));
+                            }
+                        } else {
                             diagnostics.push(Diagnostic::new(
                                 "E2250",
                                 Severity::Error,
@@ -1742,6 +2554,81 @@ fn infer_expr(
                         return TypeKind::Result(Box::new(TypeKind::Unknown), Box::new(err_ty));
                     }
                     _ => {}
+                }
+                if ctx.generic_templates.contains_key(name.as_str()) {
+                    if let Some(template) = ctx.generic_templates.get(name.as_str()) {
+                        if template.type_params.len() == 1 {
+                            let tparam = &template.type_params[0];
+                            if template.params.len() != args.len() {
+                                diagnostics.push(Diagnostic::new(
+                                    "E2269",
+                                    Severity::Error,
+                                    format!(
+                                        "generic function `{}` expects {} argument(s), got {}",
+                                        name,
+                                        template.params.len(),
+                                        args.len()
+                                    ),
+                                    *span,
+                                ));
+                                return TypeKind::Unknown;
+                            }
+                            let mut acc: Option<TypeKind> = None;
+                            for (param, arg_ty) in template.params.iter().zip(&arg_types) {
+                                let expected = param
+                                    .ty
+                                    .as_ref()
+                                    .map(|tr| {
+                                        resolve_type_ref_with_type_param(
+                                            tr,
+                                            ctx.type_defs,
+                                            ctx.enum_defs,
+                                            tparam,
+                                        )
+                                    })
+                                    .unwrap_or(TypeKind::Unknown);
+                                let inferred = infer_type_arg_from_expected_vs_actual(
+                                    &expected,
+                                    arg_ty,
+                                    tparam,
+                                    *span,
+                                    diagnostics,
+                                );
+                                acc = merge_inferred_type_param(acc, inferred, *span, diagnostics);
+                            }
+                            let conc = match acc {
+                                Some(t) if !matches!(t, TypeKind::Unknown) => t,
+                                _ => {
+                                    diagnostics.push(Diagnostic::new(
+                                        "E2272",
+                                        Severity::Error,
+                                        format!(
+                                            "could not infer type argument for generic function `{name}`",
+                                        ),
+                                        *span,
+                                    ));
+                                    return TypeKind::Unknown;
+                                }
+                            };
+                            let suffix = mangle_type_for_mono(&conc);
+                            ctx.pending_monomorphs
+                                .borrow_mut()
+                                .insert((name.clone(), suffix), conc.clone());
+                            return template
+                                .return_type
+                                .as_ref()
+                                .map(|tr| {
+                                    let k = resolve_type_ref_with_type_param(
+                                        tr,
+                                        ctx.type_defs,
+                                        ctx.enum_defs,
+                                        tparam,
+                                    );
+                                    substitute_type_param_in_kind(&k, tparam, &conc)
+                                })
+                                .unwrap_or(TypeKind::Unknown);
+                        }
+                    }
                 }
                 if let Some(ret) = sigs.get(name).and_then(|r| r.clone()) {
                     return ret;
@@ -2070,6 +2957,40 @@ fn infer_expr(
                     _ => {}
                 }
             }
+            if let TypeKind::Fn(param_tys, ret) = callee_ty {
+                if param_tys.len() != args.len() {
+                    diagnostics.push(Diagnostic::new(
+                        "E2264",
+                        Severity::Error,
+                        format!(
+                            "function value invoked with {} argument(s), expected {}",
+                            args.len(),
+                            param_tys.len()
+                        ),
+                        *span,
+                    ));
+                    return TypeKind::Unknown;
+                }
+                for (i, (expected, got)) in param_tys.iter().zip(&arg_types).enumerate() {
+                    if !type_compatible(expected, got)
+                        && !matches!(expected, TypeKind::Unknown)
+                        && !matches!(got, TypeKind::Unknown)
+                    {
+                        diagnostics.push(Diagnostic::new(
+                            "E2265",
+                            Severity::Error,
+                            format!(
+                                "argument {} type mismatch: expected `{}`, got `{}`",
+                                i + 1,
+                                type_name(expected),
+                                type_name(got)
+                            ),
+                            args.get(i).map(|e| e.span()).unwrap_or(*span),
+                        ));
+                    }
+                }
+                return *ret.clone();
+            }
             TypeKind::Unknown
         }
         Expr::Binary {
@@ -2183,7 +3104,13 @@ fn infer_expr(
                     *span,
                 ));
             }
-            check_go_sendability(expr, env, expr_type_hint, diagnostics);
+            check_go_sendability(
+                expr,
+                env,
+                expr_type_hint,
+                &ctx.closure_binding_meta.borrow(),
+                diagnostics,
+            );
             infer_expr(expr, env, ctx, context, diagnostics, observed_effects)
         }
         Expr::Await { expr, .. } => {
@@ -2292,18 +3219,124 @@ fn validate_contract_expr(expr: &Expr, context: ContractContext, diagnostics: &m
                 validate_contract_expr(v, context, diagnostics);
             }
         }
+        Expr::FnLiteral { span, .. } => {
+            diagnostics.push(Diagnostic::new(
+                "E2263",
+                Severity::Error,
+                "function literals are not allowed in contracts",
+                *span,
+            ));
+        }
         _ => {}
     }
 }
 
-fn resolve_type_ref(
+fn split_top_level_commas_fn(s: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut depth_angle = 0i32;
+    let mut depth_paren = 0i32;
+    let mut start = 0;
+    for (i, ch) in s.char_indices() {
+        match ch {
+            '<' => depth_angle += 1,
+            '>' => depth_angle -= 1,
+            '(' => depth_paren += 1,
+            ')' => depth_paren -= 1,
+            ',' if depth_angle == 0 && depth_paren == 0 => {
+                let part = s[start..i].trim();
+                if !part.is_empty() {
+                    out.push(part.to_string());
+                }
+                start = i + 1;
+            }
+            _ => {}
+        }
+    }
+    let part = s[start..].trim();
+    if !part.is_empty() {
+        out.push(part.to_string());
+    }
+    out
+}
+
+fn resolve_type_segment_for_fn(
+    seg: &str,
+    type_defs: &BTreeMap<String, Vec<(String, TypeKind)>>,
+    enum_defs: &BTreeMap<String, Vec<EnumVariantLayout>>,
+) -> TypeKind {
+    let raw = seg.replace(' ', "");
+    if raw.is_empty() {
+        return TypeKind::Unknown;
+    }
+    if type_defs.contains_key(&raw) {
+        return TypeKind::UserType(raw);
+    }
+    if enum_defs.contains_key(&raw) {
+        return TypeKind::Enum(raw);
+    }
+    parse_type_ref(&TypeRef { raw })
+}
+
+fn try_parse_fn_type_kind(
+    raw: &str,
+    type_defs: &BTreeMap<String, Vec<(String, TypeKind)>>,
+    enum_defs: &BTreeMap<String, Vec<EnumVariantLayout>>,
+) -> Option<TypeKind> {
+    let compact: String = raw.chars().filter(|c| !c.is_whitespace()).collect();
+    let compact = if compact.starts_with('(') && compact.contains(")->") && !compact.starts_with("fn(") {
+        format!("fn{}", compact)
+    } else {
+        compact
+    };
+    if !compact.starts_with("fn(") {
+        return None;
+    }
+    let after = compact.strip_prefix("fn(")?;
+    let mut depth_angle = 0i32;
+    let mut depth_paren = 1i32;
+    let mut end_params = None;
+    for (i, ch) in after.char_indices() {
+        match ch {
+            '<' => depth_angle += 1,
+            '>' => depth_angle -= 1,
+            '(' => depth_paren += 1,
+            ')' => {
+                depth_paren -= 1;
+                if depth_paren == 0 && depth_angle == 0 {
+                    end_params = Some(i);
+                    break;
+                }
+            }
+            _ => {}
+        }
+    }
+    let end = end_params?;
+    let params_str = &after[..end];
+    let tail = &after[end + 1..];
+    let ret_str = tail.strip_prefix("->")?;
+    let params: Vec<TypeKind> = if params_str.is_empty() {
+        vec![]
+    } else {
+        split_top_level_commas_fn(params_str)
+            .into_iter()
+            .map(|seg| resolve_type_segment_for_fn(&seg, type_defs, enum_defs))
+            .collect()
+    };
+    let ret = resolve_type_segment_for_fn(ret_str, type_defs, enum_defs);
+    Some(TypeKind::Fn(params, Box::new(ret)))
+}
+
+pub(crate) fn resolve_type_ref(
     t: &TypeRef,
     type_defs: &BTreeMap<String, Vec<(String, TypeKind)>>,
-    enum_defs: &BTreeMap<String, Vec<String>>,
+    enum_defs: &BTreeMap<String, Vec<EnumVariantLayout>>,
 ) -> TypeKind {
     let raw = t.raw.replace(' ', "");
     if raw.is_empty() {
         return TypeKind::Unknown;
+    }
+    if let Some(ft) = try_parse_fn_type_kind(&raw, type_defs, enum_defs) {
+        return ft;
     }
     if type_defs.contains_key(&raw) {
         return TypeKind::UserType(raw);
@@ -2362,6 +3395,375 @@ fn resolve_type_ref(
         )));
     }
     parse_type_ref(t)
+}
+
+fn resolve_type_segment_for_fn_with_param(
+    seg: &str,
+    type_defs: &BTreeMap<String, Vec<(String, TypeKind)>>,
+    enum_defs: &BTreeMap<String, Vec<EnumVariantLayout>>,
+    type_param: &str,
+) -> TypeKind {
+    let raw = seg.replace(' ', "");
+    if raw.is_empty() {
+        return TypeKind::Unknown;
+    }
+    if raw == type_param {
+        return TypeKind::TypeParam(type_param.to_string());
+    }
+    if type_defs.contains_key(&raw) {
+        return TypeKind::UserType(raw);
+    }
+    if enum_defs.contains_key(&raw) {
+        return TypeKind::Enum(raw);
+    }
+    parse_type_ref(&TypeRef { raw })
+}
+
+fn try_parse_fn_type_kind_with_param(
+    raw: &str,
+    type_defs: &BTreeMap<String, Vec<(String, TypeKind)>>,
+    enum_defs: &BTreeMap<String, Vec<EnumVariantLayout>>,
+    type_param: &str,
+) -> Option<TypeKind> {
+    let compact: String = raw.chars().filter(|c| !c.is_whitespace()).collect();
+    let compact = if compact.starts_with('(') && compact.contains(")->") && !compact.starts_with("fn(")
+    {
+        format!("fn{}", compact)
+    } else {
+        compact
+    };
+    if !compact.starts_with("fn(") {
+        return None;
+    }
+    let after = compact.strip_prefix("fn(")?;
+    let mut depth_angle = 0i32;
+    let mut depth_paren = 1i32;
+    let mut end_params = None;
+    for (i, ch) in after.char_indices() {
+        match ch {
+            '<' => depth_angle += 1,
+            '>' => depth_angle -= 1,
+            '(' => depth_paren += 1,
+            ')' => {
+                depth_paren -= 1;
+                if depth_paren == 0 && depth_angle == 0 {
+                    end_params = Some(i);
+                    break;
+                }
+            }
+            _ => {}
+        }
+    }
+    let end = end_params?;
+    let params_str = &after[..end];
+    let tail = &after[end + 1..];
+    let ret_str = tail.strip_prefix("->")?;
+    let params: Vec<TypeKind> = if params_str.is_empty() {
+        vec![]
+    } else {
+        split_top_level_commas_fn(params_str)
+            .into_iter()
+            .map(|seg| resolve_type_segment_for_fn_with_param(&seg, type_defs, enum_defs, type_param))
+            .collect()
+    };
+    let ret = resolve_type_segment_for_fn_with_param(ret_str, type_defs, enum_defs, type_param);
+    Some(TypeKind::Fn(params, Box::new(ret)))
+}
+
+pub(crate) fn resolve_type_ref_with_type_param(
+    t: &TypeRef,
+    type_defs: &BTreeMap<String, Vec<(String, TypeKind)>>,
+    enum_defs: &BTreeMap<String, Vec<EnumVariantLayout>>,
+    type_param: &str,
+) -> TypeKind {
+    let raw = t.raw.replace(' ', "");
+    if raw.is_empty() {
+        return TypeKind::Unknown;
+    }
+    if raw == type_param {
+        return TypeKind::TypeParam(type_param.to_string());
+    }
+    if let Some(ft) = try_parse_fn_type_kind_with_param(&raw, type_defs, enum_defs, type_param) {
+        return ft;
+    }
+    if type_defs.contains_key(&raw) {
+        return TypeKind::UserType(raw);
+    }
+    if enum_defs.contains_key(&raw) {
+        return TypeKind::Enum(raw);
+    }
+    if raw == "Json" {
+        return TypeKind::Json;
+    }
+    if raw == "JsonBuilder" {
+        return TypeKind::JsonBuilder;
+    }
+    if raw.starts_with("List<") && raw.ends_with('>') {
+        let inner = &raw[5..raw.len() - 1];
+        return TypeKind::List(Box::new(resolve_type_ref_with_type_param(
+            &TypeRef {
+                raw: inner.to_string(),
+            },
+            type_defs,
+            enum_defs,
+            type_param,
+        )));
+    }
+    if let Some((ok, err)) = split_generic_pair(&raw, "Result") {
+        return TypeKind::Result(
+            Box::new(resolve_type_ref_with_type_param(
+                &TypeRef { raw: ok },
+                type_defs,
+                enum_defs,
+                type_param,
+            )),
+            Box::new(resolve_type_ref_with_type_param(
+                &TypeRef { raw: err },
+                type_defs,
+                enum_defs,
+                type_param,
+            )),
+        );
+    }
+    if let Some((key, value)) = split_generic_pair(&raw, "Map") {
+        return TypeKind::Map(
+            Box::new(resolve_type_ref_with_type_param(
+                &TypeRef { raw: key },
+                type_defs,
+                enum_defs,
+                type_param,
+            )),
+            Box::new(resolve_type_ref_with_type_param(
+                &TypeRef { raw: value },
+                type_defs,
+                enum_defs,
+                type_param,
+            )),
+        );
+    }
+    if raw.starts_with("Chan<") && raw.ends_with('>') {
+        let inner = &raw[5..raw.len() - 1];
+        return TypeKind::Chan(Box::new(resolve_type_ref_with_type_param(
+            &TypeRef {
+                raw: inner.to_string(),
+            },
+            type_defs,
+            enum_defs,
+            type_param,
+        )));
+    }
+    parse_type_ref(t)
+}
+
+fn mangle_type_for_mono(t: &TypeKind) -> String {
+    match t {
+        TypeKind::Int => "Int".to_string(),
+        TypeKind::Float => "Float".to_string(),
+        TypeKind::Bool => "Bool".to_string(),
+        TypeKind::Str => "Str".to_string(),
+        TypeKind::Json => "Json".to_string(),
+        TypeKind::JsonBuilder => "JsonBuilder".to_string(),
+        TypeKind::Void => "Void".to_string(),
+        TypeKind::Unknown => "Unknown".to_string(),
+        TypeKind::UserType(n) => n.clone(),
+        TypeKind::Enum(n) => n.clone(),
+        TypeKind::List(inner) => format!("List_{}", mangle_type_for_mono(inner)),
+        TypeKind::Map(k, v) => format!(
+            "Map_{}_{}",
+            mangle_type_for_mono(k),
+            mangle_type_for_mono(v)
+        ),
+        TypeKind::Result(ok, err) => format!(
+            "Result_{}_{}",
+            mangle_type_for_mono(ok),
+            mangle_type_for_mono(err)
+        ),
+        TypeKind::Chan(inner) => format!("Chan_{}", mangle_type_for_mono(inner)),
+        TypeKind::Fn(_, _) => "Fn".to_string(),
+        TypeKind::TypeParam(p) => p.clone(),
+    }
+}
+
+fn substitute_type_param_in_kind(k: &TypeKind, param: &str, with: &TypeKind) -> TypeKind {
+    match k {
+        TypeKind::TypeParam(p) if p == param => with.clone(),
+        TypeKind::List(inner) => TypeKind::List(Box::new(substitute_type_param_in_kind(
+            inner, param, with,
+        ))),
+        TypeKind::Map(a, b) => TypeKind::Map(
+            Box::new(substitute_type_param_in_kind(a, param, with)),
+            Box::new(substitute_type_param_in_kind(b, param, with)),
+        ),
+        TypeKind::Result(a, b) => TypeKind::Result(
+            Box::new(substitute_type_param_in_kind(a, param, with)),
+            Box::new(substitute_type_param_in_kind(b, param, with)),
+        ),
+        TypeKind::Chan(inner) => TypeKind::Chan(Box::new(substitute_type_param_in_kind(
+            inner, param, with,
+        ))),
+        TypeKind::Fn(ps, r) => TypeKind::Fn(
+            ps.iter()
+                .map(|p| substitute_type_param_in_kind(p, param, with))
+                .collect(),
+            Box::new(substitute_type_param_in_kind(r, param, with)),
+        ),
+        _ => k.clone(),
+    }
+}
+
+fn merge_inferred_type_param(
+    acc: Option<TypeKind>,
+    inferred: Option<TypeKind>,
+    span: Span,
+    diagnostics: &mut Diagnostics,
+) -> Option<TypeKind> {
+    match (acc, inferred) {
+        (None, None) => None,
+        (Some(a), None) | (None, Some(a)) => Some(a),
+        (Some(a), Some(b)) => {
+            if matches!(a, TypeKind::Unknown) {
+                return Some(b);
+            }
+            if matches!(b, TypeKind::Unknown) {
+                return Some(a);
+            }
+            if type_compatible(&a, &b) {
+                Some(a)
+            } else {
+                diagnostics.push(Diagnostic::new(
+                    "E2270",
+                    Severity::Error,
+                    format!(
+                        "conflicting inferred type arguments: `{}` vs `{}`",
+                        type_name(&a),
+                        type_name(&b)
+                    ),
+                    span,
+                ));
+                Some(a)
+            }
+        }
+    }
+}
+
+fn infer_type_arg_from_expected_vs_actual(
+    expected: &TypeKind,
+    actual: &TypeKind,
+    param: &str,
+    span: Span,
+    diagnostics: &mut Diagnostics,
+) -> Option<TypeKind> {
+    match (expected, actual) {
+        (TypeKind::TypeParam(p), _) if p == param => Some(actual.clone()),
+        (TypeKind::List(e), TypeKind::List(a)) => {
+            infer_type_arg_from_expected_vs_actual(e, a, param, span, diagnostics)
+        }
+        (TypeKind::Map(ek, ev), TypeKind::Map(ak, av)) => {
+            let t1 = infer_type_arg_from_expected_vs_actual(ek, ak, param, span, diagnostics);
+            let t2 = infer_type_arg_from_expected_vs_actual(ev, av, param, span, diagnostics);
+            merge_inferred_type_param(t1, t2, span, diagnostics)
+        }
+        (TypeKind::Result(eok, eer), TypeKind::Result(aok, aer)) => {
+            let t1 = infer_type_arg_from_expected_vs_actual(eok, aok, param, span, diagnostics);
+            let t2 = infer_type_arg_from_expected_vs_actual(eer, aer, param, span, diagnostics);
+            merge_inferred_type_param(t1, t2, span, diagnostics)
+        }
+        (TypeKind::Chan(e), TypeKind::Chan(a)) => {
+            infer_type_arg_from_expected_vs_actual(e, a, param, span, diagnostics)
+        }
+        _ => {
+            if type_compatible(expected, actual) {
+                None
+            } else if !matches!(actual, TypeKind::Unknown) && !matches!(expected, TypeKind::Unknown)
+            {
+                diagnostics.push(Diagnostic::new(
+                    "E2271",
+                    Severity::Error,
+                    format!(
+                        "type argument inference mismatch: expected `{}`, got `{}`",
+                        type_name(expected),
+                        type_name(actual)
+                    ),
+                    span,
+                ));
+                None
+            } else {
+                None
+            }
+        }
+    }
+}
+
+fn infer_generic_concrete_type(
+    template: &FunctionDecl,
+    args: &[Expr],
+    env: &BTreeMap<String, TypeKind>,
+    ctx: &TypeContext<'_>,
+) -> Option<TypeKind> {
+    let tparam = template.type_params.first()?;
+    if template.type_params.len() != 1 || template.params.len() != args.len() {
+        return None;
+    }
+    let mut acc: Option<TypeKind> = None;
+    let mut silent = Diagnostics::default();
+    for (param, arg) in template.params.iter().zip(args) {
+        let expected = param
+            .ty
+            .as_ref()
+            .map(|tr| resolve_type_ref_with_type_param(tr, ctx.type_defs, ctx.enum_defs, tparam))
+            .unwrap_or(TypeKind::Unknown);
+        let actual = expr_type_hint_with_ctx(arg, env, Some(ctx));
+        let inferred = infer_type_arg_from_expected_vs_actual(
+            &expected,
+            &actual,
+            tparam,
+            arg.span(),
+            &mut silent,
+        );
+        acc = merge_inferred_type_param(acc, inferred, arg.span(), &mut silent);
+    }
+    acc.filter(|t| !matches!(t, TypeKind::Unknown))
+}
+
+fn build_generic_monomorph(
+    template: &FunctionDecl,
+    concrete: &TypeKind,
+    suffix: &str,
+    type_defs: &BTreeMap<String, Vec<(String, TypeKind)>>,
+    enum_defs: &BTreeMap<String, Vec<EnumVariantLayout>>,
+) -> FunctionDecl {
+    let param = &template.type_params[0];
+    let name = format!("{}__{}", template.name, suffix);
+    FunctionDecl {
+        is_public: template.is_public,
+        name,
+        type_params: Vec::new(),
+        params: template
+            .params
+            .iter()
+            .map(|p| Param {
+                name: p.name.clone(),
+                ty: p.ty.as_ref().map(|tr| {
+                    let k = resolve_type_ref_with_type_param(tr, type_defs, enum_defs, param);
+                    let k2 = substitute_type_param_in_kind(&k, param, concrete);
+                    TypeRef {
+                        raw: type_name(&k2),
+                    }
+                }),
+            })
+            .collect(),
+        return_type: template.return_type.as_ref().map(|tr| {
+            let k = resolve_type_ref_with_type_param(tr, type_defs, enum_defs, param);
+            let k2 = substitute_type_param_in_kind(&k, param, concrete);
+            TypeRef {
+                raw: type_name(&k2),
+            }
+        }),
+        contracts: template.contracts.clone(),
+        body: template.body.clone(),
+        tail_expr: template.tail_expr.clone(),
+        span: template.span,
+    }
 }
 
 fn parse_type_ref(t: &TypeRef) -> TypeKind {
@@ -2466,6 +3868,15 @@ fn type_compatible(a: &TypeKind, b: &TypeKind) -> bool {
         (TypeKind::UserType(a), TypeKind::UserType(b)) => a == b,
         (TypeKind::Enum(a), TypeKind::Enum(b)) => a == b,
         (TypeKind::Int, TypeKind::Float) | (TypeKind::Float, TypeKind::Int) => true,
+        (TypeKind::Fn(a_params, a_ret), TypeKind::Fn(b_params, b_ret)) => {
+            a_params.len() == b_params.len()
+                && a_params
+                    .iter()
+                    .zip(b_params)
+                    .all(|(x, y)| type_compatible(x, y))
+                && type_compatible(a_ret, b_ret)
+        }
+        (TypeKind::TypeParam(_), _) | (_, TypeKind::TypeParam(_)) => true,
         _ => false,
     }
 }
@@ -2486,10 +3897,15 @@ fn type_name(t: &TypeKind) -> String {
         TypeKind::Enum(name) => name.clone(),
         TypeKind::Void => "Void".to_string(),
         TypeKind::Unknown => "Unknown".to_string(),
+        TypeKind::Fn(params, ret) => {
+            let inner: Vec<String> = params.iter().map(type_name).collect();
+            format!("fn({})->{}", inner.join(","), type_name(ret))
+        }
+        TypeKind::TypeParam(p) => p.clone(),
     }
 }
 
-fn unify_return_types(types: &[TypeKind]) -> TypeKind {
+pub(crate) fn unify_return_types(types: &[TypeKind]) -> TypeKind {
     if types.is_empty() {
         return TypeKind::Void;
     }

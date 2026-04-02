@@ -180,6 +180,17 @@ if resp.status == 201 {
 Use `json.encode` to serialize the request body — never hand-escape JSON strings.
 Use `json.decode` to parse the response body back into a typed struct.
 
+**Convenience wrappers (same sync model)**
+
+- `http.get_with_headers` / `http.post_with_headers` — same as `http.send` with a
+  ready-made `HttpRequest`, for call sites that only need extra header lines.
+- `http.post_json` — sets `Content-Type: application/json` and POSTs a string body
+  (already JSON text from `json.encode` or a literal).
+- `http.get_retry` — repeats `http.get` up to `1 + retries` times when the client
+  sees **no HTTP status** (`status == 0`, transport/parse failure), sleeping
+  `retry_delay_ms` between attempts via `time.sleep_ms`.
+- `http.ok(resp)` — `true` when `status` is in the 2xx range.
+
 **Server-side responses**
 
 When writing a server handler, use `http.response` to turn a structured
@@ -199,10 +210,24 @@ net.write(conn, wire)
 wire2 := http.build_response(200, json.encode(StatusBody { ok: true, message: "done" }))
 ```
 
+**Raw requests + `std.http_router` (framework-lite)**
+
+For accept loops that read a `Str` and parse with `http_server.parse_request`, `std.http_router`
+adds small pure helpers: `header_get` / `query_get`, `json_response` / `text_response` (wrapping
+`format_response` with CORS and `Content-Type`), and `route`, which takes a
+`fn(HttpServerRequest) -> Str` handler and a fallback string. Compose several routes by nesting
+`route` calls or binding handlers to names; keep each `route(...)` call on one line if your parser
+build is sensitive to multi-line call syntax.
+
+Runnable:
+
+- `examples/07_stdlib_io_json_regex_http/67_http_routing_basics.yb`
+
 Runnables:
 
 - `examples/07_stdlib_io_json_regex_http/48_http_sync_client_unreachable_smoke.yb`
 - `examples/07_stdlib_io_json_regex_http/63_http_send_structured_request.yb`
+- `examples/07_stdlib_io_json_regex_http/68_http_client_headers_and_retries.yb`
 
 ---
 

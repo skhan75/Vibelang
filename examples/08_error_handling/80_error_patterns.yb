@@ -13,7 +13,7 @@ scaled(s: Str) -> Result<Int, Str> {
   ok(n * 10)
 }
 
-main() {
+main() -> Int {
   @effect io
 
   ok_r := scaled("7")
@@ -34,4 +34,5 @@ main() {
   }
 
   println("error-patterns-done")
+  0
 }

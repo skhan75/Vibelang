@@ -1,0 +1,11 @@
+identity<T>(x: T) -> T { x }
+
+first<T>(items: List<T>) -> T { items[0] }
+
+main() -> Int {
+    @effect alloc
+    a := identity(0)
+    xs := [0, 1, 2]
+    b := first(xs)
+    a + b
+}

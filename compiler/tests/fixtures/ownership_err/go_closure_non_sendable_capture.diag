@@ -1,0 +1,2 @@
+E3002: warning: observed effect `alloc` is not declared in `@effect` (including transitive calls) @ 2:5-8:1
+E3205: error: non-sendable captured value in `go` closure: `Map<Str, List<Unknown>>` @ 6:6-6:6

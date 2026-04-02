@@ -1,0 +1,8 @@
+pub main() -> Int {
+  @effect io
+  metrics.counter_inc("requests", 1)
+  metrics.counter_inc("requests", 2)
+  metrics.gauge_set("workers", 4)
+  println(metrics.snapshot_json())
+  0
+}

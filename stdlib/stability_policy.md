@@ -33,9 +33,12 @@ This policy defines compatibility expectations for the expanded stdlib surface.
 - `http.send`, `http.get`, `http.post`, `http.response`, `http.build_response`, `http.status_text`, `http.default_port`, `http.build_request_line`, `http.request`, `http.request_status`: **preview**
 - `HttpRequest`, `HttpResponse` (auto-injected types): **preview**
 - `log.info`, `log.warn`, `log.error`: **preview**
+- `metrics.counter_inc`, `metrics.counter_get`, `metrics.gauge_set`, `metrics.gauge_get`, `metrics.snapshot_json`: **preview**
 - `env.get`, `env.has`, `env.get_required`: **preview**
 - `cli.args_len`, `cli.arg`: **preview**
 - runtime bridge symbols (`vibe_*` C ABI): **internal**
+- `http_router.header_get`, `http_router.query_get`, `http_router.json_response`, `http_router.text_response`, `http_router.route`: **preview**
+- `concurrent.spawn`, `concurrent.with_timeout`, `concurrent.map_int`, `concurrent.map_str`: **preview** (concurrency + wall-clock timeout; maps are order-preserving but scheduling remains non-deterministic)
 
 ## Change Rules
 

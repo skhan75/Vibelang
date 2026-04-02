@@ -1,0 +1,31 @@
+// Deterministic HTTP client demo: no external hosts — only a closed local port.
+// Shows custom headers, JSON POST helper, http.ok, and transport-level retries.
+
+pub main() -> Int {
+  @effect io
+  @effect net
+
+  bad_url := "http://127.0.0.1:1/unreachable"
+  short_ms := 25
+
+  hdr := "X-Request-Id: demo\r\nAccept: application/json\r\n"
+  r_headers := http.get_with_headers(bad_url, hdr, short_ms)
+  println(convert.to_str(r_headers.status))
+  if http.ok(r_headers) {
+    println("get-headers-unexpected-ok")
+  } else {
+    println("get-headers-expected-non-2xx")
+  }
+
+  r_json := http.post_json(bad_url, "{\"ping\":true}", short_ms)
+  println(convert.to_str(r_json.status))
+
+  r_post := http.post_with_headers(bad_url, "X-Foo: bar\r\n", "plain-body", short_ms)
+  println(convert.to_str(r_post.status))
+
+  // Two retries after the first failure (status 0 = no HTTP response), tiny delays.
+  r_retry := http.get_retry(bad_url, short_ms, 2, 3)
+  println(convert.to_str(r_retry.status))
+
+  0
+}

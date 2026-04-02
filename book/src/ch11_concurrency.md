@@ -996,6 +996,23 @@ Because the worker pool may process items in any order, the test sorts the
 results before comparing. This is a standard technique for testing concurrent
 code: verify the *set* of results, not their order.
 
+### 11.8.4 `std.concurrent` — small helpers (Preview)
+
+The standard library module `std.concurrent` layers a few convenience APIs on
+top of `go`, `chan`, and `std.time.sleep_ms` without introducing async/await:
+
+- **`spawn(task: fn() -> Int)`** — schedules `task()` as `go task()` (fire-and-forget).
+- **`with_timeout(task, timeout_ms, fallback) -> Int`** — races the task against a
+  timer on a single result channel; the first successful send wins, so slow work
+  can return `fallback` when the sleep finishes first.
+- **`map_int` / `map_str`** — bounded parallelism via a token channel; each
+  worker sends `[index, value]` (strings use `convert.to_str` / `convert.to_int`
+  for the index slot) so the merged list matches the original order.
+
+See `examples/06_concurrency_async/78_concurrent_map_basics.yb` for a runnable
+walkthrough. Function values may appear inside `go` closures that invoke them;
+they remain non-sendable on `chan.send` like other opaque captures.
+
 ## 11.9 Summary
 
 VibeLang's concurrency model gives you the power of lightweight tasks and

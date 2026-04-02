@@ -6,7 +6,18 @@ use std::collections::BTreeMap;
 use vibe_ast::{Expr, Stmt};
 use vibe_diagnostics::{Diagnostic, Diagnostics, Severity, Span};
 
+use crate::closure_support::fn_literal_capture_type_kinds;
 use crate::TypeKind;
+
+/// Captures allowed inside a `go` closure body. Function values (`fn(...) -> T`) are permitted
+/// here so callers can invoke a passed task/worker inside the spawned task; they remain
+/// non-sendable for `chan.send` and other cross-task value transfers.
+fn is_sendable_go_closure_capture(ty: &TypeKind) -> bool {
+    match ty {
+        TypeKind::Fn(_, _) => true,
+        _ => is_sendable_type(ty),
+    }
+}
 
 pub fn is_sendable_type(ty: &TypeKind) -> bool {
     match ty {
@@ -25,6 +36,9 @@ pub fn is_sendable_type(ty: &TypeKind) -> bool {
         // Unknown types are treated as non-sendable so unresolved values do not silently cross
         // concurrency boundaries.
         TypeKind::Unknown => false,
+        // Function values may close over non-sendable state; checked separately for known closures.
+        TypeKind::Fn(_, _) => false,
+        TypeKind::TypeParam(_) => false,
     }
 }
 
@@ -64,8 +78,64 @@ pub fn expr_contains_member_access(expr: &Expr) -> bool {
         | Expr::Bool { .. }
         | Expr::String { .. }
         | Expr::DotResult { .. }
-        | Expr::Constructor { .. }
-        | Expr::EnumVariant { .. } => false,
+        | Expr::Constructor { .. } => false,
+        Expr::EnumVariant { fields, .. } => {
+            fields.iter().any(|(_, e)| expr_contains_member_access(e))
+        }
+        Expr::FnLiteral { body, tail_expr, .. } => {
+            body.iter().any(|s| stmt_contains_member_access(s))
+                || tail_expr
+                    .as_ref()
+                    .is_some_and(|e| expr_contains_member_access(e.as_ref()))
+        }
+    }
+}
+
+fn stmt_contains_member_access(stmt: &Stmt) -> bool {
+    match stmt {
+        Stmt::Binding { expr, .. }
+        | Stmt::ExprStmt { expr, .. }
+        | Stmt::Return { expr, .. }
+        | Stmt::Go { expr, .. }
+        | Stmt::Thread { expr, .. } => expr_contains_member_access(expr),
+        Stmt::Assignment { target, expr, .. } => {
+            expr_contains_member_access(target) || expr_contains_member_access(expr)
+        }
+        Stmt::For { iter, body, .. } | Stmt::While { cond: iter, body, .. } => {
+            expr_contains_member_access(iter) || body.iter().any(stmt_contains_member_access)
+        }
+        Stmt::Repeat { count, body, .. } => {
+            expr_contains_member_access(count) || body.iter().any(stmt_contains_member_access)
+        }
+        Stmt::If {
+            cond,
+            then_body,
+            else_body,
+            ..
+        } => {
+            expr_contains_member_access(cond)
+                || then_body.iter().any(stmt_contains_member_access)
+                || else_body.iter().any(stmt_contains_member_access)
+        }
+        Stmt::Select { cases, .. } => cases.iter().any(|c| {
+            matches!(&c.pattern, vibe_ast::SelectPattern::Receive { expr, .. } if expr_contains_member_access(expr))
+                || expr_contains_member_access(&c.action)
+        }),
+        Stmt::Match {
+            scrutinee,
+            arms,
+            default_action,
+            ..
+        } => {
+            expr_contains_member_access(scrutinee)
+                || arms.iter().any(|a| {
+                    expr_contains_member_access(&a.pattern) || expr_contains_member_access(&a.action)
+                })
+                || default_action
+                    .as_ref()
+                    .is_some_and(|e| expr_contains_member_access(e))
+        }
+        Stmt::Break { .. } | Stmt::Continue { .. } => false,
     }
 }
 
@@ -73,11 +143,42 @@ pub fn check_go_sendability(
     expr: &Expr,
     env: &BTreeMap<String, TypeKind>,
     expr_type_hint: impl Fn(&Expr, &BTreeMap<String, TypeKind>) -> TypeKind,
+    closure_binding_meta: &BTreeMap<String, Vec<TypeKind>>,
     diagnostics: &mut Diagnostics,
 ) {
-    let Expr::Call { args, .. } = expr else {
+    let Expr::Call { callee, args, .. } = expr else {
         return;
     };
+
+    let mut check_captures = |caps: &[TypeKind], err_span: vibe_diagnostics::Span| {
+        for ty in caps {
+            if !is_sendable_go_closure_capture(ty) {
+                diagnostics.push(Diagnostic::new(
+                    "E3205",
+                    Severity::Error,
+                    format!(
+                        "non-sendable captured value in `go` closure: `{}`",
+                        type_name(ty)
+                    ),
+                    err_span,
+                ));
+            }
+        }
+    };
+
+    match &**callee {
+        Expr::Ident { name, span: sp } => {
+            if let Some(caps) = closure_binding_meta.get(name) {
+                check_captures(caps, *sp);
+            }
+        }
+        lit @ Expr::FnLiteral { span: sp, .. } => {
+            if let Some(caps) = fn_literal_capture_type_kinds(lit, env) {
+                check_captures(&caps, *sp);
+            }
+        }
+        _ => {}
+    }
 
     for arg in args {
         let inferred = expr_type_hint(arg, env);
@@ -175,5 +276,10 @@ fn type_name(t: &TypeKind) -> String {
         TypeKind::Enum(name) => name.clone(),
         TypeKind::Void => "Void".to_string(),
         TypeKind::Unknown => "Unknown".to_string(),
+        TypeKind::Fn(ps, r) => {
+            let inner: Vec<String> = ps.iter().map(type_name).collect();
+            format!("fn({})->{}", inner.join(","), type_name(r))
+        }
+        TypeKind::TypeParam(name) => name.clone(),
     }
 }

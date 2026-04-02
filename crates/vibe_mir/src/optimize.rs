@@ -272,6 +272,29 @@ fn collect_used_vars_expr(expr: &MirExpr, used: &mut BTreeSet<String>) {
         | MirExpr::Old { expr } => {
             collect_used_vars_expr(expr, used);
         }
+        MirExpr::MakeClosure { captures, .. } => {
+            for c in captures {
+                collect_used_vars_expr(c, used);
+            }
+        }
+        MirExpr::EnvLoad { .. } => {}
+        MirExpr::ClosureCall {
+            closure,
+            args,
+            user_param_tys: _,
+            ret_ty: _,
+        } => {
+            collect_used_vars_expr(closure, used);
+            for a in args {
+                collect_used_vars_expr(a, used);
+            }
+        }
+        MirExpr::EnumVariant { payload, .. } => {
+            for (_, e) in payload {
+                collect_used_vars_expr(e, used);
+            }
+        }
+        MirExpr::PatternBind { .. } => {}
         _ => {}
     }
 }
@@ -345,8 +368,11 @@ fn expr_has_side_effects(expr: &MirExpr) -> bool {
         | MirExpr::Bool(_)
         | MirExpr::Str(_)
         | MirExpr::Var(_)
-        | MirExpr::DotResult
-        | MirExpr::EnumVariant { .. } => false,
+        | MirExpr::DotResult => false,
+        MirExpr::EnumVariant { payload, .. } => {
+            payload.iter().any(|(_, e)| expr_has_side_effects(e))
+        }
+        MirExpr::PatternBind { .. } => false,
         MirExpr::Binary { left, right, .. } => {
             expr_has_side_effects(left) || expr_has_side_effects(right)
         }
@@ -365,7 +391,10 @@ fn expr_has_side_effects(expr: &MirExpr) -> bool {
         | MirExpr::Question { .. }
         | MirExpr::ResultOk { .. }
         | MirExpr::ResultErr { .. }
-        | MirExpr::Old { .. } => true,
+        | MirExpr::Old { .. }
+        | MirExpr::MakeClosure { .. }
+        | MirExpr::ClosureCall { .. } => true,
+        MirExpr::EnvLoad { .. } => false,
     }
 }
 
@@ -783,8 +812,11 @@ fn expr_is_loop_invariant(expr: &MirExpr, modified: &BTreeSet<String>) -> bool {
         | MirExpr::Float(_)
         | MirExpr::Bool(_)
         | MirExpr::Str(_)
-        | MirExpr::DotResult
-        | MirExpr::EnumVariant { .. } => true,
+        | MirExpr::DotResult => true,
+        MirExpr::EnumVariant { payload, .. } => payload
+            .iter()
+            .all(|(_, e)| expr_is_loop_invariant(e, modified)),
+        MirExpr::PatternBind { .. } => true,
         MirExpr::Var(name) => !modified.contains(name),
         MirExpr::Binary { left, right, .. } => {
             expr_is_loop_invariant(left, modified) && expr_is_loop_invariant(right, modified)

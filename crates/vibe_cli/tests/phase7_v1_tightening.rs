@@ -136,6 +136,16 @@ fn phase7_ownership_sendability_smokes_cover_positive_and_negative_paths() {
         map_diags.has_errors(),
         "map ownership negative fixture should emit errors"
     );
+
+    let neg_closure = fixture_path("ownership_err/go_closure_non_sendable_capture.yb");
+    let cls_src = fs::read_to_string(&neg_closure).expect("read go closure capture fixture");
+    let cls_diags = check_output(&cls_src);
+    let cls_expected = neg_closure.with_extension("diag");
+    assert_golden(&cls_expected, &cls_diags.to_golden());
+    assert!(
+        cls_diags.has_errors(),
+        "go closure capture negative fixture should emit errors"
+    );
 }
 
 #[test]

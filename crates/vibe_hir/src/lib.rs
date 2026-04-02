@@ -167,6 +167,16 @@ pub enum HirExprKind {
     EnumVariant {
         enum_name: String,
         variant: String,
+        fields: Vec<(String, HirExpr)>,
+    },
+    /// Heap-allocated closure: slot0 = code pointer, slots 1.. = captures.
+    MakeClosure {
+        closure_fn: String,
+        captures: Vec<HirExpr>,
+    },
+    /// Load capture slot `slot` from the hidden `__env` record (indices start at 1).
+    EnvLoad {
+        slot: u32,
     },
 }
 
@@ -378,7 +388,17 @@ fn verify_expr(expr: &HirExpr) -> Result<(), String> {
                 verify_expr(e)?;
             }
         }
-        HirExprKind::EnumVariant { .. } => {}
+        HirExprKind::EnumVariant { fields, .. } => {
+            for (_, e) in fields {
+                verify_expr(e)?;
+            }
+        }
+        HirExprKind::MakeClosure { captures, .. } => {
+            for c in captures {
+                verify_expr(c)?;
+            }
+        }
+        HirExprKind::EnvLoad { .. } => {}
         HirExprKind::Int(_)
         | HirExprKind::Float(_)
         | HirExprKind::Bool(_)

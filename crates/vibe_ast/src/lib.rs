@@ -31,11 +31,19 @@ pub struct TypeField {
     pub ty: TypeRef,
 }
 
+/// One variant of an `enum`: either unit (`Red`) or with typed payload fields (`NotFound { id: Str }`).
+#[derive(Debug, Clone, Default)]
+pub struct EnumVariantDecl {
+    pub name: String,
+    pub fields: Vec<TypeField>,
+    pub span: Span,
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct EnumDecl {
     pub is_public: bool,
     pub name: String,
-    pub variants: Vec<String>,
+    pub variants: Vec<EnumVariantDecl>,
     pub span: Span,
 }
 
@@ -43,6 +51,8 @@ pub struct EnumDecl {
 pub struct FunctionDecl {
     pub is_public: bool,
     pub name: String,
+    /// Generic type parameters, e.g. `identity<T>` → `["T"]`. Empty for non-generic functions.
+    pub type_params: Vec<String>,
     pub params: Vec<Param>,
     pub return_type: Option<TypeRef>,
     pub contracts: Vec<Contract>,
@@ -258,6 +268,16 @@ pub enum Expr {
     EnumVariant {
         enum_name: String,
         variant: String,
+        /// Payload for constructed or pattern values; empty for unit variants.
+        fields: Vec<(String, Expr)>,
+        span: Span,
+    },
+    /// Function literal: `fn (x: T, ...) [-> R] { ... }` (expression position only).
+    FnLiteral {
+        params: Vec<Param>,
+        return_type: Option<TypeRef>,
+        body: Vec<Stmt>,
+        tail_expr: Option<Box<Expr>>,
         span: Span,
     },
 }
@@ -284,7 +304,8 @@ impl Expr {
             | Expr::DotResult { span }
             | Expr::Old { span, .. }
             | Expr::Constructor { span, .. }
-            | Expr::EnumVariant { span, .. } => *span,
+            | Expr::EnumVariant { span, .. }
+            | Expr::FnLiteral { span, .. } => *span,
         }
     }
 }

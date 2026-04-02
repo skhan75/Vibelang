@@ -1,0 +1,38 @@
+// std.concurrent: order-preserving parallel map and timeout helper (go/chan/sleep, no async/await).
+
+slow_task() -> Int {
+  @effect io
+  time.sleep_ms(200)
+  1
+}
+
+pub main() -> Int {
+  @effect io
+  @effect alloc
+  @effect concurrency
+  @effect mut_state
+  xs := [1, 2, 3, 4]
+  doubled := concurrent.map_int(xs, fn(x: Int) -> Int { x * 2 }, 2)
+  if doubled.get(0) == 2 && doubled.get(3) == 8 {
+    println("concurrent-map-order-ok")
+  } else {
+    println("concurrent-map-order-bad")
+  }
+  labels := ["a", "bb"]
+  prefixed := concurrent.map_str(labels, fn(s: Str) -> Str { ">" + s }, 2)
+  if prefixed.get(0) == ">a" {
+    println("concurrent-map-str-ok")
+  } else {
+    println("concurrent-map-str-bad")
+  }
+  fast := fn() -> Int { 99 }
+  v_fast := concurrent.with_timeout(fast, 50, -1)
+  v_slow := concurrent.with_timeout(fn() -> Int { slow_task() }, 20, -2)
+  if v_fast == 99 && v_slow == -2 {
+    println("concurrent-timeout-ok")
+  } else {
+    println("concurrent-timeout-bad")
+  }
+  concurrent.spawn(fn() -> Int { 0 })
+  0
+}

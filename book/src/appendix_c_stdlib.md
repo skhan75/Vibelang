@@ -434,6 +434,29 @@ if resp.status == 200 {
 }
 ```
 
+### `ok(resp: HttpResponse) -> Bool`
+
+True when `resp.status` is between 200 and 299 (inclusive).
+
+### `get_with_headers(url: Str, headers: Str, timeout_ms: Int) -> HttpResponse`
+
+GET with a raw header block (same `\r\n`-separated format as `HttpRequest.headers`).
+
+### `post_with_headers(url: Str, headers: Str, body: Str, timeout_ms: Int) -> HttpResponse`
+
+POST with explicit headers and body.
+
+### `post_json(url: Str, body_json: Str, timeout_ms: Int) -> HttpResponse`
+
+POST with `Content-Type: application/json` and the given JSON **string** body.
+
+### `get_retry(url: Str, timeout_ms: Int, retries: Int, retry_delay_ms: Int) -> HttpResponse`
+
+Calls `http.get` in a loop. After the first attempt, retries up to `retries`
+times when `status == 0` (no HTTP response parsed — typical of connection
+failures), waiting `retry_delay_ms` between tries (`time.sleep_ms`). Requires
+`@effect net` and `@effect io` at the call site.
+
 ### `response(resp: HttpResponse) -> Str`
 
 Formats an `HttpResponse` into an HTTP/1.1 wire string for sending over a
@@ -602,12 +625,14 @@ regex.replace_all("foo bar foo", "foo", "baz")   // "baz bar baz"
 | `json` | **Preview** | None             | 13+       |
 | `http` | **Preview** | `net` (client ops) | 7      |
 | `log`  | **Preview** | `io`             | 3         |
+| `metrics` | **Preview** | `alloc` / `nondet` | 5      |
 | `env`  | **Preview** | `nondet`         | 3         |
 | `cli`  | **Preview** | `nondet`         | 2         |
 | `str_builder` | **Preview** | None      | 4         |
 | `regex` | **Preview** | None            | 2         |
 | `crypto` | **Preview** | `nondet` (random) | 5     |
 | `http_server` | **Preview** | `net`    | 3         |
+| `http_router` | **Preview** | None (uses `http_server`) | 5 |
 | `ws`    | **Preview** | `net`            | 4         |
 | `result` | **Preview** | None           | 4         |
 
@@ -662,7 +687,29 @@ Returns standard CORS headers for API responses.
 
 ---
 
-## C.11c `ws` — WebSocket (Preview)
+## C.11c `http_router` — Tiny server routing helpers (Preview)
+
+Pure VibeLang helpers on top of `http_server.parse_request` / `format_response`: lookup header and query values, build JSON or plain-text responses with CORS + `Content-Type`, and dispatch with a handler closure.
+
+### `header_get(headers: Str, name: Str) -> Str`
+
+Returns the trimmed value for a header name, or `""` if missing. Header names are matched case-insensitively.
+
+### `query_get(query: Str, name: Str) -> Str`
+
+Returns the value for an exact query key (from the `query` field of `HttpServerRequest`), or `""` if absent.
+
+### `json_response(status: Int, body_json: Str) -> Str` / `text_response(status: Int, body: Str) -> Str`
+
+Build full HTTP/1.1 responses with CORS, `Content-Type`, and correct `Content-Length` via `http_server.format_response`.
+
+### `route(req: HttpServerRequest, method: Str, path: Str, handler: fn(HttpServerRequest) -> Str, fallback: Str) -> Str`
+
+When `req.method` and `req.path` match, returns `handler(req)`; otherwise returns `fallback`. Use this to wire a small set of routes without a callback table.
+
+---
+
+## C.11d `ws` — WebSocket (Preview)
 
 WebSocket handshake and frame handling for real-time communication.
 
@@ -684,7 +731,54 @@ Sends a WebSocket close frame.
 
 ---
 
-## C.11d `result` — Result Helpers (Preview)
+## C.11e `metrics` — In-process counters and gauges (Preview)
+
+Minimal observability for long-running programs: named counters (monotonic sums),
+gauges (last-written values), and a JSON snapshot for scraping or logging.
+Storage is **per process** and **in memory** (not shared across workers).
+
+Import: metrics are available as the `metrics` namespace (e.g. `metrics.counter_inc`).
+
+### `counter_inc(name: Str, delta: Int) -> ()`
+
+Adds `delta` to the named counter, creating it at zero if needed.
+
+**Effects:** `alloc`
+
+### `counter_get(name: Str) -> Int`
+
+Returns the counter value, or `0` if the name was never incremented.
+
+**Effects:** `nondet`
+
+### `gauge_set(name: Str, value: Int) -> ()`
+
+Sets the named gauge to `value`.
+
+**Effects:** `alloc`
+
+### `gauge_get(name: Str) -> Int`
+
+Returns the gauge value, or `0` if unset.
+
+**Effects:** `nondet`
+
+### `snapshot_json() -> Str`
+
+Returns UTF-8 JSON of the form `{"counters":{...},"gauges":{...}}` with string
+keys and integer values.
+
+**Effects:** `alloc`
+
+```vibe
+metrics.counter_inc("requests", 1)
+metrics.gauge_set("workers", 4)
+println(metrics.snapshot_json())
+```
+
+---
+
+## C.11f `result` — Result Helpers (Preview)
 
 Utilities for working with `Result` values.
 
@@ -702,6 +796,31 @@ Add context to an error message.
 
 ---
 
+## C.11g `concurrent` — spawn, timeout, parallel map (Preview)
+
+Small helpers on top of `go`, `chan`, and `time.sleep_ms`. No async/await.
+
+### `spawn(task: fn() -> Int)`
+
+Runs `go task()` (fire-and-forget).
+
+### `with_timeout(task: fn() -> Int, timeout_ms: Int, fallback: Int) -> Int`
+
+Races `task()` against a timer; first value sent on an internal channel is
+returned (wall-clock semantics; requires `@effect io` for sleep).
+
+### `map_int(items, worker: fn(Int) -> Int, max_workers: Int) -> List<Int>`
+
+### `map_str(items, worker: fn(Str) -> Str, max_workers: Int) -> List<Str>`
+
+Bounded parallelism with a token channel; results are written back by index so
+output order matches input order.
+
+**Effects:** `@effect concurrency`; maps declare `@effect alloc` and
+`@effect mut_state`; `with_timeout` also uses `@effect io` and `@effect alloc`.
+
+---
+
 ## C.12 Import Quick Reference
 
 ```vibe
@@ -715,16 +834,19 @@ import std.convert     // to_int, parse_i64, to_float, parse_f64, to_str, to_str
 import std.text        // trim, contains, starts_with, ends_with, replace, to_lower, to_upper, byte_len, split_part, index_of
 import std.encoding    // hex/base64/url encode/decode
 import std.json        // Json: parse, stringify, stringify_pretty, null/bool/i64/f64/str; builder.*; is_valid, minify; parse_i64, stringify_i64; from_map; encode_<T>, decode_<T>
-import std.http        // status_text, default_port, build_request_line, request, request_status, get, post
+import std.http        // status_text, default_port, build_request_line, request, request_status, get, post, send, response, ok, get_with_headers, post_with_headers, post_json, get_retry
 import std.log         // info, warn, error
+import std.metrics     // counter_inc, counter_get, gauge_set, gauge_get, snapshot_json
 import std.env         // get, has, get_required
 import std.cli         // args_len, arg
 import std.str_builder // new, append, append_char, finish
 import std.regex       // count, replace_all
 import std.crypto      // sha256, hmac_sha256, uuid_v4, random_bytes, constant_time_eq
 import std.http_server // parse_request, format_response, cors_headers
+import std.http_router // header_get, query_get, json_response, text_response, route
 import std.ws          // upgrade, read_frame, write_frame, close_frame
 import std.result      // is_ok, is_err, unwrap_or, wrap_err
+import std.concurrent  // spawn, with_timeout, map_int, map_str
 ```
 
 ---
@@ -801,6 +923,11 @@ import std.result      // is_ok, is_err, unwrap_or, wrap_err
 | `info(Str)`                    | log    | `io`     |
 | `warn(Str)`                    | log    | `io`     |
 | `error(Str)`                   | log    | `io`     |
+| `counter_inc(Str, Int)`        | metrics | `alloc` |
+| `counter_get(Str)`             | metrics | `nondet` |
+| `gauge_set(Str, Int)`          | metrics | `alloc` |
+| `gauge_get(Str)`               | metrics | `nondet` |
+| `snapshot_json()`              | metrics | `alloc` |
 | `get(Str)`                     | env    | `nondet` |
 | `has(Str)`                     | env    | `nondet` |
 | `get_required(Str)`            | env    | `nondet` |

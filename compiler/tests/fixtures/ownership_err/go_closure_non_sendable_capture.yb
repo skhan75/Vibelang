@@ -1,0 +1,8 @@
+// `go` on a closure must reject non-sendable captures (here: map holding unknown list type).
+pub main() -> Int {
+  @effect concurrency
+  bad := {"x": []}
+  f := fn() -> Int { bad.len() }
+  go f()
+  0
+}

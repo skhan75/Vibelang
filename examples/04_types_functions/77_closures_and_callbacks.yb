@@ -1,0 +1,26 @@
+// Closures: `fn (args) [-> R] { ... }` in expression position; captures by value.
+// Demonstrates binding, returning from a function, passing as a parameter, and capture.
+
+pub make_adder(base: Int) -> fn(Int) -> Int {
+  fn(y: Int) -> Int { base + y }
+}
+
+pub run_with(x: Int, cb: fn(Int) -> Int) -> Int {
+  cb(x)
+}
+
+pub main() -> Int {
+  @effect io
+  s := "ab"
+  n := 7
+  // Capture string length and an Int from the environment.
+  f := fn(k: Int) -> Int { k + n + len(s) }
+  doubled := fn(z: Int) -> Int { z * 2 }
+  add5 := make_adder(5)
+  a := run_with(21, doubled)
+  b := f(0)
+  c := add5(3)
+  total := a + b + c
+  println(convert.to_str(total))
+  0
+}

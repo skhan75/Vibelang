@@ -1,0 +1,38 @@
+// Copyright 2026 Vibelang Contributors
+// SPDX-License-Identifier: Apache-2.0
+
+/**
+ * Minimal in-process counters and gauges with a JSON snapshot for health/metrics endpoints.
+ * Storage is process-local; not suitable for multi-process aggregation without an exporter.
+ */
+module std.metrics
+
+pub counter_inc(name: Str, delta: Int) {
+  @intent "increment a named counter by delta (creates the counter if missing)"
+  @effect alloc
+  @native("vibe_metrics_counter_inc")
+}
+
+pub counter_get(name: Str) -> Int {
+  @intent "read the current value of a named counter (0 if absent)"
+  @effect nondet
+  @native("vibe_metrics_counter_get")
+}
+
+pub gauge_set(name: Str, value: Int) {
+  @intent "set a named gauge to an absolute integer value"
+  @effect alloc
+  @native("vibe_metrics_gauge_set")
+}
+
+pub gauge_get(name: Str) -> Int {
+  @intent "read a gauge value (0 if absent)"
+  @effect nondet
+  @native("vibe_metrics_gauge_get")
+}
+
+pub snapshot_json() -> Str {
+  @intent "return JSON object with counters and gauges maps"
+  @effect alloc
+  @native("vibe_metrics_snapshot_json")
+}

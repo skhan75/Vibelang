@@ -18,6 +18,7 @@ use vibe_mir::{
     MirContractKind, MirExpr, MirForIterKind, MirFunction, MirProgram, MirSelectCase,
     MirSelectPattern, MirStmt, MirType,
 };
+use vibe_types::{EnumVariantLayout, TypeKind};
 
 #[derive(Debug, Clone)]
 pub struct CodegenOptions {
@@ -80,6 +81,8 @@ struct RuntimeFunctions {
     chan_is_closed_fn: FuncId,
     spawn0_fn: FuncId,
     spawn1_i64_fn: FuncId,
+    spawn_closure0_fn: FuncId,
+    spawn_closure1_fn: FuncId,
     async_i64_fn: FuncId,
     async_ptr_fn: FuncId,
     await_i64_fn: FuncId,
@@ -154,7 +157,7 @@ pub fn emit_object_with_types(
     program: &MirProgram,
     options: &CodegenOptions,
     type_defs: &BTreeMap<String, Vec<(String, String)>>,
-    enum_defs: &BTreeMap<String, Vec<String>>,
+    enum_defs: &BTreeMap<String, Vec<EnumVariantLayout>>,
     namespace_map: &BTreeMap<(String, String), String>,
 ) -> Result<Vec<u8>, String> {
     let triple = parse_target(&options.target)?;
@@ -752,6 +755,21 @@ fn declare_runtime_functions(
         .declare_function("vibe_spawn1_i64", Linkage::Import, &spawn1_i64_sig)
         .map_err(|e| format!("failed to declare runtime spawn1_i64 symbol: {e}"))?;
 
+    let mut spawn_closure0_sig = module.make_signature();
+    spawn_closure0_sig.params.push(AbiParam::new(ptr_ty));
+    spawn_closure0_sig.returns.push(AbiParam::new(ir::types::I64));
+    let spawn_closure0_fn = module
+        .declare_function("vibe_spawn_closure0", Linkage::Import, &spawn_closure0_sig)
+        .map_err(|e| format!("failed to declare runtime spawn_closure0 symbol: {e}"))?;
+
+    let mut spawn_closure1_sig = module.make_signature();
+    spawn_closure1_sig.params.push(AbiParam::new(ptr_ty));
+    spawn_closure1_sig.params.push(AbiParam::new(ir::types::I64));
+    spawn_closure1_sig.returns.push(AbiParam::new(ir::types::I64));
+    let spawn_closure1_fn = module
+        .declare_function("vibe_spawn_closure1", Linkage::Import, &spawn_closure1_sig)
+        .map_err(|e| format!("failed to declare runtime spawn_closure1 symbol: {e}"))?;
+
     let mut async_i64_sig = module.make_signature();
     async_i64_sig.params.push(AbiParam::new(ir::types::I64));
     async_i64_sig.returns.push(AbiParam::new(ir::types::I64));
@@ -1131,6 +1149,8 @@ fn declare_runtime_functions(
         chan_is_closed_fn,
         spawn0_fn,
         spawn1_i64_fn,
+        spawn_closure0_fn,
+        spawn_closure1_fn,
         async_i64_fn,
         async_ptr_fn,
         await_i64_fn,
@@ -1194,7 +1214,7 @@ fn define_function(
     runtime_fns: RuntimeFunctions,
     ptr_ty: ir::Type,
     type_defs: &BTreeMap<String, Vec<(String, String)>>,
-    enum_defs: &BTreeMap<String, Vec<String>>,
+    enum_defs: &BTreeMap<String, Vec<EnumVariantLayout>>,
 ) -> Result<(), String> {
     if let Some(native_sym) = &function.native_symbol {
         let mut ctx = module.make_context();
@@ -1330,7 +1350,7 @@ fn emit_stmt(
     owner: &MirFunction,
     loop_ctx: Option<LoopContext>,
     type_defs: &BTreeMap<String, Vec<(String, String)>>,
-    enum_defs: &BTreeMap<String, Vec<String>>,
+    enum_defs: &BTreeMap<String, Vec<EnumVariantLayout>>,
     locals_ty: &BTreeMap<String, MirType>,
 ) -> Result<bool, String> {
     match stmt {
@@ -1695,7 +1715,7 @@ fn emit_stmt(
             arms,
             default_action,
         } => {
-            let scrut_v = emit_expr(
+            let scrut_ptr = emit_expr(
                 scrutinee,
                 module,
                 builder,
@@ -1709,6 +1729,13 @@ fn emit_stmt(
                 type_defs,
                 enum_defs,
             )?;
+            let tag_v = builder.ins().load(
+                ir::types::I64,
+                MemFlags::new(),
+                scrut_ptr,
+                Offset32::new(0),
+            );
+            let saved_locals = locals.clone();
             let merge_block = builder.create_block();
             let mut arm_blocks: Vec<ir::Block> = Vec::with_capacity(arms.len());
             for _ in arms.iter() {
@@ -1722,15 +1749,23 @@ fn emit_stmt(
             builder.ins().jump(check_blocks[0], &[]);
             for (i, arm) in arms.iter().enumerate() {
                 builder.switch_to_block(check_blocks[i]);
-                let MirExpr::EnumVariant { enum_name, variant } = &arm.pattern else {
+                let MirExpr::EnumVariant {
+                    enum_name,
+                    variant,
+                    payload: _,
+                } = &arm.pattern
+                else {
                     return Err("E3499: match arm pattern must be enum variant".to_string());
                 };
-                let variants = enum_defs
+                let layouts = enum_defs
                     .get(enum_name)
                     .ok_or_else(|| format!("E3499: unknown enum in match arm `{enum_name}`"))?;
-                let tag = variants.iter().position(|v| v == variant).unwrap_or(0) as i64;
+                let tag = layouts
+                    .iter()
+                    .position(|v| v.name == *variant)
+                    .unwrap_or(0) as i64;
                 let tag_const = builder.ins().iconst(ir::types::I64, tag);
-                let cond = builder.ins().icmp(IntCC::Equal, scrut_v, tag_const);
+                let cond = builder.ins().icmp(IntCC::Equal, tag_v, tag_const);
                 let next_check = check_blocks[i + 1];
                 builder
                     .ins()
@@ -1758,6 +1793,85 @@ fn emit_stmt(
             builder.ins().jump(merge_block, &[]);
             for (i, arm) in arms.iter().enumerate() {
                 builder.switch_to_block(arm_blocks[i]);
+                *locals = saved_locals.clone();
+                let MirExpr::EnumVariant {
+                    enum_name,
+                    variant,
+                    payload,
+                } = &arm.pattern
+                else {
+                    return Err("E3499: match arm pattern must be enum variant".to_string());
+                };
+                let layouts = enum_defs
+                    .get(enum_name)
+                    .ok_or_else(|| format!("E3499: unknown enum in match arm `{enum_name}`"))?;
+                let vl = layouts
+                    .iter()
+                    .find(|v| v.name == *variant)
+                    .ok_or_else(|| format!("E3499: unknown variant `{enum_name}.{variant}`"))?;
+                if vl.fields.len() != payload.len() {
+                    return Err(format!(
+                        "E3499: internal match pattern field count for `{enum_name}.{variant}`"
+                    ));
+                }
+                for (fname, pat_e) in payload {
+                    let MirExpr::PatternBind { bind_as } = pat_e else {
+                        return Err(
+                            "E3499: internal: expected PatternBind in match arm".to_string(),
+                        );
+                    };
+                    let slot_idx = vl
+                        .fields
+                        .iter()
+                        .position(|(n, _)| n == fname)
+                        .ok_or_else(|| format!("E3499: unknown field `{fname}` in match arm"))?;
+                    let offset_bytes = ((1 + slot_idx) * 8) as i32;
+                    let field_ty = &vl.fields[slot_idx].1;
+                    let Some(bind_name) = bind_as.clone() else {
+                        continue;
+                    };
+                    let val = match field_ty {
+                        TypeKind::Bool => {
+                            let v64 = builder.ins().load(
+                                ir::types::I64,
+                                MemFlags::new(),
+                                scrut_ptr,
+                                Offset32::new(offset_bytes),
+                            );
+                            builder.ins().ireduce(ir::types::I8, v64)
+                        }
+                        TypeKind::Str => builder.ins().load(
+                            ptr_ty,
+                            MemFlags::new(),
+                            scrut_ptr,
+                            Offset32::new(offset_bytes),
+                        ),
+                        TypeKind::Int | TypeKind::Float => {
+                            let clif = match field_ty {
+                                TypeKind::Float => ir::types::F64,
+                                _ => ir::types::I64,
+                            };
+                            builder.ins().load(
+                                clif,
+                                MemFlags::new(),
+                                scrut_ptr,
+                                Offset32::new(offset_bytes),
+                            )
+                        }
+                        _ => builder.ins().load(
+                            ir::types::I64,
+                            MemFlags::new(),
+                            scrut_ptr,
+                            Offset32::new(offset_bytes),
+                        ),
+                    };
+                    let var = Variable::from_u32(*next_var as u32);
+                    *next_var += 1;
+                    let decl_ty = builder.func.dfg.value_type(val);
+                    builder.declare_var(var, decl_ty);
+                    builder.def_var(var, val);
+                    locals.insert(bind_name, var);
+                }
                 let _ = emit_expr(
                     &arm.action,
                     module,
@@ -1774,6 +1888,7 @@ fn emit_stmt(
                 )?;
                 builder.ins().jump(merge_block, &[]);
             }
+            *locals = saved_locals;
             for b in &check_blocks {
                 builder.seal_block(*b);
             }
@@ -1802,7 +1917,7 @@ fn emit_contract_check(
     str_data_counter: &mut usize,
     owner: &MirFunction,
     type_defs: &BTreeMap<String, Vec<(String, String)>>,
-    enum_defs: &BTreeMap<String, Vec<String>>,
+    enum_defs: &BTreeMap<String, Vec<EnumVariantLayout>>,
 ) -> Result<(), String> {
     let cond_v = emit_expr(
         expr,
@@ -1859,29 +1974,12 @@ fn emit_go_stmt(
     str_data_counter: &mut usize,
     owner: &MirFunction,
     type_defs: &BTreeMap<String, Vec<(String, String)>>,
-    enum_defs: &BTreeMap<String, Vec<String>>,
+    enum_defs: &BTreeMap<String, Vec<EnumVariantLayout>>,
 ) -> Result<(), String> {
-    let MirExpr::Call { callee, args } = expr else {
-        return Err("E3301: unsupported `go` target: expected direct function call".to_string());
-    };
-    let MirExpr::Var(name) = &**callee else {
-        return Err("E3301: unsupported `go` target: expected direct function call".to_string());
-    };
-    let Some(fid) = function_ids.get(name) else {
-        return Err(format!("E3302: unknown go call target `{name}`"));
-    };
-    let local_target = module.declare_func_in_func(*fid, builder.func);
-    let fn_ptr = builder.ins().func_addr(ptr_ty, local_target);
-
-    match args.len() {
-        0 => {
-            let local_spawn0 = module.declare_func_in_func(runtime_fns.spawn0_fn, builder.func);
-            let _ = builder.ins().call(local_spawn0, &[fn_ptr]);
-            Ok(())
-        }
-        1 => {
-            let arg = emit_expr(
-                &args[0],
+    match expr {
+        MirExpr::ClosureCall { closure, args, .. } => {
+            let closure_ptr = emit_expr(
+                closure,
                 module,
                 builder,
                 locals,
@@ -1894,26 +1992,106 @@ fn emit_go_stmt(
                 type_defs,
                 enum_defs,
             )?;
-            let arg_ty = builder.func.dfg.value_type(arg);
-            let arg_i64 = if arg_ty == ir::types::I64 {
-                arg
-            } else if arg_ty.is_int() && arg_ty.bits() < 64 {
-                builder.ins().sextend(ir::types::I64, arg)
-            } else if arg_ty.is_int() && arg_ty.bits() > 64 {
-                builder.ins().ireduce(ir::types::I64, arg)
-            } else {
-                return Err(
-                    "E3303: unsupported `go` argument type (expected integer-compatible value)"
-                        .to_string(),
-                );
-            };
-            let local_spawn1 = module.declare_func_in_func(runtime_fns.spawn1_i64_fn, builder.func);
-            let _ = builder.ins().call(local_spawn1, &[fn_ptr, arg_i64]);
-            Ok(())
+            match args.len() {
+                0 => {
+                    let local_spawn =
+                        module.declare_func_in_func(runtime_fns.spawn_closure0_fn, builder.func);
+                    let _ = builder.ins().call(local_spawn, &[closure_ptr]);
+                    Ok(())
+                }
+                1 => {
+                    let arg = emit_expr(
+                        &args[0],
+                        module,
+                        builder,
+                        locals,
+                        function_ids,
+                        function_returns,
+                        runtime_fns,
+                        ptr_ty,
+                        str_data_counter,
+                        owner,
+                        type_defs,
+                        enum_defs,
+                    )?;
+                    let arg_ty = builder.func.dfg.value_type(arg);
+                    let arg_i64 = if arg_ty == ir::types::I64 {
+                        arg
+                    } else if arg_ty.is_int() && arg_ty.bits() < 64 {
+                        builder.ins().sextend(ir::types::I64, arg)
+                    } else if arg_ty.is_int() && arg_ty.bits() > 64 {
+                        builder.ins().ireduce(ir::types::I64, arg)
+                    } else {
+                        return Err(
+                            "E3303: unsupported `go` argument type (expected integer-compatible value)"
+                                .to_string(),
+                        );
+                    };
+                    let local_spawn =
+                        module.declare_func_in_func(runtime_fns.spawn_closure1_fn, builder.func);
+                    let _ = builder.ins().call(local_spawn, &[closure_ptr, arg_i64]);
+                    Ok(())
+                }
+                n => Err(format!(
+                    "E3304: unsupported `go` call shape: expected 0 or 1 argument, got {n}"
+                )),
+            }
         }
-        n => Err(format!(
-            "E3304: unsupported `go` call shape: expected 0 or 1 argument, got {n}"
-        )),
+        MirExpr::Call { callee, args } => {
+            let MirExpr::Var(name) = &**callee else {
+                return Err("E3301: unsupported `go` target: expected direct function call".to_string());
+            };
+            let Some(fid) = function_ids.get(name) else {
+                return Err(format!("E3302: unknown go call target `{name}`"));
+            };
+            let local_target = module.declare_func_in_func(*fid, builder.func);
+            let fn_ptr = builder.ins().func_addr(ptr_ty, local_target);
+
+            match args.len() {
+                0 => {
+                    let local_spawn0 = module.declare_func_in_func(runtime_fns.spawn0_fn, builder.func);
+                    let _ = builder.ins().call(local_spawn0, &[fn_ptr]);
+                    Ok(())
+                }
+                1 => {
+                    let arg = emit_expr(
+                        &args[0],
+                        module,
+                        builder,
+                        locals,
+                        function_ids,
+                        function_returns,
+                        runtime_fns,
+                        ptr_ty,
+                        str_data_counter,
+                        owner,
+                        type_defs,
+                        enum_defs,
+                    )?;
+                    let arg_ty = builder.func.dfg.value_type(arg);
+                    let arg_i64 = if arg_ty == ir::types::I64 {
+                        arg
+                    } else if arg_ty.is_int() && arg_ty.bits() < 64 {
+                        builder.ins().sextend(ir::types::I64, arg)
+                    } else if arg_ty.is_int() && arg_ty.bits() > 64 {
+                        builder.ins().ireduce(ir::types::I64, arg)
+                    } else {
+                        return Err(
+                            "E3303: unsupported `go` argument type (expected integer-compatible value)"
+                                .to_string(),
+                        );
+                    };
+                    let local_spawn1 =
+                        module.declare_func_in_func(runtime_fns.spawn1_i64_fn, builder.func);
+                    let _ = builder.ins().call(local_spawn1, &[fn_ptr, arg_i64]);
+                    Ok(())
+                }
+                n => Err(format!(
+                    "E3304: unsupported `go` call shape: expected 0 or 1 argument, got {n}"
+                )),
+            }
+        }
+        _ => Err("E3301: unsupported `go` target: expected direct function call".to_string()),
     }
 }
 
@@ -1934,7 +2112,7 @@ fn emit_for_stmt(
     str_data_counter: &mut usize,
     owner: &MirFunction,
     type_defs: &BTreeMap<String, Vec<(String, String)>>,
-    enum_defs: &BTreeMap<String, Vec<String>>,
+    enum_defs: &BTreeMap<String, Vec<EnumVariantLayout>>,
     locals_ty: &BTreeMap<String, MirType>,
 ) -> Result<(), String> {
     if matches!(iter_kind, MirForIterKind::Unknown) {
@@ -2120,7 +2298,7 @@ fn emit_while_stmt(
     str_data_counter: &mut usize,
     owner: &MirFunction,
     type_defs: &BTreeMap<String, Vec<(String, String)>>,
-    enum_defs: &BTreeMap<String, Vec<String>>,
+    enum_defs: &BTreeMap<String, Vec<EnumVariantLayout>>,
     locals_ty: &BTreeMap<String, MirType>,
 ) -> Result<(), String> {
     let header_block = builder.create_block();
@@ -2201,7 +2379,7 @@ fn emit_repeat_stmt(
     str_data_counter: &mut usize,
     owner: &MirFunction,
     type_defs: &BTreeMap<String, Vec<(String, String)>>,
-    enum_defs: &BTreeMap<String, Vec<String>>,
+    enum_defs: &BTreeMap<String, Vec<EnumVariantLayout>>,
     locals_ty: &BTreeMap<String, MirType>,
 ) -> Result<(), String> {
     let loop_count = emit_expr(
@@ -2304,7 +2482,7 @@ fn emit_select_stmt(
     str_data_counter: &mut usize,
     owner: &MirFunction,
     type_defs: &BTreeMap<String, Vec<(String, String)>>,
-    enum_defs: &BTreeMap<String, Vec<String>>,
+    enum_defs: &BTreeMap<String, Vec<EnumVariantLayout>>,
 ) -> Result<(), String> {
     if cases.is_empty() {
         return Ok(());
@@ -2666,7 +2844,7 @@ fn emit_expr(
     str_data_counter: &mut usize,
     owner: &MirFunction,
     type_defs: &BTreeMap<String, Vec<(String, String)>>,
-    enum_defs: &BTreeMap<String, Vec<String>>,
+    enum_defs: &BTreeMap<String, Vec<EnumVariantLayout>>,
 ) -> Result<ir::Value, String> {
     Ok(match expr {
         MirExpr::Var(name) => {
@@ -4122,16 +4300,223 @@ fn emit_expr(
             }
             ptr
         }
-        MirExpr::EnumVariant { enum_name, variant } => {
-            let variants = enum_defs
+        MirExpr::MakeClosure {
+            closure_fn,
+            captures,
+        } => {
+            let fid = function_ids
+                .get(closure_fn)
+                .ok_or_else(|| format!("unknown closure function id for `{closure_fn}`"))?;
+            let local_closure_fn = module.declare_func_in_func(*fid, builder.func);
+            let code_addr = builder.ins().func_addr(ptr_ty, local_closure_fn);
+
+            let local_alloc =
+                module.declare_func_in_func(runtime_fns.record_alloc_fn, builder.func);
+            let n = 1usize + captures.len();
+            let slot_const = builder.ins().iconst(ir::types::I64, n as i64);
+            let alloc_call = builder.ins().call(local_alloc, &[slot_const]);
+            let ptr = builder
+                .inst_results(alloc_call)
+                .first()
+                .copied()
+                .ok_or_else(|| "record_alloc did not return".to_string())?;
+            builder
+                .ins()
+                .store(MemFlags::new(), code_addr, ptr, Offset32::new(0));
+            for (i, cap) in captures.iter().enumerate() {
+                let value = emit_expr(
+                    cap,
+                    module,
+                    builder,
+                    locals,
+                    function_ids,
+                    function_returns,
+                    runtime_fns,
+                    ptr_ty,
+                    str_data_counter,
+                    owner,
+                    type_defs,
+                    enum_defs,
+                )?;
+                let store_ty = builder.func.dfg.value_type(value);
+                let to_store = if store_ty == ir::types::I8 {
+                    builder.ins().sextend(ir::types::I64, value)
+                } else {
+                    value
+                };
+                builder.ins().store(
+                    MemFlags::new(),
+                    to_store,
+                    ptr,
+                    Offset32::new(((i + 1) * 8) as i32),
+                );
+            }
+            ptr
+        }
+        MirExpr::EnvLoad { slot, ty } => {
+            let env_var = locals
+                .get("__env")
+                .ok_or_else(|| "closure `__env` not in scope for EnvLoad".to_string())?;
+            let env_ptr = builder.use_var(*env_var);
+            let off = Offset32::new((*slot as i32) * 8);
+            if *ty == MirType::Bool {
+                let w = builder
+                    .ins()
+                    .load(ir::types::I64, MemFlags::new(), env_ptr, off);
+                builder.ins().ireduce(ir::types::I8, w)
+            } else {
+                let cl_ty = mir_ty_to_clif(ty, ptr_ty);
+                builder.ins().load(cl_ty, MemFlags::new(), env_ptr, off)
+            }
+        }
+        MirExpr::ClosureCall {
+            closure,
+            args,
+            user_param_tys,
+            ret_ty,
+        } => {
+            if user_param_tys.len() != args.len() {
+                return Err(format!(
+                    "closure call signature mismatch: {} param types, {} arguments",
+                    user_param_tys.len(),
+                    args.len()
+                ));
+            }
+            let closure_ptr = emit_expr(
+                closure,
+                module,
+                builder,
+                locals,
+                function_ids,
+                function_returns,
+                runtime_fns,
+                ptr_ty,
+                str_data_counter,
+                owner,
+                type_defs,
+                enum_defs,
+            )?;
+            let code_ptr = builder.ins().load(
+                ptr_ty,
+                MemFlags::new(),
+                closure_ptr,
+                Offset32::new(0),
+            );
+            let mut call_args: Vec<ir::Value> = Vec::with_capacity(1 + args.len());
+            call_args.push(closure_ptr);
+            for a in args {
+                call_args.push(emit_expr(
+                    a,
+                    module,
+                    builder,
+                    locals,
+                    function_ids,
+                    function_returns,
+                    runtime_fns,
+                    ptr_ty,
+                    str_data_counter,
+                    owner,
+                    type_defs,
+                    enum_defs,
+                )?);
+            }
+            let mut sig = module.make_signature();
+            sig.params.push(AbiParam::new(ptr_ty));
+            for t in user_param_tys {
+                sig.params.push(AbiParam::new(mir_ty_to_clif(t, ptr_ty)));
+            }
+            if *ret_ty != MirType::Void {
+                sig.returns
+                    .push(AbiParam::new(mir_ty_to_clif(ret_ty, ptr_ty)));
+            }
+            let sig_ref = builder.import_signature(sig);
+            let call = builder
+                .ins()
+                .call_indirect(sig_ref, code_ptr, &call_args);
+            if *ret_ty == MirType::Void {
+                builder.ins().iconst(ir::types::I64, 0)
+            } else {
+                builder
+                    .inst_results(call)
+                    .first()
+                    .copied()
+                    .ok_or_else(|| "closure call produced no return value".to_string())?
+            }
+        }
+        MirExpr::EnumVariant {
+            enum_name,
+            variant,
+            payload,
+        } => {
+            let layouts = enum_defs
                 .get(enum_name)
                 .ok_or_else(|| format!("E3499: unknown enum `{enum_name}`"))?;
-            let tag = variants
+            let vl = layouts
                 .iter()
-                .position(|v| v == variant)
+                .find(|v| v.name == *variant)
+                .ok_or_else(|| format!("E3499: unknown variant `{enum_name}.{variant}`"))?;
+            if vl.fields.len() != payload.len() {
+                return Err(format!(
+                    "E3499: enum `{enum_name}.{variant}` lowering expects {} payload fields, got {}",
+                    vl.fields.len(),
+                    payload.len()
+                ));
+            }
+            let local_alloc =
+                module.declare_func_in_func(runtime_fns.record_alloc_fn, builder.func);
+            let slot_count = (1 + vl.fields.len()) as i64;
+            let slot_const = builder.ins().iconst(ir::types::I64, slot_count);
+            let alloc_call = builder.ins().call(local_alloc, &[slot_const]);
+            let ptr = builder
+                .inst_results(alloc_call)
+                .first()
+                .copied()
+                .ok_or_else(|| format!("E3499: record_alloc did not return for enum `{enum_name}`"))?;
+            let tag = layouts
+                .iter()
+                .position(|v| v.name == *variant)
                 .ok_or_else(|| format!("E3499: unknown variant `{enum_name}.{variant}`"))?
                 as i64;
-            builder.ins().iconst(ir::types::I64, tag)
+            let tag_v = builder.ins().iconst(ir::types::I64, tag);
+            builder
+                .ins()
+                .store(MemFlags::new(), tag_v, ptr, Offset32::new(0));
+            for (slot_ix, (decl_name, _field_ty)) in vl.fields.iter().enumerate() {
+                let (_, fval) = payload
+                    .iter()
+                    .find(|(n, _)| n == decl_name)
+                    .ok_or_else(|| format!("E3499: missing field `{decl_name}` in enum variant value"))?;
+                let value = emit_expr(
+                    fval,
+                    module,
+                    builder,
+                    locals,
+                    function_ids,
+                    function_returns,
+                    runtime_fns,
+                    ptr_ty,
+                    str_data_counter,
+                    owner,
+                    type_defs,
+                    enum_defs,
+                )?;
+                let offset_bytes = ((1 + slot_ix) * 8) as i32;
+                let store_ty = builder.func.dfg.value_type(value);
+                let to_store = if store_ty == ir::types::I8 {
+                    builder.ins().sextend(ir::types::I64, value)
+                } else {
+                    value
+                };
+                builder
+                    .ins()
+                    .store(MemFlags::new(), to_store, ptr, Offset32::new(offset_bytes));
+            }
+            ptr
+        }
+        MirExpr::PatternBind { .. } => {
+            return Err(
+                "E3499: PatternBind may only appear inside lowered match patterns".to_string(),
+            );
         }
     })
 }
@@ -4818,7 +5203,7 @@ fn default_value(builder: &mut FunctionBuilder<'_>, ty: &MirType, ptr_ty: ir::Ty
         MirType::I64 | MirType::Unknown => builder.ins().iconst(ir::types::I64, 0),
         MirType::F64 => builder.ins().f64const(0.0),
         MirType::Bool => builder.ins().iconst(ir::types::I8, 0),
-        MirType::Str | MirType::Json | MirType::JsonBuilder | MirType::Result => {
+        MirType::Str | MirType::Json | MirType::JsonBuilder | MirType::Result | MirType::Ptr => {
             builder.ins().iconst(ptr_ty, 0)
         }
         MirType::Void => builder.ins().iconst(ir::types::I64, 0),
@@ -5041,6 +5426,7 @@ fn is_known_string_expr_full(
         return true;
     }
     match expr {
+        MirExpr::EnvLoad { ty, .. } => *ty == MirType::Str,
         MirExpr::Var(name) => is_var_known_string_in_owner(owner, name),
         MirExpr::Binary { left, op, right } if op == "Add" => {
             is_known_string_expr_full(left, owner, type_defs)
@@ -5178,6 +5564,11 @@ fn infer_mir_expr_type(
         }
         MirExpr::List(_) | MirExpr::Map(_) => MirType::Unknown,
         MirExpr::ResultOk { .. } | MirExpr::ResultErr { .. } => MirType::Result,
+        MirExpr::MakeClosure { .. } => MirType::Ptr,
+        MirExpr::EnvLoad { ty, .. } => ty.clone(),
+        MirExpr::ClosureCall { ret_ty, .. } => ret_ty.clone(),
+        MirExpr::EnumVariant { .. } => MirType::Ptr,
+        MirExpr::PatternBind { .. } => MirType::Unknown,
         _ => MirType::I64,
     }
 }
@@ -5194,6 +5585,7 @@ fn mir_type_display_for_typeof(ty: &MirType) -> &'static str {
         MirType::Result => "Result",
         MirType::Void => "Void",
         MirType::Unknown => "Unknown",
+        MirType::Ptr => "Ptr",
     }
 }
 
@@ -5432,6 +5824,10 @@ fn value_type_for_expr(
         }
         MirExpr::ResultOk { .. } | MirExpr::ResultErr { .. } => ptr_ty,
         MirExpr::DotResult => ir::types::I64,
+        MirExpr::MakeClosure { .. } => ptr_ty,
+        MirExpr::EnvLoad { ty, .. } => mir_ty_to_clif(ty, ptr_ty),
+        MirExpr::ClosureCall { ret_ty, .. } => mir_ty_to_clif(ret_ty, ptr_ty),
+        MirExpr::EnumVariant { .. } => ptr_ty,
         _ => ir::types::I64,
     }
 }
@@ -5441,7 +5837,9 @@ fn mir_ty_to_clif(ty: &MirType, ptr_ty: ir::Type) -> ir::Type {
         MirType::I64 | MirType::Unknown => ir::types::I64,
         MirType::F64 => ir::types::F64,
         MirType::Bool => ir::types::I8,
-        MirType::Str | MirType::Json | MirType::JsonBuilder | MirType::Result => ptr_ty,
+        MirType::Str | MirType::Json | MirType::JsonBuilder | MirType::Result | MirType::Ptr => {
+            ptr_ty
+        }
         MirType::Void => ir::types::I64,
     }
 }

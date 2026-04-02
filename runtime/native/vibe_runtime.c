@@ -2595,6 +2595,74 @@ int64_t vibe_spawn1_i64(void *fn_ptr, int64_t arg0) {
     return 0;
 }
 
+typedef void (*vibe_closure_fn0)(void *env);
+typedef void (*vibe_closure_fn1)(void *env, int64_t arg0);
+
+static void *vibe_spawn_closure0_entry(void *opaque) {
+    void *closure = opaque;
+    if (closure == NULL) {
+        return NULL;
+    }
+    void *code = *(void **)closure;
+    if (code == NULL) {
+        return NULL;
+    }
+    ((vibe_closure_fn0)code)(closure);
+    return NULL;
+}
+
+typedef struct vibe_spawn_closure1_ctx {
+    void *closure;
+    int64_t arg0;
+} vibe_spawn_closure1_ctx;
+
+static void *vibe_spawn_closure1_entry(void *opaque) {
+    vibe_spawn_closure1_ctx *ctx = (vibe_spawn_closure1_ctx *)opaque;
+    if (ctx == NULL) {
+        return NULL;
+    }
+    void *closure = ctx->closure;
+    void *code = closure != NULL ? *(void **)closure : NULL;
+    if (code != NULL) {
+        ((vibe_closure_fn1)code)(closure, ctx->arg0);
+    }
+    free(ctx);
+    return NULL;
+}
+
+int64_t vibe_spawn_closure0(void *closure) {
+    if (closure == NULL) {
+        return 1;
+    }
+    pthread_t tid;
+    int rc = pthread_create(&tid, NULL, vibe_spawn_closure0_entry, closure);
+    if (rc != 0) {
+        return 1;
+    }
+    pthread_detach(tid);
+    return 0;
+}
+
+int64_t vibe_spawn_closure1(void *closure, int64_t arg0) {
+    if (closure == NULL) {
+        return 1;
+    }
+    vibe_spawn_closure1_ctx *ctx = (vibe_spawn_closure1_ctx *)calloc(1, sizeof(vibe_spawn_closure1_ctx));
+    if (ctx == NULL) {
+        return 1;
+    }
+    ctx->closure = closure;
+    ctx->arg0 = arg0;
+    pthread_t tid;
+    int rc = pthread_create(&tid, NULL, vibe_spawn_closure1_entry, ctx);
+    if (rc != 0) {
+        free(ctx);
+        return 1;
+    }
+    pthread_detach(tid);
+    return 0;
+}
+
 int64_t vibe_async_i64(int64_t value) {
     return value;
 }
@@ -3623,6 +3691,122 @@ static char *vibe_json_quote_string(const char *raw) {
         }
     }
     vibe_builder_append_bytes(&builder, "\"", 1);
+    vibe_counter_inc(&vibe_json_allocations);
+    return builder.data;
+}
+
+/* --- Minimal process-local metrics (counters + gauges), mutex-protected linked list --- */
+
+typedef struct vibe_metric_entry {
+    char *name;
+    int is_gauge;
+    int64_t value;
+    struct vibe_metric_entry *next;
+} vibe_metric_entry;
+
+static pthread_mutex_t vibe_metrics_mu = PTHREAD_MUTEX_INITIALIZER;
+static vibe_metric_entry *vibe_metrics_head = NULL;
+
+static vibe_metric_entry *vibe_metrics_find_locked(const char *name, int is_gauge) {
+    const char *key = name == NULL ? "" : name;
+    for (vibe_metric_entry *e = vibe_metrics_head; e != NULL; e = e->next) {
+        if (e->is_gauge == is_gauge && strcmp(e->name, key) == 0) {
+            return e;
+        }
+    }
+    return NULL;
+}
+
+static vibe_metric_entry *vibe_metrics_get_or_create_locked(const char *name, int is_gauge) {
+    vibe_metric_entry *e = vibe_metrics_find_locked(name, is_gauge);
+    if (e != NULL) {
+        return e;
+    }
+    e = (vibe_metric_entry *)calloc(1, sizeof(vibe_metric_entry));
+    if (e == NULL) {
+        vibe_panic("vibe_metrics: entry allocation failed");
+    }
+    const char *key = name == NULL ? "" : name;
+    e->name = vibe_strdup_or_panic(key);
+    e->is_gauge = is_gauge;
+    e->value = 0;
+    e->next = vibe_metrics_head;
+    vibe_metrics_head = e;
+    return e;
+}
+
+void vibe_metrics_counter_inc(const char *name, int64_t delta) {
+    pthread_mutex_lock(&vibe_metrics_mu);
+    vibe_metric_entry *e = vibe_metrics_get_or_create_locked(name, 0);
+    e->value += delta;
+    pthread_mutex_unlock(&vibe_metrics_mu);
+}
+
+int64_t vibe_metrics_counter_get(const char *name) {
+    pthread_mutex_lock(&vibe_metrics_mu);
+    vibe_metric_entry *e = vibe_metrics_find_locked(name, 0);
+    int64_t v = e != NULL ? e->value : 0;
+    pthread_mutex_unlock(&vibe_metrics_mu);
+    return v;
+}
+
+void vibe_metrics_gauge_set(const char *name, int64_t value) {
+    pthread_mutex_lock(&vibe_metrics_mu);
+    vibe_metric_entry *e = vibe_metrics_get_or_create_locked(name, 1);
+    e->value = value;
+    pthread_mutex_unlock(&vibe_metrics_mu);
+}
+
+int64_t vibe_metrics_gauge_get(const char *name) {
+    pthread_mutex_lock(&vibe_metrics_mu);
+    vibe_metric_entry *e = vibe_metrics_find_locked(name, 1);
+    int64_t v = e != NULL ? e->value : 0;
+    pthread_mutex_unlock(&vibe_metrics_mu);
+    return v;
+}
+
+char *vibe_metrics_snapshot_json(void) {
+    pthread_mutex_lock(&vibe_metrics_mu);
+    vibe_string_builder builder;
+    vibe_builder_init(&builder, 128);
+    vibe_builder_append_bytes(&builder, "{\"counters\":{", 13);
+    int need_comma = 0;
+    for (vibe_metric_entry *e = vibe_metrics_head; e != NULL; e = e->next) {
+        if (e->is_gauge) {
+            continue;
+        }
+        if (need_comma) {
+            vibe_builder_append_bytes(&builder, ",", 1);
+        }
+        need_comma = 1;
+        char *quoted = vibe_json_quote_string(e->name);
+        vibe_builder_append_bytes(&builder, quoted, strlen(quoted));
+        free(quoted);
+        vibe_builder_append_bytes(&builder, ":", 1);
+        char num[32];
+        snprintf(num, sizeof(num), "%lld", (long long)e->value);
+        vibe_builder_append_bytes(&builder, num, strlen(num));
+    }
+    vibe_builder_append_bytes(&builder, "},\"gauges\":{", 12);
+    need_comma = 0;
+    for (vibe_metric_entry *e = vibe_metrics_head; e != NULL; e = e->next) {
+        if (!e->is_gauge) {
+            continue;
+        }
+        if (need_comma) {
+            vibe_builder_append_bytes(&builder, ",", 1);
+        }
+        need_comma = 1;
+        char *quoted = vibe_json_quote_string(e->name);
+        vibe_builder_append_bytes(&builder, quoted, strlen(quoted));
+        free(quoted);
+        vibe_builder_append_bytes(&builder, ":", 1);
+        char num[32];
+        snprintf(num, sizeof(num), "%lld", (long long)e->value);
+        vibe_builder_append_bytes(&builder, num, strlen(num));
+    }
+    vibe_builder_append_bytes(&builder, "}}", 2);
+    pthread_mutex_unlock(&vibe_metrics_mu);
     vibe_counter_inc(&vibe_json_allocations);
     return builder.data;
 }

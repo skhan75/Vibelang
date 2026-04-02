@@ -563,6 +563,18 @@ fn collect_calls_from_expr(expr: &Expr, out: &mut BTreeSet<String>) {
                 collect_calls_from_expr(e, out);
             }
         }
+        Expr::FnLiteral {
+            body,
+            tail_expr,
+            ..
+        } => {
+            for s in body {
+                collect_calls_from_stmt(s, out);
+            }
+            if let Some(t) = tail_expr {
+                collect_calls_from_expr(t.as_ref(), out);
+            }
+        }
         Expr::Ident { .. }
         | Expr::Int { .. }
         | Expr::Float { .. }

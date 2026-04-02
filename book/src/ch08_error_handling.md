@@ -129,6 +129,33 @@ error[E0201]: non-exhaustive match
 This is the core guarantee of VibeLang's error model: you cannot accidentally
 ignore an error. The type system makes error handling mandatory.
 
+### Structured error enums
+
+For richer domain failures, VibeLang supports payloaded enum variants and
+destructuring `match` arms:
+
+```vibe
+enum AppError {
+  NotFound { id: Str },
+  Timeout { ms: Int }
+}
+
+pub main() -> Int {
+  @effect io
+
+  e := AppError.NotFound { id: "user-9" }
+  match e {
+    case AppError.NotFound { id } => println(id)
+    case AppError.Timeout { ms } => println(convert.to_str(ms))
+  }
+  0
+}
+```
+
+Enum payloads are checked at construction time, and `match` arms validate field
+names plus exhaustiveness. This makes error modeling explicit without collapsing
+everything into `Err(Str)`.
+
 ### Nested Results
 
 Sometimes operations produce nested results. For example, parsing a string that

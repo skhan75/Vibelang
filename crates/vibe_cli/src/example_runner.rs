@@ -273,6 +273,9 @@ fn eval_expr_with_ctx(
         Expr::EnumVariant { .. } => {
             Err("enum variants are not supported in phase 2 examples".to_string())
         }
+        Expr::FnLiteral { .. } => Err(
+            "function literals are not supported in phase 2 example evaluation".to_string(),
+        ),
     }
 }
 
