@@ -104,6 +104,10 @@ struct TypeContext<'a> {
     closure_slot_map: RefCell<Option<BTreeMap<String, u32>>>,
     fn_literal_cache: Option<Rc<RefCell<FnLiteralCache>>>,
     closure_binding_meta: Rc<RefCell<BTreeMap<String, Vec<TypeKind>>>>,
+    /// Declared return type of the function whose `@ensure` contract is being
+    /// checked, so the `.` result placeholder gets a concrete type. `None`
+    /// outside `@ensure` checking or when the return type is undeclared.
+    ensure_result_type: RefCell<Option<TypeKind>>,
 }
 
 pub fn check_and_lower(ast: &FileAst) -> CheckOutput {
@@ -258,6 +262,7 @@ pub fn check_and_lower_with_ns(
         closure_slot_map: RefCell::new(None),
         fn_literal_cache: None,
         closure_binding_meta: empty_closure_meta,
+        ensure_result_type: RefCell::new(None),
     };
 
     for decl in &ast.declarations {
@@ -286,6 +291,7 @@ pub fn check_and_lower_with_ns(
             closure_slot_map: RefCell::new(None),
             fn_literal_cache: Some(fn_cache.clone()),
             closure_binding_meta: closure_binding_meta.clone(),
+            ensure_result_type: RefCell::new(None),
         };
         let mut env: BTreeMap<String, TypeKind> = BTreeMap::new();
         let mut observed_effects: BTreeSet<String> = BTreeSet::new();
@@ -374,6 +380,10 @@ pub fn check_and_lower_with_ns(
                 }
                 Contract::Ensure { expr, span } => {
                     validate_contract_expr(expr, ContractContext::Ensure, &mut diagnostics);
+                    *ctx.ensure_result_type.borrow_mut() = func
+                        .return_type
+                        .as_ref()
+                        .map(|t| resolve_type_ref(t, &type_defs, &enum_defs));
                     if !matches!(
                         infer_expr(
                             expr,
@@ -392,6 +402,7 @@ pub fn check_and_lower_with_ns(
                             *span,
                         ));
                     }
+                    *ctx.ensure_result_type.borrow_mut() = None;
                     ensure_contract_exprs.push(expr.clone());
                 }
                 Contract::Examples { cases, .. } => {
@@ -595,6 +606,7 @@ pub fn check_and_lower_with_ns(
             closure_slot_map: RefCell::new(None),
             fn_literal_cache: Some(fn_cache.clone()),
             closure_binding_meta: closure_binding_meta.clone(),
+            ensure_result_type: RefCell::new(None),
         };
         let mut env: BTreeMap<String, TypeKind> = BTreeMap::new();
         if let Some(ft) = fvt_ext.get(&func.name) {
@@ -686,6 +698,10 @@ pub fn check_and_lower_with_ns(
                 }
                 Contract::Ensure { expr, span } => {
                     validate_contract_expr(expr, ContractContext::Ensure, &mut diagnostics);
+                    *ctx.ensure_result_type.borrow_mut() = func
+                        .return_type
+                        .as_ref()
+                        .map(|t| resolve_type_ref(t, &type_defs, &enum_defs));
                     if !matches!(
                         infer_expr(
                             expr,
@@ -704,6 +720,7 @@ pub fn check_and_lower_with_ns(
                             *span,
                         ));
                     }
+                    *ctx.ensure_result_type.borrow_mut() = None;
                     ensure_contract_exprs.push(expr.clone());
                 }
                 Contract::Examples { cases, .. } => {
@@ -3007,9 +3024,43 @@ pub(crate) fn infer_expr(
                 | BinaryOp::Lt
                 | BinaryOp::Le
                 | BinaryOp::Gt
-                | BinaryOp::Ge
-                | BinaryOp::And
-                | BinaryOp::Or => TypeKind::Bool,
+                | BinaryOp::Ge => {
+                    if !type_compatible(&lt, &rt)
+                        && !matches!(lt, TypeKind::Unknown)
+                        && !matches!(rt, TypeKind::Unknown)
+                    {
+                        diagnostics.push(Diagnostic::new(
+                            "E2202",
+                            Severity::Error,
+                            format!(
+                                "binary operation type mismatch: left `{}`, right `{}`",
+                                type_name(&lt),
+                                type_name(&rt)
+                            ),
+                            *span,
+                        ));
+                    }
+                    TypeKind::Bool
+                }
+                BinaryOp::And | BinaryOp::Or => {
+                    for (side, t) in [("left", &lt), ("right", &rt)] {
+                        if !matches!(
+                            t,
+                            TypeKind::Bool | TypeKind::Unknown | TypeKind::TypeParam(_)
+                        ) {
+                            diagnostics.push(Diagnostic::new(
+                                "E2273",
+                                Severity::Error,
+                                format!(
+                                    "logical operator expects Bool operands, {side} is `{}`",
+                                    type_name(t)
+                                ),
+                                *span,
+                            ));
+                        }
+                    }
+                    TypeKind::Bool
+                }
                 BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div => {
                     if matches!(op, BinaryOp::Add)
                         && matches!(lt, TypeKind::Str)
@@ -3141,8 +3192,12 @@ pub(crate) fn infer_expr(
                     "`.` result placeholder is only valid inside `@ensure`",
                     *span,
                 ));
+                return TypeKind::Unknown;
             }
-            TypeKind::Unknown
+            ctx.ensure_result_type
+                .borrow()
+                .clone()
+                .unwrap_or(TypeKind::Unknown)
         }
         Expr::Old { expr, span } => {
             if context != ContractContext::Ensure {

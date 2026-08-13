@@ -1690,6 +1690,7 @@ dependencies = [
  "vibe_ast",
  "vibe_diagnostics",
  "vibe_hir",
+ "vibe_parser",
 ]
 
 [[package]]

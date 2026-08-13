@@ -9,6 +9,9 @@ vibe_ast.workspace = true
 vibe_diagnostics.workspace = true
 vibe_hir.workspace = true
 
+[dev-dependencies]
+vibe_parser.workspace = true
+
 [features]
 bench-runtime = []
 
