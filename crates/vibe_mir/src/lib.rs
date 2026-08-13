@@ -222,7 +222,9 @@ pub fn lower_hir_to_mir(hir: &HirProgram) -> Result<MirProgram, String> {
     for f in &hir.functions {
         let params: BTreeSet<String> = f.params.iter().map(|p| p.name.clone()).collect();
         let mut locals = BTreeSet::new();
-        let mut body = lower_stmt_list(&f.body, &globals, &params, &mut locals)?;
+        let snapshot_body = snapshot_old_in_ensure_checks(&f.body);
+        let body_src: &[HirStmt] = snapshot_body.as_deref().unwrap_or(&f.body);
+        let mut body = lower_stmt_list(body_src, &globals, &params, &mut locals)?;
         if let Some(tail) = &f.tail_expr {
             body.push(MirStmt::Return(lower_expr(
                 tail, &globals, &params, &locals,
@@ -256,6 +258,232 @@ pub fn lower_hir_to_mir(hir: &HirProgram) -> Result<MirProgram, String> {
     }
     verify_mir(&out)?;
     Ok(out)
+}
+
+/// Give `old(...)` in `@ensure` checks real snapshot semantics.
+///
+/// Each `old(expr)` occurrence inside an `@ensure` contract check is hoisted
+/// into a synthetic local (`__old_0`, `__old_1`, ... in first-appearance
+/// order over a deterministic pre-order walk) that evaluates the operand ONCE
+/// at function entry, immediately after the leading `@require` checks. The
+/// `old(...)` node itself is rewritten to read that local, so every ensure
+/// site observes the pre-body value instead of re-evaluating post-state.
+/// Occurrences with identical operands (keyed on the span-free HIR structure)
+/// share one snapshot local. The checker restricts `old(...)` operands to
+/// scalar values (E2208), so the entry-time value copy is a faithful
+/// snapshot. Returns `None` when the body has no `old(...)` in ensure checks.
+fn snapshot_old_in_ensure_checks(body: &[HirStmt]) -> Option<Vec<HirStmt>> {
+    if !stmts_contain_ensure_old(body) {
+        return None;
+    }
+    let mut rewritten = body.to_vec();
+    let mut keys: BTreeMap<String, String> = BTreeMap::new();
+    let mut snapshots: Vec<(String, HirExpr)> = Vec::new();
+    rewrite_old_in_stmts(&mut rewritten, &mut keys, &mut snapshots);
+    let insert_at = rewritten
+        .iter()
+        .take_while(|s| {
+            matches!(
+                s,
+                HirStmt::ContractCheck {
+                    kind: HirContractKind::Require,
+                    ..
+                }
+            )
+        })
+        .count();
+    for (offset, (name, expr)) in snapshots.into_iter().enumerate() {
+        rewritten.insert(insert_at + offset, HirStmt::Binding { name, expr });
+    }
+    Some(rewritten)
+}
+
+fn stmts_contain_ensure_old(stmts: &[HirStmt]) -> bool {
+    stmts.iter().any(|stmt| match stmt {
+        HirStmt::ContractCheck {
+            kind: HirContractKind::Ensure,
+            expr,
+        } => expr_contains_old(expr),
+        HirStmt::If {
+            then_body,
+            else_body,
+            ..
+        } => stmts_contain_ensure_old(then_body) || stmts_contain_ensure_old(else_body),
+        HirStmt::While { body, .. } | HirStmt::For { body, .. } | HirStmt::Repeat { body, .. } => {
+            stmts_contain_ensure_old(body)
+        }
+        _ => false,
+    })
+}
+
+fn expr_contains_old(expr: &HirExpr) -> bool {
+    match &expr.kind {
+        HirExprKind::Old { .. } => true,
+        HirExprKind::Ident(_)
+        | HirExprKind::Int(_)
+        | HirExprKind::Float(_)
+        | HirExprKind::Bool(_)
+        | HirExprKind::String(_)
+        | HirExprKind::DotResult
+        | HirExprKind::EnvLoad { .. } => false,
+        HirExprKind::List(items) => items.iter().any(expr_contains_old),
+        HirExprKind::Map(entries) => entries
+            .iter()
+            .any(|(k, v)| expr_contains_old(k) || expr_contains_old(v)),
+        HirExprKind::Member { object, .. } => expr_contains_old(object),
+        HirExprKind::Index { object, index } => {
+            expr_contains_old(object) || expr_contains_old(index)
+        }
+        HirExprKind::Slice { object, start, end } => {
+            expr_contains_old(object)
+                || start.as_deref().is_some_and(expr_contains_old)
+                || end.as_deref().is_some_and(expr_contains_old)
+        }
+        HirExprKind::Call { callee, args } => {
+            expr_contains_old(callee) || args.iter().any(expr_contains_old)
+        }
+        HirExprKind::Binary { left, right, .. } => {
+            expr_contains_old(left) || expr_contains_old(right)
+        }
+        HirExprKind::Unary { expr, .. }
+        | HirExprKind::Async { expr }
+        | HirExprKind::Await { expr }
+        | HirExprKind::Question { expr } => expr_contains_old(expr),
+        HirExprKind::Constructor { fields, .. } | HirExprKind::EnumVariant { fields, .. } => {
+            fields.iter().any(|(_, e)| expr_contains_old(e))
+        }
+        HirExprKind::MakeClosure { captures, .. } => captures.iter().any(expr_contains_old),
+    }
+}
+
+fn rewrite_old_in_stmts(
+    stmts: &mut [HirStmt],
+    keys: &mut BTreeMap<String, String>,
+    snapshots: &mut Vec<(String, HirExpr)>,
+) {
+    for stmt in stmts.iter_mut() {
+        match stmt {
+            HirStmt::ContractCheck {
+                kind: HirContractKind::Ensure,
+                expr,
+            } => rewrite_old_in_expr(expr, keys, snapshots),
+            HirStmt::If {
+                then_body,
+                else_body,
+                ..
+            } => {
+                rewrite_old_in_stmts(then_body, keys, snapshots);
+                rewrite_old_in_stmts(else_body, keys, snapshots);
+            }
+            HirStmt::While { body, .. }
+            | HirStmt::For { body, .. }
+            | HirStmt::Repeat { body, .. } => rewrite_old_in_stmts(body, keys, snapshots),
+            _ => {}
+        }
+    }
+}
+
+fn rewrite_old_in_expr(
+    expr: &mut HirExpr,
+    keys: &mut BTreeMap<String, String>,
+    snapshots: &mut Vec<(String, HirExpr)>,
+) {
+    let replacement = if let HirExprKind::Old { expr: operand } = &expr.kind {
+        // At function entry `old(e)` means `e` itself, so nested `old` inside
+        // the operand collapses to its operand in the snapshot expression.
+        let snapshot_expr = strip_old(operand);
+        let key = format!("{snapshot_expr:?}");
+        let name = match keys.get(&key) {
+            Some(existing) => existing.clone(),
+            None => {
+                let name = format!("__old_{}", snapshots.len());
+                keys.insert(key, name.clone());
+                snapshots.push((name.clone(), snapshot_expr));
+                name
+            }
+        };
+        Some(name)
+    } else {
+        None
+    };
+    if let Some(name) = replacement {
+        expr.kind = HirExprKind::Ident(name);
+        return;
+    }
+    for_each_child_expr_mut(expr, &mut |child| {
+        rewrite_old_in_expr(child, keys, snapshots)
+    });
+}
+
+fn strip_old(expr: &HirExpr) -> HirExpr {
+    if let HirExprKind::Old { expr: inner } = &expr.kind {
+        return strip_old(inner);
+    }
+    let mut out = expr.clone();
+    for_each_child_expr_mut(&mut out, &mut |child| *child = strip_old(child));
+    out
+}
+
+fn for_each_child_expr_mut(expr: &mut HirExpr, visit: &mut impl FnMut(&mut HirExpr)) {
+    match &mut expr.kind {
+        HirExprKind::Ident(_)
+        | HirExprKind::Int(_)
+        | HirExprKind::Float(_)
+        | HirExprKind::Bool(_)
+        | HirExprKind::String(_)
+        | HirExprKind::DotResult
+        | HirExprKind::EnvLoad { .. } => {}
+        HirExprKind::List(items) => {
+            for item in items {
+                visit(item);
+            }
+        }
+        HirExprKind::Map(entries) => {
+            for (k, v) in entries {
+                visit(k);
+                visit(v);
+            }
+        }
+        HirExprKind::Member { object, .. } => visit(object),
+        HirExprKind::Index { object, index } => {
+            visit(object);
+            visit(index);
+        }
+        HirExprKind::Slice { object, start, end } => {
+            visit(object);
+            if let Some(start) = start {
+                visit(start);
+            }
+            if let Some(end) = end {
+                visit(end);
+            }
+        }
+        HirExprKind::Call { callee, args } => {
+            visit(callee);
+            for arg in args {
+                visit(arg);
+            }
+        }
+        HirExprKind::Binary { left, right, .. } => {
+            visit(left);
+            visit(right);
+        }
+        HirExprKind::Unary { expr, .. }
+        | HirExprKind::Async { expr }
+        | HirExprKind::Await { expr }
+        | HirExprKind::Question { expr }
+        | HirExprKind::Old { expr } => visit(expr),
+        HirExprKind::Constructor { fields, .. } | HirExprKind::EnumVariant { fields, .. } => {
+            for (_, e) in fields {
+                visit(e);
+            }
+        }
+        HirExprKind::MakeClosure { captures, .. } => {
+            for c in captures {
+                visit(c);
+            }
+        }
+    }
 }
 
 fn hir_expr_is_fn_type(ty: &str) -> bool {
@@ -1023,9 +1251,11 @@ pub fn mir_type_name(ty: &MirType) -> &'static str {
 mod tests {
     use std::collections::BTreeSet;
 
-    use vibe_hir::{HirExpr, HirExprKind, HirFunction, HirParam, HirProgram, HirStmt};
+    use vibe_hir::{
+        HirContractKind, HirExpr, HirExprKind, HirFunction, HirParam, HirProgram, HirStmt,
+    };
 
-    use super::{lower_hir_to_mir, mir_debug_dump, verify_mir, MirExpr, MirStmt};
+    use super::{lower_hir_to_mir, mir_debug_dump, verify_mir, MirContractKind, MirExpr, MirStmt};
 
     #[test]
     fn fn_param_call_lowers_to_closure_call() {
@@ -1155,6 +1385,255 @@ mod tests {
             mir.functions[0].body.last(),
             Some(MirStmt::Return(_))
         ));
+    }
+
+    fn int_var(name: &str) -> HirExpr {
+        HirExpr::new(HirExprKind::Ident(name.to_string()), "Int")
+    }
+
+    fn old_of(expr: HirExpr) -> HirExpr {
+        HirExpr::new(
+            HirExprKind::Old {
+                expr: Box::new(expr),
+            },
+            "Int",
+        )
+    }
+
+    /// `old(...)` embedded in a larger ensure expression (modeled as a call
+    /// argument, which needs no AST op types).
+    fn ensure_call_with_old(operand: &str) -> HirExpr {
+        HirExpr::new(
+            HirExprKind::Call {
+                callee: Box::new(int_var("check")),
+                args: vec![int_var(operand), old_of(int_var(operand))],
+            },
+            "Bool",
+        )
+    }
+
+    fn fn_with_body(name: &str, params: &[&str], body: Vec<HirStmt>) -> HirFunction {
+        HirFunction {
+            name: name.to_string(),
+            is_public: false,
+            params: params
+                .iter()
+                .map(|p| HirParam {
+                    name: p.to_string(),
+                    ty: None,
+                })
+                .collect(),
+            return_type: None,
+            inferred_return_type: Some("Int".to_string()),
+            effects_declared: BTreeSet::new(),
+            effects_observed: BTreeSet::new(),
+            body,
+            tail_expr: None,
+            native_symbol: None,
+        }
+    }
+
+    fn body_of<'a>(mir: &'a super::MirProgram, name: &str) -> &'a [MirStmt] {
+        &mir.functions
+            .iter()
+            .find(|f| f.name == name)
+            .expect("function in MIR")
+            .body
+    }
+
+    #[test]
+    fn ensure_old_is_snapshotted_at_entry_after_require_checks() {
+        let hir = HirProgram {
+            functions: vec![fn_with_body(
+                "bump",
+                &["x"],
+                vec![
+                    HirStmt::ContractCheck {
+                        kind: HirContractKind::Require,
+                        expr: int_var("x"),
+                    },
+                    HirStmt::Assignment {
+                        target: int_var("x"),
+                        expr: int_var("x"),
+                    },
+                    HirStmt::ContractCheck {
+                        kind: HirContractKind::Ensure,
+                        expr: ensure_call_with_old("x"),
+                    },
+                    HirStmt::Return { expr: int_var("x") },
+                ],
+            )],
+        };
+        let mir = lower_hir_to_mir(&hir).expect("lowering should succeed");
+        let body = body_of(&mir, "bump");
+        assert!(
+            matches!(
+                &body[0],
+                MirStmt::ContractCheck {
+                    kind: MirContractKind::Require,
+                    ..
+                }
+            ),
+            "require check must stay first, got {body:?}"
+        );
+        match &body[1] {
+            MirStmt::Let { name, expr } => {
+                assert_eq!(name, "__old_0");
+                assert!(
+                    matches!(expr, MirExpr::Var(v) if v == "x"),
+                    "snapshot must capture the raw operand, got {expr:?}"
+                );
+            }
+            other => panic!("expected snapshot Let after require check, got {other:?}"),
+        }
+        let ensure_expr = body
+            .iter()
+            .find_map(|s| match s {
+                MirStmt::ContractCheck {
+                    kind: MirContractKind::Ensure,
+                    expr,
+                } => Some(expr),
+                _ => None,
+            })
+            .expect("ensure check in MIR");
+        match ensure_expr {
+            MirExpr::Call { args, .. } => {
+                assert!(
+                    matches!(&args[1], MirExpr::Var(v) if v == "__old_0"),
+                    "old() must read the snapshot local, got {args:?}"
+                );
+            }
+            other => panic!("expected lowered call, got {other:?}"),
+        }
+        assert!(verify_mir(&mir).is_ok());
+    }
+
+    #[test]
+    fn old_snapshots_dedupe_by_operand_and_number_in_first_appearance_order() {
+        let hir = HirProgram {
+            functions: vec![fn_with_body(
+                "multi",
+                &["x", "y"],
+                vec![
+                    HirStmt::ContractCheck {
+                        kind: HirContractKind::Ensure,
+                        expr: ensure_call_with_old("x"),
+                    },
+                    HirStmt::ContractCheck {
+                        kind: HirContractKind::Ensure,
+                        expr: ensure_call_with_old("y"),
+                    },
+                    HirStmt::ContractCheck {
+                        kind: HirContractKind::Ensure,
+                        expr: ensure_call_with_old("x"),
+                    },
+                    HirStmt::Return { expr: int_var("x") },
+                ],
+            )],
+        };
+        let mir = lower_hir_to_mir(&hir).expect("lowering should succeed");
+        let body = body_of(&mir, "multi");
+        let snapshot_lets: Vec<(&str, &MirExpr)> = body
+            .iter()
+            .filter_map(|s| match s {
+                MirStmt::Let { name, expr } if name.starts_with("__old_") => {
+                    Some((name.as_str(), expr))
+                }
+                _ => None,
+            })
+            .collect();
+        assert_eq!(
+            snapshot_lets.len(),
+            2,
+            "same operand must share one snapshot: {body:?}"
+        );
+        assert_eq!(snapshot_lets[0].0, "__old_0");
+        assert!(matches!(snapshot_lets[0].1, MirExpr::Var(v) if v == "x"));
+        assert_eq!(snapshot_lets[1].0, "__old_1");
+        assert!(matches!(snapshot_lets[1].1, MirExpr::Var(v) if v == "y"));
+        let ensure_old_reads: Vec<&str> = body
+            .iter()
+            .filter_map(|s| match s {
+                MirStmt::ContractCheck {
+                    kind: MirContractKind::Ensure,
+                    expr: MirExpr::Call { args, .. },
+                } => match &args[1] {
+                    MirExpr::Var(v) => Some(v.as_str()),
+                    _ => None,
+                },
+                _ => None,
+            })
+            .collect();
+        assert_eq!(ensure_old_reads, vec!["__old_0", "__old_1", "__old_0"]);
+    }
+
+    #[test]
+    fn ensure_old_in_nested_block_is_rewritten_and_hoisted_to_entry() {
+        let hir = HirProgram {
+            functions: vec![fn_with_body(
+                "branchy",
+                &["x"],
+                vec![
+                    HirStmt::If {
+                        cond: int_var("x"),
+                        then_body: vec![
+                            HirStmt::ContractCheck {
+                                kind: HirContractKind::Ensure,
+                                expr: ensure_call_with_old("x"),
+                            },
+                            HirStmt::Return { expr: int_var("x") },
+                        ],
+                        else_body: vec![],
+                    },
+                    HirStmt::Return { expr: int_var("x") },
+                ],
+            )],
+        };
+        let mir = lower_hir_to_mir(&hir).expect("lowering should succeed");
+        let body = body_of(&mir, "branchy");
+        assert!(
+            matches!(&body[0], MirStmt::Let { name, .. } if name == "__old_0"),
+            "snapshot must be hoisted to function entry, got {body:?}"
+        );
+        let MirStmt::If { then_body, .. } = &body[1] else {
+            panic!("expected If after snapshot, got {body:?}");
+        };
+        match &then_body[0] {
+            MirStmt::ContractCheck {
+                kind: MirContractKind::Ensure,
+                expr: MirExpr::Call { args, .. },
+            } => {
+                assert!(
+                    matches!(&args[1], MirExpr::Var(v) if v == "__old_0"),
+                    "nested ensure must read the entry snapshot, got {args:?}"
+                );
+            }
+            other => panic!("expected rewritten nested ensure check, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn old_snapshot_lowering_is_deterministic() {
+        let hir = HirProgram {
+            functions: vec![fn_with_body(
+                "multi",
+                &["x", "y"],
+                vec![
+                    HirStmt::ContractCheck {
+                        kind: HirContractKind::Ensure,
+                        expr: ensure_call_with_old("x"),
+                    },
+                    HirStmt::ContractCheck {
+                        kind: HirContractKind::Ensure,
+                        expr: ensure_call_with_old("y"),
+                    },
+                    HirStmt::Return { expr: int_var("x") },
+                ],
+            )],
+        };
+        let first = lower_hir_to_mir(&hir).expect("first lowering");
+        let second = lower_hir_to_mir(&hir).expect("second lowering");
+        assert_eq!(mir_debug_dump(&first), mir_debug_dump(&second));
     }
 
     #[test]

@@ -79,6 +79,8 @@ This catalog reserves deterministic code ranges for frontend diagnostics.
 - `E2205` `old(...)` outside `@ensure`
 - `E2206` invalid `.` usage in contract
 - `E2207` invalid `old(...)` usage in contract
+- `E2208` `old(...)` operand is not a supported scalar (`Int`, `Bool`, `Float`) — entry snapshots of heap references are not supported in this phase
+- `E2209` `.` result placeholder inside `old(...)`
 - `E2264` call arity mismatch — direct, function-value, and stdlib namespace calls (also: enum pattern field must be an identifier)
 - `E2265` call argument type mismatch — direct, function-value, and stdlib namespace calls (also: unknown enum pattern/variant field)
 - `E2273` logical operator (`&&`/`||`) operand is not Bool

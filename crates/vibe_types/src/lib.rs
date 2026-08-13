@@ -473,6 +473,7 @@ pub fn check_and_lower_with_ns(
                             *span,
                         ));
                     }
+                    check_old_operands(expr, &env, &ctx, &mut diagnostics);
                     *ctx.ensure_result_type.borrow_mut() = None;
                     ensure_contract_exprs.push(expr.clone());
                 }
@@ -792,6 +793,7 @@ pub fn check_and_lower_with_ns(
                             *span,
                         ));
                     }
+                    check_old_operands(expr, &env, &ctx, &mut diagnostics);
                     *ctx.ensure_result_type.borrow_mut() = None;
                     ensure_contract_exprs.push(expr.clone());
                 }
@@ -3324,6 +3326,164 @@ pub(crate) fn infer_expr(
             }
             infer_expr(expr, env, ctx, context, diagnostics, observed_effects)
         }
+    }
+}
+
+/// `old(...)` operands are snapshotted at function entry by MIR lowering as a
+/// plain value copy into a synthetic local. That copy is only a faithful
+/// snapshot for scalar values; for heap references (Str, List, Map, records,
+/// ...) it would alias the object the body mutates and silently observe
+/// post-state. Reject those honestly at compile time (E2208) instead of
+/// mis-capturing. `.` inside `old(...)` is rejected too (E2209): the result
+/// value does not exist yet when the entry snapshot is taken. Only the
+/// outermost `old` operand is type-checked — nested `old(e)` collapses to `e`
+/// during the entry-time evaluation, so no captured value escapes it.
+fn check_old_operands(
+    expr: &Expr,
+    env: &BTreeMap<String, TypeKind>,
+    ctx: &TypeContext,
+    diagnostics: &mut Diagnostics,
+) {
+    match expr {
+        Expr::Old {
+            expr: operand,
+            span,
+        } => {
+            if contains_dot_result(operand) {
+                diagnostics.push(Diagnostic::new(
+                    "E2209",
+                    Severity::Error,
+                    "`.` result placeholder is not allowed inside `old(...)`",
+                    *span,
+                ));
+                return;
+            }
+            // Throwaway sinks: the whole clause was already inferred for
+            // E3005, so re-inferring the operand here must not duplicate
+            // diagnostics or observed effects.
+            let mut scratch_diags = Diagnostics::default();
+            let mut scratch_effects: BTreeSet<String> = BTreeSet::new();
+            let operand_ty = infer_expr(
+                operand,
+                env,
+                ctx,
+                ContractContext::Ensure,
+                &mut scratch_diags,
+                &mut scratch_effects,
+            );
+            match operand_ty {
+                TypeKind::Int | TypeKind::Bool | TypeKind::Float => {}
+                TypeKind::Unknown => diagnostics.push(Diagnostic::new(
+                    "E2208",
+                    Severity::Error,
+                    "`old(...)` operand type could not be inferred; only scalar `Int`, `Bool`, and `Float` operands are supported in this phase",
+                    *span,
+                )),
+                other => diagnostics.push(Diagnostic::new(
+                    "E2208",
+                    Severity::Error,
+                    format!(
+                        "`old(...)` on non-scalar values is not supported in this phase: operand has type `{}`; only scalar `Int`, `Bool`, and `Float` operands are supported",
+                        type_name(&other)
+                    ),
+                    *span,
+                )),
+            }
+        }
+        Expr::Member { object, .. }
+        | Expr::Question { expr: object, .. }
+        | Expr::Unary { expr: object, .. }
+        | Expr::Async { expr: object, .. }
+        | Expr::Await { expr: object, .. } => {
+            check_old_operands(object, env, ctx, diagnostics);
+        }
+        Expr::Index { object, index, .. } => {
+            check_old_operands(object, env, ctx, diagnostics);
+            check_old_operands(index, env, ctx, diagnostics);
+        }
+        Expr::Slice {
+            object, start, end, ..
+        } => {
+            check_old_operands(object, env, ctx, diagnostics);
+            if let Some(start) = start {
+                check_old_operands(start, env, ctx, diagnostics);
+            }
+            if let Some(end) = end {
+                check_old_operands(end, env, ctx, diagnostics);
+            }
+        }
+        Expr::Call { callee, args, .. } => {
+            check_old_operands(callee, env, ctx, diagnostics);
+            for arg in args {
+                check_old_operands(arg, env, ctx, diagnostics);
+            }
+        }
+        Expr::Binary { left, right, .. } => {
+            check_old_operands(left, env, ctx, diagnostics);
+            check_old_operands(right, env, ctx, diagnostics);
+        }
+        Expr::List { items, .. } => {
+            for item in items {
+                check_old_operands(item, env, ctx, diagnostics);
+            }
+        }
+        Expr::Map { entries, .. } => {
+            for (k, v) in entries {
+                check_old_operands(k, env, ctx, diagnostics);
+                check_old_operands(v, env, ctx, diagnostics);
+            }
+        }
+        Expr::Constructor { fields, .. } | Expr::EnumVariant { fields, .. } => {
+            for (_, e) in fields {
+                check_old_operands(e, env, ctx, diagnostics);
+            }
+        }
+        Expr::Ident { .. }
+        | Expr::Int { .. }
+        | Expr::Float { .. }
+        | Expr::Bool { .. }
+        | Expr::String { .. }
+        | Expr::DotResult { .. }
+        | Expr::FnLiteral { .. } => {}
+    }
+}
+
+fn contains_dot_result(expr: &Expr) -> bool {
+    match expr {
+        Expr::DotResult { .. } => true,
+        Expr::Member { object: inner, .. }
+        | Expr::Question { expr: inner, .. }
+        | Expr::Unary { expr: inner, .. }
+        | Expr::Async { expr: inner, .. }
+        | Expr::Await { expr: inner, .. }
+        | Expr::Old { expr: inner, .. } => contains_dot_result(inner),
+        Expr::Index { object, index, .. } => {
+            contains_dot_result(object) || contains_dot_result(index)
+        }
+        Expr::Slice {
+            object, start, end, ..
+        } => {
+            contains_dot_result(object)
+                || start.as_deref().is_some_and(contains_dot_result)
+                || end.as_deref().is_some_and(contains_dot_result)
+        }
+        Expr::Call { callee, args, .. } => {
+            contains_dot_result(callee) || args.iter().any(contains_dot_result)
+        }
+        Expr::Binary { left, right, .. } => contains_dot_result(left) || contains_dot_result(right),
+        Expr::List { items, .. } => items.iter().any(contains_dot_result),
+        Expr::Map { entries, .. } => entries
+            .iter()
+            .any(|(k, v)| contains_dot_result(k) || contains_dot_result(v)),
+        Expr::Constructor { fields, .. } | Expr::EnumVariant { fields, .. } => {
+            fields.iter().any(|(_, e)| contains_dot_result(e))
+        }
+        Expr::Ident { .. }
+        | Expr::Int { .. }
+        | Expr::Float { .. }
+        | Expr::Bool { .. }
+        | Expr::String { .. }
+        | Expr::FnLiteral { .. } => false,
     }
 }
 
