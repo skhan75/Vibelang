@@ -65,13 +65,14 @@ This catalog reserves deterministic code ranges for frontend diagnostics.
 - `E2002` duplicate function
 - `E2003` public function parameter missing explicit type (warning)
 - `E2004` public function missing explicit return type (warning)
+- `E2005` unknown type name in a declared signature or field type
 - `E2101` assignment to unknown variable
 - `E2102` assignment type mismatch
 - `E2103` non-boolean `if` condition
 - `E2104` non-boolean `while` condition
 - `E2105` non-integer `repeat` count
 - `E2106` `closed` case references unknown symbol (warning)
-- `E2201` return type mismatch
+- `E2201` return type mismatch (also: conflicting concrete return types across paths, reported at the conflicting return site)
 - `E2202` binary operation type mismatch
 - `E2203` `?` used on non-Result expression
 - `E2204` `.` placeholder outside `@ensure`

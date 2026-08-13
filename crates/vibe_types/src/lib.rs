@@ -200,6 +200,78 @@ pub fn check_and_lower_with_ns(
         }
     }
 
+    // Declared type names must resolve now that every type and enum has been
+    // collected: a typo like `Strr` must not silently become a phantom user
+    // type, and an unsupported annotation like `Option<Int>` must not silently
+    // become `Unknown`, which would disable every downstream check that
+    // touches the annotation (audit P0-04).
+    for decl in &ast.declarations {
+        match decl {
+            Declaration::Type(t) => {
+                for f in &t.fields {
+                    check_declared_type_ref(
+                        &f.ty,
+                        None,
+                        &type_defs,
+                        &enum_defs,
+                        &format!("field `{}` of type `{}`", f.name, t.name),
+                        t.span,
+                        &mut diagnostics,
+                    );
+                }
+            }
+            Declaration::Enum(e) => {
+                for v in &e.variants {
+                    for tf in &v.fields {
+                        check_declared_type_ref(
+                            &tf.ty,
+                            None,
+                            &type_defs,
+                            &enum_defs,
+                            &format!(
+                                "field `{}` of enum variant `{}.{}`",
+                                tf.name, e.name, v.name
+                            ),
+                            v.span,
+                            &mut diagnostics,
+                        );
+                    }
+                }
+            }
+            Declaration::Function(f) => {
+                // Multi-parameter generics are already rejected with E2002b.
+                if f.type_params.len() > 1 {
+                    continue;
+                }
+                let type_param = f.type_params.first().map(String::as_str);
+                for p in &f.params {
+                    if let Some(ty) = &p.ty {
+                        check_declared_type_ref(
+                            ty,
+                            type_param,
+                            &type_defs,
+                            &enum_defs,
+                            &format!("parameter `{}` of function `{}`", p.name, f.name),
+                            f.span,
+                            &mut diagnostics,
+                        );
+                    }
+                }
+                if let Some(ret) = &f.return_type {
+                    check_declared_type_ref(
+                        ret,
+                        type_param,
+                        &type_defs,
+                        &enum_defs,
+                        &format!("return type of function `{}`", f.name),
+                        f.span,
+                        &mut diagnostics,
+                    );
+                }
+            }
+        }
+    }
+
     let mut function_value_types: BTreeMap<String, TypeKind> = BTreeMap::new();
     let mut generic_templates: BTreeMap<String, FunctionDecl> = BTreeMap::new();
     for decl in &ast.declarations {
@@ -232,8 +304,7 @@ pub fn check_and_lower_with_ns(
         let mut ps = Vec::new();
         for p in &f.params {
             ps.push(
-                p.ty
-                    .as_ref()
+                p.ty.as_ref()
                     .map(|t| resolve_type_ref(t, &type_defs, &enum_defs))
                     .unwrap_or(TypeKind::Unknown),
             );
@@ -429,7 +500,7 @@ pub fn check_and_lower_with_ns(
             }
         }
 
-        let mut inferred_returns: Vec<TypeKind> = Vec::new();
+        let mut inferred_returns: Vec<(TypeKind, Span)> = Vec::new();
         let mut hir_body: Vec<HirStmt> = Vec::new();
         for expr in &require_contract_exprs {
             hir_body.push(HirStmt::ContractCheck {
@@ -460,7 +531,7 @@ pub fn check_and_lower_with_ns(
                 &mut diagnostics,
                 &mut observed_effects,
             );
-            inferred_returns.push(t);
+            inferred_returns.push((t, expr.span()));
             let lowered_tail = lower_expr(expr, &env, &fn_ctx);
             for contract_expr in &ensure_contract_exprs {
                 hir_body.push(HirStmt::ContractCheck {
@@ -476,8 +547,10 @@ pub fn check_and_lower_with_ns(
             .iter()
             .any(|c| matches!(c, Contract::Native { .. }));
 
-        let inferred_return = unify_return_types(&inferred_returns);
+        let return_kinds: Vec<TypeKind> = inferred_returns.iter().map(|(t, _)| t.clone()).collect();
+        let inferred_return = unify_return_types(&return_kinds);
         if !is_native {
+            report_conflicting_return_types(&inferred_returns, &func.name, &mut diagnostics);
             if let Some(declared) = func.return_type.as_ref() {
                 let declared = resolve_type_ref(declared, &type_defs, &enum_defs);
                 if !type_compatible(&declared, &inferred_return) {
@@ -571,8 +644,7 @@ pub fn check_and_lower_with_ns(
         let mut ps = Vec::new();
         for p in &f.params {
             ps.push(
-                p.ty
-                    .as_ref()
+                p.ty.as_ref()
                     .map(|tr| resolve_type_ref(tr, &type_defs, &enum_defs))
                     .unwrap_or(TypeKind::Unknown),
             );
@@ -747,7 +819,7 @@ pub fn check_and_lower_with_ns(
             }
         }
 
-        let mut inferred_returns: Vec<TypeKind> = Vec::new();
+        let mut inferred_returns: Vec<(TypeKind, Span)> = Vec::new();
         let mut hir_body: Vec<HirStmt> = Vec::new();
         for expr in &require_contract_exprs {
             hir_body.push(HirStmt::ContractCheck {
@@ -778,7 +850,7 @@ pub fn check_and_lower_with_ns(
                 &mut diagnostics,
                 &mut observed_effects,
             );
-            inferred_returns.push(t);
+            inferred_returns.push((t, expr.span()));
             let lowered_tail = lower_expr(expr, &env, &fn_ctx);
             for contract_expr in &ensure_contract_exprs {
                 hir_body.push(HirStmt::ContractCheck {
@@ -794,8 +866,10 @@ pub fn check_and_lower_with_ns(
             .iter()
             .any(|c| matches!(c, Contract::Native { .. }));
 
-        let inferred_return = unify_return_types(&inferred_returns);
+        let return_kinds: Vec<TypeKind> = inferred_returns.iter().map(|(t, _)| t.clone()).collect();
+        let inferred_return = unify_return_types(&return_kinds);
         if !is_native {
+            report_conflicting_return_types(&inferred_returns, &func.name, &mut diagnostics);
             if let Some(declared) = func.return_type.as_ref() {
                 let declared = resolve_type_ref(declared, &type_defs, &enum_defs);
                 if !type_compatible(&declared, &inferred_return) {
@@ -897,7 +971,7 @@ pub(crate) fn check_stmt(
     ctx: &TypeContext,
     diagnostics: &mut Diagnostics,
     observed_effects: &mut BTreeSet<String>,
-    inferred_returns: &mut Vec<TypeKind>,
+    inferred_returns: &mut Vec<(TypeKind, Span)>,
     hir_out: &mut Vec<HirStmt>,
     ensure_contract_exprs: &[Expr],
     loop_depth: usize,
@@ -1007,7 +1081,7 @@ pub(crate) fn check_stmt(
                 expr: lower_expr(expr, env, ctx),
             });
         }
-        Stmt::Return { expr, .. } => {
+        Stmt::Return { expr, span } => {
             let ret_ty = infer_expr(
                 expr,
                 env,
@@ -1016,7 +1090,7 @@ pub(crate) fn check_stmt(
                 diagnostics,
                 observed_effects,
             );
-            inferred_returns.push(ret_ty);
+            inferred_returns.push((ret_ty, *span));
             let lowered_return_expr = lower_expr(expr, env, ctx);
             for ensure_expr in ensure_contract_exprs {
                 hir_out.push(HirStmt::ContractCheck {
@@ -1685,7 +1759,11 @@ fn lower_contract_expr(
     HirExpr::new(kind, ty)
 }
 
-pub(crate) fn lower_expr(expr: &Expr, env: &BTreeMap<String, TypeKind>, ctx: &TypeContext) -> HirExpr {
+pub(crate) fn lower_expr(
+    expr: &Expr,
+    env: &BTreeMap<String, TypeKind>,
+    ctx: &TypeContext,
+) -> HirExpr {
     let ty = type_name(&expr_type_hint_with_ctx(expr, env, Some(ctx)));
     let kind = match expr {
         Expr::Ident { name, .. } => {
@@ -1858,10 +1936,7 @@ fn is_convert_to_str_call(callee: &Expr, args: &[Expr]) -> bool {
     false
 }
 
-fn expr_type_hint(
-    expr: &Expr,
-    env: &BTreeMap<String, TypeKind>,
-) -> TypeKind {
+fn expr_type_hint(expr: &Expr, env: &BTreeMap<String, TypeKind>) -> TypeKind {
     expr_type_hint_with_ctx(expr, env, None)
 }
 
@@ -1944,7 +2019,8 @@ fn expr_type_hint_with_ctx(
                 if let Some(c) = ctx {
                     if let Some(template) = c.generic_templates.get(name.as_str()) {
                         if template.type_params.len() == 1 {
-                            if let Some(conc) = infer_generic_concrete_type(template, args, env, c) {
+                            if let Some(conc) = infer_generic_concrete_type(template, args, env, c)
+                            {
                                 let tp = &template.type_params[0];
                                 return template
                                     .return_type
@@ -2059,7 +2135,7 @@ fn expr_type_hint_with_ctx(
         },
         Expr::Async { expr, .. } | Expr::Await { expr, .. } => {
             expr_type_hint_with_ctx(expr, env, ctx)
-        },
+        }
         Expr::Question { expr, .. } => match expr_type_hint_with_ctx(expr, env, ctx) {
             TypeKind::Result(ok, _) => *ok,
             _ => TypeKind::Unknown,
@@ -2339,14 +2415,9 @@ pub(crate) fn infer_expr(
             }
             TypeKind::Enum(enum_name.clone())
         }
-        Expr::FnLiteral { .. } => process_fn_literal(
-            expr,
-            env,
-            ctx,
-            diagnostics,
-            observed_effects,
-            context,
-        ),
+        Expr::FnLiteral { .. } => {
+            process_fn_literal(expr, env, ctx, diagnostics, observed_effects, context)
+        }
         Expr::Member {
             object,
             field,
@@ -3381,11 +3452,12 @@ fn try_parse_fn_type_kind(
     enum_defs: &BTreeMap<String, Vec<EnumVariantLayout>>,
 ) -> Option<TypeKind> {
     let compact: String = raw.chars().filter(|c| !c.is_whitespace()).collect();
-    let compact = if compact.starts_with('(') && compact.contains(")->") && !compact.starts_with("fn(") {
-        format!("fn{}", compact)
-    } else {
-        compact
-    };
+    let compact =
+        if compact.starts_with('(') && compact.contains(")->") && !compact.starts_with("fn(") {
+            format!("fn{}", compact)
+        } else {
+            compact
+        };
     if !compact.starts_with("fn(") {
         return None;
     }
@@ -3495,6 +3567,87 @@ pub(crate) fn resolve_type_ref(
     parse_type_ref(t)
 }
 
+/// Report declared type names that do not resolve to a known type. Without
+/// this, a typo like `Strr` becomes a phantom `UserType` and an unsupported
+/// annotation like `Option<Int>` silently becomes `Unknown`, disabling every
+/// downstream check that touches the annotation (audit P0-04).
+fn check_declared_type_ref(
+    t: &TypeRef,
+    type_param: Option<&str>,
+    type_defs: &BTreeMap<String, Vec<(String, TypeKind)>>,
+    enum_defs: &BTreeMap<String, Vec<EnumVariantLayout>>,
+    what: &str,
+    span: Span,
+    diagnostics: &mut Diagnostics,
+) {
+    let raw = t.raw.replace(' ', "");
+    if raw.is_empty() {
+        return;
+    }
+    let resolved = match type_param {
+        Some(p) => resolve_type_ref_with_type_param(t, type_defs, enum_defs, p),
+        None => resolve_type_ref(t, type_defs, enum_defs),
+    };
+    let mut unknown_names: BTreeSet<String> = BTreeSet::new();
+    let mut has_unresolved = false;
+    collect_unknown_type_names(
+        &resolved,
+        type_defs,
+        enum_defs,
+        &mut unknown_names,
+        &mut has_unresolved,
+    );
+    for name in &unknown_names {
+        diagnostics.push(Diagnostic::new(
+            "E2005",
+            Severity::Error,
+            format!("unknown type `{name}` in {what}"),
+            span,
+        ));
+    }
+    if unknown_names.is_empty() && has_unresolved {
+        diagnostics.push(Diagnostic::new(
+            "E2005",
+            Severity::Error,
+            format!("unknown type `{raw}` in {what}"),
+            span,
+        ));
+    }
+}
+
+/// Collect `UserType` names that are in neither `type_defs` nor `enum_defs`,
+/// and flag `Unknown` leaves (annotations the resolver could not parse).
+fn collect_unknown_type_names(
+    t: &TypeKind,
+    type_defs: &BTreeMap<String, Vec<(String, TypeKind)>>,
+    enum_defs: &BTreeMap<String, Vec<EnumVariantLayout>>,
+    unknown_names: &mut BTreeSet<String>,
+    has_unresolved: &mut bool,
+) {
+    match t {
+        TypeKind::UserType(name) => {
+            if !type_defs.contains_key(name) && !enum_defs.contains_key(name) {
+                unknown_names.insert(name.clone());
+            }
+        }
+        TypeKind::Unknown => *has_unresolved = true,
+        TypeKind::List(inner) | TypeKind::Chan(inner) => {
+            collect_unknown_type_names(inner, type_defs, enum_defs, unknown_names, has_unresolved);
+        }
+        TypeKind::Map(a, b) | TypeKind::Result(a, b) => {
+            collect_unknown_type_names(a, type_defs, enum_defs, unknown_names, has_unresolved);
+            collect_unknown_type_names(b, type_defs, enum_defs, unknown_names, has_unresolved);
+        }
+        TypeKind::Fn(params, ret) => {
+            for p in params {
+                collect_unknown_type_names(p, type_defs, enum_defs, unknown_names, has_unresolved);
+            }
+            collect_unknown_type_names(ret, type_defs, enum_defs, unknown_names, has_unresolved);
+        }
+        _ => {}
+    }
+}
+
 fn resolve_type_segment_for_fn_with_param(
     seg: &str,
     type_defs: &BTreeMap<String, Vec<(String, TypeKind)>>,
@@ -3524,12 +3677,12 @@ fn try_parse_fn_type_kind_with_param(
     type_param: &str,
 ) -> Option<TypeKind> {
     let compact: String = raw.chars().filter(|c| !c.is_whitespace()).collect();
-    let compact = if compact.starts_with('(') && compact.contains(")->") && !compact.starts_with("fn(")
-    {
-        format!("fn{}", compact)
-    } else {
-        compact
-    };
+    let compact =
+        if compact.starts_with('(') && compact.contains(")->") && !compact.starts_with("fn(") {
+            format!("fn{}", compact)
+        } else {
+            compact
+        };
     if !compact.starts_with("fn(") {
         return None;
     }
@@ -3561,7 +3714,9 @@ fn try_parse_fn_type_kind_with_param(
     } else {
         split_top_level_commas_fn(params_str)
             .into_iter()
-            .map(|seg| resolve_type_segment_for_fn_with_param(&seg, type_defs, enum_defs, type_param))
+            .map(|seg| {
+                resolve_type_segment_for_fn_with_param(&seg, type_defs, enum_defs, type_param)
+            })
             .collect()
     };
     let ret = resolve_type_segment_for_fn_with_param(ret_str, type_defs, enum_defs, type_param);
@@ -3685,9 +3840,9 @@ fn mangle_type_for_mono(t: &TypeKind) -> String {
 fn substitute_type_param_in_kind(k: &TypeKind, param: &str, with: &TypeKind) -> TypeKind {
     match k {
         TypeKind::TypeParam(p) if p == param => with.clone(),
-        TypeKind::List(inner) => TypeKind::List(Box::new(substitute_type_param_in_kind(
-            inner, param, with,
-        ))),
+        TypeKind::List(inner) => {
+            TypeKind::List(Box::new(substitute_type_param_in_kind(inner, param, with)))
+        }
         TypeKind::Map(a, b) => TypeKind::Map(
             Box::new(substitute_type_param_in_kind(a, param, with)),
             Box::new(substitute_type_param_in_kind(b, param, with)),
@@ -3696,9 +3851,9 @@ fn substitute_type_param_in_kind(k: &TypeKind, param: &str, with: &TypeKind) -> 
             Box::new(substitute_type_param_in_kind(a, param, with)),
             Box::new(substitute_type_param_in_kind(b, param, with)),
         ),
-        TypeKind::Chan(inner) => TypeKind::Chan(Box::new(substitute_type_param_in_kind(
-            inner, param, with,
-        ))),
+        TypeKind::Chan(inner) => {
+            TypeKind::Chan(Box::new(substitute_type_param_in_kind(inner, param, with)))
+        }
         TypeKind::Fn(ps, r) => TypeKind::Fn(
             ps.iter()
                 .map(|p| substitute_type_param_in_kind(p, param, with))
@@ -4019,6 +4174,43 @@ pub(crate) fn unify_return_types(types: &[TypeKind]) -> TypeKind {
     current
 }
 
+/// Report an E2201 at every return site whose concrete inferred type conflicts
+/// with the first concrete return type of the function. Without this report,
+/// [`unify_return_types`] silently unifies the conflict to `Unknown`, which is
+/// compatible with any declared return type, so the declared-vs-inferred check
+/// passes vacuously (audit P0-04). `Unknown` members (e.g. results of
+/// unresolved calls) never count as conflicts, so permissive flows stay
+/// permissive.
+fn report_conflicting_return_types(
+    returns: &[(TypeKind, Span)],
+    func_name: &str,
+    diagnostics: &mut Diagnostics,
+) {
+    let mut anchor: Option<&TypeKind> = None;
+    for (ty, span) in returns {
+        if matches!(ty, TypeKind::Unknown) {
+            continue;
+        }
+        match anchor {
+            None => anchor = Some(ty),
+            Some(anchor_ty) => {
+                if !type_compatible(anchor_ty, ty) {
+                    diagnostics.push(Diagnostic::new(
+                        "E2201",
+                        Severity::Error,
+                        format!(
+                            "conflicting return types in `{func_name}`: this path returns `{}`, but an earlier path returns `{}`",
+                            type_name(ty),
+                            type_name(anchor_ty)
+                        ),
+                        *span,
+                    ));
+                }
+            }
+        }
+    }
+}
+
 fn is_container_member_api(field: &str) -> bool {
     matches!(
         field,
@@ -4173,7 +4365,10 @@ fn infer_result_stdlib_namespace_call(
                 diagnostics.push(Diagnostic::new(
                     "E2237",
                     Severity::Error,
-                    format!("`result.wrap_err` expects 2 argument(s), got {}", args.len()),
+                    format!(
+                        "`result.wrap_err` expects 2 argument(s), got {}",
+                        args.len()
+                    ),
                     call_span,
                 ));
                 return TypeKind::Unknown;
@@ -4226,7 +4421,10 @@ fn infer_result_stdlib_namespace_call(
                 diagnostics.push(Diagnostic::new(
                     "E2237",
                     Severity::Error,
-                    format!("`result.unwrap_or` expects 2 argument(s), got {}", args.len()),
+                    format!(
+                        "`result.unwrap_or` expects 2 argument(s), got {}",
+                        args.len()
+                    ),
                     call_span,
                 ));
                 return TypeKind::Unknown;
@@ -4334,7 +4532,11 @@ fn infer_stdlib_namespace_call(
 ) -> Option<TypeKind> {
     if namespace == "result" {
         return Some(infer_result_stdlib_namespace_call(
-            field, args, arg_types, diagnostics, call_span,
+            field,
+            args,
+            arg_types,
+            diagnostics,
+            call_span,
         ));
     }
     let ns_key = (namespace.to_string(), field.to_string());

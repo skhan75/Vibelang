@@ -4,7 +4,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use vibe_ast::{Expr, Stmt};
-use vibe_diagnostics::{Diagnostic, Diagnostics, Severity};
+use vibe_diagnostics::{Diagnostic, Diagnostics, Severity, Span};
 use vibe_hir::{HirExpr, HirExprKind, HirFunction, HirParam, HirStmt};
 
 use crate::{
@@ -66,10 +66,7 @@ pub fn process_fn_literal(
             diagnostics.push(Diagnostic::new(
                 "E2261",
                 Severity::Error,
-                format!(
-                    "closure parameter `{}` requires an explicit type",
-                    p.name
-                ),
+                format!("closure parameter `{}` requires an explicit type", p.name),
                 *span,
             ));
         }
@@ -79,15 +76,18 @@ pub fn process_fn_literal(
     let param_types: Vec<TypeKind> = params
         .iter()
         .map(|p| {
-            p.ty
-                .as_ref()
+            p.ty.as_ref()
                 .map(|t| crate::resolve_type_ref(t, ctx.type_defs, ctx.enum_defs))
                 .unwrap_or(TypeKind::Unknown)
         })
         .collect();
 
-    let capture_names =
-        collect_capture_names(body, tail_expr.as_ref().map(|b| b.as_ref()), &param_names, env);
+    let capture_names = collect_capture_names(
+        body,
+        tail_expr.as_ref().map(|b| b.as_ref()),
+        &param_names,
+        env,
+    );
     let mut cap_map: BTreeMap<String, u32> = BTreeMap::new();
     for (i, name) in capture_names.iter().enumerate() {
         cap_map.insert(name.clone(), (i + 1) as u32);
@@ -102,7 +102,7 @@ pub fn process_fn_literal(
         inner_env.insert(p.name.clone(), t.clone());
     }
 
-    let mut inferred_returns: Vec<TypeKind> = Vec::new();
+    let mut inferred_returns: Vec<(TypeKind, Span)> = Vec::new();
     let mut hir_body: Vec<HirStmt> = Vec::new();
     let ensure_empty: Vec<vibe_ast::Expr> = Vec::new();
 
@@ -130,12 +130,13 @@ pub fn process_fn_literal(
             diagnostics,
             observed_effects,
         );
-        inferred_returns.push(t);
+        inferred_returns.push((t, te.span()));
         hir_tail = Some(lower_expr(te.as_ref(), &inner_env, ctx));
     }
     ctx.closure_slot_map.replace(prev);
 
-    let inferred_ret = unify_return_types(&inferred_returns);
+    let return_kinds: Vec<TypeKind> = inferred_returns.iter().map(|(t, _)| t.clone()).collect();
+    let inferred_ret = unify_return_types(&return_kinds);
     let declared_ret = return_type
         .as_ref()
         .map(|t| crate::resolve_type_ref(t, ctx.type_defs, ctx.enum_defs));
@@ -256,8 +257,12 @@ pub(crate) fn fn_literal_capture_type_kinds(
         return None;
     };
     let param_names: BTreeSet<String> = params.iter().map(|p| p.name.clone()).collect();
-    let names =
-        collect_capture_names(body, tail_expr.as_ref().map(|b| b.as_ref()), &param_names, env);
+    let names = collect_capture_names(
+        body,
+        tail_expr.as_ref().map(|b| b.as_ref()),
+        &param_names,
+        env,
+    );
     Some(
         names
             .into_iter()
@@ -301,7 +306,9 @@ fn walk_stmt(
         Stmt::Return { expr, .. } | Stmt::ExprStmt { expr, .. } => {
             walk_expr(expr, outer_env, locals, caps);
         }
-        Stmt::For { var, iter, body, .. } => {
+        Stmt::For {
+            var, iter, body, ..
+        } => {
             walk_expr(iter, outer_env, locals, caps);
             let mut inner = locals.clone();
             inner.insert(var.clone());
@@ -325,7 +332,10 @@ fn walk_stmt(
                 walk_stmt(s, outer_env, &mut else_loc, caps);
             }
         }
-        Stmt::While { cond, body, .. } | Stmt::Repeat { count: cond, body, .. } => {
+        Stmt::While { cond, body, .. }
+        | Stmt::Repeat {
+            count: cond, body, ..
+        } => {
             walk_expr(cond, outer_env, locals, caps);
             let mut inner = locals.clone();
             for s in body {
@@ -393,10 +403,7 @@ fn walk_expr(
             walk_expr(index, outer_env, locals, caps);
         }
         Expr::Slice {
-            object,
-            start,
-            end,
-            ..
+            object, start, end, ..
         } => {
             walk_expr(object, outer_env, locals, caps);
             if let Some(s) = start {
