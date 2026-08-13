@@ -57,6 +57,7 @@ This catalog reserves deterministic code ranges for frontend diagnostics.
 - `E1408` expected `]`
 - `E1409` expected `)`
 - `E1410` unexpected token in expression
+- `E1414` integer literal out of range for Int (`-9223372036854775808` also errors: unary minus applies to an out-of-range positive literal)
 
 ### Binder/Type (`E2xxx`)
 

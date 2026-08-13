@@ -166,7 +166,8 @@ impl Parser {
                 let mut fs = Vec::new();
                 self.consume_newlines();
                 while !self.at(&TokenKind::RBrace) && !self.is_eof() {
-                    let field_name = self.expect_ident("E1140", "expected field name in enum variant");
+                    let field_name =
+                        self.expect_ident("E1140", "expected field name in enum variant");
                     self.expect(
                         TokenKind::Colon,
                         "E1141",
@@ -191,7 +192,12 @@ impl Parser {
                 );
                 (
                     fs,
-                    Span::new(v_start.line_start, v_start.col_start, fe.line_end, fe.col_end),
+                    Span::new(
+                        v_start.line_start,
+                        v_start.col_start,
+                        fe.line_end,
+                        fe.col_end,
+                    ),
                 )
             } else {
                 (
@@ -238,9 +244,7 @@ impl Parser {
             if self.at(&TokenKind::Gt) {
                 break;
             }
-            params.push(
-                self.expect_ident("E1102a", "expected type parameter name after `<`"),
-            );
+            params.push(self.expect_ident("E1102a", "expected type parameter name after `<`"));
             if self.match_kind(&TokenKind::Comma) {
                 continue;
             }
@@ -1143,7 +1147,11 @@ impl Parser {
             ) && self.at(&TokenKind::LBrace);
             if is_enum_variant_ctor {
                 let (enum_name, variant, span_lo) = match &expr {
-                    Expr::Member { object, field, span } => {
+                    Expr::Member {
+                        object,
+                        field,
+                        span,
+                    } => {
                         let Expr::Ident { name, .. } = &**object else {
                             unreachable!()
                         };
@@ -1374,8 +1382,25 @@ impl Parser {
             }
             TokenKind::IntLit => {
                 let t = self.bump();
+                // Int literal lexemes are pure digit runs, so parse failure
+                // means the value is out of `i64` range. Note `i64::MIN`
+                // written as `-9223372036854775808` also errors here: the
+                // unary minus applies to a `9223372036854775808` literal,
+                // which is itself out of range (same behavior as rustc).
+                let value = match t.lexeme.parse() {
+                    Ok(value) => value,
+                    Err(_) => {
+                        self.diagnostics.push(Diagnostic::new(
+                            "E1414",
+                            Severity::Error,
+                            "integer literal out of range for Int",
+                            t.span,
+                        ));
+                        0
+                    }
+                };
                 Expr::Int {
-                    value: t.lexeme.parse().unwrap_or_default(),
+                    value,
                     span: t.span,
                 }
             }
@@ -1763,7 +1788,8 @@ impl Parser {
 #[cfg(test)]
 mod tests {
     use super::parse_source;
-    use vibe_ast::Declaration;
+    use vibe_ast::{Declaration, Expr, Stmt};
+    use vibe_diagnostics::Severity;
 
     #[test]
     fn parses_basic_function() {
@@ -1787,7 +1813,11 @@ topK(xs, k) {
     fn parses_generic_function_decl() {
         let src = r#"identity<T>(x: T) -> T { x }"#;
         let out = parse_source(src);
-        assert!(!out.diagnostics.has_errors(), "{}", out.diagnostics.to_golden());
+        assert!(
+            !out.diagnostics.has_errors(),
+            "{}",
+            out.diagnostics.to_golden()
+        );
         match &out.ast.declarations[0] {
             Declaration::Function(f) => {
                 assert_eq!(f.type_params, vec!["T".to_string()]);
@@ -1821,5 +1851,81 @@ main() -> Int {
             "{}",
             out.diagnostics.to_golden()
         );
+    }
+
+    #[test]
+    fn parses_i64_max_int_literal() {
+        let src = "main() -> Int {\n  x := 9223372036854775807\n  x\n}\n";
+        let out = parse_source(src);
+        assert!(
+            !out.diagnostics.has_errors(),
+            "{}",
+            out.diagnostics.to_golden()
+        );
+        let func = match &out.ast.declarations[0] {
+            Declaration::Function(f) => f,
+            _ => panic!("expected function decl"),
+        };
+        let expr = match &func.body[0] {
+            Stmt::Binding { expr, .. } => expr,
+            _ => panic!("expected binding statement"),
+        };
+        match expr {
+            Expr::Int { value, .. } => assert_eq!(*value, i64::MAX),
+            _ => panic!("expected int literal"),
+        }
+    }
+
+    #[test]
+    fn rejects_int_literal_above_i64_max() {
+        let src = "main() -> Int {\n  x := 9223372036854775808\n  0\n}\n";
+        let out = parse_source(src);
+        let errors: Vec<_> = out
+            .diagnostics
+            .as_slice()
+            .iter()
+            .filter(|d| d.code == "E1414")
+            .collect();
+        assert_eq!(errors.len(), 1, "{}", out.diagnostics.to_golden());
+        let diag = errors[0];
+        assert_eq!(diag.severity, Severity::Error);
+        assert_eq!(diag.message, "integer literal out of range for Int");
+        assert_eq!(
+            (
+                diag.span.line_start,
+                diag.span.col_start,
+                diag.span.line_end,
+                diag.span.col_end,
+            ),
+            (2, 8, 2, 26),
+            "diagnostic should span the literal token"
+        );
+    }
+
+    #[test]
+    fn rejects_i64_min_written_as_negative_literal() {
+        // `-9223372036854775808` is unary minus applied to a
+        // `9223372036854775808` literal, which is out of range on its own
+        // (same behavior as rustc). Spell i64::MIN arithmetically instead.
+        let src = "main() -> Int {\n  x := -9223372036854775808\n  0\n}\n";
+        let out = parse_source(src);
+        assert!(
+            out.diagnostics.as_slice().iter().any(|d| d.code == "E1414"),
+            "{}",
+            out.diagnostics.to_golden()
+        );
+    }
+
+    #[test]
+    fn rejects_thirty_digit_int_literal() {
+        let src = "main() -> Int {\n  x := 999999999999999999999999999999\n  0\n}\n";
+        let out = parse_source(src);
+        let errors: Vec<_> = out
+            .diagnostics
+            .as_slice()
+            .iter()
+            .filter(|d| d.code == "E1414")
+            .collect();
+        assert_eq!(errors.len(), 1, "{}", out.diagnostics.to_golden());
     }
 }
