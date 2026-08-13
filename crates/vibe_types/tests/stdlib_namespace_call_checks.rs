@@ -25,6 +25,7 @@ __stdlib_str_builder__new(capacity: Int) -> Int { capacity }
 __stdlib_str_builder__finish(handle: Int) -> Str { "" }
 __stdlib_path__join(a: Str, b: Str) -> Str { a }
 __stdlib_opaque__handle(x: Int) { x }
+__stdlib_convert__to_str(n: Int) -> Str { "" }
 "#;
 
 fn namespace_map() -> BTreeMap<(String, String), String> {
@@ -36,6 +37,7 @@ fn namespace_map() -> BTreeMap<(String, String), String> {
         ("str_builder", "finish"),
         ("path", "join"),
         ("opaque", "handle"),
+        ("convert", "to_str"),
     ] {
         map.insert(
             (ns.to_string(), field.to_string()),
@@ -213,6 +215,156 @@ fn int_to_float_coercion_is_accepted() {
 "#,
     );
     assert!(diags.is_empty(), "expected no diagnostics: {diags:?}");
+}
+
+#[test]
+fn interpolated_str_value_is_accepted() {
+    // Regression guard: the parser desugars `"hello {s}"` into
+    // `"hello " + convert.to_str(s)`, and HIR lowering rewrites
+    // `convert.to_str(<Str>)` into a passthrough of the argument (see
+    // `is_convert_to_str_call` in vibe_types), so a `Str` argument is
+    // valid even though the stdlib declares `to_str(n: Int)`. The stdlib
+    // arg check must not reject it (it briefly did, breaking
+    // `examples/01_basics/75_string_interpolation.yb`).
+    let diags = check(
+        r#"pub main() -> Int {
+  @effect io
+  s := "world"
+  println("hello {s}")
+  0
+}
+"#,
+    );
+    assert!(
+        !codes(&diags).contains(&"E2264") && !codes(&diags).contains(&"E2265"),
+        "Str interpolation must pass the stdlib arg check: {diags:?}"
+    );
+}
+
+#[test]
+fn interpolated_int_value_is_accepted() {
+    let diags = check(
+        r#"pub main() -> Int {
+  @effect io
+  n := 42
+  println("num {n}")
+  0
+}
+"#,
+    );
+    assert!(
+        !codes(&diags).contains(&"E2264") && !codes(&diags).contains(&"E2265"),
+        "Int interpolation must pass the stdlib arg check: {diags:?}"
+    );
+}
+
+#[test]
+fn interpolated_bool_value_is_rejected_with_spanned_e2265() {
+    // Ground truth (pre-Theme-A binary, empirically verified): Bool
+    // interpolation never worked — it died as a spanless Cranelift
+    // verifier error at codegen. The spanned check-time E2265 is a
+    // deliberate improvement, not a regression; do not add Bool to the
+    // accepted set without codegen support.
+    let diags = check(
+        r#"pub main() -> Int {
+  @effect io
+  b := true
+  println("flag {b}")
+  0
+}
+"#,
+    );
+    assert!(
+        codes(&diags).contains(&"E2265"),
+        "Bool interpolation must be rejected at check time: {diags:?}"
+    );
+    let d = diags.iter().find(|d| d.code == "E2265").expect("E2265");
+    assert_eq!(
+        d.message,
+        "argument 1 type mismatch in call to `convert.to_str`: expected `Int`, got `Bool`"
+    );
+    assert_eq!(d.severity, Severity::Error);
+}
+
+#[test]
+fn interpolated_float_value_is_not_rejected_at_check_time() {
+    // Ground truth (pre-Theme-A binary, empirically verified): Float
+    // interpolation fails in codegen (Cranelift verifier error, the
+    // known P1-12 float bug), same as today. The checker accepts it via
+    // the Int→Float coercion rule, so the failure stays a codegen
+    // problem — this test only pins that the checker does not change
+    // that boundary.
+    let diags = check(
+        r#"pub main() -> Int {
+  @effect io
+  f := 1.5
+  println("val {f}")
+  0
+}
+"#,
+    );
+    assert!(
+        !codes(&diags).contains(&"E2264") && !codes(&diags).contains(&"E2265"),
+        "Float interpolation is a codegen (P1-12) issue, not a check-time one: {diags:?}"
+    );
+}
+
+#[test]
+fn direct_convert_to_str_str_arg_is_accepted() {
+    // Direct user-written calls take the same HIR passthrough as the
+    // interpolation desugaring, so `Str` arguments must stay accepted.
+    let diags = check(
+        r#"pub main() -> Int {
+  @effect io
+  s := "abc"
+  println(convert.to_str(s))
+  println(convert.to_str("lit"))
+  0
+}
+"#,
+    );
+    assert!(
+        !codes(&diags).contains(&"E2264") && !codes(&diags).contains(&"E2265"),
+        "direct convert.to_str(Str) must pass: {diags:?}"
+    );
+}
+
+#[test]
+fn direct_convert_to_str_int_arg_is_accepted() {
+    let diags = check(
+        r#"pub main() -> Int {
+  @effect io
+  println(convert.to_str(42))
+  0
+}
+"#,
+    );
+    assert!(
+        !codes(&diags).contains(&"E2264") && !codes(&diags).contains(&"E2265"),
+        "direct convert.to_str(Int) must pass: {diags:?}"
+    );
+}
+
+#[test]
+fn direct_convert_to_str_bool_arg_is_rejected() {
+    let diags = check(
+        r#"pub main() -> Int {
+  @effect io
+  b := false
+  println(convert.to_str(b))
+  0
+}
+"#,
+    );
+    assert!(
+        codes(&diags).contains(&"E2265"),
+        "direct convert.to_str(Bool) must be rejected: {diags:?}"
+    );
+    let d = diags.iter().find(|d| d.code == "E2265").expect("E2265");
+    assert_eq!(
+        d.message,
+        "argument 1 type mismatch in call to `convert.to_str`: expected `Int`, got `Bool`"
+    );
 }
 
 #[test]

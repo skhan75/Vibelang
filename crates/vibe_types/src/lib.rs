@@ -4718,6 +4718,22 @@ fn infer_stdlib_namespace_call(
                 return Some(TypeKind::Unknown);
             }
             for (i, (expected, got)) in param_tys.iter().zip(arg_types).enumerate() {
+                // `convert.to_str` is declared `to_str(n: Int) -> Str` in
+                // stdlib/std/convert.yb, but it also accepts `Str`: the parser
+                // desugars every string-interpolation segment `{x}` into a
+                // `convert.to_str(x)` call (vibe_parser interpolation
+                // desugaring), and HIR lowering rewrites `convert.to_str(s)`
+                // with a `Str` argument into a passthrough of `s` itself (see
+                // `is_convert_to_str_call` in `lower_expr` above), so codegen
+                // never sees the Str-argument call. Accept `Str` here to match
+                // that dispatch; rejecting it would break Str interpolation.
+                if namespace == "convert"
+                    && field == "to_str"
+                    && i == 0
+                    && matches!(got, TypeKind::Str)
+                {
+                    continue;
+                }
                 if !type_compatible(expected, got)
                     && !matches!(expected, TypeKind::Unknown)
                     && !matches!(got, TypeKind::Unknown)
