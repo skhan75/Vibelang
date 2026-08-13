@@ -4339,6 +4339,43 @@ fn infer_stdlib_namespace_call(
     }
     let ns_key = (namespace.to_string(), field.to_string());
     if let Some(mangled) = ctx.namespace_map.get(&ns_key) {
+        if let Some(TypeKind::Fn(param_tys, _)) = ctx.function_value_types.get(mangled) {
+            if param_tys.len() != args.len() {
+                diagnostics.push(Diagnostic::new(
+                    "E2264",
+                    Severity::Error,
+                    format!(
+                        "function `{}.{}` expects {} argument(s), got {}",
+                        namespace,
+                        field,
+                        param_tys.len(),
+                        args.len()
+                    ),
+                    call_span,
+                ));
+                return Some(TypeKind::Unknown);
+            }
+            for (i, (expected, got)) in param_tys.iter().zip(arg_types).enumerate() {
+                if !type_compatible(expected, got)
+                    && !matches!(expected, TypeKind::Unknown)
+                    && !matches!(got, TypeKind::Unknown)
+                {
+                    diagnostics.push(Diagnostic::new(
+                        "E2265",
+                        Severity::Error,
+                        format!(
+                            "argument {} type mismatch in call to `{}.{}`: expected `{}`, got `{}`",
+                            i + 1,
+                            namespace,
+                            field,
+                            type_name(expected),
+                            type_name(got)
+                        ),
+                        args.get(i).map(|e| e.span()).unwrap_or(call_span),
+                    ));
+                }
+            }
+        }
         if let Some(ret_ty) = ctx.sigs.get(mangled).and_then(|t| t.clone()) {
             return Some(ret_ty);
         }
