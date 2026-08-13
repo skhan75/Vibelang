@@ -78,6 +78,8 @@ This catalog reserves deterministic code ranges for frontend diagnostics.
 - `E2205` `old(...)` outside `@ensure`
 - `E2206` invalid `.` usage in contract
 - `E2207` invalid `old(...)` usage in contract
+- `E2264` call arity mismatch — direct and function-value calls (also: enum pattern field must be an identifier)
+- `E2265` call argument type mismatch — direct and function-value calls (also: unknown enum pattern/variant field)
 - `E2273` logical operator (`&&`/`||`) operand is not Bool
 - `E2301` HIR verification failure
 - `E2310` duplicate module declaration in project sources

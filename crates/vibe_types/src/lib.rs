@@ -2647,6 +2647,49 @@ pub(crate) fn infer_expr(
                         }
                     }
                 }
+                if !env.contains_key(name.as_str()) {
+                    if let Some(TypeKind::Fn(param_tys, fn_ret)) =
+                        ctx.function_value_types.get(name.as_str())
+                    {
+                        if param_tys.len() != args.len() {
+                            diagnostics.push(Diagnostic::new(
+                                "E2264",
+                                Severity::Error,
+                                format!(
+                                    "function `{}` expects {} argument(s), got {}",
+                                    name,
+                                    param_tys.len(),
+                                    args.len()
+                                ),
+                                *span,
+                            ));
+                            return TypeKind::Unknown;
+                        }
+                        for (i, (expected, got)) in param_tys.iter().zip(&arg_types).enumerate() {
+                            if !type_compatible(expected, got)
+                                && !matches!(expected, TypeKind::Unknown)
+                                && !matches!(got, TypeKind::Unknown)
+                            {
+                                diagnostics.push(Diagnostic::new(
+                                    "E2265",
+                                    Severity::Error,
+                                    format!(
+                                        "argument {} type mismatch in call to `{}`: expected `{}`, got `{}`",
+                                        i + 1,
+                                        name,
+                                        type_name(expected),
+                                        type_name(got)
+                                    ),
+                                    args.get(i).map(|e| e.span()).unwrap_or(*span),
+                                ));
+                            }
+                        }
+                        if let Some(ret) = sigs.get(name).and_then(|r| r.clone()) {
+                            return ret;
+                        }
+                        return (**fn_ret).clone();
+                    }
+                }
                 if let Some(ret) = sigs.get(name).and_then(|r| r.clone()) {
                     return ret;
                 }
