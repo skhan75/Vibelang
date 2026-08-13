@@ -602,6 +602,7 @@ fn inline_small_functions(program: &mut MirProgram) {
                 && f.name != "main"
                 && count_stmts(&f.body) <= MAX_INLINE_STMTS
                 && !contains_recursion(&f.body, &f.name)
+                && !contains_contract_check(&f.body)
         })
         .map(|f| (f.name.clone(), f))
         .collect();
@@ -621,6 +622,33 @@ fn inline_small_functions(program: &mut MirProgram) {
     for func in &mut program.functions {
         inline_calls_in_stmts(&mut func.body, &inline_bodies);
     }
+}
+
+/// Callees carrying `@require`/`@ensure` checks must never be inlined.
+///
+/// This inliner substitutes parameters with the caller's *raw argument
+/// expressions* (no temp locals) and rewrites callee `return`s into
+/// fall-through `let`s. Neither transform is sound for `ContractCheck`
+/// statements: a substituted check re-evaluates argument expressions, so a
+/// non-pure argument could satisfy the check with a different value than the
+/// body actually uses, silently weakening enforcement (historically the
+/// checks were not remapped at all, which made release codegen ICE with
+/// "unknown local" on the callee's parameter names). Keeping contract-bearing
+/// callees as real calls keeps release enforcement identical to dev: the
+/// check runs inside the callee and aborts on violation.
+fn contains_contract_check(stmts: &[MirStmt]) -> bool {
+    stmts.iter().any(|stmt| match stmt {
+        MirStmt::ContractCheck { .. } => true,
+        MirStmt::If {
+            then_body,
+            else_body,
+            ..
+        } => contains_contract_check(then_body) || contains_contract_check(else_body),
+        MirStmt::While { body, .. } | MirStmt::For { body, .. } | MirStmt::Repeat { body, .. } => {
+            contains_contract_check(body)
+        }
+        _ => false,
+    })
 }
 
 fn contains_recursion(stmts: &[MirStmt], fn_name: &str) -> bool {
@@ -888,5 +916,137 @@ fn licm_stmts(stmts: &mut Vec<MirStmt>) {
 fn licm_program(program: &mut MirProgram) {
     for func in &mut program.functions {
         licm_stmts(&mut func.body);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::optimize_mir;
+    use crate::{MirContractKind, MirExpr, MirFunction, MirParam, MirProgram, MirStmt, MirType};
+
+    fn callee_body(with_contract: bool) -> Vec<MirStmt> {
+        let mut body = Vec::new();
+        if with_contract {
+            body.push(MirStmt::ContractCheck {
+                kind: MirContractKind::Require,
+                expr: MirExpr::Binary {
+                    left: Box::new(MirExpr::Var("b".to_string())),
+                    op: "Ne".to_string(),
+                    right: Box::new(MirExpr::Int(0)),
+                },
+            });
+        }
+        body.push(MirStmt::Return(MirExpr::Binary {
+            left: Box::new(MirExpr::Var("a".to_string())),
+            op: "Div".to_string(),
+            right: Box::new(MirExpr::Var("b".to_string())),
+        }));
+        body
+    }
+
+    fn program_with_callee(with_contract: bool) -> MirProgram {
+        MirProgram {
+            functions: vec![
+                MirFunction {
+                    name: "divide".to_string(),
+                    is_public: false,
+                    params: vec![
+                        MirParam {
+                            name: "a".to_string(),
+                            ty: MirType::I64,
+                        },
+                        MirParam {
+                            name: "b".to_string(),
+                            ty: MirType::I64,
+                        },
+                    ],
+                    return_type: MirType::I64,
+                    body: callee_body(with_contract),
+                    native_symbol: None,
+                },
+                MirFunction {
+                    name: "main".to_string(),
+                    is_public: true,
+                    params: vec![],
+                    return_type: MirType::I64,
+                    body: vec![
+                        MirStmt::Let {
+                            name: "value".to_string(),
+                            expr: MirExpr::Call {
+                                callee: Box::new(MirExpr::Var("divide".to_string())),
+                                args: vec![MirExpr::Int(10), MirExpr::Int(2)],
+                            },
+                        },
+                        MirStmt::Return(MirExpr::Var("value".to_string())),
+                    ],
+                    native_symbol: None,
+                },
+            ],
+        }
+    }
+
+    fn main_body(program: &MirProgram) -> &[MirStmt] {
+        &program
+            .functions
+            .iter()
+            .find(|f| f.name == "main")
+            .expect("main function")
+            .body
+    }
+
+    fn stmts_contain_contract_check(stmts: &[MirStmt]) -> bool {
+        super::contains_contract_check(stmts)
+    }
+
+    fn stmts_contain_call_to(stmts: &[MirStmt], fn_name: &str) -> bool {
+        stmts.iter().any(|stmt| match stmt {
+            MirStmt::Let { expr, .. } | MirStmt::Return(expr) => {
+                super::expr_calls_fn(expr, fn_name)
+            }
+            _ => false,
+        })
+    }
+
+    #[test]
+    fn release_inliner_skips_contract_bearing_callees() {
+        let mut program = program_with_callee(true);
+        optimize_mir(&mut program, 2);
+        let main = main_body(&program);
+        assert!(
+            stmts_contain_call_to(main, "divide"),
+            "contract-bearing callee must stay a real call, got {main:?}"
+        );
+        assert!(
+            !stmts_contain_contract_check(main),
+            "no contract check may leak into the caller, got {main:?}"
+        );
+    }
+
+    #[test]
+    fn release_inliner_still_inlines_contract_free_callees() {
+        let mut program = program_with_callee(false);
+        optimize_mir(&mut program, 2);
+        let main = main_body(&program);
+        assert!(
+            !stmts_contain_call_to(main, "divide"),
+            "contract-free small callee should be inlined, got {main:?}"
+        );
+    }
+
+    #[test]
+    fn contains_contract_check_sees_nested_bodies() {
+        let nested = vec![MirStmt::If {
+            cond: MirExpr::Bool(true),
+            then_body: vec![MirStmt::While {
+                cond: MirExpr::Bool(true),
+                body: vec![MirStmt::ContractCheck {
+                    kind: MirContractKind::Ensure,
+                    expr: MirExpr::Bool(true),
+                }],
+            }],
+            else_body: vec![],
+        }];
+        assert!(super::contains_contract_check(&nested));
+        assert!(!super::contains_contract_check(&[MirStmt::Break]));
     }
 }
