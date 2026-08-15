@@ -2904,9 +2904,15 @@ fn emit_expr(
                     .ok_or_else(|| "map runtime call did not return map handle".to_string())?
             } else {
                 let (first_key_expr, first_val_expr) = &entries[0];
-                let use_str_keys = is_known_string_expr_full(first_key_expr, owner, type_defs);
-                let use_str_vals =
-                    use_str_keys && is_known_string_expr_full(first_val_expr, owner, type_defs);
+                let use_str_keys =
+                    is_known_string_expr_full(first_key_expr, owner, type_defs, function_returns);
+                let use_str_vals = use_str_keys
+                    && is_known_string_expr_full(
+                        first_val_expr,
+                        owner,
+                        type_defs,
+                        function_returns,
+                    );
                 let local_new =
                     if use_str_keys && use_str_vals {
                         let cap = builder.ins().iconst(ir::types::I64, entries.len() as i64);
@@ -2980,7 +2986,7 @@ fn emit_expr(
                         );
                         builder.ins().call(local_set, &[map_handle, key, value]);
                     } else {
-                        if is_known_string_expr_full(key_expr, owner, type_defs) {
+                        if is_known_string_expr_full(key_expr, owner, type_defs, function_returns) {
                             return Err(
                                 "E3401: map literal key kinds must be consistent (all Str or all Int)"
                                     .to_string(),
@@ -3014,8 +3020,9 @@ fn emit_expr(
                 enum_defs,
             )?;
             if field == "len" {
-                let use_str_len = is_known_string_expr_full(object, owner, type_defs)
-                    || matches!(&**object, MirExpr::Var(name)
+                let use_str_len =
+                    is_known_string_expr_full(object, owner, type_defs, function_returns)
+                        || matches!(&**object, MirExpr::Var(name)
                         if var_has_add_assignment(owner, name)
                         || var_has_str_call_assignment(owner, name, function_returns));
                 let local_len = if use_str_len {
@@ -3374,7 +3381,8 @@ fn emit_expr(
                         type_defs,
                         enum_defs,
                     )?;
-                    let use_str_len = is_known_string_expr_full(&args[0], owner, type_defs);
+                    let use_str_len =
+                        is_known_string_expr_full(&args[0], owner, type_defs, function_returns);
                     let local_len = if use_str_len {
                         module.declare_func_in_func(runtime_fns.str_len_bytes_fn, builder.func)
                     } else {
@@ -3634,8 +3642,9 @@ fn emit_expr(
                         if !lowered_args.is_empty() {
                             return Err("`.len()` expects no arguments".to_string());
                         }
-                        let use_str_len = is_known_string_expr_full(object, owner, type_defs)
-                            || matches!(&**object, MirExpr::Var(name)
+                        let use_str_len =
+                            is_known_string_expr_full(object, owner, type_defs, function_returns)
+                                || matches!(&**object, MirExpr::Var(name)
                                 if var_has_add_assignment(owner, name)
                                 || var_has_str_call_assignment(owner, name, function_returns));
                         let local_len = if use_str_len {
@@ -3913,8 +3922,8 @@ fn emit_expr(
             };
             match op.as_str() {
                 "Add" => {
-                    if is_known_string_expr_full(left, owner, type_defs)
-                        || is_known_string_expr_full(right, owner, type_defs)
+                    if is_known_string_expr_full(left, owner, type_defs, function_returns)
+                        || is_known_string_expr_full(right, owner, type_defs, function_returns)
                     {
                         let local_concat =
                             module.declare_func_in_func(runtime_fns.str_concat_fn, builder.func);
@@ -3957,8 +3966,8 @@ fn emit_expr(
                 "Shr" => builder.ins().sshr(l, r),
                 "Eq" | "Ne" => {
                     let is_ne = op == "Ne";
-                    if is_known_string_expr_full(left, owner, type_defs)
-                        || is_known_string_expr_full(right, owner, type_defs)
+                    if is_known_string_expr_full(left, owner, type_defs, function_returns)
+                        || is_known_string_expr_full(right, owner, type_defs, function_returns)
                     {
                         let local_eq =
                             module.declare_func_in_func(runtime_fns.str_eq_fn, builder.func);
@@ -4630,12 +4639,12 @@ fn collect_member_chain_mir(expr: &MirExpr, parts: &mut Vec<String>) -> bool {
 }
 
 fn extract_stdlib_call_target_mir_static(callee: &MirExpr) -> Option<(String, String)> {
-    extract_stdlib_call_target_mir(callee, &BTreeMap::new())
+    extract_stdlib_call_target_mir(callee, &BTreeMap::<String, FuncId>::new())
 }
 
-fn extract_stdlib_call_target_mir(
+fn extract_stdlib_call_target_mir<V>(
     callee: &MirExpr,
-    function_ids: &BTreeMap<String, FuncId>,
+    function_ids: &BTreeMap<String, V>,
 ) -> Option<(String, String)> {
     let MirExpr::Member { .. } = callee else {
         return None;
@@ -5210,16 +5219,18 @@ fn default_value(builder: &mut FunctionBuilder<'_>, ty: &MirType, ptr_ty: ir::Ty
     }
 }
 
-fn is_known_string_expr(expr: &MirExpr) -> bool {
+fn is_known_string_expr(expr: &MirExpr, function_returns: &BTreeMap<String, MirType>) -> bool {
     match expr {
         MirExpr::Str(_) => true,
         MirExpr::Binary { left, op, right } if op == "Add" => {
-            is_known_string_expr(left) || is_known_string_expr(right)
+            is_known_string_expr(left, function_returns)
+                || is_known_string_expr(right, function_returns)
         }
         MirExpr::Call { callee, .. } => {
-            if let Some((namespace, field)) = extract_stdlib_call_target_mir_static(callee.as_ref())
+            if let Some((namespace, field)) =
+                extract_stdlib_call_target_mir(callee.as_ref(), function_returns)
             {
-                return match namespace.as_str() {
+                let allowlisted = match namespace.as_str() {
                     "path" => field == "join" || field == "parent" || field == "basename",
                     "fs" => field == "read_text",
                     "net" => field == "read" || field == "resolve",
@@ -5273,6 +5284,16 @@ fn is_known_string_expr(expr: &MirExpr) -> bool {
                     }
                     _ => false,
                 };
+                if allowlisted {
+                    return true;
+                }
+                // Ground truth: any stdlib namespace call whose declared
+                // return type is Str yields a plain string (e.g.
+                // json.stringify_i64, crypto.uuid_v4). Without this, `.len()`
+                // on such results is dispatched to vibe_container_len, which
+                // reads string bytes as a container tag and aborts.
+                let ns_key = format!("__ns_call__{namespace}.{field}");
+                return matches!(function_returns.get(&ns_key), Some(MirType::Str));
             }
             false
         }
@@ -5284,6 +5305,7 @@ fn is_known_string_expr(expr: &MirExpr) -> bool {
 fn collect_var_string_assignments(
     stmts: &[MirStmt],
     target: &str,
+    function_returns: &BTreeMap<String, MirType>,
     saw_assignment: &mut bool,
     all_string: &mut bool,
 ) {
@@ -5292,7 +5314,7 @@ fn collect_var_string_assignments(
             MirStmt::Let { name, expr } | MirStmt::Assign { name, expr } => {
                 if name == target {
                     *saw_assignment = true;
-                    if !is_known_string_expr(expr) {
+                    if !is_known_string_expr(expr, function_returns) {
                         *all_string = false;
                     }
                 }
@@ -5302,13 +5324,31 @@ fn collect_var_string_assignments(
                 else_body,
                 ..
             } => {
-                collect_var_string_assignments(then_body, target, saw_assignment, all_string);
-                collect_var_string_assignments(else_body, target, saw_assignment, all_string);
+                collect_var_string_assignments(
+                    then_body,
+                    target,
+                    function_returns,
+                    saw_assignment,
+                    all_string,
+                );
+                collect_var_string_assignments(
+                    else_body,
+                    target,
+                    function_returns,
+                    saw_assignment,
+                    all_string,
+                );
             }
             MirStmt::For { body, .. }
             | MirStmt::While { body, .. }
             | MirStmt::Repeat { body, .. } => {
-                collect_var_string_assignments(body, target, saw_assignment, all_string);
+                collect_var_string_assignments(
+                    body,
+                    target,
+                    function_returns,
+                    saw_assignment,
+                    all_string,
+                );
             }
             _ => {}
         }
@@ -5401,7 +5441,11 @@ fn var_has_str_call_assignment(
     var_has_str_call_assignment_in_stmts(&owner.body, name, function_returns)
 }
 
-fn is_var_known_string_in_owner(owner: &MirFunction, name: &str) -> bool {
+fn is_var_known_string_in_owner(
+    owner: &MirFunction,
+    name: &str,
+    function_returns: &BTreeMap<String, MirType>,
+) -> bool {
     for param in &owner.params {
         if param.name == name {
             return param.ty == MirType::Str;
@@ -5409,28 +5453,39 @@ fn is_var_known_string_in_owner(owner: &MirFunction, name: &str) -> bool {
     }
     let mut saw_assignment = false;
     let mut all_string = true;
-    collect_var_string_assignments(&owner.body, name, &mut saw_assignment, &mut all_string);
+    collect_var_string_assignments(
+        &owner.body,
+        name,
+        function_returns,
+        &mut saw_assignment,
+        &mut all_string,
+    );
     saw_assignment && all_string
 }
 
-fn is_known_string_expr_with_owner(expr: &MirExpr, owner: &MirFunction) -> bool {
-    is_known_string_expr_full(expr, owner, &BTreeMap::new())
+fn is_known_string_expr_with_owner(
+    expr: &MirExpr,
+    owner: &MirFunction,
+    function_returns: &BTreeMap<String, MirType>,
+) -> bool {
+    is_known_string_expr_full(expr, owner, &BTreeMap::new(), function_returns)
 }
 
 fn is_known_string_expr_full(
     expr: &MirExpr,
     owner: &MirFunction,
     type_defs: &BTreeMap<String, Vec<(String, String)>>,
+    function_returns: &BTreeMap<String, MirType>,
 ) -> bool {
-    if is_known_string_expr(expr) {
+    if is_known_string_expr(expr, function_returns) {
         return true;
     }
     match expr {
         MirExpr::EnvLoad { ty, .. } => *ty == MirType::Str,
-        MirExpr::Var(name) => is_var_known_string_in_owner(owner, name),
+        MirExpr::Var(name) => is_var_known_string_in_owner(owner, name, function_returns),
         MirExpr::Binary { left, op, right } if op == "Add" => {
-            is_known_string_expr_full(left, owner, type_defs)
-                || is_known_string_expr_full(right, owner, type_defs)
+            is_known_string_expr_full(left, owner, type_defs, function_returns)
+                || is_known_string_expr_full(right, owner, type_defs, function_returns)
         }
         MirExpr::Member {
             field, object_type, ..
@@ -5634,7 +5689,7 @@ fn value_type_for_expr(
             if let Some(ty) = locals_ty.get(name) {
                 return mir_ty_to_clif(ty, ptr_ty);
             }
-            if is_var_known_string_in_owner(owner, name) {
+            if is_var_known_string_in_owner(owner, name, function_returns) {
                 ptr_ty
             } else if owner
                 .params
@@ -5653,8 +5708,8 @@ fn value_type_for_expr(
             }
         }
         MirExpr::Binary { left, op, right } if op == "Add" => {
-            if is_known_string_expr_with_owner(left, owner)
-                || is_known_string_expr_with_owner(right, owner)
+            if is_known_string_expr_with_owner(left, owner, function_returns)
+                || is_known_string_expr_with_owner(right, owner, function_returns)
             {
                 ptr_ty
             } else {
