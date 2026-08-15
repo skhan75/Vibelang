@@ -58,6 +58,7 @@ This catalog reserves deterministic code ranges for frontend diagnostics.
 - `E1409` expected `)`
 - `E1410` unexpected token in expression
 - `E1414` integer literal out of range for Int (`-9223372036854775808` also errors: unary minus applies to an out-of-range positive literal)
+- `E1415` expression nesting too deep (recursion-depth guard, limit 256 frames, so at most 255 nested `(`/`[`/`{` levels or chained unary operators; reported once per over-deep expression, the rest of which is skipped)
 
 ### Binder/Type (`E2xxx`)
 

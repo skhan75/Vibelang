@@ -23,10 +23,33 @@ pub fn parse_source(source: &str) -> ParseOutput {
     ParseOutput { ast, diagnostics }
 }
 
+/// Maximum simultaneous expression-parse recursion frames. Every nested
+/// `(`/`[`/`{` level and every chained unary operator adds one frame, so
+/// source can nest expressions at most `MAX_EXPR_NESTING_DEPTH - 1` levels
+/// deep. Sizing (measured 2026-08): one frame costs ~3.3 KiB in release
+/// and ~15.6 KiB in debug, so 256 frames peak near 0.85 MiB / 3.9 MiB —
+/// comfortably inside the 8 MiB main thread that `vibe check`, `vibe
+/// build`, and the (single-threaded) LSP all parse on, and inside 2 MiB
+/// worker threads in release. Unguarded parsing overflowed the stack near
+/// 3000 levels (release) / 135 levels (debug, 2 MiB thread). The deepest
+/// nesting observed anywhere in the shipped corpus (examples, stdlib,
+/// benchmarks, book, tests: 270 files) is 17, so 256 leaves >10x headroom
+/// over real code. Tests that parse near the limit must run on a thread
+/// with a large explicit stack (2 MiB debug test threads fit only ~135
+/// frames); see `on_big_stack` in this file's tests.
+const MAX_EXPR_NESTING_DEPTH: usize = 256;
+
 struct Parser {
     tokens: Vec<Token>,
     idx: usize,
     diagnostics: Diagnostics,
+    /// Current expression-parse recursion depth (see `MAX_EXPR_NESTING_DEPTH`).
+    expr_depth: usize,
+    /// Set while unwinding from an expression-nesting overflow (E1415);
+    /// suppresses follow-on "expected X" noise until the expression that
+    /// overflowed has been fully abandoned. Cleared when `expr_depth`
+    /// returns to zero.
+    expr_depth_exceeded: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -47,6 +70,8 @@ impl Parser {
             tokens,
             idx: 0,
             diagnostics: Diagnostics::default(),
+            expr_depth: 0,
+            expr_depth_exceeded: false,
         }
     }
 
@@ -960,7 +985,24 @@ impl Parser {
             .unwrap_or_else(|| self.error_expr("E1401", "expected expression"))
     }
 
+    /// Depth-guarded entry point for expression recursion. Every nested
+    /// `(`/`[`/`{` primary, call-argument list, and binary right-operand
+    /// re-enters the parser through here, so a single counter bounds all
+    /// of them and turns a would-be stack overflow into a clean E1415.
     fn parse_binary_expr(&mut self, min_prec: u8, stop: &[StopToken]) -> Option<Expr> {
+        if self.expr_depth >= MAX_EXPR_NESTING_DEPTH {
+            return Some(self.expr_nesting_too_deep());
+        }
+        self.expr_depth += 1;
+        let result = self.parse_binary_expr_inner(min_prec, stop);
+        self.expr_depth -= 1;
+        if self.expr_depth == 0 {
+            self.expr_depth_exceeded = false;
+        }
+        result
+    }
+
+    fn parse_binary_expr_inner(&mut self, min_prec: u8, stop: &[StopToken]) -> Option<Expr> {
         let mut left = self.parse_unary_expr(stop)?;
         loop {
             if self.is_stop(stop) {
@@ -1017,9 +1059,8 @@ impl Parser {
         let expr = match self.peek().kind {
             TokenKind::Minus => {
                 let op_tok = self.bump();
-                let inner = self.parse_unary_expr(stop).unwrap_or_else(|| {
-                    self.error_expr("E1403", "expected expression after unary `-`")
-                });
+                let inner =
+                    self.parse_unary_operand(stop, "E1403", "expected expression after unary `-`");
                 let span = Span::new(
                     op_tok.span.line_start,
                     op_tok.span.col_start,
@@ -1034,9 +1075,8 @@ impl Parser {
             }
             TokenKind::Bang => {
                 let op_tok = self.bump();
-                let inner = self.parse_unary_expr(stop).unwrap_or_else(|| {
-                    self.error_expr("E1404", "expected expression after unary `!`")
-                });
+                let inner =
+                    self.parse_unary_operand(stop, "E1404", "expected expression after unary `!`");
                 let span = Span::new(
                     op_tok.span.line_start,
                     op_tok.span.col_start,
@@ -1051,9 +1091,8 @@ impl Parser {
             }
             TokenKind::Keyword(Keyword::Async) => {
                 let kw = self.bump();
-                let inner = self.parse_unary_expr(stop).unwrap_or_else(|| {
-                    self.error_expr("E1404A", "expected expression after `async`")
-                });
+                let inner =
+                    self.parse_unary_operand(stop, "E1404A", "expected expression after `async`");
                 let span = Span::new(
                     kw.span.line_start,
                     kw.span.col_start,
@@ -1067,9 +1106,8 @@ impl Parser {
             }
             TokenKind::Keyword(Keyword::Await) => {
                 let kw = self.bump();
-                let inner = self.parse_unary_expr(stop).unwrap_or_else(|| {
-                    self.error_expr("E1404B", "expected expression after `await`")
-                });
+                let inner =
+                    self.parse_unary_operand(stop, "E1404B", "expected expression after `await`");
                 let span = Span::new(
                     kw.span.line_start,
                     kw.span.col_start,
@@ -1084,6 +1122,55 @@ impl Parser {
             _ => self.parse_postfix_expr(stop)?,
         };
         Some(expr)
+    }
+
+    /// Depth-guarded operand parse for the self-recursive unary arms
+    /// (`-`, `!`, `async`, `await`), so unbounded operator chains hit the
+    /// same E1415 guard as bracket nesting instead of overflowing the stack.
+    fn parse_unary_operand(&mut self, stop: &[StopToken], code: &str, message: &str) -> Expr {
+        if self.expr_depth >= MAX_EXPR_NESTING_DEPTH {
+            return self.expr_nesting_too_deep();
+        }
+        self.expr_depth += 1;
+        let inner = self.parse_unary_expr(stop);
+        self.expr_depth -= 1;
+        inner.unwrap_or_else(|| self.error_expr(code, message))
+    }
+
+    /// Reports E1415 once for the over-deep expression, then skips the
+    /// remainder of that expression (balanced over `()[]{}`, stopping
+    /// before the enclosing closer, a top-level newline/comma, or EOF) so
+    /// the enclosing frames unwind without cascading follow-on errors.
+    fn expr_nesting_too_deep(&mut self) -> Expr {
+        let span = self.peek().span;
+        self.diagnostics.push(Diagnostic::new(
+            "E1415",
+            Severity::Error,
+            format!("expression nesting too deep (limit is {MAX_EXPR_NESTING_DEPTH})"),
+            span,
+        ));
+        self.expr_depth_exceeded = true;
+        let mut depth = 0usize;
+        loop {
+            let kind = self.peek().kind.clone();
+            match kind {
+                TokenKind::Eof => break,
+                TokenKind::LParen | TokenKind::LBracket | TokenKind::LBrace => depth += 1,
+                TokenKind::RParen | TokenKind::RBracket | TokenKind::RBrace => {
+                    if depth == 0 {
+                        break;
+                    }
+                    depth -= 1;
+                }
+                TokenKind::Newline | TokenKind::Comma if depth == 0 => break,
+                _ => {}
+            }
+            self.bump();
+        }
+        Expr::Ident {
+            name: "__error".to_string(),
+            span,
+        }
     }
 
     fn parse_postfix_expr(&mut self, stop: &[StopToken]) -> Option<Expr> {
@@ -1461,12 +1548,15 @@ impl Parser {
                 while !self.at(&TokenKind::RBrace) && !self.is_eof() {
                     let key = self.parse_expr_until(&[StopToken::Colon, StopToken::RBrace]);
                     if !self.match_kind(&TokenKind::Colon) {
-                        self.diagnostics.push(Diagnostic::new(
-                            "E1411",
-                            Severity::Error,
-                            "expected `:` after map key",
-                            self.peek().span,
-                        ));
+                        // Suppressed while unwinding from an E1415 overflow.
+                        if !self.expr_depth_exceeded {
+                            self.diagnostics.push(Diagnostic::new(
+                                "E1411",
+                                Severity::Error,
+                                "expected `:` after map key",
+                                self.peek().span,
+                            ));
+                        }
                         break;
                     }
                     let value = self.parse_expr_until(&[StopToken::Comma, StopToken::RBrace]);
@@ -1634,8 +1724,11 @@ impl Parser {
 
     fn error_expr(&mut self, code: &str, message: &str) -> Expr {
         let span = self.peek().span;
-        self.diagnostics
-            .push(Diagnostic::new(code, Severity::Error, message, span));
+        // Suppressed while unwinding from an E1415 nesting overflow.
+        if !self.expr_depth_exceeded {
+            self.diagnostics
+                .push(Diagnostic::new(code, Severity::Error, message, span));
+        }
         Expr::Ident {
             name: "__error".to_string(),
             span,
@@ -1747,8 +1840,13 @@ impl Parser {
             self.bump().span
         } else {
             let span = self.peek().span;
-            self.diagnostics
-                .push(Diagnostic::new(code, Severity::Error, message, span));
+            // While unwinding from an expression-nesting overflow, the
+            // abandoned frames would each report a missing token here;
+            // the E1415 already explains the failure, so stay quiet.
+            if !self.expr_depth_exceeded {
+                self.diagnostics
+                    .push(Diagnostic::new(code, Severity::Error, message, span));
+            }
             span
         }
     }
@@ -1927,5 +2025,150 @@ main() -> Int {
             .filter(|d| d.code == "E1414")
             .collect();
         assert_eq!(errors.len(), 1, "{}", out.diagnostics.to_golden());
+    }
+
+    /// `main() { v := <open*n><atom><close*n> ... }` — one bracket level
+    /// per `n`, used to probe the expression nesting-depth guard.
+    fn nested_expr_src(open: &str, close: &str, atom: &str, n: usize) -> String {
+        format!(
+            "main() {{\n  v := {}{}{}\n  v\n}}\n",
+            open.repeat(n),
+            atom,
+            close.repeat(n)
+        )
+    }
+
+    /// The three bracketed shapes that recurse per nesting level:
+    /// parens, list literals, map literals.
+    fn nesting_shapes() -> [(&'static str, &'static str, &'static str); 3] {
+        [("(", ")", "1"), ("[", "]", "1"), ("{1: ", "}", "0")]
+    }
+
+    /// Runs a deep-nesting test on a thread with a large explicit stack.
+    /// Near the limit the parser holds up to `MAX_EXPR_NESTING_DEPTH`
+    /// frames (~15.6 KiB each in debug, ~3.9 MiB total), which fits the
+    /// 8 MiB main thread the CLI and LSP parse on but not the 2 MiB
+    /// default stack of Rust test threads in debug builds.
+    fn on_big_stack<T: Send + 'static>(f: impl FnOnce() -> T + Send + 'static) -> T {
+        std::thread::Builder::new()
+            .stack_size(32 * 1024 * 1024)
+            .spawn(f)
+            .expect("spawn deep-nesting test thread")
+            .join()
+            .unwrap_or_else(|panic| std::panic::resume_unwind(panic))
+    }
+
+    #[test]
+    fn accepts_expression_nesting_below_limit() {
+        on_big_stack(|| {
+            for (open, close, atom) in nesting_shapes() {
+                let src = nested_expr_src(open, close, atom, super::MAX_EXPR_NESTING_DEPTH - 1);
+                let out = parse_source(&src);
+                assert!(
+                    !out.diagnostics.has_errors(),
+                    "shape {open}...{close} at limit-1 should parse cleanly:\n{}",
+                    out.diagnostics.to_golden()
+                );
+            }
+        });
+    }
+
+    #[test]
+    fn rejects_expression_nesting_at_limit_with_single_error() {
+        on_big_stack(|| {
+            for (open, close, atom) in nesting_shapes() {
+                let src = nested_expr_src(open, close, atom, super::MAX_EXPR_NESTING_DEPTH);
+                let out = parse_source(&src);
+                let diags = out.diagnostics.as_slice();
+                assert_eq!(
+                    diags.len(),
+                    1,
+                    "shape {open}...{close} at limit should report exactly one diagnostic:\n{}",
+                    out.diagnostics.to_golden()
+                );
+                assert_eq!(diags[0].code, "E1415");
+                assert_eq!(diags[0].severity, Severity::Error);
+                assert!(diags[0].message.contains("expression nesting too deep"));
+                assert_eq!(
+                    diags[0].span.line_start, 2,
+                    "span should be inside the expression"
+                );
+            }
+        });
+    }
+
+    #[test]
+    fn five_thousand_deep_nesting_reports_single_error() {
+        on_big_stack(|| {
+            for (open, close, atom) in nesting_shapes() {
+                let src = nested_expr_src(open, close, atom, 5000);
+                let out = parse_source(&src);
+                let diags = out.diagnostics.as_slice();
+                assert_eq!(
+                    diags.len(),
+                    1,
+                    "shape {open}...{close} at 5000 deep should report exactly one diagnostic:\n{}",
+                    out.diagnostics.to_golden()
+                );
+                assert_eq!(diags[0].code, "E1415");
+                assert_eq!(
+                    out.ast.declarations.len(),
+                    1,
+                    "main() should still be parsed"
+                );
+            }
+        });
+    }
+
+    #[test]
+    fn deep_unary_chain_reports_single_error() {
+        on_big_stack(|| {
+            let src = format!("main() {{\n  v := {}1\n  v\n}}\n", "-".repeat(5000));
+            let out = parse_source(&src);
+            let diags = out.diagnostics.as_slice();
+            assert_eq!(diags.len(), 1, "{}", out.diagnostics.to_golden());
+            assert_eq!(diags[0].code, "E1415");
+        });
+    }
+
+    #[test]
+    fn unbalanced_deep_nesting_reports_depth_error_without_crash() {
+        on_big_stack(|| {
+            // 5000 opens, no closers: the guard must fire and the parser
+            // must finish without a stack overflow or an error cascade.
+            let src = format!("main() {{\n  v := {}1\n  v\n}}\n", "(".repeat(5000));
+            let out = parse_source(&src);
+            let diags = out.diagnostics.as_slice();
+            assert_eq!(diags[0].code, "E1415", "{}", out.diagnostics.to_golden());
+            assert!(
+                diags.len() <= 2,
+                "unwind must not cascade:\n{}",
+                out.diagnostics.to_golden()
+            );
+        });
+    }
+
+    #[test]
+    fn parsing_recovers_after_nesting_overflow() {
+        on_big_stack(|| {
+            // The over-deep expression in a() must not swallow b() or
+            // mute its genuine diagnostics.
+            let deep = nested_expr_src("(", ")", "1", super::MAX_EXPR_NESTING_DEPTH);
+            let src = format!("{deep}b() {{\n  w := 1 +\n  w\n}}\n");
+            let out = parse_source(&src);
+            let codes: Vec<&str> = out
+                .diagnostics
+                .as_slice()
+                .iter()
+                .map(|d| d.code.as_str())
+                .collect();
+            assert_eq!(
+                codes,
+                vec!["E1415", "E1402"],
+                "{}",
+                out.diagnostics.to_golden()
+            );
+            assert_eq!(out.ast.declarations.len(), 2, "both functions should parse");
+        });
     }
 }
