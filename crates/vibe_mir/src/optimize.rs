@@ -3,7 +3,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::{MirExpr, MirFunction, MirProgram, MirStmt};
+use crate::{MirExpr, MirFunction, MirProgram, MirSelectPattern, MirStmt};
 
 pub fn optimize_mir(program: &mut MirProgram, level: u8) {
     if level == 0 {
@@ -603,6 +603,8 @@ fn inline_small_functions(program: &mut MirProgram) {
                 && count_stmts(&f.body) <= MAX_INLINE_STMTS
                 && !contains_recursion(&f.body, &f.name)
                 && !contains_contract_check(&f.body)
+                && returns_only_in_tail_position(&f.body)
+                && !contains_question(&f.body)
         })
         .map(|f| (f.name.clone(), f))
         .collect();
@@ -649,6 +651,211 @@ fn contains_contract_check(stmts: &[MirStmt]) -> bool {
         }
         _ => false,
     })
+}
+
+/// Callees with an *early* (non-tail-position) `return` must never be inlined.
+///
+/// `rewrite_returns_to_assign` turns every callee `MirStmt::Return(e)` into a
+/// bare `MirStmt::Let { name: result, expr: e }` with no control-flow guard, so
+/// an inlined body falls through a `return` instead of leaving the function.
+/// A guard clause `if a < b { return a }` followed by `return b` becomes
+/// `if a < b { let v = a }` followed by `let v = b`, and the trailing
+/// assignment overwrites the guarded one: `min2(1, 100)` evaluated to `100` in
+/// release and to `1` in dev, with no diagnostic.
+///
+/// # Tail position
+///
+/// Over the MIR statement structure a `Return` is in **tail position** only
+/// when it is the final statement of the callee's *top-level* body list (the
+/// shape `lower_hir_to_mir` emits for a trailing expression). Every other
+/// `Return` is an early return, including:
+///
+/// * a top-level `Return` followed by any further statement;
+/// * a `Return` nested inside an `If`/`While`/`For`/`Repeat` body, **even when
+///   that block is the callee's last statement and every path through it
+///   returns**.
+///
+/// The every-path-returns case stays excluded deliberately. Rewriting
+/// `if c { return a } else { return b }` emits a `Let` of the same name in
+/// each arm; `dce_stmts` recomputes liveness per statement list, sees each
+/// branch-local `Let` as unused inside its own block, and deletes both,
+/// leaving release codegen to fail with "unknown local `<result>` in function
+/// `main`" (observed on this tree). Admitting that shape needs the inliner to
+/// hoist one result local and emit real control flow, which is separate work.
+///
+/// A callee with no `Return` at all is trivially tail-safe and stays
+/// inlinable, so the common case this optimization exists for is untouched.
+fn returns_only_in_tail_position(body: &[MirStmt]) -> bool {
+    let Some((last, leading)) = body.split_last() else {
+        return true;
+    };
+    if leading.iter().any(stmt_contains_return) {
+        return false;
+    }
+    match last {
+        MirStmt::Return(_) => true,
+        other => !stmt_contains_return(other),
+    }
+}
+
+/// Whether `stmt` contains a `Return` anywhere, including nested block bodies.
+///
+/// `Select` and `Match` are leaves: their sub-terms are all `MirExpr`, and no
+/// `MirExpr` variant carries a `MirStmt`. Closure bodies are lowered to their
+/// own top-level `MirFunction`s and referenced by name from
+/// `MirExpr::MakeClosure`, so a closure cannot hide a `Return` belonging to
+/// this function either.
+///
+/// Matched exhaustively so that a new `MirStmt` variant fails to compile here
+/// rather than silently re-opening the miscompile.
+fn stmt_contains_return(stmt: &MirStmt) -> bool {
+    match stmt {
+        MirStmt::Return(_) => true,
+        MirStmt::If {
+            then_body,
+            else_body,
+            ..
+        } => {
+            then_body.iter().any(stmt_contains_return) || else_body.iter().any(stmt_contains_return)
+        }
+        MirStmt::While { body, .. } | MirStmt::For { body, .. } | MirStmt::Repeat { body, .. } => {
+            body.iter().any(stmt_contains_return)
+        }
+        MirStmt::Let { .. }
+        | MirStmt::Assign { .. }
+        | MirStmt::Expr(_)
+        | MirStmt::Go(_)
+        | MirStmt::Thread(_)
+        | MirStmt::ContractCheck { .. }
+        | MirStmt::Select { .. }
+        | MirStmt::Match { .. }
+        | MirStmt::Break
+        | MirStmt::Continue => false,
+    }
+}
+
+/// Callees using `?` must never be inlined either: `?` is an early return
+/// wearing an expression's clothes.
+///
+/// Codegen lowers `MirExpr::Question` to a branch whose error arm emits a bare
+/// Cranelift `return_` of the `Result` pointer out of the *enclosing* function
+/// (`vibe_codegen`, `MirExpr::Question` arm). Copying such a body into a caller
+/// makes that `return_` leave the caller with a value it never declared, which
+/// is why `examples/01_basics/71_result_ok_err_question.yb` failed its release
+/// build with spanless "Verifier errors": `try_parse` carries no
+/// `MirStmt::Return` at all, so the tail-position guard above cannot see its
+/// early exit.
+fn contains_question(stmts: &[MirStmt]) -> bool {
+    stmts.iter().any(stmt_contains_question)
+}
+
+/// Exhaustive over `MirStmt` variants *and* over every field of each variant
+/// that can carry a `MirExpr`. Only the first half is enforced by the compiler:
+/// an unread field on an already-handled variant compiles fine and silently
+/// re-opens the miscompile, so destructure new fields instead of eliding them.
+fn stmt_contains_question(stmt: &MirStmt) -> bool {
+    match stmt {
+        MirStmt::Let { expr, .. }
+        | MirStmt::Assign { expr, .. }
+        | MirStmt::Expr(expr)
+        | MirStmt::Return(expr)
+        | MirStmt::Go(expr)
+        | MirStmt::Thread(expr)
+        | MirStmt::ContractCheck { expr, .. } => expr_contains_question(expr),
+        MirStmt::If {
+            cond,
+            then_body,
+            else_body,
+        } => {
+            expr_contains_question(cond)
+                || then_body.iter().any(stmt_contains_question)
+                || else_body.iter().any(stmt_contains_question)
+        }
+        MirStmt::While { cond, body } => {
+            expr_contains_question(cond) || body.iter().any(stmt_contains_question)
+        }
+        MirStmt::For { iter, body, .. } => {
+            expr_contains_question(iter) || body.iter().any(stmt_contains_question)
+        }
+        MirStmt::Repeat { count, body } => {
+            expr_contains_question(count) || body.iter().any(stmt_contains_question)
+        }
+        MirStmt::Select { cases } => cases.iter().any(|case| {
+            let source_has_question = match &case.pattern {
+                MirSelectPattern::Receive { binding: _, source } => expr_contains_question(source),
+                MirSelectPattern::After { .. }
+                | MirSelectPattern::Closed { .. }
+                | MirSelectPattern::Default => false,
+            };
+            source_has_question || expr_contains_question(&case.action)
+        }),
+        MirStmt::Match {
+            scrutinee,
+            arms,
+            default_action,
+        } => {
+            expr_contains_question(scrutinee)
+                || arms.iter().any(|arm| {
+                    expr_contains_question(&arm.pattern) || expr_contains_question(&arm.action)
+                })
+                || default_action.as_ref().is_some_and(expr_contains_question)
+        }
+        MirStmt::Break | MirStmt::Continue => false,
+    }
+}
+
+/// Exhaustive over `MirExpr` variants and over every sub-expression field of
+/// each, for the same reason as `stmt_contains_question`: a missed field is a
+/// silent miscompile and only missed variants are caught by the compiler.
+fn expr_contains_question(expr: &MirExpr) -> bool {
+    match expr {
+        MirExpr::Question { .. } => true,
+        MirExpr::Async { expr }
+        | MirExpr::Await { expr }
+        | MirExpr::Old { expr }
+        | MirExpr::ResultOk { expr }
+        | MirExpr::ResultErr { expr }
+        | MirExpr::Unary { expr, .. }
+        | MirExpr::Member { object: expr, .. } => expr_contains_question(expr),
+        MirExpr::Binary { left, right, .. } => {
+            expr_contains_question(left) || expr_contains_question(right)
+        }
+        MirExpr::Index { object, index, .. } => {
+            expr_contains_question(object) || expr_contains_question(index)
+        }
+        MirExpr::Slice {
+            object, start, end, ..
+        } => {
+            expr_contains_question(object)
+                || start.as_deref().is_some_and(expr_contains_question)
+                || end.as_deref().is_some_and(expr_contains_question)
+        }
+        MirExpr::Call { callee, args } => {
+            expr_contains_question(callee) || args.iter().any(expr_contains_question)
+        }
+        MirExpr::ClosureCall { closure, args, .. } => {
+            expr_contains_question(closure) || args.iter().any(expr_contains_question)
+        }
+        MirExpr::List(items) => items.iter().any(expr_contains_question),
+        MirExpr::Map(pairs) => pairs
+            .iter()
+            .any(|(k, v)| expr_contains_question(k) || expr_contains_question(v)),
+        MirExpr::Constructor { fields, .. } => {
+            fields.iter().any(|(_, e)| expr_contains_question(e))
+        }
+        MirExpr::EnumVariant { payload, .. } => {
+            payload.iter().any(|(_, e)| expr_contains_question(e))
+        }
+        MirExpr::MakeClosure { captures, .. } => captures.iter().any(expr_contains_question),
+        MirExpr::Var(_)
+        | MirExpr::Int(_)
+        | MirExpr::Float(_)
+        | MirExpr::Bool(_)
+        | MirExpr::Str(_)
+        | MirExpr::DotResult
+        | MirExpr::PatternBind { .. }
+        | MirExpr::EnvLoad { .. } => false,
+    }
 }
 
 fn contains_recursion(stmts: &[MirStmt], fn_name: &str) -> bool {
@@ -1031,6 +1238,179 @@ mod tests {
             !stmts_contain_call_to(main, "divide"),
             "contract-free small callee should be inlined, got {main:?}"
         );
+    }
+
+    /// Replaces the callee body of `program_with_callee(false)`, keeping the
+    /// `value := divide(10, 2)` call site in `main` that the inliner fires on.
+    fn program_with_callee_body(body: Vec<MirStmt>) -> MirProgram {
+        let mut program = program_with_callee(false);
+        program
+            .functions
+            .iter_mut()
+            .find(|f| f.name == "divide")
+            .expect("callee")
+            .body = body;
+        program
+    }
+
+    /// Guard clause: `if a < b { return a }` then `return b`.
+    fn guard_clause_body() -> Vec<MirStmt> {
+        vec![
+            MirStmt::If {
+                cond: MirExpr::Binary {
+                    left: Box::new(MirExpr::Var("a".to_string())),
+                    op: "Lt".to_string(),
+                    right: Box::new(MirExpr::Var("b".to_string())),
+                },
+                then_body: vec![MirStmt::Return(MirExpr::Var("a".to_string()))],
+                else_body: vec![],
+            },
+            MirStmt::Return(MirExpr::Var("b".to_string())),
+        ]
+    }
+
+    #[test]
+    fn release_inliner_skips_callees_with_early_returns() {
+        let mut program = program_with_callee_body(guard_clause_body());
+        optimize_mir(&mut program, 2);
+        let main = main_body(&program);
+        assert!(
+            stmts_contain_call_to(main, "divide"),
+            "guard-clause callee must stay a real call, got {main:?}"
+        );
+    }
+
+    #[test]
+    fn release_inliner_skips_callees_returning_on_every_branch() {
+        // Both arms return and the `if` is the callee's last statement; still
+        // not tail position, because the rewrite emits one `Let` per arm and
+        // `dce_stmts` then deletes both as block-locally unused.
+        let mut program = program_with_callee_body(vec![MirStmt::If {
+            cond: MirExpr::Var("a".to_string()),
+            then_body: vec![MirStmt::Return(MirExpr::Int(7))],
+            else_body: vec![MirStmt::Return(MirExpr::Int(9))],
+        }]);
+        optimize_mir(&mut program, 2);
+        let main = main_body(&program);
+        assert!(
+            stmts_contain_call_to(main, "divide"),
+            "every-path-returns callee must stay a real call, got {main:?}"
+        );
+    }
+
+    #[test]
+    fn release_inliner_skips_callees_using_the_question_operator() {
+        // `?` is an early return carried by an expression: this body holds no
+        // `MirStmt::Return` at all, so only the `contains_question` guard sees
+        // the early exit.
+        let question_body = vec![
+            MirStmt::Let {
+                name: "val".to_string(),
+                expr: MirExpr::Question {
+                    expr: Box::new(MirExpr::Var("a".to_string())),
+                },
+            },
+            MirStmt::Return(MirExpr::ResultOk {
+                expr: Box::new(MirExpr::Var("val".to_string())),
+            }),
+        ];
+        assert!(
+            super::returns_only_in_tail_position(&question_body),
+            "sanity: a `?` body has no statement-level early return to catch"
+        );
+        let mut program = program_with_callee_body(question_body);
+        optimize_mir(&mut program, 2);
+        let main = main_body(&program);
+        assert!(
+            stmts_contain_call_to(main, "divide"),
+            "`?`-bearing callee must stay a real call, got {main:?}"
+        );
+    }
+
+    #[test]
+    fn release_inliner_still_inlines_tail_return_callees() {
+        // Over-conservatism guard: leading ordinary statements plus a single
+        // trailing `return` must still inline.
+        let mut program = program_with_callee_body(vec![
+            MirStmt::Let {
+                name: "scaled".to_string(),
+                expr: MirExpr::Binary {
+                    left: Box::new(MirExpr::Var("a".to_string())),
+                    op: "Mul".to_string(),
+                    right: Box::new(MirExpr::Int(2)),
+                },
+            },
+            MirStmt::Return(MirExpr::Binary {
+                left: Box::new(MirExpr::Var("scaled".to_string())),
+                op: "Add".to_string(),
+                right: Box::new(MirExpr::Var("b".to_string())),
+            }),
+        ]);
+        optimize_mir(&mut program, 2);
+        let main = main_body(&program);
+        assert!(
+            !stmts_contain_call_to(main, "divide"),
+            "tail-return-only callee should still be inlined, got {main:?}"
+        );
+    }
+
+    #[test]
+    fn returns_only_in_tail_position_classifies_shapes() {
+        // Empty body and a body with no return at all are trivially tail-safe.
+        assert!(super::returns_only_in_tail_position(&[]));
+        assert!(super::returns_only_in_tail_position(&[MirStmt::Expr(
+            MirExpr::Int(1)
+        )]));
+        // Single trailing return: tail position.
+        assert!(super::returns_only_in_tail_position(&[MirStmt::Return(
+            MirExpr::Int(1)
+        )]));
+        // Return followed by any further statement: early.
+        assert!(!super::returns_only_in_tail_position(&[
+            MirStmt::Return(MirExpr::Int(1)),
+            MirStmt::Expr(MirExpr::Int(2)),
+        ]));
+        // Guard clause: early.
+        assert!(!super::returns_only_in_tail_position(&guard_clause_body()));
+        // Return buried in a trailing loop body: early.
+        assert!(!super::returns_only_in_tail_position(&[MirStmt::While {
+            cond: MirExpr::Bool(true),
+            body: vec![MirStmt::Return(MirExpr::Int(1))],
+        }]));
+        // Return nested in a trailing `for` body: early.
+        assert!(!super::returns_only_in_tail_position(&[MirStmt::For {
+            var: "i".to_string(),
+            iter: MirExpr::Var("xs".to_string()),
+            iter_kind: crate::MirForIterKind::List,
+            body: vec![MirStmt::If {
+                cond: MirExpr::Bool(true),
+                then_body: vec![MirStmt::Return(MirExpr::Int(1))],
+                else_body: vec![],
+            }],
+        }]));
+    }
+
+    #[test]
+    fn contains_question_finds_nested_occurrences() {
+        assert!(super::contains_question(&[MirStmt::If {
+            cond: MirExpr::Bool(true),
+            then_body: vec![MirStmt::Return(MirExpr::Binary {
+                left: Box::new(MirExpr::Int(1)),
+                op: "Add".to_string(),
+                right: Box::new(MirExpr::Question {
+                    expr: Box::new(MirExpr::Var("r".to_string())),
+                }),
+            })],
+            else_body: vec![],
+        }]));
+        // `?` hidden in a call argument is still found.
+        assert!(super::contains_question(&[MirStmt::Expr(MirExpr::Call {
+            callee: Box::new(MirExpr::Var("f".to_string())),
+            args: vec![MirExpr::Question {
+                expr: Box::new(MirExpr::Var("r".to_string())),
+            }],
+        })]));
+        assert!(!super::contains_question(&guard_clause_body()));
     }
 
     #[test]
