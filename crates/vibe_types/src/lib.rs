@@ -2662,6 +2662,39 @@ pub(crate) fn infer_expr(
                     }
                     "print" | "println" => {
                         observed_effects.insert("io".to_string());
+                        // Audit P0-14a: codegen passes the argument straight to
+                        // the runtime's string-pointer ABI, so a non-Str
+                        // argument type-checked clean here and then segfaulted
+                        // at runtime. Reject it at check time instead.
+                        if args.len() != 1 {
+                            diagnostics.push(Diagnostic::new(
+                                "E2264",
+                                Severity::Error,
+                                format!(
+                                    "`{}` expects exactly 1 argument, got {}",
+                                    name,
+                                    args.len()
+                                ),
+                                *span,
+                            ));
+                            return TypeKind::Void;
+                        }
+                        let arg_ty = &arg_types[0];
+                        if !matches!(
+                            arg_ty,
+                            TypeKind::Str | TypeKind::Unknown | TypeKind::TypeParam(_)
+                        ) {
+                            diagnostics.push(Diagnostic::new(
+                                "E2265",
+                                Severity::Error,
+                                format!(
+                                    "argument 1 type mismatch in call to `{}`: expected `Str`, got `{}`; interpolate with `\"{{name}}\"` or convert with `convert.to_str`",
+                                    name,
+                                    type_name(arg_ty)
+                                ),
+                                args[0].span(),
+                            ));
+                        }
                         return TypeKind::Void;
                     }
                     "ok" => {

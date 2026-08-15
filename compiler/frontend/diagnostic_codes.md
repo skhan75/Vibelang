@@ -82,8 +82,8 @@ This catalog reserves deterministic code ranges for frontend diagnostics.
 - `E2207` invalid `old(...)` usage in contract
 - `E2208` `old(...)` operand is not a supported scalar (`Int`, `Bool`, `Float`) — entry snapshots of heap references are not supported in this phase
 - `E2209` `.` result placeholder inside `old(...)`
-- `E2264` call arity mismatch — direct, function-value, and stdlib namespace calls (also: enum pattern field must be an identifier)
-- `E2265` call argument type mismatch — direct, function-value, and stdlib namespace calls (also: unknown enum pattern/variant field); `convert.to_str` additionally accepts `Str`, which HIR lowering turns into a passthrough (string-interpolation desugaring)
+- `E2264` call arity mismatch — direct, function-value, and stdlib namespace calls, plus the `print`/`println` builtins (exactly 1 argument) (also: enum pattern field must be an identifier)
+- `E2265` call argument type mismatch — direct, function-value, and stdlib namespace calls, plus the `print`/`println` builtins (argument must be `Str`; the runtime print ABI takes a string pointer, so a non-Str argument would segfault at runtime) (also: unknown enum pattern/variant field); `convert.to_str` additionally accepts `Str`, which HIR lowering turns into a passthrough (string-interpolation desugaring)
 - `E2273` logical operator (`&&`/`||`) operand is not Bool
 - `E2301` HIR verification failure
 - `E2310` duplicate module declaration in project sources
