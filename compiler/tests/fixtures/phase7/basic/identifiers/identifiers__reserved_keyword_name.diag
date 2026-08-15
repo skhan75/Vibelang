@@ -1,3 +1,4 @@
 E1101: error: expected declaration @ 1:5-1:6
+E2201: error: return type mismatch in `x`: declared `Int`, inferred `fn(Int)->Int` @ 1:8-3:1
 E1103: error: expected `(` after function name @ 1:9-1:9
 E1107: error: expected parameter name @ 1:9-1:9
