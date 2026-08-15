@@ -33,3 +33,6 @@ reports/benchmarks/third_party/full/results.json
 reports/benchmarks/third_party/history/
 reports/benchmarks/third_party/analysis/deltas/*.json
 reports/benchmarks/third_party/analysis/baseline_pointer.json
+
+# npm dependencies (editor extension)
+node_modules/
