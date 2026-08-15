@@ -4,7 +4,8 @@ pub main() -> Int {
   println(http.status_text(200))
   println(json.stringify_i64(http.default_port("https")))
   println(http.build_request_line("GET", "/health"))
-  println(http.get("http://127.0.0.1:1/unreachable", 5))
+  resp := http.get("http://127.0.0.1:1/unreachable", 5)
+  println(http.response(resp))
   println(json.stringify_i64(http.request_status("GET", "http://127.0.0.1:1/unreachable", "", 5)))
   0
 }
