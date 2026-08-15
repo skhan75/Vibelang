@@ -8,7 +8,8 @@ use std::path::{Path, PathBuf};
 use vibe_ast::{Contract, Declaration, Expr, FileAst, SelectPattern, Stmt};
 use vibe_diagnostics::{Diagnostic, Diagnostics, Severity, Span};
 use vibe_parser::parse_source;
-#[allow(clippy::single_component_path_imports)] // Ensures `vibe_pkg` is linked; required by project conventions.
+#[allow(clippy::single_component_path_imports)]
+// Ensures `vibe_pkg` is linked; required by project conventions.
 use vibe_pkg;
 
 pub struct CompilationUnit {
@@ -16,6 +17,10 @@ pub struct CompilationUnit {
     pub ast: FileAst,
     pub diagnostics: Diagnostics,
     pub namespace_map: BTreeMap<(String, String), String>,
+    /// Number of stdlib prelude declarations appended at the tail of
+    /// `ast.declarations`. Per-file surfaces (index, intent lint) must skip
+    /// them so injected stdlib functions are not attributed to user files.
+    pub injected_prelude_decls: usize,
 }
 
 struct ParsedSource {
@@ -47,6 +52,7 @@ pub fn resolve_compilation_unit(entry_path: &Path) -> Result<CompilationUnit, St
 
     if entry_parsed.ast.module.is_none() && entry_parsed.ast.imports.is_empty() {
         let (ns_decls, namespace_map) = load_stdlib_namespace_functions();
+        let injected_prelude_decls = ns_decls.len();
         let mut decls = entry_parsed.ast.declarations;
         decls.extend(ns_decls);
         return Ok(CompilationUnit {
@@ -58,6 +64,7 @@ pub fn resolve_compilation_unit(entry_path: &Path) -> Result<CompilationUnit, St
             },
             diagnostics,
             namespace_map,
+            injected_prelude_decls,
         });
     }
 
@@ -118,20 +125,21 @@ pub fn resolve_compilation_unit(entry_path: &Path) -> Result<CompilationUnit, St
         .and_then(|p| p.parent().map(|pp| pp.to_path_buf()))
         .and_then(|p| p.canonicalize().ok());
 
-    let package_store_canonical = find_package_store_root(&canonical_root)
-        .and_then(|p| p.canonicalize().ok());
+    let package_store_canonical =
+        find_package_store_root(&canonical_root).and_then(|p| p.canonicalize().ok());
 
     let mut module_index = BTreeMap::<String, usize>::new();
     for (idx, (_path, parsed)) in docs.iter().enumerate() {
         let Some(module_name) = &parsed.ast.module else {
             continue;
         };
-        let expected =
-            expected_module_name_from_path(&canonical_root, &docs[idx].0).or_else(|| {
+        let expected = expected_module_name_from_path(&canonical_root, &docs[idx].0)
+            .or_else(|| {
                 stdlib_parent
                     .as_ref()
                     .and_then(|sp| expected_module_name_from_path(sp, &docs[idx].0))
-            }).or_else(|| {
+            })
+            .or_else(|| {
                 package_store_canonical
                     .as_ref()
                     .and_then(|ps| expected_package_module_name(ps, &docs[idx].0))
@@ -178,6 +186,7 @@ pub fn resolve_compilation_unit(entry_path: &Path) -> Result<CompilationUnit, St
             ast: entry_parsed.ast,
             diagnostics,
             namespace_map: BTreeMap::new(),
+            injected_prelude_decls: 0,
         });
     };
 
@@ -193,6 +202,7 @@ pub fn resolve_compilation_unit(entry_path: &Path) -> Result<CompilationUnit, St
             ast: entry_parsed.ast,
             diagnostics,
             namespace_map: BTreeMap::new(),
+            injected_prelude_decls: 0,
         });
     };
 
@@ -298,6 +308,7 @@ pub fn resolve_compilation_unit(entry_path: &Path) -> Result<CompilationUnit, St
             _ => None,
         })
         .collect();
+    let decls_before_prelude = merged_decls.len();
     for decl in ns_decls {
         if let Declaration::Function(ref f) = decl {
             if existing_fns.contains(&f.name) {
@@ -306,6 +317,7 @@ pub fn resolve_compilation_unit(entry_path: &Path) -> Result<CompilationUnit, St
         }
         merged_decls.push(decl);
     }
+    let injected_prelude_decls = merged_decls.len() - decls_before_prelude;
 
     let mut merged_source = String::new();
     for module in &order {
@@ -325,6 +337,7 @@ pub fn resolve_compilation_unit(entry_path: &Path) -> Result<CompilationUnit, St
         },
         diagnostics,
         namespace_map,
+        injected_prelude_decls,
     })
 }
 
@@ -564,9 +577,7 @@ fn collect_calls_from_expr(expr: &Expr, out: &mut BTreeSet<String>) {
             }
         }
         Expr::FnLiteral {
-            body,
-            tail_expr,
-            ..
+            body, tail_expr, ..
         } => {
             for s in body {
                 collect_calls_from_stmt(s, out);
@@ -793,6 +804,14 @@ fn is_native_only(func: &vibe_ast::FunctionDecl) -> bool {
         && func.tail_expr.is_none()
 }
 
+/// Injected prelude declarations must not contribute `@examples` cases to
+/// `vibe test` runs of user code; stdlib examples are exercised when the
+/// stdlib files themselves are the test target.
+fn strip_examples(func: &mut vibe_ast::FunctionDecl) {
+    func.contracts
+        .retain(|c| !matches!(c, Contract::Examples { .. }));
+}
+
 fn load_stdlib_namespace_functions() -> (Vec<Declaration>, BTreeMap<(String, String), String>) {
     let mut ns_decls = Vec::new();
     let mut ns_map = BTreeMap::new();
@@ -827,12 +846,15 @@ fn load_stdlib_namespace_functions() -> (Vec<Declaration>, BTreeMap<(String, Str
                     let mangled = format!("__stdlib_{namespace}__{}", func.name);
                     let mut mangled_func = func.clone();
                     mangled_func.name = mangled.clone();
+                    strip_examples(&mut mangled_func);
                     ns_decls.push(Declaration::Function(mangled_func));
                     if func.is_public {
                         ns_map.insert((namespace.to_string(), func.name.clone()), mangled);
                     }
                 } else {
-                    ns_decls.push(decl.clone());
+                    let mut prelude_func = func.clone();
+                    strip_examples(&mut prelude_func);
+                    ns_decls.push(Declaration::Function(prelude_func));
                     if func.is_public {
                         ns_map.insert(
                             (namespace.to_string(), func.name.clone()),
@@ -870,6 +892,12 @@ fn find_stdlib_root() -> Option<PathBuf> {
         cur = dir.parent();
     }
 
+    // EMBEDDED_STDLIB is generated by build.rs: non-empty for in-tree builds
+    // (so clippy const-evaluates this check), but empty when ../../stdlib/std
+    // is absent at build time (out-of-workspace/packaged builds). The guard is
+    // load-bearing there: without it, extract_embedded_stdlib()'s `.all()` on
+    // an empty slice is vacuously true and returns a phantom cache dir.
+    #[allow(clippy::const_is_empty)]
     if !EMBEDDED_STDLIB.is_empty() {
         if let Some(dir) = extract_embedded_stdlib() {
             return Some(dir);

@@ -87,9 +87,8 @@ impl Manifest {
         };
         let req = VersionReq::parse(req_str)
             .map_err(|e| format!("invalid [vibelang] version requirement `{req_str}`: {e}"))?;
-        let current = Version::parse(compiler_version).map_err(|e| {
-            format!("invalid compiler version `{compiler_version}`: {e}")
-        })?;
+        let current = Version::parse(compiler_version)
+            .map_err(|e| format!("invalid compiler version `{compiler_version}`: {e}"))?;
         if !req.matches(&current) {
             return Err(format!(
                 "project requires VibeLang {req_str}, but the current compiler is {compiler_version}"
@@ -806,9 +805,8 @@ fn git_clone_or_fetch(cache_root: &Path, url: &str) -> Result<PathBuf, String> {
             return Err(format!("git fetch failed in `{}`", dir.display()));
         }
     } else {
-        fs::create_dir_all(&dir).map_err(|e| {
-            format!("failed to create cache dir `{}`: {e}", dir.display())
-        })?;
+        fs::create_dir_all(&dir)
+            .map_err(|e| format!("failed to create cache dir `{}`: {e}", dir.display()))?;
         let status = Command::new("git")
             .args(["clone", url, "."])
             .current_dir(&dir)
@@ -839,11 +837,7 @@ fn git_checkout(repo_dir: &Path, refspec: &str) -> Result<(), String> {
     Ok(())
 }
 
-pub fn fetch_git_dep(
-    cache_root: &Path,
-    name: &str,
-    dep: &DetailedDep,
-) -> Result<PathBuf, String> {
+pub fn fetch_git_dep(cache_root: &Path, name: &str, dep: &DetailedDep) -> Result<PathBuf, String> {
     let url = dep
         .git
         .as_deref()
@@ -874,9 +868,10 @@ pub fn fetch_all_deps(
             }
             DependencySpec::Detailed(d) if d.path.is_some() => {
                 let rel = d.path.as_deref().unwrap();
-                let abs = project_root.join(rel).canonicalize().map_err(|e| {
-                    format!("path dependency `{name}` at `{rel}` not found: {e}")
-                })?;
+                let abs = project_root
+                    .join(rel)
+                    .canonicalize()
+                    .map_err(|e| format!("path dependency `{name}` at `{rel}` not found: {e}"))?;
                 fetched.insert(name.clone(), abs);
             }
             _ => {}
@@ -889,7 +884,10 @@ pub fn install_with_fetch(project_root: &Path) -> Result<InstallReport, String> 
     let cache_root = default_cache_root(project_root);
     let mirror_root = default_mirror_root(project_root);
     fs::create_dir_all(&cache_root).map_err(|e| {
-        format!("failed to create cache root `{}`: {e}", cache_root.display())
+        format!(
+            "failed to create cache root `{}`: {e}",
+            cache_root.display()
+        )
     })?;
     fs::create_dir_all(&mirror_root).map_err(|e| {
         format!(
@@ -913,9 +911,8 @@ pub fn install_with_fetch(project_root: &Path) -> Result<InstallReport, String> 
             let mirror_dest = mirror_root.join(name).join("0.0.0");
             if !mirror_dest.exists() {
                 copy_dir_recursive(source_dir, &mirror_dest)?;
-                let fallback_manifest = format!(
-                    "[package]\nname = \"{name}\"\nversion = \"0.0.0\"\n"
-                );
+                let fallback_manifest =
+                    format!("[package]\nname = \"{name}\"\nversion = \"0.0.0\"\n");
                 fs::write(mirror_dest.join(MANIFEST_FILENAME), fallback_manifest)
                     .map_err(|e| format!("failed to write fallback manifest: {e}"))?;
             }
@@ -927,7 +924,11 @@ pub fn install_with_fetch(project_root: &Path) -> Result<InstallReport, String> 
 
 // ── Manifest editing helpers ──────────────────────────────────────────
 
-pub fn add_dependency(project_root: &Path, name: &str, spec: &DependencySpec) -> Result<(), String> {
+pub fn add_dependency(
+    project_root: &Path,
+    name: &str,
+    spec: &DependencySpec,
+) -> Result<(), String> {
     let manifest_path = project_root.join(MANIFEST_FILENAME);
     let raw = fs::read_to_string(&manifest_path)
         .map_err(|e| format!("failed to read `{}`: {e}", manifest_path.display()))?;
@@ -996,7 +997,11 @@ pub fn remove_dependency(project_root: &Path, name: &str) -> Result<(), String> 
     fs::write(&manifest_path, out)
         .map_err(|e| format!("failed to write `{}`: {e}", manifest_path.display()))?;
 
-    let store_dir = project_root.join(".yb").join("pkg").join("store").join(name);
+    let store_dir = project_root
+        .join(".yb")
+        .join("pkg")
+        .join("store")
+        .join(name);
     if store_dir.exists() {
         let _ = fs::remove_dir_all(&store_dir);
     }

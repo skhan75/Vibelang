@@ -82,8 +82,10 @@ pub fn expr_contains_member_access(expr: &Expr) -> bool {
         Expr::EnumVariant { fields, .. } => {
             fields.iter().any(|(_, e)| expr_contains_member_access(e))
         }
-        Expr::FnLiteral { body, tail_expr, .. } => {
-            body.iter().any(|s| stmt_contains_member_access(s))
+        Expr::FnLiteral {
+            body, tail_expr, ..
+        } => {
+            body.iter().any(stmt_contains_member_access)
                 || tail_expr
                     .as_ref()
                     .is_some_and(|e| expr_contains_member_access(e.as_ref()))
@@ -133,7 +135,7 @@ fn stmt_contains_member_access(stmt: &Stmt) -> bool {
                 })
                 || default_action
                     .as_ref()
-                    .is_some_and(|e| expr_contains_member_access(e))
+                    .is_some_and(expr_contains_member_access)
         }
         Stmt::Break { .. } | Stmt::Continue { .. } => false,
     }

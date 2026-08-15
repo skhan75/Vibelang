@@ -757,15 +757,21 @@ fn declare_runtime_functions(
 
     let mut spawn_closure0_sig = module.make_signature();
     spawn_closure0_sig.params.push(AbiParam::new(ptr_ty));
-    spawn_closure0_sig.returns.push(AbiParam::new(ir::types::I64));
+    spawn_closure0_sig
+        .returns
+        .push(AbiParam::new(ir::types::I64));
     let spawn_closure0_fn = module
         .declare_function("vibe_spawn_closure0", Linkage::Import, &spawn_closure0_sig)
         .map_err(|e| format!("failed to declare runtime spawn_closure0 symbol: {e}"))?;
 
     let mut spawn_closure1_sig = module.make_signature();
     spawn_closure1_sig.params.push(AbiParam::new(ptr_ty));
-    spawn_closure1_sig.params.push(AbiParam::new(ir::types::I64));
-    spawn_closure1_sig.returns.push(AbiParam::new(ir::types::I64));
+    spawn_closure1_sig
+        .params
+        .push(AbiParam::new(ir::types::I64));
+    spawn_closure1_sig
+        .returns
+        .push(AbiParam::new(ir::types::I64));
     let spawn_closure1_fn = module
         .declare_function("vibe_spawn_closure1", Linkage::Import, &spawn_closure1_sig)
         .map_err(|e| format!("failed to declare runtime spawn_closure1 symbol: {e}"))?;
@@ -1729,12 +1735,10 @@ fn emit_stmt(
                 type_defs,
                 enum_defs,
             )?;
-            let tag_v = builder.ins().load(
-                ir::types::I64,
-                MemFlags::new(),
-                scrut_ptr,
-                Offset32::new(0),
-            );
+            let tag_v =
+                builder
+                    .ins()
+                    .load(ir::types::I64, MemFlags::new(), scrut_ptr, Offset32::new(0));
             let saved_locals = locals.clone();
             let merge_block = builder.create_block();
             let mut arm_blocks: Vec<ir::Block> = Vec::with_capacity(arms.len());
@@ -1760,10 +1764,7 @@ fn emit_stmt(
                 let layouts = enum_defs
                     .get(enum_name)
                     .ok_or_else(|| format!("E3499: unknown enum in match arm `{enum_name}`"))?;
-                let tag = layouts
-                    .iter()
-                    .position(|v| v.name == *variant)
-                    .unwrap_or(0) as i64;
+                let tag = layouts.iter().position(|v| v.name == *variant).unwrap_or(0) as i64;
                 let tag_const = builder.ins().iconst(ir::types::I64, tag);
                 let cond = builder.ins().icmp(IntCC::Equal, tag_v, tag_const);
                 let next_check = check_blocks[i + 1];
@@ -1817,7 +1818,7 @@ fn emit_stmt(
                 for (fname, pat_e) in payload {
                     let MirExpr::PatternBind { bind_as } = pat_e else {
                         return Err(
-                            "E3499: internal: expected PatternBind in match arm".to_string(),
+                            "E3499: internal: expected PatternBind in match arm".to_string()
                         );
                     };
                     let slot_idx = vl
@@ -2039,7 +2040,9 @@ fn emit_go_stmt(
         }
         MirExpr::Call { callee, args } => {
             let MirExpr::Var(name) = &**callee else {
-                return Err("E3301: unsupported `go` target: expected direct function call".to_string());
+                return Err(
+                    "E3301: unsupported `go` target: expected direct function call".to_string(),
+                );
             };
             let Some(fid) = function_ids.get(name) else {
                 return Err(format!("E3302: unknown go call target `{name}`"));
@@ -2049,7 +2052,8 @@ fn emit_go_stmt(
 
             match args.len() {
                 0 => {
-                    let local_spawn0 = module.declare_func_in_func(runtime_fns.spawn0_fn, builder.func);
+                    let local_spawn0 =
+                        module.declare_func_in_func(runtime_fns.spawn0_fn, builder.func);
                     let _ = builder.ins().call(local_spawn0, &[fn_ptr]);
                     Ok(())
                 }
@@ -4405,12 +4409,10 @@ fn emit_expr(
                 type_defs,
                 enum_defs,
             )?;
-            let code_ptr = builder.ins().load(
-                ptr_ty,
-                MemFlags::new(),
-                closure_ptr,
-                Offset32::new(0),
-            );
+            let code_ptr =
+                builder
+                    .ins()
+                    .load(ptr_ty, MemFlags::new(), closure_ptr, Offset32::new(0));
             let mut call_args: Vec<ir::Value> = Vec::with_capacity(1 + args.len());
             call_args.push(closure_ptr);
             for a in args {
@@ -4439,9 +4441,7 @@ fn emit_expr(
                     .push(AbiParam::new(mir_ty_to_clif(ret_ty, ptr_ty)));
             }
             let sig_ref = builder.import_signature(sig);
-            let call = builder
-                .ins()
-                .call_indirect(sig_ref, code_ptr, &call_args);
+            let call = builder.ins().call_indirect(sig_ref, code_ptr, &call_args);
             if *ret_ty == MirType::Void {
                 builder.ins().iconst(ir::types::I64, 0)
             } else {
@@ -4480,7 +4480,9 @@ fn emit_expr(
                 .inst_results(alloc_call)
                 .first()
                 .copied()
-                .ok_or_else(|| format!("E3499: record_alloc did not return for enum `{enum_name}`"))?;
+                .ok_or_else(|| {
+                    format!("E3499: record_alloc did not return for enum `{enum_name}`")
+                })?;
             let tag = layouts
                 .iter()
                 .position(|v| v.name == *variant)
@@ -4494,7 +4496,9 @@ fn emit_expr(
                 let (_, fval) = payload
                     .iter()
                     .find(|(n, _)| n == decl_name)
-                    .ok_or_else(|| format!("E3499: missing field `{decl_name}` in enum variant value"))?;
+                    .ok_or_else(|| {
+                        format!("E3499: missing field `{decl_name}` in enum variant value")
+                    })?;
                 let value = emit_expr(
                     fval,
                     module,
@@ -4777,16 +4781,16 @@ fn emit_stdlib_namespace_call(
             return Ok(Some(call_result_or_zero(builder, call)));
         }
         if field == "encode" && lowered_args.len() == 1 {
-            return Err(format!(
+            return Err(
                 "E3411: `json.encode` could not determine the struct type of its argument. \
                  Bind the argument to a variable first: `tmp := expr; json.encode(tmp)`"
-            ));
+                    .to_string(),
+            );
         }
         if field == "decode" && lowered_args.len() == 2 {
-            return Err(format!(
-                "E3411: `json.decode` could not determine the struct type of its fallback argument. \
+            return Err("E3411: `json.decode` could not determine the struct type of its fallback argument. \
                  Bind the fallback to a variable first: `fb := expr; json.decode(raw, fb)`"
-            ));
+                .to_string());
         }
     }
 
@@ -5752,9 +5756,7 @@ fn value_type_for_expr(
         MirExpr::Call { callee, .. } if matches!(&**callee, MirExpr::Var(name) if name == "chan") => {
             ptr_ty
         }
-        MirExpr::Call { callee, .. }
-            if matches!(&**callee, MirExpr::Var(name) if name == "type_of") =>
-        {
+        MirExpr::Call { callee, .. } if matches!(&**callee, MirExpr::Var(name) if name == "type_of") => {
             ptr_ty
         }
         MirExpr::Call { callee, .. }

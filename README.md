@@ -129,7 +129,7 @@ VibeLang compiles **1.5x faster than Rust** and produces a **328 KB** binary for
 - **Full results**: [benchmarks/third_party/local_full_run_report.md](benchmarks/third_party/local_full_run_report.md)
 - **Interactive dashboard**: [thevibelang.org/benchmarks](https://www.thevibelang.org/benchmarks)
 - **Publication policy**: [benchmarks/third_party/APPLE_TO_APPLE_BENCHMARK_POLICY.md](benchmarks/third_party/APPLE_TO_APPLE_BENCHMARK_POLICY.md)
-- **CI runner**: `.github/workflows/third-party-benchmarks.yml` runs strict mode
+- **CI runner**: the `release_benchmark_publication_gate` job in `.github/workflows/v1-release-gates.yml`
 
 ## Contracts & Intent
 

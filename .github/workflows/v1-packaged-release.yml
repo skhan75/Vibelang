@@ -43,21 +43,12 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
+      # jobs.<job_id>.if cannot read the matrix context (the old job-level if
+      # made GitHub reject the whole workflow file at parse time), so the PR
+      # narrowing lives in the matrix itself: pull requests package only the
+      # Linux target, pushes and manual dispatches package all three targets.
       matrix:
-        include:
-          - os: ubuntu-22.04
-            target: x86_64-unknown-linux-gnu
-            archive: tar.gz
-            binary_name: vibe
-          - os: macos-latest
-            target: x86_64-apple-darwin
-            archive: tar.gz
-            binary_name: vibe
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            archive: zip
-            binary_name: vibe.exe
-    if: ${{ github.event_name != 'pull_request' || matrix.target == 'x86_64-unknown-linux-gnu' }}
+        include: ${{ github.event_name == 'pull_request' && fromJSON('[{"os":"ubuntu-22.04","target":"x86_64-unknown-linux-gnu","archive":"tar.gz","binary_name":"vibe"}]') || fromJSON('[{"os":"ubuntu-22.04","target":"x86_64-unknown-linux-gnu","archive":"tar.gz","binary_name":"vibe"},{"os":"macos-latest","target":"x86_64-apple-darwin","archive":"tar.gz","binary_name":"vibe"},{"os":"windows-latest","target":"x86_64-pc-windows-msvc","archive":"zip","binary_name":"vibe.exe"}]') }}
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable

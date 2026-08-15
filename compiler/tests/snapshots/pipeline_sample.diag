@@ -1,1 +1,3 @@
+E2005: error: unknown type `Job` in parameter `tasks` of function `runAll` @ 1:5-15:1
+E2005: error: unknown type `JobResult` in return type of function `runAll` @ 1:5-15:1
 E2001: error: unknown identifier `worker` @ 11:8-11:13

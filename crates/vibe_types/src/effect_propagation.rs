@@ -211,9 +211,7 @@ fn collect_calls_from_expr(expr: &Expr, out: &mut BTreeSet<String>) {
             }
         }
         Expr::FnLiteral {
-            body,
-            tail_expr,
-            ..
+            body, tail_expr, ..
         } => {
             for s in body {
                 collect_calls_from_stmt(s, out);

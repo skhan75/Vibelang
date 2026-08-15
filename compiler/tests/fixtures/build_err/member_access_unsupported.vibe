@@ -3,6 +3,6 @@ pub main() -> Int {
   @effect io
   @effect concurrency
   ch := chan(1)
-  println(ch.size)
-  0
+  n := ch.size
+  n - n
 }

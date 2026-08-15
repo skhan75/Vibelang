@@ -27,10 +27,10 @@ use vibe_mir::MirProgram;
 use vibe_mir::{lower_hir_to_mir, mir_debug_dump};
 use vibe_parser::parse_source;
 use vibe_pkg::{
-    add_dependency, audit_project, default_mirror_root, default_registry_root,
-    install_project, install_with_fetch, load_manifest, publish_project, remove_dependency,
-    resolve_project, semver_delta, upgrade_plan, write_lockfile, DependencySpec, DetailedDep,
-    InstallReport, SemverDelta, LOCK_FILENAME, MANIFEST_FILENAME,
+    add_dependency, audit_project, default_mirror_root, default_registry_root, install_project,
+    install_with_fetch, load_manifest, publish_project, remove_dependency, resolve_project,
+    semver_delta, upgrade_plan, write_lockfile, DependencySpec, DetailedDep, InstallReport,
+    SemverDelta, LOCK_FILENAME, MANIFEST_FILENAME,
 };
 use vibe_runtime::{compile_runtime_object, link_executable, RuntimeBuildOptions};
 use vibe_sidecar::models::FindingSeverity;
@@ -199,10 +199,7 @@ fn run() -> Result<ExitCode, String> {
             let lock_path = project_root.join(LOCK_FILENAME);
             if lock_path.is_file() {
                 fs::remove_file(&lock_path).map_err(|e| {
-                    format!(
-                        "failed to remove lockfile `{}`: {e}",
-                        lock_path.display()
-                    )
+                    format!("failed to remove lockfile `{}`: {e}", lock_path.display())
                 })?;
             }
             let report = install_with_fetch(&project_root)?;
@@ -627,12 +624,13 @@ fn json_escape(input: &str) -> String {
 }
 
 fn run_check(path: &str) -> Result<ExitCode, String> {
-    let unit = resolve_compilation_unit(Path::new(path))?;
+    let mut unit = resolve_compilation_unit(Path::new(path))?;
     let checked = check_and_lower_with_ns(&unit.ast, &unit.namespace_map);
     let mut merged_diags = unit.diagnostics.clone().into_sorted();
     merged_diags.extend(checked.diagnostics.clone().into_sorted());
     let mut all = Diagnostics::default();
     all.extend(merged_diags.clone());
+    drop_injected_prelude_decls(&mut unit.ast, unit.injected_prelude_decls);
     if let Err(err) = best_effort_refresh_index(
         Path::new(path),
         &unit.source,
@@ -2742,10 +2740,11 @@ fn build_source(args: &BuildArgs) -> Result<BuildArtifacts, String> {
 
 fn build_index_for_file(file: &Path) -> Result<vibe_indexer::FileIndex, String> {
     let canonical = file.canonicalize().unwrap_or_else(|_| file.to_path_buf());
-    let unit = resolve_compilation_unit(&canonical)?;
-    let checked = check_and_lower(&unit.ast);
+    let mut unit = resolve_compilation_unit(&canonical)?;
+    let checked = check_and_lower_with_ns(&unit.ast, &unit.namespace_map);
     let mut diagnostics = unit.diagnostics.into_sorted();
     diagnostics.extend(checked.diagnostics.into_sorted());
+    drop_injected_prelude_decls(&mut unit.ast, unit.injected_prelude_decls);
     Ok(build_file_index(
         &canonical,
         &unit.source,
@@ -2753,6 +2752,13 @@ fn build_index_for_file(file: &Path) -> Result<vibe_indexer::FileIndex, String> 
         &checked.hir,
         &diagnostics,
     ))
+}
+
+/// Remove the stdlib prelude declarations appended at the tail of a resolved
+/// unit's AST so indexing and lint surfaces only see the user's own code.
+fn drop_injected_prelude_decls(ast: &mut vibe_ast::FileAst, injected: usize) {
+    let user_decls = ast.declarations.len().saturating_sub(injected);
+    ast.declarations.truncate(user_decls);
 }
 
 fn best_effort_refresh_index(
@@ -2941,7 +2947,7 @@ fn run_test(args: &TestArgs) -> Result<ExitCode, String> {
 
     for file in files {
         let unit = resolve_compilation_unit(&file)?;
-        let checked = check_and_lower(&unit.ast);
+        let checked = check_and_lower_with_ns(&unit.ast, &unit.namespace_map);
         let mut all = Diagnostics::default();
         all.extend(unit.diagnostics.clone().into_sorted());
         all.extend(checked.diagnostics.clone().into_sorted());
