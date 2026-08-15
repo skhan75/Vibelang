@@ -145,7 +145,7 @@ fn run() -> Result<ExitCode, String> {
                         artifacts.binary_path.display()
                     )
                 })?;
-            Ok(ExitCode::from(status.code().unwrap_or(1) as u8))
+            Ok(exit_code_for_run_status(&status))
         }
         "test" => {
             let test_args = parse_test_args(&args)?;
@@ -219,6 +219,51 @@ fn run() -> Result<ExitCode, String> {
         }
         _ => Err(format!("unknown command `{cmd}`\n{}", usage())),
     }
+}
+
+/// Map a finished `vibe run` child status to the CLI's own exit code.
+///
+/// On unix, a child killed by signal N is reported with a one-line stderr
+/// message and mapped to exit code 128 + N (shell convention), so a crash
+/// (e.g. SIGSEGV) is distinguishable from a program that returned 1.
+/// Normal exits pass the child's code through unchanged.
+fn exit_code_for_run_status(status: &std::process::ExitStatus) -> ExitCode {
+    #[cfg(unix)]
+    {
+        use std::os::unix::process::ExitStatusExt;
+        if let Some(signal) = status.signal() {
+            match signal_name(signal) {
+                Some(name) => {
+                    eprintln!("error: program terminated by signal {signal} ({name})")
+                }
+                None => eprintln!("error: program terminated by signal {signal}"),
+            }
+            return ExitCode::from(128u8.wrapping_add(signal as u8));
+        }
+    }
+    ExitCode::from(status.code().unwrap_or(1) as u8)
+}
+
+/// Names for signals whose numbers are identical across the unix platforms
+/// we support (Linux, macOS). Platform-divergent signals (e.g. SIGBUS) are
+/// reported by number only, keeping the message deterministic per platform.
+#[cfg(unix)]
+fn signal_name(signal: i32) -> Option<&'static str> {
+    Some(match signal {
+        1 => "SIGHUP",
+        2 => "SIGINT",
+        3 => "SIGQUIT",
+        4 => "SIGILL",
+        5 => "SIGTRAP",
+        6 => "SIGABRT",
+        8 => "SIGFPE",
+        9 => "SIGKILL",
+        11 => "SIGSEGV",
+        13 => "SIGPIPE",
+        14 => "SIGALRM",
+        15 => "SIGTERM",
+        _ => return None,
+    })
 }
 
 fn usage() -> String {
