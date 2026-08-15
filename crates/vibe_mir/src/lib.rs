@@ -250,7 +250,9 @@ pub fn lower_hir_to_mir(hir: &HirProgram) -> Result<MirProgram, String> {
                 .as_ref()
                 .map(|t| mir_param_ty_from_hir_raw(&t.raw))
                 .unwrap_or_else(|| {
-                    mir_param_ty_from_hir_raw(f.inferred_return_type.as_deref().unwrap_or("Unknown"))
+                    mir_param_ty_from_hir_raw(
+                        f.inferred_return_type.as_deref().unwrap_or("Unknown"),
+                    )
                 }),
             body,
             native_symbol: f.native_symbol.clone(),
@@ -504,9 +506,7 @@ fn callee_needs_closure_call(
     let HirExprKind::Ident(name) = &callee.kind else {
         return true;
     };
-    params.contains(name)
-        || locals.contains(name)
-        || !globals.contains(name)
+    params.contains(name) || locals.contains(name) || !globals.contains(name)
 }
 
 fn lower_stmt_list(
@@ -542,9 +542,7 @@ fn lower_stmt_list(
                 }
             },
             HirStmt::Return { expr } => {
-                out.push(MirStmt::Return(lower_expr(
-                    expr, globals, params, locals,
-                )?))
+                out.push(MirStmt::Return(lower_expr(expr, globals, params, locals)?))
             }
             HirStmt::Expr { expr } => {
                 out.push(MirStmt::Expr(lower_expr(expr, globals, params, locals)?))
@@ -659,7 +657,9 @@ fn lower_match_arm_pattern(
             let mut payload = Vec::with_capacity(fields.len());
             for (fname, e) in fields {
                 let bind = match &e.kind {
-                    HirExprKind::Ident(name) if name == "_" => MirExpr::PatternBind { bind_as: None },
+                    HirExprKind::Ident(name) if name == "_" => {
+                        MirExpr::PatternBind { bind_as: None }
+                    }
                     HirExprKind::Ident(name) => MirExpr::PatternBind {
                         bind_as: Some(name.clone()),
                     },
@@ -724,7 +724,7 @@ fn lower_expr(
                 field: field.clone(),
                 object_type: ot,
             }
-        },
+        }
         HirExprKind::Index { object, index } => MirExpr::Index {
             object: Box::new(lower_expr(object, globals, params, locals)?),
             index: Box::new(lower_expr(index, globals, params, locals)?),
@@ -1178,7 +1178,11 @@ pub fn parse_fn_mir_sig(ty: &str) -> Option<(Vec<MirType>, MirType)> {
                     } else {
                         split_fn_param_list(params_slice)?
                             .into_iter()
-                            .map(|s| parse_type_name(&s.chars().filter(|c| !c.is_whitespace()).collect::<String>()))
+                            .map(|s| {
+                                parse_type_name(
+                                    &s.chars().filter(|c| !c.is_whitespace()).collect::<String>(),
+                                )
+                            })
                             .collect()
                     };
                     let ret_ty = parse_type_name(

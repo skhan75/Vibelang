@@ -8,7 +8,8 @@ use std::path::{Path, PathBuf};
 use vibe_ast::{Contract, Declaration, Expr, FileAst, SelectPattern, Stmt};
 use vibe_diagnostics::{Diagnostic, Diagnostics, Severity, Span};
 use vibe_parser::parse_source;
-#[allow(clippy::single_component_path_imports)] // Ensures `vibe_pkg` is linked; required by project conventions.
+#[allow(clippy::single_component_path_imports)]
+// Ensures `vibe_pkg` is linked; required by project conventions.
 use vibe_pkg;
 
 pub struct CompilationUnit {
@@ -124,20 +125,21 @@ pub fn resolve_compilation_unit(entry_path: &Path) -> Result<CompilationUnit, St
         .and_then(|p| p.parent().map(|pp| pp.to_path_buf()))
         .and_then(|p| p.canonicalize().ok());
 
-    let package_store_canonical = find_package_store_root(&canonical_root)
-        .and_then(|p| p.canonicalize().ok());
+    let package_store_canonical =
+        find_package_store_root(&canonical_root).and_then(|p| p.canonicalize().ok());
 
     let mut module_index = BTreeMap::<String, usize>::new();
     for (idx, (_path, parsed)) in docs.iter().enumerate() {
         let Some(module_name) = &parsed.ast.module else {
             continue;
         };
-        let expected =
-            expected_module_name_from_path(&canonical_root, &docs[idx].0).or_else(|| {
+        let expected = expected_module_name_from_path(&canonical_root, &docs[idx].0)
+            .or_else(|| {
                 stdlib_parent
                     .as_ref()
                     .and_then(|sp| expected_module_name_from_path(sp, &docs[idx].0))
-            }).or_else(|| {
+            })
+            .or_else(|| {
                 package_store_canonical
                     .as_ref()
                     .and_then(|ps| expected_package_module_name(ps, &docs[idx].0))
@@ -575,9 +577,7 @@ fn collect_calls_from_expr(expr: &Expr, out: &mut BTreeSet<String>) {
             }
         }
         Expr::FnLiteral {
-            body,
-            tail_expr,
-            ..
+            body, tail_expr, ..
         } => {
             for s in body {
                 collect_calls_from_stmt(s, out);

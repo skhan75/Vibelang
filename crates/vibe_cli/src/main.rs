@@ -27,10 +27,10 @@ use vibe_mir::MirProgram;
 use vibe_mir::{lower_hir_to_mir, mir_debug_dump};
 use vibe_parser::parse_source;
 use vibe_pkg::{
-    add_dependency, audit_project, default_mirror_root, default_registry_root,
-    install_project, install_with_fetch, load_manifest, publish_project, remove_dependency,
-    resolve_project, semver_delta, upgrade_plan, write_lockfile, DependencySpec, DetailedDep,
-    InstallReport, SemverDelta, LOCK_FILENAME, MANIFEST_FILENAME,
+    add_dependency, audit_project, default_mirror_root, default_registry_root, install_project,
+    install_with_fetch, load_manifest, publish_project, remove_dependency, resolve_project,
+    semver_delta, upgrade_plan, write_lockfile, DependencySpec, DetailedDep, InstallReport,
+    SemverDelta, LOCK_FILENAME, MANIFEST_FILENAME,
 };
 use vibe_runtime::{compile_runtime_object, link_executable, RuntimeBuildOptions};
 use vibe_sidecar::models::FindingSeverity;
@@ -199,10 +199,7 @@ fn run() -> Result<ExitCode, String> {
             let lock_path = project_root.join(LOCK_FILENAME);
             if lock_path.is_file() {
                 fs::remove_file(&lock_path).map_err(|e| {
-                    format!(
-                        "failed to remove lockfile `{}`: {e}",
-                        lock_path.display()
-                    )
+                    format!("failed to remove lockfile `{}`: {e}", lock_path.display())
                 })?;
             }
             let report = install_with_fetch(&project_root)?;

@@ -169,14 +169,40 @@ impl Lexer {
                     self.bump();
                     if let Some(escaped) = self.peek() {
                         match escaped {
-                            'n' => { self.bump(); value.push('\n'); }
-                            't' => { self.bump(); value.push('\t'); }
-                            'r' => { self.bump(); value.push('\r'); }
-                            '"' => { self.bump(); value.push('"'); }
-                            '\\' => { self.bump(); value.push('\\'); }
-                            '{' => { self.bump(); value.push('\x00'); value.push('{'); }
-                            '}' => { self.bump(); value.push('\x00'); value.push('}'); }
-                            other => { self.bump(); value.push(other); }
+                            'n' => {
+                                self.bump();
+                                value.push('\n');
+                            }
+                            't' => {
+                                self.bump();
+                                value.push('\t');
+                            }
+                            'r' => {
+                                self.bump();
+                                value.push('\r');
+                            }
+                            '"' => {
+                                self.bump();
+                                value.push('"');
+                            }
+                            '\\' => {
+                                self.bump();
+                                value.push('\\');
+                            }
+                            '{' => {
+                                self.bump();
+                                value.push('\x00');
+                                value.push('{');
+                            }
+                            '}' => {
+                                self.bump();
+                                value.push('\x00');
+                                value.push('}');
+                            }
+                            other => {
+                                self.bump();
+                                value.push(other);
+                            }
                         }
                     }
                 }

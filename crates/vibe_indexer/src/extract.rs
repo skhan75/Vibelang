@@ -648,7 +648,10 @@ fn collect_closure_stmt_expr_refs(
                 dependencies,
             );
         }
-        Stmt::For { iter, body, .. } | Stmt::While { cond: iter, body, .. } => {
+        Stmt::For { iter, body, .. }
+        | Stmt::While {
+            cond: iter, body, ..
+        } => {
             collect_expr_refs(
                 iter,
                 file,
@@ -960,9 +963,7 @@ fn collect_expr_refs(
             }
         }
         Expr::FnLiteral {
-            body,
-            tail_expr,
-            ..
+            body, tail_expr, ..
         } => {
             for s in body {
                 collect_closure_stmt_expr_refs(
