@@ -1842,7 +1842,7 @@ pub(crate) fn lower_expr(
         },
         Expr::Call { callee, args, .. } => {
             if is_convert_to_str_call(callee, args) {
-                let arg_ty = expr_type_hint(&args[0], env);
+                let arg_ty = convert_to_str_passthrough_hint(&args[0], env, ctx);
                 if matches!(arg_ty, TypeKind::Str) {
                     return lower_expr(&args[0], env, ctx);
                 }
@@ -1922,6 +1922,35 @@ pub(crate) fn lower_expr(
         }
     };
     HirExpr::new(kind, ty)
+}
+
+/// Type hint for the argument of a `convert.to_str(x)` call, used to decide
+/// whether HIR lowering may rewrite the call into a passthrough of `x`.
+///
+/// The generic `expr_type_hint` fallback guesses a member call's type from its
+/// FIRST ARGUMENT. For a nested stdlib call such as `text.byte_len("abc")`
+/// (declared `-> Int`) that guess is `Str`, so the passthrough elided the
+/// `to_str` call and the raw Int flowed into Str-consuming natives —
+/// `println(convert.to_str(text.byte_len("abc")))` segfaulted in `strlen`
+/// (2026-08 audit P0-12). When the argument is itself a stdlib namespace
+/// call, consult the stdlib return-type registry (prelude signatures via
+/// `ctx.namespace_map` + the static table) as ground truth and never fall
+/// back to argument-based guessing; an unresolved namespace call stays
+/// `Unknown`, which keeps the real `to_str` call.
+fn convert_to_str_passthrough_hint(
+    arg: &Expr,
+    env: &BTreeMap<String, TypeKind>,
+    ctx: &TypeContext<'_>,
+) -> TypeKind {
+    if let Expr::Call { callee, .. } = arg {
+        if let Some((namespace, field)) =
+            extract_stdlib_call_target_with_ns(callee, ctx.namespace_map)
+        {
+            return stdlib_namespace_return_hint(&namespace, &field, ctx)
+                .unwrap_or(TypeKind::Unknown);
+        }
+    }
+    expr_type_hint(arg, env)
 }
 
 fn is_convert_to_str_call(callee: &Expr, args: &[Expr]) -> bool {
