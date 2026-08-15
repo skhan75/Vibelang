@@ -1,6 +1,9 @@
 // Copyright 2025-2026 VibeLang Contributors
 // SPDX-License-Identifier: Apache-2.0
 
+mod common;
+
+use common::host_target_triple;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -17,7 +20,7 @@ fn hello_world_build_and_run() {
         build.stderr
     );
 
-    let binary = artifact_binary_path(&source, "dev", "x86_64-unknown-linux-gnu");
+    let binary = artifact_binary_path(&source, "dev", host_target_triple());
     assert!(
         binary.exists(),
         "binary should be emitted at {}",
@@ -45,7 +48,7 @@ fn hello_world_build_and_run_with_yb_extension() {
         build.stderr
     );
 
-    let binary = artifact_binary_path(&source, "dev", "x86_64-unknown-linux-gnu");
+    let binary = artifact_binary_path(&source, "dev", host_target_triple());
     assert!(
         binary.exists(),
         "binary should be emitted at {}",
@@ -464,16 +467,12 @@ fn deterministic_build_binary_and_metadata() {
         first.stdout,
         first.stderr
     );
-    let first_bin = fs::read(artifact_binary_path(
-        &source,
-        "dev",
-        "x86_64-unknown-linux-gnu",
-    ))
-    .expect("read first binary");
+    let first_bin = fs::read(artifact_binary_path(&source, "dev", host_target_triple()))
+        .expect("read first binary");
     let first_debug_map = fs::read_to_string(artifact_debug_map_path(
         &source,
         "dev",
-        "x86_64-unknown-linux-gnu",
+        host_target_triple(),
     ))
     .expect("read first debug map");
 
@@ -484,16 +483,12 @@ fn deterministic_build_binary_and_metadata() {
         second.stdout,
         second.stderr
     );
-    let second_bin = fs::read(artifact_binary_path(
-        &source,
-        "dev",
-        "x86_64-unknown-linux-gnu",
-    ))
-    .expect("read second binary");
+    let second_bin = fs::read(artifact_binary_path(&source, "dev", host_target_triple()))
+        .expect("read second binary");
     let second_debug_map = fs::read_to_string(artifact_debug_map_path(
         &source,
         "dev",
-        "x86_64-unknown-linux-gnu",
+        host_target_triple(),
     ))
     .expect("read second debug map");
 
@@ -646,7 +641,7 @@ fn build_accepts_debuginfo_flag_and_writes_metadata() {
     let debug_map = fs::read_to_string(artifact_debug_map_path(
         &source,
         "dev",
-        "x86_64-unknown-linux-gnu",
+        host_target_triple(),
     ))
     .expect("read debug map");
     assert!(
@@ -669,7 +664,7 @@ fn debug_map_source_path_is_project_relative_and_stable() {
     let debug_map = fs::read_to_string(artifact_debug_map_path(
         &source,
         "dev",
-        "x86_64-unknown-linux-gnu",
+        host_target_triple(),
     ))
     .expect("read debug map");
     assert!(
@@ -711,7 +706,7 @@ pub main() -> Int {
     let unsafe_audit = fs::read_to_string(artifact_unsafe_audit_path(
         &source,
         "dev",
-        "x86_64-unknown-linux-gnu",
+        host_target_triple(),
     ))
     .expect("read unsafe audit");
     assert!(
@@ -726,7 +721,7 @@ pub main() -> Int {
     let alloc_profile = fs::read_to_string(artifact_alloc_profile_path(
         &source,
         "dev",
-        "x86_64-unknown-linux-gnu",
+        host_target_triple(),
     ))
     .expect("read allocation profile");
     assert!(
@@ -939,7 +934,7 @@ pub main() -> Int {
         build.stdout,
         build.stderr
     );
-    let binary = artifact_binary_path(&source, "dev", "x86_64-unknown-linux-gnu");
+    let binary = artifact_binary_path(&source, "dev", host_target_triple());
     let run = Command::new(&binary)
         .current_dir(workspace_root())
         .output()

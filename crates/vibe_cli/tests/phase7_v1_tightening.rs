@@ -1,6 +1,9 @@
 // Copyright 2025-2026 VibeLang Contributors
 // SPDX-License-Identifier: Apache-2.0
 
+mod common;
+
+use common::host_target_triple;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -176,7 +179,7 @@ fn phase7_memory_valgrind_leak_check_default_lane() {
         build.stdout,
         build.stderr
     );
-    let binary = artifact_binary_path(&source, "dev", "x86_64-unknown-linux-gnu");
+    let binary = artifact_binary_path(&source, "dev", host_target_triple());
     let output = Command::new("valgrind")
         .args([
             "--leak-check=full",

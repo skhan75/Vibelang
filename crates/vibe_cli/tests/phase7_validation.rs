@@ -1,6 +1,9 @@
 // Copyright 2025-2026 VibeLang Contributors
 // SPDX-License-Identifier: Apache-2.0
 
+mod common;
+
+use common::host_target_triple;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -81,22 +84,14 @@ fn phase7_single_thread_build_artifacts_are_deterministic() {
             first.stdout,
             first.stderr
         );
-        let first_obj = fs::read(artifact_object_path(
-            &source,
-            "dev",
-            "x86_64-unknown-linux-gnu",
-        ))
-        .expect("read first object");
-        let first_bin = fs::read(artifact_binary_path(
-            &source,
-            "dev",
-            "x86_64-unknown-linux-gnu",
-        ))
-        .expect("read first binary");
+        let first_obj = fs::read(artifact_object_path(&source, "dev", host_target_triple()))
+            .expect("read first object");
+        let first_bin = fs::read(artifact_binary_path(&source, "dev", host_target_triple()))
+            .expect("read first binary");
         let first_debug = fs::read_to_string(artifact_debug_map_path(
             &source,
             "dev",
-            "x86_64-unknown-linux-gnu",
+            host_target_triple(),
         ))
         .expect("read first debug map");
 
@@ -107,22 +102,14 @@ fn phase7_single_thread_build_artifacts_are_deterministic() {
             second.stdout,
             second.stderr
         );
-        let second_obj = fs::read(artifact_object_path(
-            &source,
-            "dev",
-            "x86_64-unknown-linux-gnu",
-        ))
-        .expect("read second object");
-        let second_bin = fs::read(artifact_binary_path(
-            &source,
-            "dev",
-            "x86_64-unknown-linux-gnu",
-        ))
-        .expect("read second binary");
+        let second_obj = fs::read(artifact_object_path(&source, "dev", host_target_triple()))
+            .expect("read second object");
+        let second_bin = fs::read(artifact_binary_path(&source, "dev", host_target_triple()))
+            .expect("read second binary");
         let second_debug = fs::read_to_string(artifact_debug_map_path(
             &source,
             "dev",
-            "x86_64-unknown-linux-gnu",
+            host_target_triple(),
         ))
         .expect("read second debug map");
 
