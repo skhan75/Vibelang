@@ -7,12 +7,22 @@ use vibe_diagnostics::{Diagnostic, Diagnostics, Severity};
 
 use crate::effect_propagation::FunctionEffectSummary;
 
+/// `internal_functions` names compiler-injected functions (the stdlib
+/// prelude); they take part in effect propagation but are never reported on,
+/// because the user cannot edit their `@effect` annotations. Skipping them
+/// cannot hide a build failure: every diagnostic below is a warning or an info.
+/// The set excludes names a user function also declares, since summaries are
+/// keyed by name alone.
 pub fn emit_effect_diagnostics(
     summaries: &[FunctionEffectSummary],
     transitive_effects: &BTreeMap<String, BTreeSet<String>>,
+    internal_functions: &BTreeSet<String>,
     diagnostics: &mut Diagnostics,
 ) {
     for summary in summaries {
+        if internal_functions.contains(&summary.name) {
+            continue;
+        }
         let observed = transitive_effects
             .get(&summary.name)
             .cloned()

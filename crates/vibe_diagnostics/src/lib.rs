@@ -87,6 +87,27 @@ impl Diagnostics {
         self.items.iter().any(|d| d.severity == Severity::Error)
     }
 
+    /// Number of diagnostics recorded so far, in push order.
+    pub fn len(&self) -> usize {
+        self.items.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.items.is_empty()
+    }
+
+    /// Drops the non-error diagnostics pushed after `len`, keeping every
+    /// [`Severity::Error`]. Producers use this together with a `len()` mark to
+    /// mute one unit of work they know is compiler-internal: its warnings and
+    /// infos name source the user cannot open, but an error there is a real
+    /// miscompilation and must still fail the build loudly.
+    pub fn drop_non_errors_after(&mut self, len: usize) {
+        let len = len.min(self.items.len());
+        let tail = self.items.split_off(len);
+        self.items
+            .extend(tail.into_iter().filter(|d| d.severity == Severity::Error));
+    }
+
     pub fn as_slice(&self) -> &[Diagnostic] {
         &self.items
     }

@@ -36,10 +36,10 @@ use vibe_runtime::{compile_runtime_object, link_executable, RuntimeBuildOptions}
 use vibe_sidecar::models::FindingSeverity;
 use vibe_sidecar::SidecarMode;
 use vibe_sidecar::{BudgetPolicy, IntentLintRequest, SidecarService};
-use vibe_types::{check_and_lower, check_and_lower_with_ns, type_kind_to_codegen_str};
+use vibe_types::{check_and_lower, check_and_lower_with_prelude, type_kind_to_codegen_str};
 
 use crate::example_runner::{run_examples_with_policy, ExampleRunSummary};
-use crate::module_resolver::resolve_compilation_unit;
+use crate::module_resolver::{resolve_compilation_unit, CompilationUnit};
 
 fn main() -> ExitCode {
     match run() {
@@ -623,9 +623,18 @@ fn json_escape(input: &str) -> String {
         .replace('\t', "\\t")
 }
 
+/// Type-checks a resolved unit. The injected stdlib prelude sits at the tail of
+/// `unit.ast.declarations`; handing that count to the checker keeps the
+/// prelude's own warnings and infos out of every user-facing surface, which is
+/// the same source of truth `drop_injected_prelude_decls` uses for indexing.
+/// Prelude *errors* still surface, so a broken stdlib fails the build.
+fn check_unit(unit: &CompilationUnit) -> vibe_types::CheckOutput {
+    check_and_lower_with_prelude(&unit.ast, &unit.namespace_map, unit.injected_prelude_decls)
+}
+
 fn run_check(path: &str) -> Result<ExitCode, String> {
     let mut unit = resolve_compilation_unit(Path::new(path))?;
-    let checked = check_and_lower_with_ns(&unit.ast, &unit.namespace_map);
+    let checked = check_unit(&unit);
     let mut merged_diags = unit.diagnostics.clone().into_sorted();
     merged_diags.extend(checked.diagnostics.clone().into_sorted());
     let mut all = Diagnostics::default();
@@ -669,7 +678,7 @@ fn run_ast(path: &str) -> Result<ExitCode, String> {
 
 fn run_hir(path: &str) -> Result<ExitCode, String> {
     let unit = resolve_compilation_unit(Path::new(path))?;
-    let checked = check_and_lower_with_ns(&unit.ast, &unit.namespace_map);
+    let checked = check_unit(&unit);
     println!("{:#?}", checked.hir);
     let mut all = Diagnostics::default();
     all.extend(unit.diagnostics.into_sorted());
@@ -687,7 +696,7 @@ fn run_hir(path: &str) -> Result<ExitCode, String> {
 
 fn run_mir(path: &str) -> Result<ExitCode, String> {
     let unit = resolve_compilation_unit(Path::new(path))?;
-    let checked = check_and_lower_with_ns(&unit.ast, &unit.namespace_map);
+    let checked = check_unit(&unit);
     let mut all = Diagnostics::default();
     all.extend(unit.diagnostics.clone().into_sorted());
     all.extend(checked.diagnostics.clone().into_sorted());
@@ -2447,7 +2456,7 @@ fn build_source(args: &BuildArgs) -> Result<BuildArtifacts, String> {
     } else {
         None
     };
-    let checked = check_and_lower_with_ns(&unit.ast, &unit.namespace_map);
+    let checked = check_unit(&unit);
     let check_ms = check_start
         .as_ref()
         .map(|start| start.elapsed().as_millis())
@@ -2741,7 +2750,7 @@ fn build_source(args: &BuildArgs) -> Result<BuildArtifacts, String> {
 fn build_index_for_file(file: &Path) -> Result<vibe_indexer::FileIndex, String> {
     let canonical = file.canonicalize().unwrap_or_else(|_| file.to_path_buf());
     let mut unit = resolve_compilation_unit(&canonical)?;
-    let checked = check_and_lower_with_ns(&unit.ast, &unit.namespace_map);
+    let checked = check_unit(&unit);
     let mut diagnostics = unit.diagnostics.into_sorted();
     diagnostics.extend(checked.diagnostics.into_sorted());
     drop_injected_prelude_decls(&mut unit.ast, unit.injected_prelude_decls);
@@ -2947,7 +2956,7 @@ fn run_test(args: &TestArgs) -> Result<ExitCode, String> {
 
     for file in files {
         let unit = resolve_compilation_unit(&file)?;
-        let checked = check_and_lower_with_ns(&unit.ast, &unit.namespace_map);
+        let checked = check_unit(&unit);
         let mut all = Diagnostics::default();
         all.extend(unit.diagnostics.clone().into_sorted());
         all.extend(checked.diagnostics.clone().into_sorted());

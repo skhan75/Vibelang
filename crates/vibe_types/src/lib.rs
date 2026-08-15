@@ -110,6 +110,59 @@ struct TypeContext<'a> {
     ensure_result_type: RefCell<Option<TypeKind>>,
 }
 
+/// Tracks which declarations of a compilation unit were injected by the
+/// compiler (the stdlib prelude, always appended as the tail of
+/// `declarations`) so their warnings and infos can be dropped: they point into
+/// source the user never wrote and cannot open. Errors are never dropped, so a
+/// broken prelude still fails the build instead of miscompiling silently.
+struct InternalDecls {
+    /// `true` at index `i` when `declarations[i]` is prelude-owned.
+    flags: Vec<bool>,
+    /// Names of prelude-owned functions, for surfaces keyed by name only.
+    functions: BTreeSet<String>,
+}
+
+impl InternalDecls {
+    fn new(decls: &[Declaration], user_decl_count: usize) -> Self {
+        let user_functions: BTreeSet<&str> = decls[..user_decl_count]
+            .iter()
+            .filter_map(|d| match d {
+                Declaration::Function(f) => Some(f.name.as_str()),
+                Declaration::Type(_) | Declaration::Enum(_) => None,
+            })
+            .collect();
+        let mut flags = vec![false; decls.len()];
+        let mut functions = BTreeSet::new();
+        for (idx, decl) in decls.iter().enumerate().skip(user_decl_count) {
+            flags[idx] = true;
+            if let Declaration::Function(f) = decl {
+                // Effect summaries are keyed by function name alone, so a
+                // prelude name that a user function also uses must stay
+                // reportable: the summary carrying it may be the user's. Only a
+                // same-kind collision can shadow, so this compares functions
+                // against functions. A user *type* named `spawn` does not
+                // un-mute the prelude's `spawn` function.
+                if !user_functions.contains(f.name.as_str()) {
+                    functions.insert(f.name.clone());
+                }
+            }
+        }
+        Self { flags, functions }
+    }
+
+    fn is_internal(&self, idx: usize) -> bool {
+        self.flags.get(idx).copied().unwrap_or(false)
+    }
+
+    fn owns_function(&self, name: &str) -> bool {
+        self.functions.contains(name)
+    }
+
+    fn mark_function(&mut self, name: &str) {
+        self.functions.insert(name.to_string());
+    }
+}
+
 pub fn check_and_lower(ast: &FileAst) -> CheckOutput {
     check_and_lower_with_ns(ast, &BTreeMap::new())
 }
@@ -118,6 +171,29 @@ pub fn check_and_lower_with_ns(
     ast: &FileAst,
     namespace_map: &BTreeMap<(String, String), String>,
 ) -> CheckOutput {
+    check_and_lower_with_prelude(ast, namespace_map, 0)
+}
+
+/// Like [`check_and_lower_with_ns`], but the last `injected_prelude_decls`
+/// declarations are treated as compiler-injected stdlib prelude: the warnings
+/// and infos originating inside them are discarded so they never reach the
+/// user, who has no file to open and nothing to fix.
+///
+/// Errors are deliberately *not* discarded, at any severity-bearing surface: a
+/// prelude that fails to type-check would otherwise be lowered anyway and
+/// miscompile in silence, which is a far worse failure than a confusing span.
+/// Diagnostics about the user's own declarations are untouched, including
+/// errors that merely name a stdlib symbol.
+pub fn check_and_lower_with_prelude(
+    ast: &FileAst,
+    namespace_map: &BTreeMap<(String, String), String>,
+    injected_prelude_decls: usize,
+) -> CheckOutput {
+    let user_decl_count = ast
+        .declarations
+        .len()
+        .saturating_sub(injected_prelude_decls);
+    let mut internal = InternalDecls::new(&ast.declarations, user_decl_count);
     let mut diagnostics = Diagnostics::default();
     let mut signatures: BTreeMap<String, Option<TypeKind>> = BTreeMap::new();
     let mut type_defs: BTreeMap<String, Vec<(String, TypeKind)>> = BTreeMap::new();
@@ -125,7 +201,8 @@ pub fn check_and_lower_with_ns(
     let mut hir = HirProgram::default();
     let mut effect_summaries: Vec<FunctionEffectSummary> = Vec::new();
 
-    for decl in &ast.declarations {
+    for (decl_idx, decl) in ast.declarations.iter().enumerate() {
+        let diag_mark = diagnostics.len();
         match decl {
             Declaration::Type(t) => {
                 if type_defs.contains_key(&t.name) {
@@ -198,6 +275,9 @@ pub fn check_and_lower_with_ns(
                 );
             }
         }
+        if internal.is_internal(decl_idx) {
+            diagnostics.drop_non_errors_after(diag_mark);
+        }
     }
 
     // Declared type names must resolve now that every type and enum has been
@@ -205,7 +285,14 @@ pub fn check_and_lower_with_ns(
     // type, and an unsupported annotation like `Option<Int>` must not silently
     // become `Unknown`, which would disable every downstream check that
     // touches the annotation (audit P0-04).
-    for decl in &ast.declarations {
+    for (decl_idx, decl) in ast.declarations.iter().enumerate() {
+        // Multi-parameter generics are already rejected with E2002b.
+        if let Declaration::Function(f) = decl {
+            if f.type_params.len() > 1 {
+                continue;
+            }
+        }
+        let diag_mark = diagnostics.len();
         match decl {
             Declaration::Type(t) => {
                 for f in &t.fields {
@@ -239,10 +326,6 @@ pub fn check_and_lower_with_ns(
                 }
             }
             Declaration::Function(f) => {
-                // Multi-parameter generics are already rejected with E2002b.
-                if f.type_params.len() > 1 {
-                    continue;
-                }
                 let type_param = f.type_params.first().map(String::as_str);
                 for p in &f.params {
                     if let Some(ty) = &p.ty {
@@ -269,6 +352,9 @@ pub fn check_and_lower_with_ns(
                     );
                 }
             }
+        }
+        if internal.is_internal(decl_idx) {
+            diagnostics.drop_non_errors_after(diag_mark);
         }
     }
 
@@ -336,13 +422,14 @@ pub fn check_and_lower_with_ns(
         ensure_result_type: RefCell::new(None),
     };
 
-    for decl in &ast.declarations {
+    for (decl_idx, decl) in ast.declarations.iter().enumerate() {
         let Declaration::Function(func) = decl else {
             continue;
         };
         if !func.type_params.is_empty() {
             continue;
         }
+        let diag_mark = diagnostics.len();
         let fn_cache = Rc::new(RefCell::new(FnLiteralCache {
             owner: func.name.clone(),
             next_id: 0,
@@ -619,6 +706,9 @@ pub fn check_and_lower_with_ns(
             tail_expr: hir_tail_expr,
             native_symbol,
         });
+        if internal.is_internal(decl_idx) {
+            diagnostics.drop_non_errors_after(diag_mark);
+        }
     }
 
     let mut mono_pass_items: Vec<(FunctionDecl, String)> = Vec::new();
@@ -659,6 +749,13 @@ pub fn check_and_lower_with_ns(
     }
 
     for (func, generic_base) in mono_pass_items {
+        // A monomorph inherits its template's provenance: instantiating a
+        // prelude generic must not surface diagnostics either.
+        let mono_is_internal = internal.owns_function(&generic_base);
+        if mono_is_internal {
+            internal.mark_function(&func.name);
+        }
+        let diag_mark = diagnostics.len();
         let fn_cache = Rc::new(RefCell::new(FnLiteralCache {
             owner: func.name.clone(),
             next_id: 0,
@@ -939,10 +1036,20 @@ pub fn check_and_lower_with_ns(
             tail_expr: hir_tail_expr,
             native_symbol,
         });
+        if mono_is_internal {
+            diagnostics.drop_non_errors_after(diag_mark);
+        }
     }
 
+    // Effect propagation still walks every function (prelude effects must reach
+    // the user's callers), but only user-owned functions get reported on.
     let transitive_effects = compute_transitive_effects(&effect_summaries);
-    emit_effect_diagnostics(&effect_summaries, &transitive_effects, &mut diagnostics);
+    emit_effect_diagnostics(
+        &effect_summaries,
+        &transitive_effects,
+        &internal.functions,
+        &mut diagnostics,
+    );
     for f in &mut hir.functions {
         if let Some(transitive) = transitive_effects.get(&f.name) {
             f.effects_observed = transitive.clone();

@@ -1,6 +1,5 @@
 pub main() -> Int {
   @effect alloc
-  @effect io
   @effect concurrency
   ch := chan(1)
   n := ch.size
