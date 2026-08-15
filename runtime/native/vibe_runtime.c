@@ -3632,6 +3632,78 @@ char *vibe_json_canonical(const char *raw) {
     return builder.data;
 }
 
+/*
+ * Scans a JSON number token starting at p, following the RFC 8259 grammar
+ * for the exponent: after 'e'/'E' an optional single '+' or '-', then at
+ * least one digit. '+' is accepted only in that exponent-sign position.
+ * Returns the end of the token (setting *out_saw_float when a fraction or
+ * exponent was seen), or NULL when the text at p is not a number token.
+ * The exponent digits are enforced here rather than left to strtod because
+ * strtod's handling of dangling exponents ("1e-") varies across libcs.
+ */
+static const char *vibe_json_scan_number(const char *p, int *out_saw_float) {
+    int saw_float = 0;
+    int saw_mantissa_digit = 0;
+    if (*p == '-') {
+        p += 1;
+    }
+    while (*p >= '0' && *p <= '9') {
+        saw_mantissa_digit = 1;
+        p += 1;
+    }
+    if (*p == '.') {
+        saw_float = 1;
+        p += 1;
+        while (*p >= '0' && *p <= '9') {
+            saw_mantissa_digit = 1;
+            p += 1;
+        }
+    }
+    if (!saw_mantissa_digit) {
+        return NULL;
+    }
+    if (*p == 'e' || *p == 'E') {
+        const char *exp = p + 1;
+        if (*exp == '+' || *exp == '-') {
+            exp += 1;
+        }
+        if (*exp < '0' || *exp > '9') {
+            return NULL;
+        }
+        saw_float = 1;
+        p = exp;
+        while (*p >= '0' && *p <= '9') {
+            p += 1;
+        }
+    }
+    *out_saw_float = saw_float;
+    return p;
+}
+
+static int64_t vibe_json_number_slice_is_valid(const char *start, const char *end) {
+    int saw_float = 0;
+    const char *scan_end = vibe_json_scan_number(start, &saw_float);
+    if (scan_end != end) {
+        return 0;
+    }
+    if (!saw_float) {
+        int64_t parsed = 0;
+        return vibe_parse_i64_strict(start, end, &parsed);
+    }
+    size_t len = (size_t)(end - start);
+    char *buffer = (char *)calloc(len + 1, sizeof(char));
+    if (buffer == NULL) {
+        vibe_panic("failed to allocate JSON number buffer");
+    }
+    memcpy(buffer, start, len);
+    buffer[len] = '\0';
+    char *endptr = NULL;
+    (void)strtod(buffer, &endptr);
+    int64_t ok = endptr != NULL && *endptr == '\0';
+    free(buffer);
+    return ok;
+}
+
 int64_t vibe_json_is_valid(const char *raw) {
     vibe_counter_inc(&vibe_json_validate_calls);
     if (raw == NULL) {
@@ -3652,8 +3724,7 @@ int64_t vibe_json_is_valid(const char *raw) {
         (len == 4 && strncmp(start, "null", 4) == 0)) {
         return 1;
     }
-    int64_t parsed = 0;
-    return vibe_parse_i64_strict(start, end, &parsed);
+    return vibe_json_number_slice_is_valid(start, end);
 }
 
 static char *vibe_json_quote_string(const char *raw) {
@@ -3988,22 +4059,8 @@ static const char *vibe_json_parse_string_value(const char *p, char **out_str) {
 static const char *vibe_json_parse_number_value(const char *p, vibe_json_value **out) {
     const char *start = p;
     int saw_float = 0;
-    if (*p == '-') {
-        p += 1;
-    }
-    while (*p != '\0') {
-        if (*p >= '0' && *p <= '9') {
-            p += 1;
-            continue;
-        }
-        if (*p == '.' || *p == 'e' || *p == 'E' || *p == '+') {
-            saw_float = 1;
-            p += 1;
-            continue;
-        }
-        break;
-    }
-    if (p == start) {
+    p = vibe_json_scan_number(p, &saw_float);
+    if (p == NULL) {
         return NULL;
     }
     if (!saw_float) {
@@ -4025,8 +4082,9 @@ static const char *vibe_json_parse_number_value(const char *p, vibe_json_value *
     buffer[len] = '\0';
     char *endptr = NULL;
     double value = strtod(buffer, &endptr);
+    int fully_consumed = endptr != NULL && *endptr == '\0';
     free(buffer);
-    if (endptr == NULL || *endptr != '\0') {
+    if (!fully_consumed) {
         return NULL;
     }
     vibe_json_value *json = vibe_json_new_value(VIBE_JSON_F64);
