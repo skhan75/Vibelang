@@ -13,3 +13,6 @@ Scoped follow-ups parked during active work. Newest at top; finished items move 
 - diagnostics: monomorphized return-conflict messages leak mangled instance names (e.g. `pick__Int`)
 - codegen: float-to-string paths fail with spanless Cranelift verifier errors (interpolation, println, and the unused `to_str_f64` route)
 - tooling: 13 example `.yb` files are absent from `examples_manifest.json` and escape the suite (how the Str-interpolation regression stayed invisible); add a full-corpus build sweep to CI
+- tests: `compiler/tests/fixtures/stdlib/fs/basic.yb` writes `phase12_fs_fixture.txt` into the current working directory instead of a temp dir, leaving an untracked artifact after any local `vibe test` run (same class as the committed `examples_fs_demo.txt` scratch file)
+- perf: `metrics_threshold_smoke` fails the v1 quality budget — `index_memory_ratio=12.58` exceeds `max_index_memory_ratio=10.0`. Pre-existing (the standalone phase6-metrics lane failed the same way before this work). Needs either indexer memory work or a re-baselined budget with justification.
+- ci: `compiler/tests/fixtures/stdlib/**` is only exercised by the `phase12_stdlib_gate` CI job, not by workspace tests or the corpus sweep — which is why an ill-typed fixture (`println` of an `HttpResponse`) stayed invisible locally. Fold these fixtures into a Rust-side test or the sweep.
