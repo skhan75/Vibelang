@@ -2,6 +2,7 @@
 
 Scoped follow-ups parked during active work. Newest at top; finished items move to `git log`.
 
+- types: opaque nominal handle types for str_builder/net/ws (P0-13 layer 2, parked): the Json/JsonBuilder pattern is a hardcoded variant across `vibe_types::TypeKind` + `vibe_mir::MirType` + codegen mappings (new machinery per family), and net handles can't change type without breaking corpus code that annotates them as Int (e.g. `66_websocket_echo.yb` `ws_handle(conn: Int)`). Runtime live-handle registry shipped instead; revisit if a general opaque-handle TypeKind lands. Note: user code can bind `@native(...)` directly, which bypasses any nominal typing — consider restricting @native to stdlib modules.
 - deps: bump `rustls-webpki` — RUSTSEC-2026-0098/0099/0104 fail cargo-deny CI (advisory drift over the idle months, not caused by recent commits)
 - mir: release inliner miscompiles early `return` in contract-free callees (guard clauses silently return wrong values; `71_result_ok_err_question` release build dies with Cranelift verifier errors). Inliner currently skips contract-bearing callees only.
 - types: `convert.to_str` of a user-function call returning Str prints a pointer — HIR passthrough keys on the type hint while inference disagrees (reproduced 2026-08-13)

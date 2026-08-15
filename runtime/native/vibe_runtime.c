@@ -31,6 +31,7 @@
 #endif
 
 typedef struct vibe_chan_i64 {
+    uint64_t magic;
     pthread_mutex_t mu;
     pthread_cond_t can_send;
     pthread_cond_t can_recv;
@@ -157,6 +158,138 @@ void vibe_panic(const char *s) {
 
 void vibe_exit(int code) {
     exit(code);
+}
+
+/*
+ * Live-handle registry.
+ *
+ * The str_builder, chan, and net/ws stdlib APIs hand out opaque Int
+ * handles (heap pointers or socket fds), so generated code can pass any
+ * integer back in. Every handle-consuming native first checks the value
+ * against its family's live-handle set and panics with a clear message
+ * instead of dereferencing a forged, stale, or arithmetically-derived
+ * handle (or touching an unrelated file descriptor). Pointer-backed
+ * structs additionally carry a magic word (same idea as the container
+ * tags below) that is cleared when the handle is freed.
+ */
+#define VIBE_HANDLE_TOMBSTONE ((uintptr_t)-1)
+
+typedef struct vibe_handle_set {
+    pthread_mutex_t mu;
+    uintptr_t *slots; /* open addressing; 0 = empty, VIBE_HANDLE_TOMBSTONE = deleted */
+    size_t cap;       /* power of two; 0 until first insert */
+    size_t len;       /* live keys */
+    size_t used;      /* live keys + tombstones */
+} vibe_handle_set;
+
+static vibe_handle_set vibe_str_builder_live = {PTHREAD_MUTEX_INITIALIZER, NULL, 0, 0, 0};
+static vibe_handle_set vibe_chan_live = {PTHREAD_MUTEX_INITIALIZER, NULL, 0, 0, 0};
+static vibe_handle_set vibe_net_live = {PTHREAD_MUTEX_INITIALIZER, NULL, 0, 0, 0};
+
+static size_t vibe_handle_slot_start(uintptr_t key, size_t cap) {
+    uint64_t h = (uint64_t)key * UINT64_C(0x9E3779B97F4A7C15);
+    return (size_t)(h & (uint64_t)(cap - 1));
+}
+
+/* set->mu must be held. Keeps at least half of the slots empty so probe
+ * loops always terminate. */
+static void vibe_handle_set_grow(vibe_handle_set *set) {
+    size_t new_cap = set->cap == 0 ? 64 : set->cap * 2;
+    uintptr_t *new_slots = (uintptr_t *)calloc(new_cap, sizeof(uintptr_t));
+    if (new_slots == NULL) {
+        vibe_panic("failed to allocate handle registry");
+    }
+    for (size_t i = 0; i < set->cap; i++) {
+        uintptr_t key = set->slots[i];
+        if (key == 0 || key == VIBE_HANDLE_TOMBSTONE) {
+            continue;
+        }
+        size_t j = vibe_handle_slot_start(key, new_cap);
+        while (new_slots[j] != 0) {
+            j = (j + 1) & (new_cap - 1);
+        }
+        new_slots[j] = key;
+    }
+    free(set->slots);
+    set->slots = new_slots;
+    set->cap = new_cap;
+    set->used = set->len;
+}
+
+/* Idempotent: registering an already-live key (an OS fd number being
+ * handed out again) is a no-op. */
+static void vibe_handle_register(vibe_handle_set *set, uintptr_t key) {
+    if (key == 0 || key == VIBE_HANDLE_TOMBSTONE) {
+        vibe_panic("handle registry rejects sentinel value");
+    }
+    pthread_mutex_lock(&set->mu);
+    if (set->cap == 0 || (set->used + 1) * 2 > set->cap) {
+        vibe_handle_set_grow(set);
+    }
+    size_t insert_at = (size_t)-1;
+    size_t i = vibe_handle_slot_start(key, set->cap);
+    while (set->slots[i] != 0) {
+        if (set->slots[i] == key) {
+            pthread_mutex_unlock(&set->mu);
+            return;
+        }
+        if (set->slots[i] == VIBE_HANDLE_TOMBSTONE && insert_at == (size_t)-1) {
+            insert_at = i;
+        }
+        i = (i + 1) & (set->cap - 1);
+    }
+    if (insert_at == (size_t)-1) {
+        insert_at = i;
+        set->used += 1;
+    }
+    set->slots[insert_at] = key;
+    set->len += 1;
+    pthread_mutex_unlock(&set->mu);
+}
+
+static int vibe_handle_is_live(vibe_handle_set *set, uintptr_t key) {
+    if (key == 0 || key == VIBE_HANDLE_TOMBSTONE) {
+        return 0;
+    }
+    pthread_mutex_lock(&set->mu);
+    int found = 0;
+    if (set->cap > 0) {
+        size_t i = vibe_handle_slot_start(key, set->cap);
+        while (set->slots[i] != 0) {
+            if (set->slots[i] == key) {
+                found = 1;
+                break;
+            }
+            i = (i + 1) & (set->cap - 1);
+        }
+    }
+    pthread_mutex_unlock(&set->mu);
+    return found;
+}
+
+static void vibe_handle_unregister(vibe_handle_set *set, uintptr_t key) {
+    if (key == 0 || key == VIBE_HANDLE_TOMBSTONE) {
+        return;
+    }
+    pthread_mutex_lock(&set->mu);
+    if (set->cap > 0) {
+        size_t i = vibe_handle_slot_start(key, set->cap);
+        while (set->slots[i] != 0) {
+            if (set->slots[i] == key) {
+                set->slots[i] = VIBE_HANDLE_TOMBSTONE;
+                set->len -= 1;
+                break;
+            }
+            i = (i + 1) & (set->cap - 1);
+        }
+    }
+    pthread_mutex_unlock(&set->mu);
+}
+
+static void vibe_handle_check(vibe_handle_set *set, uintptr_t key, const char *message) {
+    if (!vibe_handle_is_live(set, key)) {
+        vibe_panic(message);
+    }
 }
 
 /* Heap records: fixed 8-byte slots, slot_count slots. Returns aligned pointer. */
@@ -1700,11 +1833,23 @@ int8_t vibe_result_is_err(void *result) {
     return (int8_t)(((int64_t *)result)[0] != 0 ? 1 : 0);
 }
 
+#define VIBE_STR_BUILDER_MAGIC UINT64_C(0x53747242756C6472) /* "StrBuldr" */
+
 typedef struct vibe_str_builder {
+    uint64_t magic;
     char *buf;
     size_t len;
     size_t cap;
 } vibe_str_builder;
+
+static vibe_str_builder *vibe_str_builder_checked(void *handle) {
+    vibe_handle_check(&vibe_str_builder_live, (uintptr_t)handle, "invalid str_builder handle");
+    vibe_str_builder *sb = (vibe_str_builder *)handle;
+    if (sb->magic != VIBE_STR_BUILDER_MAGIC) {
+        vibe_panic("invalid str_builder handle");
+    }
+    return sb;
+}
 
 void *vibe_str_builder_new(int64_t initial_cap) {
     size_t cap = initial_cap > 0 ? (size_t)initial_cap : 64;
@@ -1712,14 +1857,15 @@ void *vibe_str_builder_new(int64_t initial_cap) {
     if (sb == NULL) vibe_panic("failed to allocate string builder");
     sb->buf = (char *)calloc(cap + 1, sizeof(char));
     if (sb->buf == NULL) vibe_panic("failed to allocate string builder buffer");
+    sb->magic = VIBE_STR_BUILDER_MAGIC;
     sb->len = 0;
     sb->cap = cap;
+    vibe_handle_register(&vibe_str_builder_live, (uintptr_t)sb);
     return (void *)sb;
 }
 
 void *vibe_str_builder_append(void *handle, const char *str) {
-    vibe_str_builder *sb = (vibe_str_builder *)handle;
-    if (sb == NULL) vibe_panic("string builder append on null");
+    vibe_str_builder *sb = vibe_str_builder_checked(handle);
     const char *safe_str = str == NULL ? "" : str;
     size_t slen = strlen(safe_str);
     if (sb->len + slen > sb->cap) {
@@ -1737,8 +1883,7 @@ void *vibe_str_builder_append(void *handle, const char *str) {
 }
 
 void *vibe_str_builder_append_char(void *handle, int64_t ch) {
-    vibe_str_builder *sb = (vibe_str_builder *)handle;
-    if (sb == NULL) vibe_panic("string builder append_char on null");
+    vibe_str_builder *sb = vibe_str_builder_checked(handle);
     if (sb->len + 1 > sb->cap) {
         size_t new_cap = sb->cap * 2;
         char *new_buf = (char *)realloc(sb->buf, new_cap + 1);
@@ -1753,8 +1898,9 @@ void *vibe_str_builder_append_char(void *handle, int64_t ch) {
 }
 
 void *vibe_str_builder_finish(void *handle) {
-    vibe_str_builder *sb = (vibe_str_builder *)handle;
-    if (sb == NULL) return (void *)"";
+    vibe_str_builder *sb = vibe_str_builder_checked(handle);
+    vibe_handle_unregister(&vibe_str_builder_live, (uintptr_t)sb);
+    sb->magic = 0;
     char *result = sb->buf;
     free(sb);
     return (void *)result;
@@ -2273,6 +2419,19 @@ char *vibe_regex_replace_all(const char *text, const char *pattern, const char *
 #endif
 }
 
+#define VIBE_CHAN_MAGIC UINT64_C(0x4368616E49363421) /* "ChanI64!" */
+
+/* Channels are never freed (goroutines may still hold them), so live
+ * channels stay registered for the whole program run. */
+static vibe_chan_i64 *vibe_chan_checked(void *handle) {
+    vibe_handle_check(&vibe_chan_live, (uintptr_t)handle, "invalid channel handle");
+    vibe_chan_i64 *ch = (vibe_chan_i64 *)handle;
+    if (ch->magic != VIBE_CHAN_MAGIC) {
+        vibe_panic("invalid channel handle");
+    }
+    return ch;
+}
+
 void *vibe_chan_new_i64(int64_t capacity) {
     if (capacity <= 0) {
         capacity = 1;
@@ -2286,6 +2445,7 @@ void *vibe_chan_new_i64(int64_t capacity) {
         free(ch);
         vibe_panic("failed to allocate channel buffer");
     }
+    ch->magic = VIBE_CHAN_MAGIC;
     ch->capacity = capacity;
     ch->head = 0;
     ch->tail = 0;
@@ -2294,14 +2454,12 @@ void *vibe_chan_new_i64(int64_t capacity) {
     pthread_mutex_init(&ch->mu, NULL);
     pthread_cond_init(&ch->can_send, NULL);
     pthread_cond_init(&ch->can_recv, NULL);
+    vibe_handle_register(&vibe_chan_live, (uintptr_t)ch);
     return (void *)ch;
 }
 
 int64_t vibe_chan_send_i64(void *handle, int64_t value) {
-    vibe_chan_i64 *ch = (vibe_chan_i64 *)handle;
-    if (ch == NULL) {
-        return 1;
-    }
+    vibe_chan_i64 *ch = vibe_chan_checked(handle);
     int64_t lock_contended = 0;
     if (pthread_mutex_trylock(&ch->mu) == 0) {
         if (ch->closed) {
@@ -2350,10 +2508,7 @@ int64_t vibe_chan_send_i64(void *handle, int64_t value) {
 }
 
 int64_t vibe_chan_recv_i64(void *handle) {
-    vibe_chan_i64 *ch = (vibe_chan_i64 *)handle;
-    if (ch == NULL) {
-        return 0;
-    }
+    vibe_chan_i64 *ch = vibe_chan_checked(handle);
     int64_t lock_contended = 0;
     if (pthread_mutex_trylock(&ch->mu) == 0) {
         if (ch->size > 0) {
@@ -2402,10 +2557,7 @@ int64_t vibe_chan_recv_i64(void *handle) {
 }
 
 int64_t vibe_chan_try_recv_i64(void *handle, int64_t *out_value) {
-    vibe_chan_i64 *ch = (vibe_chan_i64 *)handle;
-    if (ch == NULL) {
-        return 2;
-    }
+    vibe_chan_i64 *ch = vibe_chan_checked(handle);
     pthread_mutex_lock(&ch->mu);
     if (ch->size > 0) {
         int64_t value = ch->buffer[ch->head];
@@ -2428,10 +2580,7 @@ int64_t vibe_chan_try_recv_i64(void *handle, int64_t *out_value) {
 }
 
 int64_t vibe_chan_has_data_i64(void *handle) {
-    vibe_chan_i64 *ch = (vibe_chan_i64 *)handle;
-    if (ch == NULL) {
-        return 0;
-    }
+    vibe_chan_i64 *ch = vibe_chan_checked(handle);
     pthread_mutex_lock(&ch->mu);
     int64_t ready = ch->size > 0 ? 1 : 0;
     pthread_mutex_unlock(&ch->mu);
@@ -2439,10 +2588,7 @@ int64_t vibe_chan_has_data_i64(void *handle) {
 }
 
 void vibe_chan_close_i64(void *handle) {
-    vibe_chan_i64 *ch = (vibe_chan_i64 *)handle;
-    if (ch == NULL) {
-        return;
-    }
+    vibe_chan_i64 *ch = vibe_chan_checked(handle);
     pthread_mutex_lock(&ch->mu);
     ch->closed = 1;
     pthread_cond_broadcast(&ch->can_send);
@@ -2451,10 +2597,7 @@ void vibe_chan_close_i64(void *handle) {
 }
 
 int64_t vibe_chan_is_closed_i64(void *handle) {
-    vibe_chan_i64 *ch = (vibe_chan_i64 *)handle;
-    if (ch == NULL) {
-        return 1;
-    }
+    vibe_chan_i64 *ch = vibe_chan_checked(handle);
     pthread_mutex_lock(&ch->mu);
     int64_t result = ch->closed ? 1 : 0;
     pthread_mutex_unlock(&ch->mu);
@@ -2462,10 +2605,7 @@ int64_t vibe_chan_is_closed_i64(void *handle) {
 }
 
 int64_t vibe_chan_send_fast_hits_i64(void *handle) {
-    vibe_chan_i64 *ch = (vibe_chan_i64 *)handle;
-    if (ch == NULL) {
-        return 0;
-    }
+    vibe_chan_i64 *ch = vibe_chan_checked(handle);
     pthread_mutex_lock(&ch->mu);
     int64_t value = ch->send_fast_path_hits;
     pthread_mutex_unlock(&ch->mu);
@@ -2473,10 +2613,7 @@ int64_t vibe_chan_send_fast_hits_i64(void *handle) {
 }
 
 int64_t vibe_chan_recv_fast_hits_i64(void *handle) {
-    vibe_chan_i64 *ch = (vibe_chan_i64 *)handle;
-    if (ch == NULL) {
-        return 0;
-    }
+    vibe_chan_i64 *ch = vibe_chan_checked(handle);
     pthread_mutex_lock(&ch->mu);
     int64_t value = ch->recv_fast_path_hits;
     pthread_mutex_unlock(&ch->mu);
@@ -2484,10 +2621,7 @@ int64_t vibe_chan_recv_fast_hits_i64(void *handle) {
 }
 
 int64_t vibe_chan_send_slow_hits_i64(void *handle) {
-    vibe_chan_i64 *ch = (vibe_chan_i64 *)handle;
-    if (ch == NULL) {
-        return 0;
-    }
+    vibe_chan_i64 *ch = vibe_chan_checked(handle);
     pthread_mutex_lock(&ch->mu);
     int64_t value = ch->send_slow_path_hits;
     pthread_mutex_unlock(&ch->mu);
@@ -2495,10 +2629,7 @@ int64_t vibe_chan_send_slow_hits_i64(void *handle) {
 }
 
 int64_t vibe_chan_recv_slow_hits_i64(void *handle) {
-    vibe_chan_i64 *ch = (vibe_chan_i64 *)handle;
-    if (ch == NULL) {
-        return 0;
-    }
+    vibe_chan_i64 *ch = vibe_chan_checked(handle);
     pthread_mutex_lock(&ch->mu);
     int64_t value = ch->recv_slow_path_hits;
     pthread_mutex_unlock(&ch->mu);
@@ -2506,10 +2637,7 @@ int64_t vibe_chan_recv_slow_hits_i64(void *handle) {
 }
 
 int64_t vibe_chan_send_wait_count_i64(void *handle) {
-    vibe_chan_i64 *ch = (vibe_chan_i64 *)handle;
-    if (ch == NULL) {
-        return 0;
-    }
+    vibe_chan_i64 *ch = vibe_chan_checked(handle);
     pthread_mutex_lock(&ch->mu);
     int64_t value = ch->send_wait_count;
     pthread_mutex_unlock(&ch->mu);
@@ -2517,10 +2645,7 @@ int64_t vibe_chan_send_wait_count_i64(void *handle) {
 }
 
 int64_t vibe_chan_recv_wait_count_i64(void *handle) {
-    vibe_chan_i64 *ch = (vibe_chan_i64 *)handle;
-    if (ch == NULL) {
-        return 0;
-    }
+    vibe_chan_i64 *ch = vibe_chan_checked(handle);
     pthread_mutex_lock(&ch->mu);
     int64_t value = ch->recv_wait_count;
     pthread_mutex_unlock(&ch->mu);
@@ -2528,10 +2653,7 @@ int64_t vibe_chan_recv_wait_count_i64(void *handle) {
 }
 
 int64_t vibe_chan_contention_count_i64(void *handle) {
-    vibe_chan_i64 *ch = (vibe_chan_i64 *)handle;
-    if (ch == NULL) {
-        return 0;
-    }
+    vibe_chan_i64 *ch = vibe_chan_checked(handle);
     pthread_mutex_lock(&ch->mu);
     int64_t value = ch->contention_count;
     pthread_mutex_unlock(&ch->mu);
@@ -3022,6 +3144,24 @@ char *vibe_cli_arg(int64_t index) {
     return vibe_strdup_or_panic("");
 }
 
+/* Socket handles are OS fds, not pointers. 0 stays the documented failure
+ * sentinel (callers already branch on it) and non-positive values keep
+ * their graceful no-op behavior; positive handles must be live fds handed
+ * out by listen/accept/connect, otherwise a forged or stale handle could
+ * read, write, or close an unrelated file descriptor. */
+static int vibe_net_checked_fd(int64_t fd_raw) {
+    if (fd_raw > 0) {
+        vibe_handle_check(&vibe_net_live, (uintptr_t)fd_raw, "invalid net handle");
+    }
+    return (int)fd_raw;
+}
+
+static void vibe_net_register_fd(int64_t fd_raw) {
+    if (fd_raw > 0) {
+        vibe_handle_register(&vibe_net_live, (uintptr_t)fd_raw);
+    }
+}
+
 int64_t vibe_net_listen(const char *host, int64_t port) {
 #ifdef _WIN32
     (void)host;
@@ -3052,6 +3192,7 @@ int64_t vibe_net_listen(const char *host, int64_t port) {
         close(fd);
         return 0;
     }
+    vibe_net_register_fd((int64_t)fd);
     return (int64_t)fd;
 #endif
 }
@@ -3061,7 +3202,7 @@ int64_t vibe_net_listener_port(int64_t listener_fd) {
     (void)listener_fd;
     return 0;
 #else
-    int fd = (int)listener_fd;
+    int fd = vibe_net_checked_fd(listener_fd);
     struct sockaddr_in sa;
     socklen_t len = (socklen_t)sizeof(sa);
     memset(&sa, 0, sizeof(sa));
@@ -3077,11 +3218,12 @@ int64_t vibe_net_accept(int64_t listener_fd) {
     (void)listener_fd;
     return 0;
 #else
-    int fd = (int)listener_fd;
+    int fd = vibe_net_checked_fd(listener_fd);
     int conn = accept(fd, NULL, NULL);
     if (conn < 0) {
         return 0;
     }
+    vibe_net_register_fd((int64_t)conn);
     return (int64_t)conn;
 #endif
 }
@@ -3112,6 +3254,7 @@ int64_t vibe_net_connect(const char *host, int64_t port) {
         close(fd);
         return 0;
     }
+    vibe_net_register_fd((int64_t)fd);
     return (int64_t)fd;
 #endif
 }
@@ -3122,7 +3265,7 @@ char *vibe_net_read(int64_t fd_raw, int64_t max_bytes_raw) {
     (void)max_bytes_raw;
     return vibe_strdup_or_panic("");
 #else
-    int fd = (int)fd_raw;
+    int fd = vibe_net_checked_fd(fd_raw);
     int64_t max_bytes = max_bytes_raw;
     if (fd <= 0 || max_bytes <= 0) {
         return vibe_strdup_or_panic("");
@@ -3150,7 +3293,7 @@ int64_t vibe_net_write(int64_t fd_raw, const char *data) {
     (void)data;
     return 0;
 #else
-    int fd = (int)fd_raw;
+    int fd = vibe_net_checked_fd(fd_raw);
     const char *raw = data == NULL ? "" : data;
     size_t len = strlen(raw);
     if (fd <= 0 || len == 0) {
@@ -3171,10 +3314,11 @@ int64_t vibe_net_close(int64_t fd_raw) {
     (void)fd_raw;
     return 0;
 #else
-    int fd = (int)fd_raw;
+    int fd = vibe_net_checked_fd(fd_raw);
     if (fd <= 0) {
         return 0;
     }
+    vibe_handle_unregister(&vibe_net_live, (uintptr_t)fd_raw);
     return close(fd) == 0 ? 1 : 0;
 #endif
 }
@@ -7304,7 +7448,7 @@ int64_t vibe_ws_upgrade(int64_t conn_raw, const char *raw_request) {
     (void)raw_request;
     return 0;
 #else
-    int fd = (int)conn_raw;
+    int fd = vibe_net_checked_fd(conn_raw);
     if (fd <= 0) {
         return 0;
     }
@@ -7355,7 +7499,7 @@ char *vibe_ws_read_frame(int64_t conn_raw) {
     (void)conn_raw;
     return vibe_strdup_or_panic("");
 #else
-    int fd = (int)conn_raw;
+    int fd = vibe_net_checked_fd(conn_raw);
     if (fd <= 0) {
         return vibe_strdup_or_panic("");
     }
@@ -7430,7 +7574,7 @@ void vibe_ws_write_frame(int64_t conn_raw, const char *data) {
     (void)conn_raw;
     (void)data;
 #else
-    int fd = (int)conn_raw;
+    int fd = vibe_net_checked_fd(conn_raw);
     if (fd <= 0) {
         return;
     }
@@ -7464,7 +7608,7 @@ void vibe_ws_close_frame(int64_t conn_raw) {
 #ifdef _WIN32
     (void)conn_raw;
 #else
-    int fd = (int)conn_raw;
+    int fd = vibe_net_checked_fd(conn_raw);
     if (fd <= 0) {
         return;
     }

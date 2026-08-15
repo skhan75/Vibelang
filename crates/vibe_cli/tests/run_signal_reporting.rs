@@ -13,15 +13,19 @@ use std::time::{SystemTime, UNIX_EPOCH};
 #[cfg(unix)]
 #[test]
 fn run_reports_segfaulting_program_signal() {
-    // A garbage (nonzero, unmapped) str_builder handle dereferences an
-    // invalid pointer in the native runtime: deterministic SIGSEGV.
+    // A garbage (nonzero, unmapped) list handle dereferences an invalid
+    // pointer in the native runtime: deterministic SIGSEGV. (str_builder,
+    // chan, and net handles are registry-validated and panic cleanly now,
+    // so this binds an unvalidated list native directly.)
     let source = temp_source_file(
         "run_signal_segv",
         r#"
+force_segv(h: Int, v: Int) -> Int {
+  @native("vibe_list_append_i64")
+}
+
 pub main() -> Int {
-  @effect alloc
-  @effect mut_state
-  str_builder.append(1, "boom")
+  force_segv(1, 1)
   0
 }
 "#,
