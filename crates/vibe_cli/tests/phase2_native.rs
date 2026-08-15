@@ -526,6 +526,39 @@ fn vibe_test_runs_contract_examples() {
 }
 
 #[test]
+fn vibe_test_runs_examples_despite_stdlib_prelude_injection() {
+    // Regression: `vibe test` used the namespace-unaware checker, so the
+    // injected stdlib prelude raised E2001 for every input file; each file
+    // counted as a compile failure and zero examples ran. The prelude's own
+    // @examples must also stay out of the user's example counts.
+    let temp_dir = unique_temp_dir("vibe_test_prelude_regression");
+    fs::create_dir_all(&temp_dir).expect("create temp dir");
+    let source = temp_dir.join("double.vibe");
+    fs::write(
+        &source,
+        "pub double(x: Int) -> Int {\n  @examples {\n    double(2) => 4\n  }\n  x * 2\n}\n",
+    )
+    .expect("write fixture");
+    let out = run_vibe(&["test", source.to_str().expect("source path str")]);
+    assert!(
+        out.status.success(),
+        "vibe test failed:\nstdout:\n{}\nstderr:\n{}",
+        out.stdout,
+        out.stderr
+    );
+    assert!(
+        out.stdout.contains("compile_failures=0"),
+        "expected no compile failures:\n{}",
+        out.stdout
+    );
+    assert!(
+        out.stdout.contains("examples=1 passed=1 failed=0"),
+        "expected exactly the fixture's own example to run:\n{}",
+        out.stdout
+    );
+}
+
+#[test]
 fn vibe_test_enforces_contract_runtime_checks_by_default() {
     let source = temp_fixture_copy("build/contract_runtime_require.vibe");
     let out = run_vibe(&["test", source.to_str().expect("source path str")]);

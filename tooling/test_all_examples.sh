@@ -72,8 +72,11 @@ print(m['$file']['expect'])
         printf "  PASS       %s\n" "$file"
       fi
 
-      test_output=$(vibe test "$full_path" --json 2>&1) || true
-      ex_failed=$(echo "$test_output" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('examples_failed',0))" 2>/dev/null || echo "0")
+      # stdout carries the program's own output (if a main runs) followed by
+      # the JSON report; diagnostics go to stderr. Drop stderr and parse the
+      # trailing JSON object so program output cannot mask assertion failures.
+      test_output=$(vibe test "$full_path" --json 2>/dev/null) || true
+      ex_failed=$(echo "$test_output" | python3 -c "import sys,json; raw=sys.stdin.read(); i=raw.rfind(chr(10)+'{'); s=raw[i+1:] if i>=0 else raw; print(json.loads(s).get('examples_failed',0))" 2>/dev/null || echo "0")
       if [[ "$ex_failed" != "0" ]]; then
         ASSERTION_FAIL=$((ASSERTION_FAIL + 1))
         ASSERTION_FAIL_FILES+=("$file")

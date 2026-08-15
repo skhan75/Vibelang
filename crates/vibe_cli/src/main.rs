@@ -582,12 +582,13 @@ fn json_escape(input: &str) -> String {
 }
 
 fn run_check(path: &str) -> Result<ExitCode, String> {
-    let unit = resolve_compilation_unit(Path::new(path))?;
+    let mut unit = resolve_compilation_unit(Path::new(path))?;
     let checked = check_and_lower_with_ns(&unit.ast, &unit.namespace_map);
     let mut merged_diags = unit.diagnostics.clone().into_sorted();
     merged_diags.extend(checked.diagnostics.clone().into_sorted());
     let mut all = Diagnostics::default();
     all.extend(merged_diags.clone());
+    drop_injected_prelude_decls(&mut unit.ast, unit.injected_prelude_decls);
     if let Err(err) = best_effort_refresh_index(
         Path::new(path),
         &unit.source,
@@ -2697,10 +2698,11 @@ fn build_source(args: &BuildArgs) -> Result<BuildArtifacts, String> {
 
 fn build_index_for_file(file: &Path) -> Result<vibe_indexer::FileIndex, String> {
     let canonical = file.canonicalize().unwrap_or_else(|_| file.to_path_buf());
-    let unit = resolve_compilation_unit(&canonical)?;
-    let checked = check_and_lower(&unit.ast);
+    let mut unit = resolve_compilation_unit(&canonical)?;
+    let checked = check_and_lower_with_ns(&unit.ast, &unit.namespace_map);
     let mut diagnostics = unit.diagnostics.into_sorted();
     diagnostics.extend(checked.diagnostics.into_sorted());
+    drop_injected_prelude_decls(&mut unit.ast, unit.injected_prelude_decls);
     Ok(build_file_index(
         &canonical,
         &unit.source,
@@ -2708,6 +2710,13 @@ fn build_index_for_file(file: &Path) -> Result<vibe_indexer::FileIndex, String> 
         &checked.hir,
         &diagnostics,
     ))
+}
+
+/// Remove the stdlib prelude declarations appended at the tail of a resolved
+/// unit's AST so indexing and lint surfaces only see the user's own code.
+fn drop_injected_prelude_decls(ast: &mut vibe_ast::FileAst, injected: usize) {
+    let user_decls = ast.declarations.len().saturating_sub(injected);
+    ast.declarations.truncate(user_decls);
 }
 
 fn best_effort_refresh_index(
@@ -2896,7 +2905,7 @@ fn run_test(args: &TestArgs) -> Result<ExitCode, String> {
 
     for file in files {
         let unit = resolve_compilation_unit(&file)?;
-        let checked = check_and_lower(&unit.ast);
+        let checked = check_and_lower_with_ns(&unit.ast, &unit.namespace_map);
         let mut all = Diagnostics::default();
         all.extend(unit.diagnostics.clone().into_sorted());
         all.extend(checked.diagnostics.clone().into_sorted());
