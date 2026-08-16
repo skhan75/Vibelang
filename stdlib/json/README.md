@@ -55,6 +55,9 @@ The legacy `json.encode_<Type>` / `json.decode_<Type>` syntax with explicit type
 
 - `json.from_map(map: Map<Str, Str>) -> Str` — convenience only; all map values are strings; see semantics
 - `json.is_valid(raw: Str) -> Bool`
+- `json.try_parse(raw: Str) -> Result<Json, Str>` — non-aborting parse for network bytes
+- `json.result_value(parsed: Result<Json, Str>) -> Json` — the document, or a JSON `null` node on `Err`
+- `json.result_error(parsed: Result<Json, Str>) -> Str` — the message, or `""` on `Ok`
 - `json.parse_i64(raw: Str) -> Int`
 - `json.stringify_i64(value: Int) -> Str`
 - `json.minify(raw: Str) -> Str`
@@ -65,7 +68,9 @@ The legacy `json.encode_<Type>` / `json.decode_<Type>` syntax with explicit type
 - **`json.builder`**: emit JSON by nesting `begin_object` / `end_object`, `begin_array` / `end_array`, `key` (in objects), then scalar/`value_json` calls. **`finish`** produces the final `Str`; invalid sequencing or misuse can **panic** (same spirit as `parse` strictness).
 - **`encode` / `decode`**: the compiler resolves the struct type from the argument at compile time and generates the appropriate codec. Field mapping is deterministic for supported field types (`Int`, `Str`, `Bool`, `Json`, and nested user-defined struct types). Nested structs are recursively encoded to JSON objects and recursively decoded from JSON objects. **`decode`** uses **`fallback`** for missing or invalid fields.
 - **`from_map`**: serializes `Map<Str, Str>` to a JSON object. Values are still strings at the type level; runtime applies heuristics: integer-looking values unquoted, `"true"` / `"false"` as booleans, otherwise JSON strings. Prefer **`json.builder`** or **`Json`** + **`stringify`** when you need explicit types without guessing.
-- **`is_valid`**: structural/literal validation without building a full `Json` value for the caller; returns `false` for malformed input.
+- **`is_valid`**: runs the real grammar in validate-only mode — the same parser code, with node construction skipped — so it agrees with `parse` exactly on grammar, trailing content and nesting depth while allocating nothing per node; returns `false` for malformed input. Guarantee: `is_valid(s) == true` implies `parse(s)` returns rather than aborting. (It used to compare only the first and last non-space characters, which made it answer `true` for `[x]` and `[1,2,]`.)
+- **`try_parse`**: same grammar as `parse`, but returns `Ok(Json)` / `Err(Str)` instead of aborting. Total with respect to input — no byte sequence reaches a panic through it. Read the outcome with `result.is_ok` / `result.is_err` plus `json.result_value` / `json.result_error` (`result.unwrap_or` supports `Result<Int, _>` only).
+- **Nesting depth**: `parse`, `try_parse` and `is_valid` share a 256-level cap. The parser is recursive, so without the cap deeply nested text exhausts the thread stack and terminates the process by signal. Past the cap `parse` panics with a distinct message and `try_parse` returns `Err`.
 - **`parse_i64`**: parses integer literals with surrounding whitespace.
 - **`stringify_i64`**: decimal string for `Int`.
 - **`minify`**: drops insignificant whitespace while preserving string contents and escapes; intended for JSON text.
@@ -79,7 +84,8 @@ Some benchmark parity helpers were intentionally moved out of the default stdlib
 
 ## Error model
 
-- **`json.parse`**: invalid JSON → **panic** (no sentinel `Json`).
+- **`json.parse`**: invalid JSON → **panic** (no sentinel `Json`); nesting past 256 levels → **panic** with a distinct message. Use **`json.try_parse`** for text that arrived from a socket.
+- **`json.try_parse`**: never panics for any input; malformed or over-deep input → **`Err(Str)`**.
 - **`json.stringify` / `json.stringify_pretty`**: serialize a `Json` value; the runtime maps a null handle to **`""`** (defensive), which the typed surface should not normally produce.
 - **`json.builder.finish`** / mismatched **`begin_*` / `end_*`**: **panic** on misuse.
 - **`json.is_valid`**: `false` for malformed input; non-panicking.

@@ -3889,52 +3889,13 @@ static const char *vibe_json_scan_number(const char *p, int *out_saw_float) {
     return p;
 }
 
-static int64_t vibe_json_number_slice_is_valid(const char *start, const char *end) {
-    int saw_float = 0;
-    const char *scan_end = vibe_json_scan_number(start, &saw_float);
-    if (scan_end != end) {
-        return 0;
-    }
-    if (!saw_float) {
-        int64_t parsed = 0;
-        return vibe_parse_i64_strict(start, end, &parsed);
-    }
-    size_t len = (size_t)(end - start);
-    char *buffer = (char *)calloc(len + 1, sizeof(char));
-    if (buffer == NULL) {
-        vibe_panic("failed to allocate JSON number buffer");
-    }
-    memcpy(buffer, start, len);
-    buffer[len] = '\0';
-    char *endptr = NULL;
-    (void)strtod(buffer, &endptr);
-    int64_t ok = endptr != NULL && *endptr == '\0';
-    free(buffer);
-    return ok;
-}
-
-int64_t vibe_json_is_valid(const char *raw) {
-    vibe_counter_inc(&vibe_json_validate_calls);
-    if (raw == NULL) {
-        return 0;
-    }
-    const char *start = vibe_trim_start(raw);
-    const char *end = vibe_trim_end_ptr(start);
-    if (end <= start) {
-        return 0;
-    }
-    size_t len = (size_t)(end - start);
-    if ((start[0] == '{' && end[-1] == '}') || (start[0] == '[' && end[-1] == ']') ||
-        (start[0] == '"' && end[-1] == '"')) {
-        return 1;
-    }
-    if ((len == 4 && strncmp(start, "true", 4) == 0) ||
-        (len == 5 && strncmp(start, "false", 5) == 0) ||
-        (len == 4 && strncmp(start, "null", 4) == 0)) {
-        return 1;
-    }
-    return vibe_json_number_slice_is_valid(start, end);
-}
+/*
+ * `vibe_json_is_valid` used to live here as a first/last-non-space-character
+ * check that never ran the grammar: it answered true for "[x]" and "[1,2,]".
+ * It is now defined next to the parser it must agree with (search
+ * VIBE_JSON_MAX_DEPTH), because agreement with json.parse is the whole point of
+ * the function.
+ */
 
 static char *vibe_json_quote_string(const char *raw) {
     const char *text = raw == NULL ? "" : raw;
@@ -4241,8 +4202,128 @@ static void vibe_json_object_put(vibe_json_object *object, const char *key, vibe
     object->count += 1;
 }
 
-static const char *vibe_json_parse_value_internal(const char *p, vibe_json_value **out);
+/*
+ * VL-HTTP-03. vibe_json_parse_value_internal, vibe_json_parse_array_value and
+ * vibe_json_parse_object_value are mutually recursive and had no limit, so a
+ * request body of repeated '[' walked the handler thread's stack off its end.
+ * That is not a recoverable error: the process dies by signal, taking the
+ * listener and every other in-flight connection with it. Every recursive entry
+ * now carries its nesting depth and is refused past VIBE_JSON_MAX_DEPTH.
+ *
+ * The cap is measured, not guessed. Method: an instrumented build printed the
+ * address of a stack local in vibe_json_parse_value_internal at depth 1 and at
+ * depth 401 of the same document (aarch64-apple-darwin, cc -O2 -std=c11, the
+ * flags crates/vibe_runtime/src/lib.rs:95-115 uses for a release build). The
+ * frame delta is a property of the compiled code, so it is exact and does not
+ * depend on catching a crash:
+ *   - `go handle(conn)` thread: frames 0x16f8d6dd7 -> 0x16f8bddd7 across 400
+ *     levels = 0x19000 = 102400 bytes, i.e. exactly 256 bytes per nesting level
+ *     across the two mutually recursive frames.
+ *   - main thread: 0x16d1aa227 -> 0x16d191227, the same 102400 bytes / 400
+ *     levels = 256 bytes per level. Two different stacks, one answer.
+ *   - The thread that matters is the `go` one: pthread_create(NULL attr) +
+ *     pthread_detach, whose stack pthread_get_stacksize_np reported as 536576
+ *     bytes (the 512 KB macOS default), NOT the 8372224-byte main stack.
+ *   - 256 levels therefore cost 65536 bytes: 12.2% of that 536576-byte stack
+ *     (12.5% of a nominal 512 KB), leaving the rest to the handler frames
+ *     sitting above the parser. 512 levels would have cost 131072 bytes, which
+ *     is exactly 25.0% of a nominal 512 KB stack -- at the review bar rather
+ *     than under it -- so the cap is 256 and not the 512 first proposed.
+ *   - Independently, on an unpatched build the deepest body a live `go handle`
+ *     thread survived was 1969 levels (1970 was fatal, exit 138 = SIGBUS), so
+ *     the cap sits 7.7x below the depth that actually kills a handler.
+ *   - The deepest legitimate JSON document anywhere in this repository is 7
+ *     levels (editor-support/vscode/syntaxes/vibelang.tmLanguage.json, found by
+ *     walking every .json file and every JSON literal in .yb/.rs/.md sources),
+ *     so the cap sits ~36x above real traffic.
+ *
+ * json.parse, json.try_parse and json.is_valid all route through this one core,
+ * so the three can never disagree about what is parseable.
+ */
+#define VIBE_JSON_MAX_DEPTH 256
+#define VIBE_JSON_DEPTH_STR_INNER(x) #x
+#define VIBE_JSON_DEPTH_STR(x) VIBE_JSON_DEPTH_STR_INNER(x)
 
+typedef enum vibe_json_parse_status {
+    VIBE_JSON_PARSE_OK = 0,
+    VIBE_JSON_PARSE_MALFORMED = 1,
+    VIBE_JSON_PARSE_TRAILING = 2,
+    VIBE_JSON_PARSE_TOO_DEEP = 3,
+} vibe_json_parse_status;
+
+typedef struct vibe_json_parse_state {
+    vibe_json_parse_status status;
+} vibe_json_parse_state;
+
+/*
+ * MATERIALIZING vs VALIDATING. Throughout this parser a NULL `out` (and a NULL
+ * `out_str` in vibe_json_parse_string_value) means "run the grammar but build
+ * nothing": every allocation is skipped, only the accept/reject verdict and the
+ * end pointer come back. json.is_valid uses that mode.
+ *
+ * It is one code path, not a second parser, and that is deliberate on both
+ * counts:
+ *   - CORRECTNESS. json.is_valid's whole contract is that is_valid(s) == true
+ *     implies json.parse(s) returns. A separately written validator can drift
+ *     from the parser; a `if (out != NULL)` around each allocation cannot,
+ *     because the grammar, the trailing-content rule and the depth cap are
+ *     literally the same statements. (The version this replaced compared the
+ *     first and last non-space characters and answered true for "[x]".)
+ *   - MEMORY. Building the DOM just to throw it away would make json.is_valid
+ *     allocate on the order of the body size -- measured at ~30x the body in
+ *     transient heap for a hostile body of nothing but '[' -- which would hand
+ *     a peer a memory-amplification lever on a server that only validates and
+ *     forwards. Validation therefore allocates nothing per node: no value
+ *     nodes, no array/object tables, no unquoted strings, no object keys. The
+ *     only heap it touches is the small fixed-size buffer strtod needs for one
+ *     float at a time, which is freed before the next token is read, and which
+ *     the previous implementation allocated too.
+ */
+static const char *vibe_json_parse_value_internal(
+    const char *p,
+    vibe_json_value **out,
+    int64_t depth,
+    vibe_json_parse_state *state
+);
+
+/*
+ * Release a value tree. Only ever called on trees that failed to parse, which
+ * are unreachable from anywhere else by construction (nothing has been handed
+ * to the caller yet). Without it, an entry point that SURVIVES malformed input
+ * -- json.try_parse and the rewritten json.is_valid -- would leak the partial
+ * tree on every hostile request, which would trade an abort for a slow leak.
+ * The recursion here is bounded by VIBE_JSON_MAX_DEPTH, because that is the
+ * deepest tree the parser is able to build.
+ */
+static void vibe_json_free_value(vibe_json_value *value) {
+    if (value == NULL) {
+        return;
+    }
+    switch ((vibe_json_kind)value->kind) {
+        case VIBE_JSON_STR:
+            free(value->as.str_value);
+            break;
+        case VIBE_JSON_ARRAY:
+            for (int64_t i = 0; i < value->as.array.count; i++) {
+                vibe_json_free_value(value->as.array.items[i]);
+            }
+            free(value->as.array.items);
+            break;
+        case VIBE_JSON_OBJECT:
+            for (int64_t i = 0; i < value->as.object.count; i++) {
+                free(value->as.object.keys[i]);
+                vibe_json_free_value(value->as.object.values[i]);
+            }
+            free(value->as.object.keys);
+            free(value->as.object.values);
+            break;
+        default:
+            break;
+    }
+    free(value);
+}
+
+/* out_str == NULL scans the string without unquoting it (validate-only mode). */
 static const char *vibe_json_parse_string_value(const char *p, char **out_str) {
     if (p == NULL || *p != '"') {
         return NULL;
@@ -4257,7 +4338,9 @@ static const char *vibe_json_parse_string_value(const char *p, char **out_str) {
             escaped = 1;
         } else if (*p == '"') {
             p += 1;
-            *out_str = vibe_json_unquote_string(start, p);
+            if (out_str != NULL) {
+                *out_str = vibe_json_unquote_string(start, p);
+            }
             return p;
         }
         p += 1;
@@ -4277,11 +4360,20 @@ static const char *vibe_json_parse_number_value(const char *p, vibe_json_value *
         if (!vibe_parse_i64_strict(start, p, &value)) {
             return NULL;
         }
-        vibe_json_value *json = vibe_json_new_value(VIBE_JSON_I64);
-        json->as.int_value = value;
-        *out = json;
+        if (out != NULL) {
+            vibe_json_value *json = vibe_json_new_value(VIBE_JSON_I64);
+            json->as.int_value = value;
+            *out = json;
+        }
         return p;
     }
+    /*
+     * The copy is what makes strtod's "did it consume the whole token" answer
+     * exact, so validate-only mode keeps it rather than running strtod over the
+     * rest of the document: acceptance of numbers must not differ between
+     * json.is_valid and json.parse. It is bounded by one number's length and is
+     * freed before the next token, so it does not amplify with body size.
+     */
     size_t len = (size_t)(p - start);
     char *buffer = (char *)calloc(len + 1, sizeof(char));
     if (buffer == NULL) {
@@ -4296,72 +4388,108 @@ static const char *vibe_json_parse_number_value(const char *p, vibe_json_value *
     if (!fully_consumed) {
         return NULL;
     }
-    vibe_json_value *json = vibe_json_new_value(VIBE_JSON_F64);
-    json->as.float_value = value;
-    *out = json;
+    if (out != NULL) {
+        vibe_json_value *json = vibe_json_new_value(VIBE_JSON_F64);
+        json->as.float_value = value;
+        *out = json;
+    }
     return p;
 }
 
-static const char *vibe_json_parse_array_value(const char *p, vibe_json_value **out) {
+static const char *vibe_json_parse_array_value(
+    const char *p,
+    vibe_json_value **out,
+    int64_t depth,
+    vibe_json_parse_state *state
+) {
     if (p == NULL || *p != '[') {
         return NULL;
     }
-    vibe_json_value *json = vibe_json_new_value(VIBE_JSON_ARRAY);
+    if (depth >= VIBE_JSON_MAX_DEPTH) {
+        state->status = VIBE_JSON_PARSE_TOO_DEEP;
+        return NULL;
+    }
+    vibe_json_value *json = out != NULL ? vibe_json_new_value(VIBE_JSON_ARRAY) : NULL;
     p = vibe_json_skip_ws(p + 1);
     if (*p == ']') {
-        *out = json;
+        if (out != NULL) {
+            *out = json;
+        }
         return p + 1;
     }
     while (*p != '\0') {
         vibe_json_value *item = NULL;
-        p = vibe_json_parse_value_internal(p, &item);
+        p = vibe_json_parse_value_internal(p, out != NULL ? &item : NULL, depth + 1, state);
         if (p == NULL) {
+            vibe_json_free_value(json);
             return NULL;
         }
-        vibe_json_array_push(&json->as.array, item);
+        if (json != NULL) {
+            vibe_json_array_push(&json->as.array, item);
+        }
         p = vibe_json_skip_ws(p);
         if (*p == ',') {
             p = vibe_json_skip_ws(p + 1);
             continue;
         }
         if (*p == ']') {
-            *out = json;
+            if (out != NULL) {
+                *out = json;
+            }
             return p + 1;
         }
+        vibe_json_free_value(json);
         return NULL;
     }
+    vibe_json_free_value(json);
     return NULL;
 }
 
-static const char *vibe_json_parse_object_value(const char *p, vibe_json_value **out) {
+static const char *vibe_json_parse_object_value(
+    const char *p,
+    vibe_json_value **out,
+    int64_t depth,
+    vibe_json_parse_state *state
+) {
     if (p == NULL || *p != '{') {
         return NULL;
     }
-    vibe_json_value *json = vibe_json_new_value(VIBE_JSON_OBJECT);
+    if (depth >= VIBE_JSON_MAX_DEPTH) {
+        state->status = VIBE_JSON_PARSE_TOO_DEEP;
+        return NULL;
+    }
+    vibe_json_value *json = out != NULL ? vibe_json_new_value(VIBE_JSON_OBJECT) : NULL;
     p = vibe_json_skip_ws(p + 1);
     if (*p == '}') {
-        *out = json;
+        if (out != NULL) {
+            *out = json;
+        }
         return p + 1;
     }
     while (*p != '\0') {
         char *key = NULL;
-        p = vibe_json_parse_string_value(p, &key);
+        p = vibe_json_parse_string_value(p, out != NULL ? &key : NULL);
         if (p == NULL) {
+            vibe_json_free_value(json);
             return NULL;
         }
         p = vibe_json_skip_ws(p);
         if (*p != ':') {
             free(key);
+            vibe_json_free_value(json);
             return NULL;
         }
         p = vibe_json_skip_ws(p + 1);
         vibe_json_value *value = NULL;
-        p = vibe_json_parse_value_internal(p, &value);
+        p = vibe_json_parse_value_internal(p, out != NULL ? &value : NULL, depth + 1, state);
         if (p == NULL) {
             free(key);
+            vibe_json_free_value(json);
             return NULL;
         }
-        vibe_json_object_put(&json->as.object, key, value);
+        if (json != NULL) {
+            vibe_json_object_put(&json->as.object, key, value);
+        }
         free(key);
         p = vibe_json_skip_ws(p);
         if (*p == ',') {
@@ -4369,50 +4497,67 @@ static const char *vibe_json_parse_object_value(const char *p, vibe_json_value *
             continue;
         }
         if (*p == '}') {
-            *out = json;
+            if (out != NULL) {
+                *out = json;
+            }
             return p + 1;
         }
+        vibe_json_free_value(json);
         return NULL;
     }
+    vibe_json_free_value(json);
     return NULL;
 }
 
-static const char *vibe_json_parse_value_internal(const char *p, vibe_json_value **out) {
+static const char *vibe_json_parse_value_internal(
+    const char *p,
+    vibe_json_value **out,
+    int64_t depth,
+    vibe_json_parse_state *state
+) {
     p = vibe_json_skip_ws(p);
     if (p == NULL || *p == '\0') {
         return NULL;
     }
     if (*p == '{') {
-        return vibe_json_parse_object_value(p, out);
+        return vibe_json_parse_object_value(p, out, depth, state);
     }
     if (*p == '[') {
-        return vibe_json_parse_array_value(p, out);
+        return vibe_json_parse_array_value(p, out, depth, state);
     }
     if (*p == '"') {
         char *value = NULL;
-        const char *after = vibe_json_parse_string_value(p, &value);
+        const char *after = vibe_json_parse_string_value(p, out != NULL ? &value : NULL);
         if (after == NULL) {
             return NULL;
         }
-        vibe_json_value *json = vibe_json_new_value(VIBE_JSON_STR);
-        json->as.str_value = value;
-        *out = json;
+        if (out != NULL) {
+            vibe_json_value *json = vibe_json_new_value(VIBE_JSON_STR);
+            json->as.str_value = value;
+            *out = json;
+        }
         return after;
     }
     if (strncmp(p, "true", 4) == 0) {
-        vibe_json_value *json = vibe_json_new_value(VIBE_JSON_BOOL);
-        json->as.bool_value = 1;
-        *out = json;
+        if (out != NULL) {
+            vibe_json_value *json = vibe_json_new_value(VIBE_JSON_BOOL);
+            json->as.bool_value = 1;
+            *out = json;
+        }
         return p + 4;
     }
     if (strncmp(p, "false", 5) == 0) {
-        vibe_json_value *json = vibe_json_new_value(VIBE_JSON_BOOL);
-        json->as.bool_value = 0;
-        *out = json;
+        if (out != NULL) {
+            vibe_json_value *json = vibe_json_new_value(VIBE_JSON_BOOL);
+            json->as.bool_value = 0;
+            *out = json;
+        }
         return p + 5;
     }
     if (strncmp(p, "null", 4) == 0) {
-        *out = vibe_json_new_value(VIBE_JSON_NULL);
+        if (out != NULL) {
+            *out = vibe_json_new_value(VIBE_JSON_NULL);
+        }
         return p + 4;
     }
     return vibe_json_parse_number_value(p, out);
@@ -4535,21 +4680,178 @@ void *vibe_json_str(const char *value) {
     return json;
 }
 
+/*
+ * The one parse core behind json.parse, json.try_parse and json.is_valid.
+ * Returns the end pointer on success (with *out owning the tree), or NULL with
+ * state->status saying WHY, so each entry point can pick its own reaction to
+ * the same verdict without any of them re-deciding the grammar.
+ *
+ * out == NULL means validate-only: same grammar, same depth cap, same
+ * trailing-content rule, no tree built and nothing to free.
+ */
+static const char *vibe_json_parse_document(
+    const char *raw,
+    vibe_json_value **out,
+    vibe_json_parse_state *state
+) {
+    state->status = VIBE_JSON_PARSE_OK;
+    if (out != NULL) {
+        *out = NULL;
+    }
+    vibe_json_value *value = NULL;
+    const char *end = vibe_json_parse_value_internal(raw, out != NULL ? &value : NULL, 0, state);
+    if (end == NULL) {
+        if (state->status == VIBE_JSON_PARSE_OK) {
+            state->status = VIBE_JSON_PARSE_MALFORMED;
+        }
+        vibe_json_free_value(value);
+        return NULL;
+    }
+    end = vibe_json_skip_ws(end);
+    if (end == NULL || *end != '\0') {
+        state->status = VIBE_JSON_PARSE_TRAILING;
+        vibe_json_free_value(value);
+        return NULL;
+    }
+    if (out != NULL) {
+        *out = value;
+    }
+    return end;
+}
+
+/*
+ * UNCHANGED CONTRACT: json.parse still aborts on malformed input. A program
+ * parsing its own trusted data (a build script reading a manifest it wrote)
+ * should keep failing loudly; trust is a property of the code path, so a server
+ * reaching for peer bytes picks json.try_parse instead.
+ *
+ * The one behavioural change is the depth cap, and it is strictly an
+ * improvement even for trusted data: input past VIBE_JSON_MAX_DEPTH used to
+ * exhaust the stack and die by signal with no diagnostic, and now produces a
+ * deterministic, distinctly-worded panic.
+ */
 void *vibe_json_parse(const char *raw) {
     vibe_counter_inc(&vibe_json_parse_calls);
     if (raw == NULL) {
         vibe_panic("json.parse received null input");
     }
     vibe_json_value *value = NULL;
-    const char *end = vibe_json_parse_value_internal(raw, &value);
-    if (end == NULL) {
+    vibe_json_parse_state state;
+    if (vibe_json_parse_document(raw, &value, &state) == NULL) {
+        if (state.status == VIBE_JSON_PARSE_TOO_DEEP) {
+            vibe_panic(
+                "json.parse exceeds maximum nesting depth of "
+                VIBE_JSON_DEPTH_STR(VIBE_JSON_MAX_DEPTH)
+            );
+        }
+        if (state.status == VIBE_JSON_PARSE_TRAILING) {
+            vibe_panic("json.parse invalid trailing content");
+        }
         vibe_panic("json.parse invalid JSON");
     }
-    end = vibe_json_skip_ws(end);
-    if (end == NULL || *end != '\0') {
-        vibe_panic("json.parse invalid trailing content");
-    }
     return value;
+}
+
+/*
+ * VL-HTTP-04: recoverable parse for JSON that arrived from outside the process.
+ * TOTAL with respect to input -- no byte sequence, however malformed and
+ * however deeply nested, reaches vibe_panic through this entry point, so eight
+ * bytes of garbage in a POST body can no longer end the server.
+ *
+ * Returns the standard 2-slot Result record: slot 0 is the tag (0 = Ok,
+ * 1 = Err), slot 1 is the payload (a Json node, or a Str explaining the
+ * rejection). Read it from VibeLang with result.is_ok / result.is_err plus
+ * json.result_value / json.result_error.
+ */
+void *vibe_json_try_parse(const char *raw) {
+    vibe_counter_inc(&vibe_json_parse_calls);
+    void *result = vibe_record_alloc(2);
+    int64_t *slots = (int64_t *)result;
+    if (raw == NULL) {
+        slots[0] = 1;
+        slots[1] = (int64_t)(intptr_t)vibe_strdup_or_panic("json.try_parse received null input");
+        return result;
+    }
+    vibe_json_value *value = NULL;
+    vibe_json_parse_state state;
+    if (vibe_json_parse_document(raw, &value, &state) == NULL) {
+        const char *message = "invalid JSON";
+        if (state.status == VIBE_JSON_PARSE_TOO_DEEP) {
+            message = "JSON nesting exceeds the maximum depth of "
+                      VIBE_JSON_DEPTH_STR(VIBE_JSON_MAX_DEPTH);
+        } else if (state.status == VIBE_JSON_PARSE_TRAILING) {
+            message = "invalid trailing content";
+        }
+        slots[0] = 1;
+        slots[1] = (int64_t)(intptr_t)vibe_strdup_or_panic(message);
+        return result;
+    }
+    slots[0] = 0;
+    slots[1] = (int64_t)(intptr_t)value;
+    return result;
+}
+
+/*
+ * Ok payload of a json.try_parse result, or a fresh JSON null node when it was
+ * Err. TOTAL: the error branch of a request handler must not itself be able to
+ * end the process, so this never panics and never returns NULL.
+ * (std.result.unwrap_or only supports Result<Int, _>, so a Json result needs
+ * its own accessor.)
+ */
+void *vibe_json_result_value(void *result) {
+    if (result == NULL) {
+        return vibe_json_new_value(VIBE_JSON_NULL);
+    }
+    int64_t *slots = (int64_t *)result;
+    if (slots[0] != 0) {
+        return vibe_json_new_value(VIBE_JSON_NULL);
+    }
+    void *value = (void *)(intptr_t)slots[1];
+    return value == NULL ? vibe_json_new_value(VIBE_JSON_NULL) : value;
+}
+
+/*
+ * Err message of a json.try_parse result, or "" when it was Ok. TOTAL, for the
+ * same reason as vibe_json_result_value.
+ */
+char *vibe_json_result_error(void *result) {
+    if (result == NULL) {
+        return vibe_strdup_or_panic("");
+    }
+    int64_t *slots = (int64_t *)result;
+    if (slots[0] == 0) {
+        return vibe_strdup_or_panic("");
+    }
+    const char *message = (const char *)(intptr_t)slots[1];
+    return vibe_strdup_or_panic(message == NULL ? "" : message);
+}
+
+/*
+ * Genuine validation. This used to compare the first and last non-space
+ * characters and nothing else, so json.is_valid("[x]") and
+ * json.is_valid("[1,2,]") both answered true -- which meant the
+ * guard-then-parse idiom the book recommends still aborted the process on the
+ * json.parse that followed. Verified live before this change: the guarded repro
+ * server died with SIGABRT (exit 134) on a 3-byte body of "[x]".
+ *
+ * It now runs the real grammar through the shared core in validate-only mode,
+ * so it agrees with json.parse on grammar, on trailing content and on the depth
+ * cap. The guarantee callers can rely on: if json.is_valid(s) is true then
+ * json.parse(s) returns rather than aborts.
+ *
+ * Cost: it walks the whole document instead of reading two characters, which is
+ * the price of the answer being true. It does NOT build the document -- see the
+ * MATERIALIZING vs VALIDATING note above -- so a server that validates and
+ * forwards without parsing keeps its old allocation profile and a peer cannot
+ * use a large body to multiply the server's heap.
+ */
+int64_t vibe_json_is_valid(const char *raw) {
+    vibe_counter_inc(&vibe_json_validate_calls);
+    if (raw == NULL) {
+        return 0;
+    }
+    vibe_json_parse_state state;
+    return vibe_json_parse_document(raw, NULL, &state) != NULL ? 1 : 0;
 }
 
 char *vibe_json_stringify(void *raw) {

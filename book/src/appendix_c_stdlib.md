@@ -281,8 +281,9 @@ consume one. Scalar constructors wrap native values:
 ### `parse(raw: Str) -> Json`
 
 Parses UTF-8 JSON text into a `Json` value. Invalid input is handled by the
-runtime (this is **not** a `Result`); validate first with `json.is_valid` when
-you need a soft check.
+runtime (this is **not** a `Result`), so `json.parse` is for text you control.
+For text that arrived from a socket use **`json.try_parse`**, or validate first
+with `json.is_valid`.
 
 ```vibe
 doc := json.parse("{\"a\":1}")
@@ -290,6 +291,47 @@ println(json.stringify(doc))              // compact wire text
 println(json.stringify_pretty(doc))       // indented, for debugging
 println(json.stringify(json.str("vibe"))) // "\"vibe\""
 ```
+
+Nesting is capped at **256 levels** for `json.parse`, `json.try_parse` and
+`json.is_valid` alike. Past the cap `json.parse` reports
+`json.parse exceeds maximum nesting depth of 256` and `json.try_parse` returns
+an `Err`. The cap exists because the parser is recursive: without it, deeply
+nested text exhausts the thread stack and kills the process outright.
+
+### `try_parse(raw: Str) -> Result<Json, Str>`
+
+Parses JSON **without aborting on bad input**. Use this for anything read off a
+network: a request body, a response body, a WebSocket frame. No byte sequence,
+however malformed or however deeply nested, can end the process through this
+entry point.
+
+`std.result.unwrap_or` only supports `Result<Int, _>`, so a parsed document is
+read back with `json.result_value` (the document, or a JSON `null` node when the
+parse failed) and `json.result_error` (the message, or `""` when it succeeded).
+
+```vibe
+handle_body(conn: Int, body: Str) -> Int {
+  @effect net
+  parsed := json.try_parse(body)
+  if result.is_err(parsed) {
+    net.write(conn, http_server.format_response(400, "", json.result_error(parsed)))
+    return 0
+  }
+  doc := json.result_value(parsed)
+  net.write(conn, http_server.format_response(200, "", json.stringify(doc)))
+  0
+}
+```
+
+### `result_value(parsed: Result<Json, Str>) -> Json`
+
+The document from `json.try_parse`, or a JSON `null` node when it returned
+`Err`. Never aborts.
+
+### `result_error(parsed: Result<Json, Str>) -> Str`
+
+The rejection message from `json.try_parse`, or `""` when it returned `Ok`.
+Never aborts.
 
 ### `stringify(value: Json) -> Str`
 
@@ -366,11 +408,18 @@ unknown sources.
 
 ### `is_valid(s: Str) -> Bool`
 
-Returns `true` if the string is syntactically valid JSON.
+Returns `true` if the string is syntactically valid JSON. This runs the real
+parser and shares its grammar, its trailing-content rule and its 256-level depth
+cap, so the guarantee is exact: **if `json.is_valid(s)` is `true`, then
+`json.parse(s)` returns rather than aborting.** It walks the whole document but
+does not build one, so it stays cheap in memory; when you are going to parse
+anyway, `json.try_parse` does it in a single pass.
 
 ```vibe
 json.is_valid("{\"name\": \"vibe\"}")  // true
 json.is_valid("not json")            // false
+json.is_valid("[x]")                 // false
+json.is_valid("[1,2,]")              // false
 ```
 
 ### `parse_i64(s: Str) -> Int` / `stringify_i64(n: Int) -> Str`
@@ -946,6 +995,9 @@ import std.concurrent  // spawn, with_timeout, map_int, map_str
 | `url_decode(Str)`              | encoding | None   |
 | `is_valid(Str)`                | json   | None     |
 | `parse(Str)`                   | json   | None     |
+| `try_parse(Str)`               | json   | None     |
+| `result_value(Result<Json, Str>)` | json | None    |
+| `result_error(Result<Json, Str>)` | json | None    |
 | `stringify(Json)`              | json   | None     |
 | `stringify_pretty(Json)`       | json   | None     |
 | `null()` … `str(Str)`          | json   | None     |

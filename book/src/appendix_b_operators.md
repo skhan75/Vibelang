@@ -250,9 +250,11 @@ pub read_text_file(path: Str) -> Result<Str, Error> {
 ```
 
 `json.parse` returns `Json`, not `Result`, so it does not compose with `?` the
-same way as `fs.read_text`. Combine file I/O with `?`, then parse the `Str`
-when you are ready to handle invalid JSON (for example after `json.is_valid`, or
-via `json.decode` with a fallback value).
+same way as `fs.read_text`. Use **`json.try_parse`**, which returns
+`Result<Json, Str>` and does compose with `?`, whenever the text came from
+outside the process. Otherwise combine file I/O with `?` and parse the `Str`
+when you are ready to handle invalid JSON (after `json.is_valid`, or via
+`json.decode` with a fallback value).
 
 Only valid inside functions that return `Result<T, E>`.
 

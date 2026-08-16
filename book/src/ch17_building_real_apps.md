@@ -123,8 +123,15 @@ scalar `Json` values for `stringify`.
 
 **At the wire**
 
-- Validate unknown text with **`json.is_valid`** before **`json.parse`** if you
-  need a guard; HTTP bodies and file contents are still **`Str`** until parsed.
+- Parse text that came off a socket with **`json.try_parse`**, which returns
+  `Result<Json, Str>` and never aborts. `json.parse` is for text you control:
+  it ends the process on malformed input, and in a `go handle(conn)` server that
+  takes every other in-flight connection with it.
+- **`json.is_valid`** is a sound guard when you prefer check-then-parse: it runs
+  the same grammar, so `if json.is_valid(s) { json.parse(s) }` cannot abort. It
+  walks the whole document to answer, but does not build one, so validating text
+  you are not going to parse stays cheap.
+- HTTP bodies and file contents are still **`Str`** until parsed.
 
 Runnables:
 

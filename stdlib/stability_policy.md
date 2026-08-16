@@ -29,7 +29,7 @@ This policy defines compatibility expectations for the expanded stdlib surface.
 - `convert.to_int`, `convert.parse_i64`, `convert.to_float`, `convert.parse_f64`, `convert.to_str`, `convert.to_str_f64`: **preview**
 - `text.trim`, `text.contains`, `text.starts_with`, `text.ends_with`, `text.replace`, `text.to_lower`, `text.to_upper`, `text.byte_len`, `text.split_part`: **preview**
 - `encoding.hex_encode`, `encoding.hex_decode`, `encoding.base64_encode`, `encoding.base64_decode`, `encoding.url_encode`, `encoding.url_decode`: **preview**
-- `json.is_valid`, `json.parse`, `json.stringify`, `json.parse_i64`, `json.stringify_i64`, `json.minify`, typed codecs (`json.encode`, `json.decode`): **preview**
+- `json.is_valid`, `json.parse`, `json.try_parse`, `json.result_value`, `json.result_error`, `json.stringify`, `json.parse_i64`, `json.stringify_i64`, `json.minify`, typed codecs (`json.encode`, `json.decode`): **preview**
 - `http.send`, `http.get`, `http.post`, `http.response`, `http.build_response`, `http.status_text`, `http.default_port`, `http.build_request_line`, `http.request`, `http.request_status`: **preview**
 - `HttpRequest`, `HttpResponse` (auto-injected types): **preview**
 - `log.info`, `log.warn`, `log.error`: **preview**

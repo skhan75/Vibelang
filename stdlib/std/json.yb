@@ -9,13 +9,28 @@
 module std.json
 
 pub is_valid(raw: Str) -> Bool {
-  @intent "true when the string is valid JSON"
+  @intent "true when the string parses as JSON: same grammar and depth cap as json.parse, so a true answer means json.parse will return"
   @native("vibe_json_is_valid")
 }
 
 pub parse(raw: Str) -> Json {
   @intent "parse a JSON string into a DOM node"
   @native("vibe_json_parse")
+}
+
+pub try_parse(raw: Str) -> Result<Json, Str> {
+  @intent "parse JSON received from the network without aborting: Ok(document) or Err(message)"
+  @native("vibe_json_try_parse")
+}
+
+pub result_value(parsed: Result<Json, Str>) -> Json {
+  @intent "the document from json.try_parse, or a JSON null node when the parse failed"
+  @native("vibe_json_result_value")
+}
+
+pub result_error(parsed: Result<Json, Str>) -> Str {
+  @intent "the rejection message from json.try_parse, or an empty string when it succeeded"
+  @native("vibe_json_result_error")
 }
 
 pub stringify(node: Json) -> Str {
