@@ -47,7 +47,7 @@ Detailed module references:
 
 ## Compiler/runtime contract
 
-- Typechecker recognizes stdlib namespace calls (`time.*`, `path.*`, `fs.*`, `net.*`, `convert.*`, `text.*`, `str_builder.*`, `regex.*`, `encoding.*`, `json.*`, `http.*`, `log.*`, `env.*`, `cli.*`)
+- Typechecker recognizes stdlib namespace calls (`time.*`, `path.*`, `fs.*`, `net.*`, `convert.*`, `bytes.*`, `text.*`, `str_builder.*`, `regex.*`, `encoding.*`, `json.*`, `http.*`, `log.*`, `env.*`, `cli.*`)
   and enforces argument/return contracts.
 - With `bench-runtime`, typechecker/codegen also recognize `bench.*` and lower those calls to
   `vibe_bench_*` symbols in `runtime/native/vibe_runtime_bench.c`.

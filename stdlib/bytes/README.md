@@ -27,7 +27,8 @@ its first zero byte.
 - `slice` is byte-exact and total: bounds are clamped, never rejected.
   `start < 0` clamps to `0`; `start > len` clamps to `len`; `end > len`
   clamps to `len`; `end < start` collapses to an empty result. It never
-  panics.
+  panics on bad bounds (the only failure path left is allocation failure,
+  see "Error model" below).
 - `concat` joins two byte sequences and is total.
 - `from_str` copies the bytes of `s` up to (not including) its terminating
   zero byte, since that is all a `Str` can hold.
@@ -43,8 +44,12 @@ its first zero byte.
 
 ## Error model
 
-- All nine functions are total and never panic, including on malformed or
-  out-of-range input.
+- All nine functions are total and never panic on malformed or
+  out-of-range input. The one exception is allocation failure (OOM), which
+  is not peer-controlled: every function that allocates (`new`, and
+  `slice`/`concat`/`from_str`/`from_hex`/`to_str`/`to_hex`, which all
+  allocate their result) calls `vibe_panic` if the underlying `calloc`
+  fails. `len` and `get` never allocate and cannot hit this path.
 - `from_hex` fails closed: an odd-length input, any character outside
   `[0-9a-fA-F]`, or a NULL input all return a **zero-length** `Bytes`. There
   is no distinct error signal, so a decode failure is not distinguishable
