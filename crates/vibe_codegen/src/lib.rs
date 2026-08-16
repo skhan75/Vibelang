@@ -5216,9 +5216,12 @@ fn default_value(builder: &mut FunctionBuilder<'_>, ty: &MirType, ptr_ty: ir::Ty
         MirType::I64 | MirType::Unknown => builder.ins().iconst(ir::types::I64, 0),
         MirType::F64 => builder.ins().f64const(0.0),
         MirType::Bool => builder.ins().iconst(ir::types::I8, 0),
-        MirType::Str | MirType::Json | MirType::JsonBuilder | MirType::Result | MirType::Ptr => {
-            builder.ins().iconst(ptr_ty, 0)
-        }
+        MirType::Str
+        | MirType::Bytes
+        | MirType::Json
+        | MirType::JsonBuilder
+        | MirType::Result
+        | MirType::Ptr => builder.ins().iconst(ptr_ty, 0),
         MirType::Void => builder.ins().iconst(ir::types::I64, 0),
     }
 }
@@ -5640,6 +5643,7 @@ fn mir_type_display_for_typeof(ty: &MirType) -> &'static str {
         MirType::F64 => "Float",
         MirType::Bool => "Bool",
         MirType::Str => "Str",
+        MirType::Bytes => "Bytes",
         MirType::Json => "Json",
         MirType::JsonBuilder => "JsonBuilder",
         MirType::Result => "Result",
@@ -5895,9 +5899,12 @@ fn mir_ty_to_clif(ty: &MirType, ptr_ty: ir::Type) -> ir::Type {
         MirType::I64 | MirType::Unknown => ir::types::I64,
         MirType::F64 => ir::types::F64,
         MirType::Bool => ir::types::I8,
-        MirType::Str | MirType::Json | MirType::JsonBuilder | MirType::Result | MirType::Ptr => {
-            ptr_ty
-        }
+        MirType::Str
+        | MirType::Bytes
+        | MirType::Json
+        | MirType::JsonBuilder
+        | MirType::Result
+        | MirType::Ptr => ptr_ty,
         MirType::Void => ir::types::I64,
     }
 }
