@@ -1,31 +1,10 @@
-# Release Process (Dry-Run First)
+# Release Evidence Bundle
 
-Date: 2026-02-17
+Date: 2026-02-17. Scope narrowed 2026-08-16.
 
-## Goals
-
-- Keep releases deterministic and auditable.
-- Ensure policy/docs/migrations are updated before publishing.
-
-## Release Steps
-
-1. Run full CI and ensure all phase workflows are green.
-2. Run consolidated release gates workflow (`.github/workflows/v1-release-gates.yml`).
-3. Execute the current RC process in `docs/release/rc_process.md`.
-4. Update `CHANGELOG.md` with release notes and migration entries.
-5. Verify migration guide examples compile/run.
-6. Review limitations gate (`docs/release/known_limitations_gate.md`).
-7. Confirm rollback readiness (`docs/release/rollback_playbook.md`).
-8. Publish tag and release artifacts after approvals.
-
-## Changelog Requirements
-
-Each release section should include:
-
-- Added
-- Changed
-- Fixed
-- Migration Notes
+The release procedure itself lives in [RELEASING.md](../../RELEASING.md) at the
+repository root, which is the only document that lists the steps. This file now
+covers one thing: the evidence a release candidate has to link.
 
 ## Required Evidence Bundle
 

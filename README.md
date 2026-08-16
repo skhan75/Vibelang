@@ -13,7 +13,7 @@
 
 <p align="center">
   <a href="https://github.com/skhan75/VibeLang/actions"><img src="https://img.shields.io/github/actions/workflow/status/skhan75/VibeLang/phase1-frontend.yml?branch=main&style=for-the-badge&label=CI" alt="CI" /></a>
-  <a href="https://github.com/skhan75/VibeLang/releases/tag/v1.1.0"><img src="https://img.shields.io/badge/release-v1.1.0-22c55e?style=for-the-badge" alt="release" /></a>
+  <a href="https://github.com/skhan75/VibeLang/releases/tag/v1.6.0"><img src="https://img.shields.io/badge/release-v1.6.0-22c55e?style=for-the-badge" alt="release" /></a>
   <img src="https://img.shields.io/badge/status-Beta-f59e0b?style=for-the-badge" alt="beta" />
   <a href="https://github.com/skhan75/VibeLang/issues"><img src="https://img.shields.io/github/issues/skhan75/VibeLang?style=for-the-badge&color=ec4899" alt="issues" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache_2.0-2563eb?style=for-the-badge" alt="license" /></a>
@@ -53,23 +53,19 @@ pub transfer(mut from: Account, mut to: Account, amount: Int) -> Result<Receipt,
 
 ## Quickstart
 
-**Download a binary** — no Cargo required:
-
-```bash
-# From GitHub Releases (v1.1.0)
-curl -LO https://github.com/skhan75/Vibelang/releases/download/v1.1.0/vibe-x86_64-unknown-linux-gnu.tar.gz
-tar xzf vibe-x86_64-unknown-linux-gnu.tar.gz
-sudo mv vibe /usr/local/bin/
-vibe --version
-```
-
-**Or build from source** (requires [Rust stable](https://rustup.rs/) + a C linker):
+**Build from source** (requires [Rust stable](https://rustup.rs/) + a C linker):
 
 ```bash
 git clone https://github.com/skhan75/VibeLang.git && cd VibeLang
 cargo build --release -p vibe_cli
 export PATH="$PWD/target/release:$PATH"
+vibe --version
 ```
+
+Building from source is the only supported install path today. The current
+release, v1.6.0, has no binaries attached to it, so there is nothing to
+download. Attaching signed archives and checksums to the GitHub release is a
+required step of the process in [RELEASING.md](RELEASING.md).
 
 For a minimal binary without AI sidecar dependencies:
 
@@ -214,6 +210,7 @@ VS Code extension: [`editor-support/vscode/`](editor-support/vscode/)
 | [CLI Manual](docs/cli/help_manual.md) | Commands, flags, and exit codes |
 | [Stdlib Reference](docs/stdlib/reference_index.md) | Module index with stability tiers |
 | [Examples](examples/) | 87 programs across 11 categories |
+| [Release Process](RELEASING.md) | How a version is chosen, cut, verified, and rolled back |
 
 ## Roadmap
 

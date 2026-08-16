@@ -1,0 +1,30 @@
+name: release-version-consistency
+
+# Fails when the version in Cargo.toml, the version advertised in README.md,
+# the newest CHANGELOG.md entry, and the tag being cut do not agree.
+# No path filter: the check takes seconds, and a path filter would skip it on
+# tag pushes, which is the one run that matters most.
+
+on:
+  push:
+    branches: ["main", "release/**"]
+    tags: ["v*"]
+  pull_request:
+    branches: ["main", "release/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  version_consistency_gate:
+    name: version-consistency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: check advertised version consistency
+        run: python3 tooling/release/check_version_consistency.py
