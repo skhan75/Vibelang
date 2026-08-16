@@ -5247,6 +5247,7 @@ fn is_known_string_expr(expr: &MirExpr, function_returns: &BTreeMap<String, MirT
                             || field == "to_lower"
                             || field == "to_upper"
                             || field == "split_part"
+                            || field == "slice_bytes"
                     }
                     "encoding" => {
                         field == "hex_encode"
@@ -5854,7 +5855,7 @@ fn value_type_for_expr(
                     || (namespace == "fs" && field == "read_text")
                     || (namespace == "net" && (field == "read" || field == "resolve"))
                     || (namespace == "convert" && (field == "to_str" || field == "to_str_f64" || field == "format_f64"))
-                    || (namespace == "text" && (field == "trim" || field == "replace" || field == "to_lower" || field == "to_upper" || field == "split_part"))
+                    || (namespace == "text" && (field == "trim" || field == "replace" || field == "to_lower" || field == "to_upper" || field == "split_part" || field == "slice_bytes"))
                     || (namespace == "encoding" && (field == "hex_encode" || field == "hex_decode" || field == "base64_encode" || field == "base64_decode" || field == "url_encode" || field == "url_decode"))
                     || (namespace == "env" && (field == "get" || field == "get_required"))
                     || (namespace == "cli" && field == "arg")

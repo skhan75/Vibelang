@@ -171,6 +171,44 @@ text.index_of("hello world", "world")  // 6
 text.index_of("abc", "xyz")            // -1
 ```
 
+### `slice_bytes(s: Str, start: Int, end: Int) -> Str`
+
+Byte-exact substring for strings whose bytes arrived from **outside the
+process** — anything reachable from `net.read`, `ws.read_frame`, an HTTP
+response, `http_server.parse_request`, or an `encoding.*_decode` fed by those.
+None of those sources validate UTF-8, so the bytes they return may not be valid
+UTF-8 at all.
+
+Unlike the `s[start:end]` slice sugar, `slice_bytes` is **total**: it never
+aborts. Bounds are clamped rather than rejected (`start` below `0` becomes `0`,
+past the end becomes the length; `end` past the end becomes the length; an `end`
+below `start` yields an empty string), and there is no UTF-8 boundary check. The
+result is always a verbatim copy of the requested byte range — no byte is
+rewritten, inserted or dropped — so every offset computed on the original string
+keeps its meaning and `s[0:i]` plus `s[i:len]` still reassemble into `s`.
+
+Use it wherever a slice offset is derived from peer-supplied data. Keep using
+the `s[start:end]` sugar for a program's own strings: it rejects a mid-character
+slice by panicking, which catches a real bug in trusted data.
+
+```vibe
+text.slice_bytes("abcde", 1, 3)    // "bc"
+text.slice_bytes("abcde", 0, 99)   // "abcde"  (end clamped)
+text.slice_bytes("abcde", 4, 1)    // ""       (end below start)
+```
+
+### `byte_at(s: Str, index: Int) -> Int`
+
+The raw byte at `index`, or `-1` when `index` is out of range. Like
+`slice_bytes`, this is the total counterpart of the `s[index]` sugar for
+network-supplied bytes: it performs no bounds panic and no UTF-8 boundary check,
+so it can read a continuation byte in the middle of a character.
+
+```vibe
+text.byte_at("abc", 0)    // 97
+text.byte_at("abc", 99)   // -1
+```
+
 ---
 
 ## C.5 `fs` — File System Operations (Preview)
@@ -831,7 +869,7 @@ import std.path        // join, parent, basename, is_absolute
 import std.fs          // exists, read_text, write_text, create_dir
 import std.net         // listen, listener_port, accept, connect, read, write, close, resolve
 import std.convert     // to_int, parse_i64, to_float, parse_f64, to_str, to_str_f64, format_f64, i64_to_f64, f64_to_bits, f64_from_bits
-import std.text        // trim, contains, starts_with, ends_with, replace, to_lower, to_upper, byte_len, split_part, index_of
+import std.text        // trim, contains, starts_with, ends_with, replace, to_lower, to_upper, byte_len, split_part, index_of, slice_bytes, byte_at
 import std.encoding    // hex/base64/url encode/decode
 import std.json        // Json: parse, stringify, stringify_pretty, null/bool/i64/f64/str; builder.*; is_valid, minify; parse_i64, stringify_i64; from_map; encode_<T>, decode_<T>
 import std.http        // status_text, default_port, build_request_line, request, request_status, get, post, send, response, ok, get_with_headers, post_with_headers, post_json, get_retry
@@ -898,6 +936,8 @@ import std.concurrent  // spawn, with_timeout, map_int, map_str
 | `byte_len(Str)`                | text   | None     |
 | `split_part(Str, Str, Int)`    | text   | None     |
 | `index_of(Str, Str)`           | text   | None     |
+| `slice_bytes(Str, Int, Int)`   | text   | None     |
+| `byte_at(Str, Int)`            | text   | None     |
 | `hex_encode(Str)`              | encoding | None   |
 | `hex_decode(Str)`              | encoding | None   |
 | `base64_encode(Str)`           | encoding | None   |

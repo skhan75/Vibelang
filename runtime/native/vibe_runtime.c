@@ -1768,6 +1768,71 @@ void *vibe_str_slice(const char *value, int64_t start, int64_t end) {
     return (void *)out;
 }
 
+/*
+ * TOTAL string primitives for bytes that arrived from OUTSIDE the process.
+ *
+ * A VibeLang Str is a bare NUL-terminated char* with no header, so there is
+ * nowhere to record "these bytes came from a stranger". Trust is therefore a
+ * property of the CODE PATH: only stdlib modules that handle socket bytes call
+ * these, and `vibe_str_slice` / `vibe_str_get_byte` keep panicking for trusted
+ * program data (a .yb literal cannot contain invalid UTF-8 -- the lexer reads
+ * source as a Rust String and has no \xNN escape -- so any invalid-UTF-8 Str in
+ * a running program came from an external byte source).
+ *
+ * The sources that mint such Strs never validate them: vibe_net_read,
+ * vibe_ws_read_frame, vibe_http_server_parse_request, the HTTP client response
+ * path, and the encoding.*_decode family all hand back raw octets. The UTF-8
+ * invariant is already false by the time the router sees them, so enforcing it
+ * there only punishes the server for the peer's choice -- with abort().
+ */
+
+/*
+ * Byte-exact slice. TOTAL: never calls vibe_panic for any (value,start,end);
+ * the only failure path is OOM, which is not peer-controlled.
+ *
+ * Bounds are CLAMPED, never rejected: start<0 -> 0; start>len -> len;
+ * end<start -> start; end>len -> len. No UTF-8 boundary check, and NO byte is
+ * ever rewritten or inserted -- the result is a verbatim memcpy of a subrange
+ * of `value`. Preserving length and offsets exactly is the point: a
+ * sanitising slice (e.g. substituting U+FFFD, which is 3 bytes) shifts every
+ * downstream offset and makes later slices land mid-character, which is worse
+ * than the bug it tries to fix.
+ */
+void *vibe_str_slice_bytes(const char *value, int64_t start, int64_t end) {
+    const char *safe_value = value == NULL ? "" : value;
+    int64_t len = (int64_t)strlen(safe_value);
+    int64_t lo = start < 0 ? 0 : (start > len ? len : start);
+    int64_t hi = end > len ? len : end;
+    if (hi < lo) {
+        hi = lo;
+    }
+    int64_t out_len = hi - lo;
+    char *out = (char *)calloc((size_t)out_len + 1u, sizeof(char));
+    if (out == NULL) {
+        vibe_panic("failed to allocate sliced string");
+    }
+    if (out_len > 0) {
+        memcpy(out, safe_value + lo, (size_t)out_len);
+    }
+    out[out_len] = '\0';
+    return (void *)out;
+}
+
+/*
+ * Raw byte at `index`, or -1 when out of range. TOTAL: no bounds panic and no
+ * UTF-8 boundary check. Sibling of vibe_str_slice_bytes for network-facing
+ * code that needs to inspect a single octet; vibe_str_get_byte keeps panicking
+ * for trusted data.
+ */
+int64_t vibe_str_byte_at(const char *value, int64_t index) {
+    const char *safe_value = value == NULL ? "" : value;
+    int64_t len = (int64_t)strlen(safe_value);
+    if (index < 0 || index >= len) {
+        return -1;
+    }
+    return (int64_t)((unsigned char)safe_value[index]);
+}
+
 void *vibe_str_concat(const char *left, const char *right) {
     const char *safe_left = left == NULL ? "" : left;
     const char *safe_right = right == NULL ? "" : right;

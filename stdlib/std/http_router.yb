@@ -5,6 +5,17 @@
  * Small composable helpers for HTTP servers: header/query lookup, canned responses,
  * and a single-route dispatcher that accepts a handler closure.
  * Built on `std.http_server` (`parse_request` / `format_response`).
+ *
+ * NETWORK-FACING MODULE. Every Str this module slices is peer-supplied: the
+ * arguments are `req.headers` and `req.query`, which `http_server.parse_request`
+ * carves out of the raw socket bytes without validating them. Those bytes are
+ * not guaranteed to be UTF-8, so this module MUST NOT use the `s[a:b]` slice
+ * sugar or `s[i]` byte-index sugar -- both reject a non-boundary offset by
+ * calling `vibe_panic`, which aborts the whole process and every other
+ * connection with it. Use `text.slice_bytes` / `text.byte_at` instead: they
+ * clamp instead of rejecting and copy bytes verbatim, so offsets computed on
+ * the original string keep their meaning. `tests/network_facing_slice_sugar.rs`
+ * enforces this.
  */
 module std.http_router
 
@@ -13,13 +24,15 @@ header_line_key_matches_line(line: Str, want_lower: Str) -> Bool {
   if colon < 0 {
     return false
   }
-  key := text.trim(line[0:colon])
+  key := text.trim(text.slice_bytes(line, 0, colon))
   text.to_lower(key) == want_lower
 }
 
+// Only ever called for a line whose key already matched, so a header the
+// application never asks for cannot decide what this process does.
 header_line_value(line: Str) -> Str {
   colon := text.index_of(line, ":")
-  rest := line[colon + 1:line.len()]
+  rest := text.slice_bytes(line, colon + 1, line.len())
   text.trim(rest)
 }
 
@@ -27,7 +40,7 @@ scan_headers_for_key(headers: Str, want_lower: Str, pos: Int, total: Int) -> Str
   if pos >= total {
     return ""
   }
-  rem := headers[pos:total]
+  rem := text.slice_bytes(headers, pos, total)
   a := text.index_of(rem, "\r\n")
   b := text.index_of(rem, "\n")
   mut line_rel_end := total - pos
@@ -44,7 +57,7 @@ scan_headers_for_key(headers: Str, want_lower: Str, pos: Int, total: Int) -> Str
       adv = 0
     }
   }
-  line := headers[pos:pos + line_rel_end]
+  line := text.slice_bytes(headers, pos, pos + line_rel_end)
   next_pos := pos + line_rel_end + adv
   if header_line_key_matches_line(line, want_lower) {
     return header_line_value(line)
@@ -56,13 +69,13 @@ scan_query_for_key(query: Str, want: Str, pos: Int, total: Int) -> Str {
   if pos >= total {
     return ""
   }
-  rem := query[pos:total]
+  rem := text.slice_bytes(query, pos, total)
   amp := text.index_of(rem, "&")
   mut chunk_len := rem.len()
   if amp >= 0 {
     chunk_len = amp
   }
-  part := query[pos:pos + chunk_len]
+  part := text.slice_bytes(query, pos, pos + chunk_len)
   mut next_pos := total
   if amp >= 0 {
     next_pos = pos + chunk_len + 1
@@ -73,10 +86,11 @@ scan_query_for_key(query: Str, want: Str, pos: Int, total: Int) -> Str {
       return ""
     }
   } else {
-    k := part[0:eq]
-    v := part[eq + 1:part.len()]
+    k := text.slice_bytes(part, 0, eq)
+    // Slice the value only after the key matched: a parameter the application
+    // never reads must not be able to influence this process at all.
     if k == want {
-      return v
+      return text.slice_bytes(part, eq + 1, part.len())
     }
   }
   return scan_query_for_key(query, want, next_pos, total)

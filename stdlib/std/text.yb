@@ -51,6 +51,16 @@ pub split_part(s: Str, delimiter: Str, index: Int) -> Str {
   @native("vibe_text_split_part")
 }
 
+pub slice_bytes(s: Str, start: Int, end: Int) -> Str {
+  @intent "byte-exact substring for strings received from the network: bounds are clamped instead of rejected, no UTF-8 boundary check, and no byte is rewritten"
+  @native("vibe_str_slice_bytes")
+}
+
+pub byte_at(s: Str, index: Int) -> Int {
+  @intent "raw byte at index for strings received from the network, or -1 when out of range"
+  @native("vibe_str_byte_at")
+}
+
 pub index_of(haystack: Str, needle: Str) -> Int {
   @intent "return the byte offset of needle in haystack, or -1 if not found"
   @native("vibe_text_index_of")
