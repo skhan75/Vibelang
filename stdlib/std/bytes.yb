@@ -1,0 +1,56 @@
+// Copyright 2026 VibeLang Contributors
+// SPDX-License-Identifier: Apache-2.0
+
+/**
+ * Binary data with an explicit length.
+ *
+ * Use `Bytes` for anything that came off a socket, a file, or a decoder, and
+ * `Str` only for text. A `Str` is NUL-terminated, so binary data held in one
+ * ends at its first zero byte.
+ */
+module std.bytes
+
+pub new(len: Int) -> Bytes {
+  @intent "allocate len zero bytes"
+  @native("vibe_bytes_new")
+}
+
+pub len(b: Bytes) -> Int {
+  @intent "number of bytes, counted explicitly and never terminated by a zero byte"
+  @native("vibe_bytes_len")
+}
+
+pub get(b: Bytes, index: Int) -> Int {
+  @intent "the byte at index, or -1 when out of range"
+  @native("vibe_bytes_get")
+}
+
+pub slice(b: Bytes, start: Int, end: Int) -> Bytes {
+  @intent "byte-exact subrange with clamped bounds, never rejected"
+  @native("vibe_bytes_slice")
+}
+
+pub concat(a: Bytes, b: Bytes) -> Bytes {
+  @intent "join two byte sequences"
+  @native("vibe_bytes_concat")
+}
+
+pub from_str(s: Str) -> Bytes {
+  @intent "the bytes of a string, up to its terminating zero byte"
+  @native("vibe_bytes_from_str")
+}
+
+pub to_str(b: Bytes) -> Str {
+  @intent "reinterpret bytes as text; the result ends at the first zero byte, so this loses data for binary input"
+  @native("vibe_bytes_to_str")
+}
+
+pub from_hex(hex: Str) -> Bytes {
+  @intent "decode hexadecimal into bytes"
+  @native("vibe_bytes_from_hex")
+}
+
+pub to_hex(b: Bytes) -> Str {
+  @intent "encode bytes as lowercase hexadecimal"
+  @native("vibe_bytes_to_hex")
+}

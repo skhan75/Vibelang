@@ -12,6 +12,7 @@ keeping deterministic behavior and local-first validation.
 - `fs` (preview): filesystem read/write/exists/directory helpers
 - `net` (preview): TCP + DNS primitives (`listen/connect/read/write/close/resolve`)
 - `convert` (preview): parsing + formatting conversions (`to_int/to_float/to_str`)
+- `bytes` (preview): binary data with an explicit length (`new/len/get/slice/concat/from_str/to_str/from_hex/to_hex`)
 - `text` (preview): text utilities (`trim/contains/replace/case/split_part/index_of`)
 - `str_builder` (preview): growable string buffer (`new`/`append`/`append_char`/`finish`)
 - `regex` (preview): pattern helpers (`count`/`replace_all`)
@@ -32,6 +33,7 @@ Detailed module references:
 - `stdlib/fs/README.md`
 - `stdlib/net/README.md`
 - `stdlib/convert/README.md`
+- `stdlib/bytes/README.md`
 - `stdlib/text/README.md`
 - `stdlib/str_builder/README.md`
 - `stdlib/regex/README.md`
