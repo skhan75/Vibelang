@@ -65,8 +65,23 @@ pub main() -> Int {
 }
 "#,
     );
-    assert!(
-        diags.iter().any(|d| d.starts_with("E2265")),
-        "passing a Str where Bytes is declared must be rejected; got {diags:?}"
+    // Assert the exact diagnostic set, not just that E2265 is present
+    // somewhere in it. Before `Bytes` was taught to every resolution
+    // ladder, `Bytes` fell through to `parse_type_ref`'s final rule and
+    // became a phantom `UserType("Bytes")`: that also produces E2265
+    // (since a phantom user type is never compatible with `Str`), but
+    // alongside two spurious `E2005: unknown type` errors. A test that
+    // only checks E2265's presence cannot tell that coincidental
+    // rejection apart from a real `Bytes` type genuinely rejecting `Str`.
+    // `assert_eq!` on the whole vector fails the moment E2005 rides
+    // along, which is exactly the bug this task fixes.
+    assert_eq!(
+        diags,
+        vec![
+            "E2265: argument 1 type mismatch in call to `take`: expected `Bytes`, got `Str`"
+                .to_string()
+        ],
+        "passing a Str where Bytes is declared must be rejected with exactly \
+         one diagnostic (E2265), with no accompanying E2005; got {diags:?}"
     );
 }
