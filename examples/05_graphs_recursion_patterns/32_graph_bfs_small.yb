@@ -1,8 +1,8 @@
 neighbors(node: Int, from_nodes: List<Int>, to_nodes: List<Int>) -> List<Int> {
   @effect alloc
   @effect mut_state
-  out := []
-  i := 0
+  mut out := []
+  mut i := 0
   while i < from_nodes.len() {
     if from_nodes.get(i) == node {
       out.append(to_nodes.get(i))
@@ -19,16 +19,16 @@ pub main() -> Int {
   from_nodes := [0, 0, 1, 2, 2]
   to_nodes := [1, 2, 3, 3, 4]
 
-  visited := {0: 1}
-  order := [0]
-  queue := [0]
-  head := 0
+  mut visited := {0: 1}
+  mut order := [0]
+  mut queue := [0]
+  mut head := 0
 
   while head < queue.len() {
     node := queue.get(head)
     head = head + 1
     ns := neighbors(node, from_nodes, to_nodes)
-    i := 0
+    mut i := 0
     while i < ns.len() {
       n := ns.get(i)
       if !visited.contains(n) {

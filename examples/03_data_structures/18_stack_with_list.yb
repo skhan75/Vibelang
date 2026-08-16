@@ -2,7 +2,7 @@ pub main() -> Int {
   @effect io
   @effect alloc
   @effect mut_state
-  stack := []
+  mut stack := []
   stack.append(7)
   stack.append(9)
   stack.append(11)

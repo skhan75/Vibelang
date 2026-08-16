@@ -465,13 +465,23 @@ impl Parser {
         let mut params = Vec::new();
         self.consume_newlines();
         while !self.at(&TokenKind::RParen) && !self.is_eof() {
+            let is_mut = self.at_keyword(Keyword::Mut);
+            if is_mut {
+                self.bump();
+            }
+            let span = self.peek().span;
             let name = self.expect_ident("E1107", "expected parameter name");
             let ty = if self.match_kind(&TokenKind::Colon) {
                 Some(self.parse_type_ref_until(&[TokenKind::Comma, TokenKind::RParen]))
             } else {
                 None
             };
-            params.push(Param { name, ty });
+            params.push(Param {
+                name,
+                ty,
+                is_mut,
+                span,
+            });
             if self.at(&TokenKind::Comma) {
                 self.bump();
                 self.consume_newlines();
@@ -701,6 +711,24 @@ impl Parser {
             return Some(Stmt::Thread { expr, span: start });
         }
 
+        if self.at_malformed_mut() {
+            // `mut name: T := expr` is the one malformed shape worth naming:
+            // it is a type-annotated local, which the grammar does not accept
+            // yet (`docs/spec/mutability_model.md` marks it TARGET), and the
+            // generic message would send the reader looking for a typo.
+            let message = if self.peek_n_kind(1) == Some(&TokenKind::Ident)
+                && self.peek_n_kind(2) == Some(&TokenKind::Colon)
+            {
+                "type-annotated local bindings are not supported yet: write \
+                 `mut name := expr` and annotate the value instead"
+            } else {
+                "`mut` must introduce a binding: write `mut name := expr`"
+            };
+            self.diagnostics
+                .push(Diagnostic::new("E1213", Severity::Error, message, start));
+            self.bump(); // `mut`, so recovery makes progress
+            return None;
+        }
         if let Some(stmt) = self.try_parse_binding(start) {
             return Some(stmt);
         }
@@ -712,14 +740,45 @@ impl Parser {
         Some(Stmt::ExprStmt { expr, span: start })
     }
 
+    /// `true` when the statement starts with `mut` but is not `mut name := …`.
+    /// Reported by [`Self::parse_stmt`] as `E1213` so the caller can resync,
+    /// instead of leaking a chain of expression errors.
+    fn at_malformed_mut(&self) -> bool {
+        self.at_keyword(Keyword::Mut)
+            && !(self.peek_n_kind(1) == Some(&TokenKind::Ident)
+                && self.peek_n_kind(2) == Some(&TokenKind::Bind))
+    }
+
     fn try_parse_binding(&mut self, span: Span) -> Option<Stmt> {
+        if self.at_keyword(Keyword::Mut) {
+            // `parse_stmt` reports the malformed shape as E1213 before getting
+            // here; bail rather than bump past tokens on the strength of that.
+            if self.at_malformed_mut() {
+                return None;
+            }
+            self.bump(); // `mut`
+            let name = self.bump().lexeme;
+            self.bump(); // :=
+            let expr = self.parse_expr_until(&[StopToken::Newline, StopToken::RBrace]);
+            return Some(Stmt::Binding {
+                name,
+                is_mut: true,
+                expr,
+                span,
+            });
+        }
         if !(self.at_ident() && self.peek_n_kind(1) == Some(&TokenKind::Bind)) {
             return None;
         }
         let name = self.bump().lexeme;
         self.bump(); // :=
         let expr = self.parse_expr_until(&[StopToken::Newline, StopToken::RBrace]);
-        Some(Stmt::Binding { name, expr, span })
+        Some(Stmt::Binding {
+            name,
+            is_mut: false,
+            expr,
+            span,
+        })
     }
 
     fn try_parse_assignment(&mut self, span: Span) -> Option<Stmt> {
@@ -1437,6 +1496,24 @@ impl Parser {
     fn parse_primary(&mut self, stop: &[StopToken]) -> Option<Expr> {
         if self.is_stop(stop) {
             return None;
+        }
+        // `mut` in expression position — the call-site borrow form `f(mut x)`
+        // that other languages have and VibeLang does not. Report it once and
+        // keep parsing the operand, so the caller sees `f(x)` and gets exactly
+        // one diagnostic instead of a cascade of expression/`)` errors.
+        if self.at_keyword(Keyword::Mut) {
+            self.diagnostics.push(Diagnostic::new(
+                "E1213",
+                Severity::Error,
+                "`mut` is not valid here: mutability is declared at the binding \
+                 (`mut name := expr`) or on the parameter (`fn f(mut name: T)`), \
+                 never at a call site",
+                self.peek().span,
+            ));
+            self.bump();
+            if self.is_stop(stop) {
+                return None;
+            }
         }
         let tok = self.peek().clone();
         let expr = match &tok.kind {

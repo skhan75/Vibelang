@@ -15,17 +15,17 @@ fget(arr: List<Int>, idx: Int) -> Float {
   convert.f64_from_bits(arr[idx])
 }
 
-fset(arr: List<Int>, idx: Int, val: Float) -> Void {
+fset(mut arr: List<Int>, idx: Int, val: Float) -> Void {
   @effect mut_state
   arr.set(idx, convert.f64_to_bits(val))
 }
 
 eval_a_times_u(n: Int, u: List<Int>, au: List<Int>) -> Void {
   @effect mut_state
-  i := 0
+  mut i := 0
   while i < n {
-    sum := 0.0
-    j := 0
+    mut sum := 0.0
+    mut j := 0
     while j < n {
       sum = sum + fget(u, j) / convert.i64_to_f64(eval_a(i, j))
       j = j + 1
@@ -37,10 +37,10 @@ eval_a_times_u(n: Int, u: List<Int>, au: List<Int>) -> Void {
 
 eval_at_times_u(n: Int, u: List<Int>, atu: List<Int>) -> Void {
   @effect mut_state
-  i := 0
+  mut i := 0
   while i < n {
-    sum := 0.0
-    j := 0
+    mut sum := 0.0
+    mut j := 0
     while j < n {
       sum = sum + fget(u, j) / convert.i64_to_f64(eval_a(j, i))
       j = j + 1
@@ -63,10 +63,10 @@ pub main() -> Int {
 
   n := read_input_n()
 
-  u := []
-  v := []
-  tmp := []
-  i := 0
+  mut u := []
+  mut v := []
+  mut tmp := []
+  mut i := 0
   while i < n {
     u.append(convert.f64_to_bits(1.0))
     v.append(0)
@@ -74,15 +74,15 @@ pub main() -> Int {
     i = i + 1
   }
 
-  step := 0
+  mut step := 0
   while step < 10 {
     eval_ata_times_u(n, u, v, tmp)
     eval_ata_times_u(n, v, u, tmp)
     step = step + 1
   }
 
-  vbv := 0.0
-  vv := 0.0
+  mut vbv := 0.0
+  mut vv := 0.0
   i = 0
   while i < n {
     ui := fget(u, i)

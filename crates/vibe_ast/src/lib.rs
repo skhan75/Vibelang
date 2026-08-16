@@ -65,6 +65,13 @@ pub struct FunctionDecl {
 pub struct Param {
     pub name: String,
     pub ty: Option<TypeRef>,
+    /// `true` when declared `mut a: T`. Parameters are immutable by default:
+    /// without this flag, reassigning the parameter or mutating a field
+    /// through it is a compile-time error (`E2110`/`E2111`).
+    pub is_mut: bool,
+    /// Span of the parameter name, so mutability diagnostics can point at the
+    /// declaration that has to gain `mut`.
+    pub span: Span,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -93,6 +100,10 @@ pub struct ExampleCase {
 pub enum Stmt {
     Binding {
         name: String,
+        /// `true` when written `mut name := expr`. Bindings are immutable by
+        /// default: without this flag, `name = ...` and `name.field = ...` are
+        /// compile-time errors (`E2110`/`E2111`).
+        is_mut: bool,
         expr: Expr,
         span: Span,
     },

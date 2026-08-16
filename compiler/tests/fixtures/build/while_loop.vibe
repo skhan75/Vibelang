@@ -1,5 +1,5 @@
 pub main() -> Int {
-  x := 0
+  mut x := 0
   while x < 4 {
     x = x + 1
   }

@@ -5,8 +5,8 @@ gcd(a: Int, b: Int) -> Int {
     gcd(7, 1) => 1
     gcd(0, 5) => 5
   }
-  x := a
-  y := b
+  mut x := a
+  mut y := b
   while y != 0 {
     q := x / y
     r := x - (q * y)

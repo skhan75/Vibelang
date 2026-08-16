@@ -1,6 +1,6 @@
 binary_search(xs: List<Int>, target: Int) -> Int {
-  lo := 0
-  hi := xs.len() - 1
+  mut lo := 0
+  mut hi := xs.len() - 1
   while lo <= hi {
     mid := (lo + hi) / 2
     value := xs.get(mid)

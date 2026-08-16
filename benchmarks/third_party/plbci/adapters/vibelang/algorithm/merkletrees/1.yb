@@ -8,8 +8,8 @@ read_input_n() -> Int {
 }
 
 pow2(exp: Int) -> Int {
-  v := 1
-  i := 0
+  mut v := 1
+  mut i := 0
   while i < exp {
     v = v * 2
     i = i + 1
@@ -31,7 +31,7 @@ pub main() -> Int {
 
   n := read_input_n()
   min_depth := 4
-  max_depth := n
+  mut max_depth := n
   if min_depth + 2 > n {
     max_depth = min_depth + 2
   }
@@ -42,11 +42,11 @@ pub main() -> Int {
 
   long_lived_hash := tree_hash(max_depth)
 
-  depth := min_depth
+  mut depth := min_depth
   while depth <= max_depth {
     iterations := pow2(max_depth - depth + min_depth)
-    hash_sum := 0
-    i := 0
+    mut hash_sum := 0
+    mut i := 0
     while i < iterations {
       hash_sum = hash_sum + tree_hash(depth)
       i = i + 1

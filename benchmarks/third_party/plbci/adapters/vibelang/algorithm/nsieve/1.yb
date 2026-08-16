@@ -8,8 +8,8 @@ read_input_n() -> Int {
 }
 
 pow2_scale(base: Int, exp: Int) -> Int {
-  value := base
-  i := 0
+  mut value := base
+  mut i := 0
   while i < exp {
     value = value * 2
     i = i + 1
@@ -47,19 +47,19 @@ format_width8(value: Int) -> Str {
 nsieve(limit: Int) -> Int {
   @effect alloc
   @effect mut_state
-  flags := []
-  i := 0
+  mut flags := []
+  mut i := 0
   while i < limit {
     flags.append(1)
     i = i + 1
   }
 
   i = 2
-  count := 0
+  mut count := 0
   while i < limit {
     if flags.get(i) == 1 {
       count = count + 1
-      j := i + i
+      mut j := i + i
       while j < limit {
         flags.set(j, 0)
         j = j + i
@@ -76,7 +76,7 @@ pub main() -> Int {
   @effect mut_state
 
   n := read_input_n()
-  i := 0
+  mut i := 0
   while i < 3 {
     exp := n - i
     limit := pow2_scale(10000, exp)

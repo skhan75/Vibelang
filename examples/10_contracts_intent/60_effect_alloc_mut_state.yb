@@ -8,8 +8,8 @@ build_series(n: Int) -> List<Int> {
   @ensure len(.) == n
   @effect alloc
   @effect mut_state
-  out := []
-  i := 0
+  mut out := []
+  mut i := 0
   while i < n {
     out.append(i)
     i = i + 1

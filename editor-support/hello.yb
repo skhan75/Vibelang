@@ -2,8 +2,8 @@ pub sum_upto(n: Int) -> Int {
   @intent "sum integers from 1 to n"
   @require n >= 0
 
-  i := 1
-  acc := 0
+  mut i := 1
+  mut acc := 0
 
   while i <= n {
     acc = acc + i

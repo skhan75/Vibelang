@@ -1,9 +1,9 @@
 prefix_sums(xs: List<Int>) -> List<Int> {
   @effect alloc
   @effect mut_state
-  out := []
-  running := 0
-  i := 0
+  mut out := []
+  mut running := 0
+  mut i := 0
   while i < xs.len() {
     running = running + xs.get(i)
     out.append(running)

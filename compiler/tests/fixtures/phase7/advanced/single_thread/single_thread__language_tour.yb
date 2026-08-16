@@ -13,7 +13,7 @@ score(x: Int) -> Int {
 pub main() -> Int {
   @effect io
   @effect alloc
-  value := score(2)
+  mut value := score(2)
   repeat 2 {
     value = score(value)
   }

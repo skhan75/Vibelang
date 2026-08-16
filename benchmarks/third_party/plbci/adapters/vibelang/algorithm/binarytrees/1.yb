@@ -21,7 +21,7 @@ pub main() -> Int {
 
   n := read_input_n()
   min_depth := 4
-  max_depth := n
+  mut max_depth := n
   if min_depth + 2 > n {
     max_depth = min_depth + 2
   }
@@ -32,18 +32,18 @@ pub main() -> Int {
 
   long_lived_check := tree_check(max_depth)
 
-  depth := min_depth
+  mut depth := min_depth
   while depth <= max_depth {
-    iterations := 1
+    mut iterations := 1
     shift := max_depth - depth + min_depth
-    s := 0
+    mut s := 0
     while s < shift {
       iterations = iterations * 2
       s = s + 1
     }
 
-    check_sum := 0
-    i := 0
+    mut check_sum := 0
+    mut i := 0
     while i < iterations {
       check_sum = check_sum + tree_check(depth)
       i = i + 1

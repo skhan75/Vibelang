@@ -2,7 +2,7 @@ pub main() -> Int {
   @effect io
   @effect alloc
   queue := [3, 5, 8]
-  head := 0
+  mut head := 0
   first := queue.get(head)
   head = head + 1
   second := queue.get(head)

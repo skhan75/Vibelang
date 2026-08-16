@@ -9,15 +9,15 @@ read_digits_requested() -> Int {
 
 emit_groups(digits: Str, n: Int) -> Void {
   @effect io
-  i := 0
+  mut i := 0
   while i < n {
     end := i + 10
     if end <= n {
       println(digits[i:end] + "\t:" + json.stringify_i64(end))
     } else {
       chunk := digits[i:n]
-      pad := ""
-      p := 0
+      mut pad := ""
+      mut p := 0
       while p < (10 - (n - i)) {
         pad = pad + " "
         p = p + 1
@@ -39,22 +39,22 @@ pub main() -> Int {
   }
 
   boxes := (n * 10) / 3 + 1
-  coeff := []
-  i := 0
+  mut coeff := []
+  mut i := 0
   while i < boxes {
     coeff.append(2)
     i = i + 1
   }
 
-  nines := 0
-  predigit := 0
-  started := 0
-  digits := ""
+  mut nines := 0
+  mut predigit := 0
+  mut started := 0
+  mut digits := ""
 
-  iter := 0
+  mut iter := 0
   while iter < n {
-    q := 0
-    idx := boxes - 1
+    mut q := 0
+    mut idx := boxes - 1
     while idx >= 0 {
       x := coeff.get(idx) * 10 + q * (idx + 1)
       denom := idx + idx + 1

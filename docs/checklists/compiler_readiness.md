@@ -59,7 +59,7 @@ These are non-negotiable for self-hosting: the compiler is part of the build sys
 ```vibe
 // Same file, same toolchain, same flags => identical diagnostic order + text.
 pub main() -> Int {
-  x := 1
+  mut x := 1
   x = "nope"  // type error
   0
 }

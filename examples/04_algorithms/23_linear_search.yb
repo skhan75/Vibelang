@@ -1,5 +1,5 @@
 find(xs: List<Int>, target: Int) -> Int {
-  i := 0
+  mut i := 0
   while i < xs.len() {
     if xs.get(i) == target {
       return i

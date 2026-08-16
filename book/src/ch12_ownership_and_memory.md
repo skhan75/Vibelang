@@ -138,7 +138,7 @@ pub main() -> Int {
 
     ch.send(data)
 
-    sum := 0
+    mut sum := 0
     for n in data {
         sum = sum + n
     }

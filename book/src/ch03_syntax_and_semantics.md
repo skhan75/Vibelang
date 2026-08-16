@@ -153,15 +153,7 @@ pub main() -> Int {
 The compiler produces a clear error:
 
 ```
-error[E0301]: cannot assign to immutable binding `count`
- --> main.yb:3:3
-  |
-2 |   count := 10
-  |   ----- binding declared as immutable here
-3 |   count = 20
-  |   ^^^^^^^^^^ cannot assign twice to immutable binding
-  |
-help: consider making this binding mutable: `mut count := 10`
+E2110: error: cannot assign to immutable binding `count`; declared at line 2, column 3 — declare it `mut count := ...` to allow mutation @ 3:3-3:7
 ```
 
 This error is intentional and central to VibeLang's design. Immutability by

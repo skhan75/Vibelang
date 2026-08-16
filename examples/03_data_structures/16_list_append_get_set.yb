@@ -2,7 +2,7 @@ pub main() -> Int {
   @effect io
   @effect alloc
   @effect mut_state
-  xs := [10, 20]
+  mut xs := [10, 20]
   xs.append(30)
   xs.set(1, 99)
   if xs.get(0) == 10 {

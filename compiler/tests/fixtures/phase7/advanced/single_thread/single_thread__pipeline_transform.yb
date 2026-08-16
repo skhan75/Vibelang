@@ -12,7 +12,7 @@ pipe(x: Int) -> Int {
 
 pub main() -> Int {
   @effect io
-  value := 1
+  mut value := 1
   repeat 3 {
     value = pipe(value)
   }

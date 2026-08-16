@@ -8,7 +8,7 @@ translate_x(point: Map<Str, Int>, dx: Int) -> Map<Str, Int> {
   @intent "move the point on x-axis while preserving y"
   @effect alloc
   @effect mut_state
-  moved := {"x": point.get("x"), "y": point.get("y")}
+  mut moved := {"x": point.get("x"), "y": point.get("y")}
   moved.set("x", moved.get("x") + dx)
   moved
 }

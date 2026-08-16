@@ -8,7 +8,7 @@ pub main() -> Int {
   println(json.from_map(preview))
 
   // Canonical dynamic JSON path: json.builder
-  jb := json.builder.new(256)
+  mut jb := json.builder.new(256)
   jb = json.builder.begin_object(jb)
   jb = json.builder.key(jb, "title")
   jb = json.builder.value_str(jb, "VibeLang")

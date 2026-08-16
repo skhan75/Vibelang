@@ -46,7 +46,7 @@ fn ordering_int_vs_str_is_rejected() {
     let diags = check(
         r#"pub main() -> Int {
   x := 1
-  y := 0
+  mut y := 0
   if x > "hello" {
     y = 1
   }
@@ -122,7 +122,7 @@ fn and_with_int_operand_is_rejected() {
     let diags = check(
         r#"pub main() -> Int {
   x := 1
-  y := 0
+  mut y := 0
   if x && true {
     y = 1
   }
@@ -144,7 +144,7 @@ fn and_with_int_operand_is_rejected() {
 fn or_with_str_operand_is_rejected() {
     let diags = check(
         r#"pub main() -> Int {
-  y := 0
+  mut y := 0
   if true || "nope" {
     y = 1
   }
@@ -164,7 +164,7 @@ fn int_comparisons_are_accepted() {
     let diags = check(
         r#"pub main() -> Int {
   x := 5
-  y := 0
+  mut y := 0
   if 1 < 2 {
     y = 1
   }
@@ -183,7 +183,7 @@ fn str_equality_is_accepted() {
     let diags = check(
         r#"pub main() -> Int {
   s := "x"
-  y := 0
+  mut y := 0
   if s == "y" {
     y = 1
   }
@@ -199,7 +199,7 @@ fn bool_logic_is_accepted() {
     let diags = check(
         r#"pub main() -> Int {
   x := 5
-  y := 0
+  mut y := 0
   if true && false {
     y = 1
   }
@@ -224,7 +224,7 @@ fn unknown_operand_comparison_is_accepted() {
 }
 
 pub main() -> Int {
-  y := 0
+  mut y := 0
   if mystery(1) == "whatever" {
     y = 1
   }

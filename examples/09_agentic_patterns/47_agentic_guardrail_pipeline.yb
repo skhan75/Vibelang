@@ -10,8 +10,8 @@ pub main() -> Int {
   @effect alloc
   steps := ["ingest", "plan", "act", "report"]
   risk := {"ingest": 1, "plan": 2, "act": 4, "report": 1}
-  allowed := 1
-  i := 0
+  mut allowed := 1
+  mut i := 0
   while i < steps.len() {
     step := steps.get(i)
     ok := evaluate_step(risk.get(step))

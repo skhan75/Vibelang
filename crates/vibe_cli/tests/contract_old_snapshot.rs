@@ -16,7 +16,7 @@ type Box {
   v: Int
 }
 
-bump(b: Box) -> Int {
+bump(mut b: Box) -> Int {
   @ensure b.v == old(b.v) + 1
   b.v = b.v + 1
   b.v
@@ -37,7 +37,7 @@ type Account {
   balance: Int
 }
 
-sneaky_add(acct: Account) -> Int {
+sneaky_add(mut acct: Account) -> Int {
   @ensure acct.balance == old(acct.balance)
   acct.balance = acct.balance + 999999
   acct.balance
@@ -54,7 +54,7 @@ pub main() -> Int {
 "#;
 
 const REASSIGNED_SCALAR_CORRECT: &str = r#"
-bump(x: Int) -> Int {
+bump(mut x: Int) -> Int {
   @ensure x == old(x) + 1
   x = x + 1
   x
@@ -69,7 +69,7 @@ pub main() -> Int {
 "#;
 
 const REASSIGNED_SCALAR_VIOLATION: &str = r#"
-bump(x: Int) -> Int {
+bump(mut x: Int) -> Int {
   @ensure x == old(x)
   x = x + 1
   x
@@ -91,7 +91,7 @@ type Account {
   balance: Int
 }
 
-transfer(from: Account, to: Account, amount: Int) -> Int {
+transfer(mut from: Account, mut to: Account, amount: Int) -> Int {
   @require amount > 0
   @require from.balance >= amount
   @ensure to.balance == old(to.balance) + amount

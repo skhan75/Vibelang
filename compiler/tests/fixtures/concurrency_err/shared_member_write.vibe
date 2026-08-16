@@ -1,4 +1,4 @@
-badConcurrentWrite(state) -> Int {
+badConcurrentWrite(mut state) -> Int {
   @effect concurrency
   go worker(1)
   state.value = 1

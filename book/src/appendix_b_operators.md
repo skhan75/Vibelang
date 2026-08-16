@@ -194,7 +194,11 @@ mut x := 10
 x = 20
 ```
 
-Using `=` on an immutable binding is a compile-time error.
+Using `=` on an immutable binding is a compile-time error (`E2110`), and so is
+writing a field through one (`E2111`) or calling an in-place container method
+through one — `append`, `set`, `remove` (`E2112`). A second `:=` is not
+reassignment: it introduces a fresh binding that shadows the old one and
+carries its own mutability.
 
 ---
 

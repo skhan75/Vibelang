@@ -125,7 +125,7 @@ fn old_on_scalar_record_field_is_accepted() {
   v: Int
 }
 
-bump(b: Box) -> Int {
+bump(mut b: Box) -> Int {
   @ensure b.v == old(b.v) + 1
   b.v = b.v + 1
   b.v
@@ -148,7 +148,7 @@ fn old_on_scalar_params_and_larger_expressions_accepted() {
     // `old(x) + 1` and `old(x + 1)` must both check clean, as must Bool and
     // Float operands.
     let diags = check(
-        r#"bump(x: Int) -> Int {
+        r#"bump(mut x: Int) -> Int {
   @ensure x == old(x) + 1
   @ensure x == old(x + 1)
   x = x + 1

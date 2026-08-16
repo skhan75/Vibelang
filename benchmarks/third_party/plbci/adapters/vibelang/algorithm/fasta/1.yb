@@ -19,15 +19,15 @@ emit_repeat_fasta(src: Str, n: Int) -> Void {
   @effect io
   width := 60
   r := src.len()
-  i := 0
+  mut i := 0
   while i < n {
-    line_len := width
+    mut line_len := width
     remaining := n - i
     if remaining < width {
       line_len = remaining
     }
-    sb := str_builder.new(line_len)
-    j := 0
+    mut sb := str_builder.new(line_len)
+    mut j := 0
     while j < line_len {
       idx_abs := i + j
       idx := mod_int(idx_abs, r)
@@ -42,20 +42,20 @@ emit_repeat_fasta(src: Str, n: Int) -> Void {
 emit_random_fasta_iub(n: Int, seed_start: Int) -> Int {
   @effect io
   width := 60
-  seed := seed_start
-  i := 0
+  mut seed := seed_start
+  mut i := 0
   while i < n {
-    line_len := width
+    mut line_len := width
     remaining := n - i
     if remaining < width {
       line_len = remaining
     }
-    sb := str_builder.new(line_len)
-    j := 0
+    mut sb := str_builder.new(line_len)
+    mut j := 0
     while j < line_len {
       seed = next_seed(seed)
       r := seed
-      ch := 89
+      mut ch := 89
       if r <= 37791 {
         ch = 97
       } else {
@@ -123,20 +123,20 @@ emit_random_fasta_iub(n: Int, seed_start: Int) -> Int {
 emit_random_fasta_hs(n: Int, seed_start: Int) -> Int {
   @effect io
   width := 60
-  seed := seed_start
-  i := 0
+  mut seed := seed_start
+  mut i := 0
   while i < n {
-    line_len := width
+    mut line_len := width
     remaining := n - i
     if remaining < width {
       line_len = remaining
     }
-    sb := str_builder.new(line_len)
-    j := 0
+    mut sb := str_builder.new(line_len)
+    mut j := 0
     while j < line_len {
       seed = next_seed(seed)
       r := seed
-      ch := 116
+      mut ch := 116
       if r <= 42403 {
         ch = 97
       } else {
@@ -167,7 +167,7 @@ pub main() -> Int {
   emit_repeat_fasta(alu, n * 2)
 
   println(">" + "TWO IUB ambiguity " + "codes")
-  seed := emit_random_fasta_iub(n * 3, 42)
+  mut seed := emit_random_fasta_iub(n * 3, 42)
 
   println(">" + "THREE Homo sapiens " + "frequency")
   seed = emit_random_fasta_hs(n * 5, seed)

@@ -312,7 +312,9 @@ fn collect_stmt_refs(
     dependencies: &mut BTreeSet<String>,
 ) {
     match stmt {
-        Stmt::Binding { name, expr, span } => {
+        Stmt::Binding {
+            name, expr, span, ..
+        } => {
             collect_expr_refs(
                 expr,
                 file,

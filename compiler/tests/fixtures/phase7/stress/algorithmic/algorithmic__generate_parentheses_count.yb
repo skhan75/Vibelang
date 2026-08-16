@@ -5,8 +5,8 @@ catalan_count(n: Int) -> Int {
     return 1
   }
 
-  total := 0
-  i := 0
+  mut total := 0
+  mut i := 0
   while i < n {
     left := catalan_count(i)
     right := catalan_count(n - 1 - i)

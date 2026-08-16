@@ -30,8 +30,8 @@ scan_headers_for_key(headers: Str, want_lower: Str, pos: Int, total: Int) -> Str
   rem := headers[pos:total]
   a := text.index_of(rem, "\r\n")
   b := text.index_of(rem, "\n")
-  line_rel_end := total - pos
-  adv := 0
+  mut line_rel_end := total - pos
+  mut adv := 0
   if a >= 0 && (b < 0 || a <= b) {
     line_rel_end = a
     adv = 2
@@ -58,12 +58,12 @@ scan_query_for_key(query: Str, want: Str, pos: Int, total: Int) -> Str {
   }
   rem := query[pos:total]
   amp := text.index_of(rem, "&")
-  chunk_len := rem.len()
+  mut chunk_len := rem.len()
   if amp >= 0 {
     chunk_len = amp
   }
   part := query[pos:pos + chunk_len]
-  next_pos := total
+  mut next_pos := total
   if amp >= 0 {
     next_pos = pos + chunk_len + 1
   }

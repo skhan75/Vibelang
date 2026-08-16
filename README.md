@@ -37,7 +37,7 @@ As AI agents generate more production code, the gap between "compiles" and "corr
 > **Beta** — VibeLang is in active beta. The compiler, type system, contract enforcement, and AI sidecar are functional and benchmarked. The language is evolving — syntax, stdlib, and toolchain APIs may change between releases. Recommended for experimentation, side projects, and early adoption. Feedback and contributions from experienced engineers are welcome and actively shape the language.
 
 ```vibelang
-pub transfer(from: Account, to: Account, amount: Int) -> Result<Receipt, BankError> {
+pub transfer(mut from: Account, mut to: Account, amount: Int) -> Result<Receipt, BankError> {
   @intent "move funds between accounts preserving total balance"
   @require amount > 0
   @require from.balance >= amount

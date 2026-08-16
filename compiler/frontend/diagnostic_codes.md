@@ -37,6 +37,7 @@ This catalog reserves deterministic code ranges for frontend diagnostics.
 - `E1210` expected `{` to start block
 - `E1211` expected `}` to close block
 - `E1212` parser recovery made no progress inside block
+- `E1213` `mut` used outside a binding (only `mut name := expr` and `mut name: T` in a parameter list are valid; call-site `f(mut x)` is not a VibeLang form). Reported once and recovered from: in statement position the `mut` is consumed and the statement resynced; in expression position the operand is still parsed, so `f(mut x)` yields this code alone rather than a cascade. Carries a dedicated message for `mut name: T := expr`, the type-annotated local the grammar does not accept yet. Does not cover `mut` used as a declared name (a field or function called `mut`) — that is a plain keyword-reservation parse failure
 - `E1301` expected `@`
 - `E1302` expected contract annotation name
 - `E1303` expected string literal after `@intent`
@@ -67,12 +68,15 @@ This catalog reserves deterministic code ranges for frontend diagnostics.
 - `E2003` public function parameter missing explicit type (warning)
 - `E2004` public function missing explicit return type (warning)
 - `E2005` unknown type name in a declared signature or field type
-- `E2101` assignment to unknown variable
+- `E2101` assignment to unknown variable (the name is not bound at all; a name that is bound but whose type is still unknown is not reported here)
 - `E2102` assignment type mismatch
 - `E2103` non-boolean `if` condition
 - `E2104` non-boolean `while` condition
 - `E2105` non-integer `repeat` count
 - `E2106` `closed` case references unknown symbol (warning)
+- `E2110` reassignment of an immutable binding (`x = ...` where `x` was not declared `mut`); the message names the binding and its declaration line/column
+- `E2111` mutation through an immutable binding (`x.field = ...` where the receiver binding `x` was not declared `mut`); per-field mutability is not modelled, the receiver binding decides
+- `E2112` in-place container mutation through an immutable binding (`x.append(v)`, `x.set(k, v)`, `x.remove(k)` where the receiver binding `x` was not declared `mut`); `.set(...)` is VibeLang's index-assignment form, so this is the gate on `list[i] = v` / `map[k] = v`. Reads that hand back a view are followed to their root, so `x.get(i).append(v)` is reported against `x`. Channel `send`/`close`/`recv` are deliberately excluded — see `docs/spec/mutability_model.md`
 - `E2201` return type mismatch (also: conflicting concrete return types across paths, reported at the conflicting return site)
 - `E2202` binary operation type mismatch
 - `E2203` `?` used on non-Result expression

@@ -40,7 +40,7 @@ pub map_int(items: List<Int>, worker: fn(Int) -> Int, max_workers: Int) -> List<
   if n == 0 {
     return []
   }
-  mw := max_workers
+  mut mw := max_workers
   if mw < 1 {
     mw = 1
   }
@@ -49,12 +49,12 @@ pub map_int(items: List<Int>, worker: fn(Int) -> Int, max_workers: Int) -> List<
   }
   results := chan(n)
   tokens := chan(mw)
-  t := 0
+  mut t := 0
   while t < mw {
     tokens.send(0)
     t = t + 1
   }
-  i := 0
+  mut i := 0
   while i < n {
     idx := i
     go (fn() -> Int {
@@ -68,13 +68,13 @@ pub map_int(items: List<Int>, worker: fn(Int) -> Int, max_workers: Int) -> List<
     })()
     i = i + 1
   }
-  out := []
-  z := 0
+  mut out := []
+  mut z := 0
   while z < n {
     out.append(0)
     z = z + 1
   }
-  r := 0
+  mut r := 0
   while r < n {
     pair := results.recv()
     idx2 := pair.get(0)
@@ -93,7 +93,7 @@ pub map_str(items: List<Str>, worker: fn(Str) -> Str, max_workers: Int) -> List<
   if n == 0 {
     return []
   }
-  mw := max_workers
+  mut mw := max_workers
   if mw < 1 {
     mw = 1
   }
@@ -102,12 +102,12 @@ pub map_str(items: List<Str>, worker: fn(Str) -> Str, max_workers: Int) -> List<
   }
   results := chan(n)
   tokens := chan(mw)
-  t := 0
+  mut t := 0
   while t < mw {
     tokens.send(0)
     t = t + 1
   }
-  i := 0
+  mut i := 0
   while i < n {
     idx := i
     go (fn() -> Int {
@@ -121,13 +121,13 @@ pub map_str(items: List<Str>, worker: fn(Str) -> Str, max_workers: Int) -> List<
     })()
     i = i + 1
   }
-  out := []
-  z := 0
+  mut out := []
+  mut z := 0
   while z < n {
     out.append("")
     z = z + 1
   }
-  r := 0
+  mut r := 0
   while r < n {
     pair := results.recv()
     idx2 := convert.to_int(pair.get(0))

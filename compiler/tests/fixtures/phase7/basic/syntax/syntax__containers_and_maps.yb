@@ -1,8 +1,8 @@
 pub syntax_containers_and_maps() -> Int {
-  xs := [1, 2]
+  mut xs := [1, 2]
   xs.append(3)
 
-  by_name := {"one": 1}
+  mut by_name := {"one": 1}
   by_name.set("two", 2)
 
   total := xs.get(0) + by_name.get("two")

@@ -46,7 +46,7 @@ pub main() -> Int {
   println(v8 + " " + json.stringify_i64(c8))
   println(v9 + " " + json.stringify_i64(c9))
 
-  work := regex.replace_all(seq, "tHa[Nt]", "<4>")
+  mut work := regex.replace_all(seq, "tHa[Nt]", "<4>")
   work = regex.replace_all(work, "aND|caN|Ha[DS]|WaS", "<3>")
   work = regex.replace_all(work, "a[NSt]|BY", "<2>")
   work = regex.replace_all(work, "<[^>]*>", "|")

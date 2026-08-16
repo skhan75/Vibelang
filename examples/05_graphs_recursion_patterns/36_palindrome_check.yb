@@ -1,6 +1,6 @@
 is_palindrome(s: Str) -> Bool {
-  i := 0
-  j := s.len() - 1
+  mut i := 0
+  mut j := s.len() - 1
   while i < j {
     left := s[i:i + 1]
     right := s[j:j + 1]

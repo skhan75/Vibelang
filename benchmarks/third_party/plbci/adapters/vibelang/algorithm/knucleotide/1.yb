@@ -74,7 +74,7 @@ map_get0(m: Map<Int, Int>, key: Int) -> Int {
   return 0
 }
 
-map_inc(m: Map<Int, Int>, key: Int) -> Void {
+map_inc(mut m: Map<Int, Int>, key: Int) -> Void {
   @effect mut_state
   if m.contains(key) {
     m.set(key, m.get(key) + 1)
@@ -86,16 +86,16 @@ map_inc(m: Map<Int, Int>, key: Int) -> Void {
 sort_by_count_desc(counts: Map<Int, Int>, size: Int) -> List<Int> {
   @effect alloc
   @effect mut_state
-  order := []
-  i := 0
+  mut order := []
+  mut i := 0
   while i < size {
     order.append(i)
     i = i + 1
   }
   i = 0
   while i < size {
-    best := i
-    j := i + 1
+    mut best := i
+    mut j := i + 1
     while j < size {
       best_idx := order.get(best)
       cur_idx := order.get(j)
@@ -126,7 +126,7 @@ format_pct(count: Int, total: Int) -> Str {
   scaled := (count * 100000) / total
   whole := scaled / 1000
   frac := scaled - (whole * 1000)
-  frac_text := json.stringify_i64(frac)
+  mut frac_text := json.stringify_i64(frac)
   if frac < 10 {
     frac_text = "00" + frac_text
   } else {
@@ -143,11 +143,11 @@ count_subseq(seq: Str, pat: Str) -> Int {
   if n < m {
     return 0
   }
-  count := 0
-  i := 0
+  mut count := 0
+  mut i := 0
   while i <= (n - m) {
-    ok := 1
-    j := 0
+    mut ok := 1
+    mut j := 0
     while j < m {
       a := base_index(seq[i + j:i + j + 1])
       b := base_index(pat[j:j + 1])
@@ -167,12 +167,12 @@ count_subseq(seq: Str, pat: Str) -> Int {
 }
 
 extract_three_sequence(raw: Str) -> Str {
-  seq := ""
-  header_count := 0
-  at_line_start := 1
-  in_header := 0
-  capture := 0
-  i := 0
+  mut seq := ""
+  mut header_count := 0
+  mut at_line_start := 1
+  mut in_header := 0
+  mut capture := 0
+  mut i := 0
   while i < raw.len() {
     ch := raw[i:i + 1]
 
@@ -221,12 +221,12 @@ pub main() -> Int {
   seq := extract_three_sequence(raw)
   n := seq.len()
 
-  mono := {0: 0}
+  mut mono := {0: 0}
   mono.remove(0)
-  di := {0: 0}
+  mut di := {0: 0}
   di.remove(0)
 
-  i := 0
+  mut i := 0
   while i < n {
     a := base_index(seq[i:i + 1])
     if a >= 0 {

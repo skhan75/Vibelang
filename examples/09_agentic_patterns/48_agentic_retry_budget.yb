@@ -13,9 +13,9 @@ attempt_action(attempt: Int) -> Int {
 
 pub main() -> Int {
   @effect io
-  tries := 0
+  mut tries := 0
   max_tries := 5
-  success := 0
+  mut success := 0
 
   while tries < max_tries {
     tries = tries + 1

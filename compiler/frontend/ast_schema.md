@@ -17,7 +17,9 @@ This document captures the Phase 1 AST contract implemented in `vibe_ast`.
 
 - `is_public: bool`
 - `name: String`
-- `params: Vec<Param>`
+- `params: Vec<Param>` — each `Param` carries `name`, `ty`, `is_mut` (set by the
+  `mut a: T` form), and `span` (the parameter name, used by mutability
+  diagnostics to point at the declaration)
 - `return_type: Option<TypeRef>`
 - `contracts: Vec<Contract>`
 - `body: Vec<Stmt>`
@@ -36,6 +38,9 @@ This document captures the Phase 1 AST contract implemented in `vibe_ast`.
 
 - `Binding`, `Assignment`, `Return`, `ExprStmt`
 - `For`, `If`, `While`, `Repeat`, `Select`, `Go`
+
+`Binding` carries `is_mut: bool`, set by the `mut name := expr` form. It is the
+only place binding mutability is recorded; see `docs/spec/mutability_model.md`.
 
 ## Expressions
 

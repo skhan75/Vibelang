@@ -1,10 +1,10 @@
 selection_sort(xs: List<Int>) -> List<Int> {
   @effect mut_state
-  out := xs
-  i := 0
+  mut out := xs
+  mut i := 0
   while i < out.len() {
-    min_idx := i
-    j := i + 1
+    mut min_idx := i
+    mut j := i + 1
     while j < out.len() {
       if out.get(j) < out.get(min_idx) {
         min_idx = j

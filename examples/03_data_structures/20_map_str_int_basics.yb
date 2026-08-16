@@ -2,7 +2,7 @@ pub main() -> Int {
   @effect io
   @effect alloc
   @effect mut_state
-  points := {"alice": 10, "bob": 7}
+  mut points := {"alice": 10, "bob": 7}
   points.set("alice", 12)
   points.set("carol", 9)
   if points.get("alice") == 12 {

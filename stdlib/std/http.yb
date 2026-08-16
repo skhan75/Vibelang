@@ -96,8 +96,8 @@ pub get_retry(url: Str, timeout_ms: Int, retries: Int, retry_delay_ms: Int) -> H
   @effect net
   @effect io
   @effect alloc
-  resp := http.get(url, timeout_ms)
-  r := 0
+  mut resp := http.get(url, timeout_ms)
+  mut r := 0
   while r < retries && http_retryable_transport(resp) {
     time.sleep_ms(retry_delay_ms)
     resp = http.get(url, timeout_ms)

@@ -1,6 +1,6 @@
 pub main() -> Int {
   @effect io
-  jb := json.builder.new(128)
+  mut jb := json.builder.new(128)
   jb = json.builder.begin_object(jb)
   jb = json.builder.key(jb, "ok")
   jb = json.builder.value_bool(jb, true)

@@ -390,29 +390,21 @@ pub identity(x: Int) -> Int {
 
 ### Parameters
 
-Parameters are always immutable within the function body. You cannot reassign
-a parameter:
+Parameters are immutable within the function body unless you declare them
+`mut`. You cannot reassign a plain parameter:
 
 ```vibe
 pub double(x: Int) -> Int {
-  // x = x * 2    // error: cannot assign to function parameter `x`
-  x * 2
+  x = x * 2
+  x
 }
 ```
 
 ```
-error[E0420]: cannot assign to function parameter `x`
- --> math.yb:3:3
-  |
-1 | pub double(x: Int) -> Int {
-  |            - parameter declared here
-3 |   x = x * 2
-  |   ^^^^^^^^^ parameters are immutable
-  |
-help: bind a new local variable: `result := x * 2`
+E2110: error: cannot assign to immutable binding `x`; declared at line 1, column 12 — declare the parameter `mut x` to allow mutation @ 2:3-2:3
 ```
 
-If you need a modified copy, bind a new variable:
+Usually the right fix is to bind a new local rather than to reach for `mut`:
 
 ```vibe
 pub process(input: Str) -> Str {
@@ -420,6 +412,21 @@ pub process(input: Str) -> Str {
   cleaned
 }
 ```
+
+When a function genuinely owns the update — an accumulator it threads, or a
+record whose fields it is meant to change — mark the parameter `mut`:
+
+```vibe
+pub double_in_place(mut x: Int) -> Int {
+  x = x * 2
+  x
+}
+```
+
+`mut` on a parameter is a declaration-site marker. It gives the body permission
+to reassign the parameter and to write through its fields. It is not a
+call-site annotation: callers write `double_in_place(3)`, never
+`double_in_place(mut y)`.
 
 ### Return Types
 
@@ -1136,7 +1143,7 @@ This chapter covered VibeLang's type system and function model:
 - **Type widening** is implicit (safe); **narrowing** requires explicit
   conversion.
 - **Functions** are declared with parameter types and return types. `pub`
-  controls visibility. Parameters are immutable.
+  controls visibility. Parameters are immutable unless declared `mut`.
 - **Tail expressions** are the idiomatic return mechanism; `return` is for
   early exits.
 - **Struct types** group related fields. **Enum types** define variants.

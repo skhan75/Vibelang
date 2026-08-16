@@ -13,7 +13,7 @@ pub main() -> Int {
   ch := chan(64)
   go stress_producer_16(ch)
   go stress_producer_16(ch)
-  total := 0
+  mut total := 0
   repeat 32 {
     total = total + ch.recv()
   }

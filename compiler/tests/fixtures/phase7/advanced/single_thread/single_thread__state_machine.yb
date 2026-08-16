@@ -1,7 +1,7 @@
 pub main() -> Int {
   @effect io
-  state := 0
-  ticks := 0
+  mut state := 0
+  mut ticks := 0
   while ticks < 4 {
     if state == 0 {
       state = 1

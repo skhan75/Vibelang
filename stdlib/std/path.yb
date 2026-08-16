@@ -20,7 +20,7 @@ is_sep(c: Int) -> Bool {
 
 last_sep(p: Str) -> Int {
   @intent "index of the rightmost path separator, or -1"
-  i := p.len() - 1
+  mut i := p.len() - 1
   while i >= 0 {
     if is_sep(p[i]) {
       return i

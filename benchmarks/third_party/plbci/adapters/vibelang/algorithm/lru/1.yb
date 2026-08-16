@@ -1,10 +1,10 @@
 parse_two_ints(raw: Str) -> List<Int> {
   @effect alloc
   @effect mut_state
-  values := []
-  first_end := raw.len()
-  i := 0
-  found_space := 0
+  mut values := []
+  mut first_end := raw.len()
+  mut i := 0
+  mut found_space := 0
   while i < raw.len() {
     if found_space == 0 {
       if raw[i] == 32 {
@@ -17,8 +17,8 @@ parse_two_ints(raw: Str) -> List<Int> {
 
   values.append(json.parse_i64(raw[0:first_end]))
 
-  second_start := first_end
-  done := 0
+  mut second_start := first_end
+  mut done := 0
   while done == 0 {
     if second_start < raw.len() {
       if raw[second_start] == 32 {
@@ -47,8 +47,8 @@ next_lcg(seed: Int) -> Int {
   return mod_int(seed * 1103515245 + 12345, 2147483648)
 }
 
-put_lru(cache: Map<Int, Int>, key: Int, tick: Int, size: Int,
-        order: List<Int>, order_tick: List<Int>, head: Int) -> Int {
+put_lru(mut cache: Map<Int, Int>, key: Int, tick: Int, size: Int,
+        mut order: List<Int>, mut order_tick: List<Int>, mut head: Int) -> Int {
   @effect mut_state
   if cache.contains(key) {
     cache.set(key, tick)
@@ -57,8 +57,8 @@ put_lru(cache: Map<Int, Int>, key: Int, tick: Int, size: Int,
     return head
   }
   if cache.len() == size {
-    h := head
-    evicted := 0
+    mut h := head
+    mut evicted := 0
     while evicted == 0 {
       cand_key := order[h]
       cand_tick := order_tick[h]
@@ -79,8 +79,8 @@ put_lru(cache: Map<Int, Int>, key: Int, tick: Int, size: Int,
   return head
 }
 
-get_lru(cache: Map<Int, Int>, key: Int, tick: Int,
-        order: List<Int>, order_tick: List<Int>) -> Int {
+get_lru(mut cache: Map<Int, Int>, key: Int, tick: Int,
+        mut order: List<Int>, mut order_tick: List<Int>) -> Int {
   @effect mut_state
   if cache.contains(key) {
     cache.set(key, tick)
@@ -102,19 +102,19 @@ pub main() -> Int {
   n := args.get(1)
   mod := size * 10
 
-  cache := {0: 0}
+  mut cache := {0: 0}
   cache.remove(0)
 
   order := []
   order_tick := []
-  head := 0
+  mut head := 0
 
-  seed0 := 0
-  seed1 := 1
-  tick := 0
-  hit := 0
-  missed := 0
-  i := 0
+  mut seed0 := 0
+  mut seed1 := 1
+  mut tick := 0
+  mut hit := 0
+  mut missed := 0
+  mut i := 0
   while i < n {
     seed0 = next_lcg(seed0)
     key0 := mod_int(seed0, mod)

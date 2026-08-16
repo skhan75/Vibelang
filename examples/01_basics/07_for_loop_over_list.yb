@@ -2,7 +2,7 @@ pub main() -> Int {
   @effect io
   @effect alloc
   values := [2, 4, 6]
-  sum := 0
+  mut sum := 0
   for v in values {
     sum = sum + v
   }

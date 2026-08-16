@@ -4,6 +4,33 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+### Changed (breaking)
+
+- **Immutability by default is now enforced.** A binding is immutable unless it
+  is declared `mut`; `mut` is a reserved keyword for local bindings
+  (`mut x := expr`) and parameters (`fn f(mut a: T)`). Reassigning an immutable
+  binding is `E2110`, writing a field through one (`x.field = expr`) is
+  `E2111`, and calling an in-place container method through one
+  (`x.append(v)`, `x.set(k, v)`, `x.remove(k)`) is `E2112`. All three messages
+  name the binding and its declaration site.
+  `docs/spec/mutability_model.md` records which clauses are implemented, which
+  remain targets (`const` and per-field mutability are not implemented), and
+  which escape hatches still exist (aliasing is not tracked).
+
+  Migration: add `mut` to every binding your program reassigns, writes a field
+  through, or mutates in place. Re-binding with `:=` still shadows and is not
+  reassignment. `mut` outside a binding (including `f(mut x)` at a call site,
+  which is not a VibeLang form) is `E1213`.
+
+  Also breaking, with no incidence in this repo: `mut` is now a reserved word,
+  so an identifier named `mut` — a field (`type Flags { mut: Bool }`), a
+  function, a parameter — no longer parses. Rename it.
+
+- `E2101` ("assignment to unknown variable") now fires only when the name is
+  genuinely unbound. A name that is bound but whose type is not yet known — a
+  `select` receive binding, for instance — no longer reports it, which removes
+  a diagnostic pair that contradicted itself about whether the name existed.
+
 ## [1.0.2] — 2026-03-11
 
 ### Added

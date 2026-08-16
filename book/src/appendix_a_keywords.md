@@ -40,6 +40,17 @@ mut counter := 0
 counter = counter + 1
 ```
 
+`mut` also marks a parameter the function body is allowed to reassign, write
+fields through, or mutate in place (`xs.append(v)`). It is a declaration-site
+marker only; there is no call-site form.
+
+```vibe
+pub bump(mut n: Int) -> Int {
+  n = n + 1
+  n
+}
+```
+
 **Chapter:** 3 — Core Syntax and Semantics
 
 ### `const`

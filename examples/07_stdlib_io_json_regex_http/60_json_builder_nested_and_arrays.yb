@@ -1,6 +1,6 @@
 pub main() -> Int {
   @effect io
-  jb := json.builder.new(256)
+  mut jb := json.builder.new(256)
   jb = json.builder.begin_object(jb)
   jb = json.builder.key(jb, "meta")
   jb = json.builder.begin_object(jb)

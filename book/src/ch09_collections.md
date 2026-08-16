@@ -274,24 +274,27 @@ After these calls, `scores` contains `[90, 85, 92, 88, 95]`.
 Attempting to append to an immutable list is a compile-time error:
 
 ```vibe
-scores := [90, 85, 92]
-scores.append(88)
+pub main() -> Int {
+  @effect alloc
+  @effect mut_state
+  scores := [90, 85, 92]
+  scores.append(88)
+  0
+}
 ```
 
 ```
-error[E0305]: cannot call mutating method `append` on immutable binding `scores`
- --> grades.yb:2:1
-  |
-1 | scores := [90, 85, 92]
-  |         -- binding is immutable
-2 | scores.append(88)
-  | ^^^^^^^^^^^^^^^^^ `append` requires a mutable binding
-  |
-  = help: change the binding to `mut scores := [90, 85, 92]`
+E2112: error: `.append(...)` mutates its receiver in place, but `scores` is an immutable binding; declared at line 4, column 3 — declare it `mut scores := ...` to allow mutation @ 5:3-5:19
 ```
 
 This error is one of VibeLang's most common early stumbling blocks. The fix is
 always the same: add `mut` to the binding.
+
+`.set(index, value)` and `.remove(key)` are gated the same way, and so is
+reaching a nested container through a read: `rows.get(0).append(x)` needs
+`mut rows`, because `.get(...)` hands back a view of the list `rows` owns
+rather than a copy. Methods that build a fresh container instead of changing
+the receiver — `.sort_desc()`, `.take(n)` — are reads and need no `mut`.
 
 ### 9.2.3 Accessing Elements
 

@@ -1,5 +1,5 @@
 pub type_unknown_and_mismatch(x: Int) -> Int {
-  y := x + 1
+  mut y := x + 1
   y = "oops"
   missing(x)
   y

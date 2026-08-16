@@ -24,7 +24,7 @@ enum Error {
   InsufficientFunds
 }
 
-pub transfer(from: Account, to: Account, amount: Int) -> Result<Void, Error> {
+pub transfer(mut from: Account, mut to: Account, amount: Int) -> Result<Void, Error> {
   @intent "move funds safely between accounts"
   @require amount > 0
   @require from.balance >= amount

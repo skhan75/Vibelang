@@ -7,13 +7,13 @@ read_input_n() -> Int {
   return json.parse_i64(raw)
 }
 
-count_flips(perm: List<Int>, n: Int) -> Int {
+count_flips(mut perm: List<Int>, n: Int) -> Int {
   @effect mut_state
-  flips := 0
-  first := perm[0]
+  mut flips := 0
+  mut first := perm[0]
   while first != 0 {
     half := (first + 1) / 2
-    j := 0
+    mut j := 0
     while j < half {
       tmp := perm[j]
       perm.set(j, perm[first - j])
@@ -33,10 +33,10 @@ pub main() -> Int {
 
   n := read_input_n()
 
-  perm := []
-  perm1 := []
-  count := []
-  i := 0
+  mut perm := []
+  mut perm1 := []
+  mut count := []
+  mut i := 0
   while i < n {
     perm.append(i)
     perm1.append(i)
@@ -44,12 +44,12 @@ pub main() -> Int {
     i = i + 1
   }
 
-  max_flips := 0
-  checksum := 0
-  perm_count := 0
-  r := n
+  mut max_flips := 0
+  mut checksum := 0
+  mut perm_count := 0
+  mut r := n
 
-  done := 0
+  mut done := 0
   while done == 0 {
     while r > 1 {
       count.set(r - 1, r)
@@ -75,7 +75,7 @@ pub main() -> Int {
     }
     perm_count = perm_count + 1
 
-    go_next := 1
+    mut go_next := 1
     while go_next == 1 {
       if r == n {
         done = 1

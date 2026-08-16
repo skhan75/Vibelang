@@ -3,7 +3,7 @@ pub identifiers_shadowing(value: Int) -> Int {
   acc := value
   acc := acc + 1
   if acc > 0 {
-    acc := acc + 1
+    mut acc := acc + 1
   } else {
     acc = 0
   }

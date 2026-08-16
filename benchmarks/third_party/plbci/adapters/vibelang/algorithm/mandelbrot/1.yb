@@ -8,11 +8,11 @@ read_input_n() -> Int {
 }
 
 mandelbrot_pixel(cr: Float, ci: Float) -> Int {
-  zr := 0.0
-  zi := 0.0
-  tr := 0.0
-  ti := 0.0
-  iter := 0
+  mut zr := 0.0
+  mut zi := 0.0
+  mut tr := 0.0
+  mut ti := 0.0
+  mut iter := 0
   while iter < 50 {
     if tr + ti > 4.0 {
       return 0
@@ -38,15 +38,15 @@ pub main() -> Int {
   println("P4")
   println(json.stringify_i64(n) + " " + json.stringify_i64(n))
 
-  row_bytes := []
+  mut row_bytes := []
 
-  y := 0
+  mut y := 0
   while y < n {
     ci := convert.i64_to_f64(y) * inv - 1.0
-    x := 0
+    mut x := 0
     while x < n {
-      byte_val := 0
-      bit := 0
+      mut byte_val := 0
+      mut bit := 0
       while bit < 8 {
         cr := convert.i64_to_f64(x + bit) * inv - 1.5
         byte_val = byte_val * 2 + mandelbrot_pixel(cr, ci)

@@ -2,12 +2,12 @@ pub main() -> Int {
   @effect alloc
   @effect io
   @effect mut_state
-  i := 0
-  checksum := 0
-  checkpoints := []
+  mut i := 0
+  mut checksum := 0
+  mut checkpoints := []
 
   while i < 1500 {
-    xs := []
+    mut xs := []
     xs.append(i)
     xs.append(i + 1)
     checksum = checksum + i + (i + 1) + xs.len()

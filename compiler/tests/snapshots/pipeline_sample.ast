@@ -15,6 +15,13 @@ FileAst {
                                 raw: "List < Job >",
                             },
                         ),
+                        is_mut: false,
+                        span: Span {
+                            line_start: 1,
+                            col_start: 12,
+                            line_end: 1,
+                            col_end: 16,
+                        },
                     },
                 ],
                 return_type: Some(
@@ -126,6 +133,7 @@ FileAst {
                 body: [
                     Binding {
                         name: "jobs",
+                        is_mut: false,
                         expr: Call {
                             callee: Ident {
                                 name: "chan",
@@ -163,6 +171,7 @@ FileAst {
                     },
                     Binding {
                         name: "out",
+                        is_mut: false,
                         expr: Call {
                             callee: Ident {
                                 name: "chan",

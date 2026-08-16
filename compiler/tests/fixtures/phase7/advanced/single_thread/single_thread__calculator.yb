@@ -8,7 +8,7 @@ mul(a: Int, b: Int) -> Int {
 
 pub main() -> Int {
   @effect io
-  total := add(2, 3)
+  mut total := add(2, 3)
   total = mul(total, 4)
   if total == 20 {
     println("calc-ok")

@@ -1,6 +1,6 @@
 pub type_inference_boundaries(x: Int) -> Int {
   @intent "exercise assignment inference boundaries and branches"
-  y := x + 1
+  mut y := x + 1
   y = y + 2
   if y > 3 {
     y = y + 1

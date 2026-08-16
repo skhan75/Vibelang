@@ -1,6 +1,6 @@
 sum_list(xs: List<Int>) -> Int {
-  i := 0
-  total := 0
+  mut i := 0
+  mut total := 0
   while i < xs.len() {
     total = total + xs.get(i)
     i = i + 1
@@ -9,14 +9,14 @@ sum_list(xs: List<Int>) -> Int {
 }
 
 pub main() -> Int {
-  xs := [1, 2, 3]
+  mut xs := [1, 2, 3]
   xs.append(4)
   xs.set(0, 9)
 
-  by_name := {"alpha": 1, "beta": 2}
+  mut by_name := {"alpha": 1, "beta": 2}
   by_name.set("gamma", 3)
 
-  by_id := {1: 10, 2: 20}
+  mut by_id := {1: 10, 2: 20}
   by_id.set(3, 30)
 
   if by_name.contains("alpha") {

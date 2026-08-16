@@ -574,29 +574,36 @@ financial operation:
 
 ```vibe
 type Account {
-    id: Str,
-    mut balance: i64,
+  id: Str,
+  balance: Int,
 }
 
-pub transfer(mut from: Account, mut to: Account, amount: i64) -> Bool {
-    @intent "move amount from source account to destination account"
-    @examples {
-        transfer(Account { id: "A", balance: 1000 },
-                 Account { id: "B", balance: 500 },
-                 200) => true
-    }
-    @require amount > 0
-    @require from.balance >= amount
-    @require from.id != to.id
-    @ensure from.balance == old(from.balance) - amount
-    @ensure to.balance == old(to.balance) + amount
-    @ensure from.balance + to.balance == old(from.balance) + old(to.balance)
+pub transfer(mut from: Account, mut to: Account, amount: Int) -> Bool {
+  @intent "move amount from source account to destination account"
+  @examples {
+    transfer(Account { id: "A", balance: 1000 },
+             Account { id: "B", balance: 500 },
+             200) => true
+  }
+  @effect mut_state
+  @effect alloc
+  @require amount > 0
+  @require from.balance >= amount
+  @require from.id != to.id
+  @ensure from.balance == old(from.balance) - amount
+  @ensure to.balance == old(to.balance) + amount
+  @ensure from.balance + to.balance == old(from.balance) + old(to.balance)
 
-    from.balance = from.balance - amount
-    to.balance = to.balance + amount
-    true
+  from.balance = from.balance - amount
+  to.balance = to.balance + amount
+  true
 }
 ```
+
+Both parameters are declared `mut`. That is what permits the two field writes:
+mutability lives on the receiving *binding*, not on the field, so a `type`
+declaration never carries `mut`. Drop `mut` from either parameter and the
+matching write becomes an `E2111` error.
 
 The three postconditions together express a conservation law: money is neither
 created nor destroyed. The first two verify individual balances. The third
@@ -655,8 +662,8 @@ pub deduplicate(items: List<i64>) -> List<i64> {
     @ensure all_unique(.)
 
     // implementation
-    seen := Map.new()
-    result := List.new()
+    mut seen := Map.new()
+    mut result := List.new()
     for item in items {
         if !seen.contains(item) {
             seen.insert(item, true)
@@ -847,7 +854,7 @@ pub fibonacci(n: i64) -> i64 {
     @effect alloc
 
     cache := Map.new()
-    fib_memo(n, mut cache)
+    fib_memo(n, cache)
 }
 ```
 
@@ -1061,7 +1068,7 @@ development.
 type RateLimiter {
     max_requests: i64,
     window_ms: i64,
-    mut requests: List<i64>,
+    requests: List<i64>,
 }
 
 pub new_limiter(max_requests: i64, window_ms: i64) -> RateLimiter {
@@ -1101,6 +1108,13 @@ pub allow_request(mut limiter: RateLimiter, now_ms: i64) -> Bool {
     }
 }
 ```
+
+`mut limiter` is doing two jobs here, and both are enforced. It permits the
+field write `limiter.requests = ...` (without `mut` that is `E2111`), and it
+permits `limiter.requests.append(now_ms)`, because `.append(...)` mutates the
+list in place (without `mut` that is `E2112`). Notice again that the `mut`
+lives on the parameter, not on the `requests` field in the `type` declaration —
+one binding carries the permission for every write reached through it.
 
 ### Step 3: Add Examples That Tell a Story
 

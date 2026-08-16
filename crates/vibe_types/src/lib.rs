@@ -8,6 +8,7 @@ use std::rc::Rc;
 mod closure_support;
 mod effect_diagnostics;
 mod effect_propagation;
+mod mutability;
 mod ownership;
 
 use closure_support::{process_fn_literal, FnLiteralCache};
@@ -26,6 +27,7 @@ use crate::effect_diagnostics::emit_effect_diagnostics;
 use crate::effect_propagation::{
     collect_direct_calls, compute_transitive_effects, FunctionEffectSummary,
 };
+use crate::mutability::check_function_mutability;
 use crate::ownership::{
     check_go_sendability, check_shared_mutation_in_concurrent_context, is_sendable_type,
 };
@@ -200,6 +202,17 @@ pub fn check_and_lower_with_prelude(
     let mut enum_defs: BTreeMap<String, Vec<EnumVariantLayout>> = BTreeMap::new();
     let mut hir = HirProgram::default();
     let mut effect_summaries: Vec<FunctionEffectSummary> = Vec::new();
+
+    // Immutability-by-default runs once over the source declarations, before
+    // any monomorph is synthesised: a generic template and every monomorph
+    // built from it share one body, so checking them individually would report
+    // the same assignment several times. Generic templates are skipped by the
+    // type-checking loop below, so this is also the only pass that sees them.
+    for decl in &ast.declarations {
+        if let Declaration::Function(func) = decl {
+            check_function_mutability(func, &mut diagnostics);
+        }
+    }
 
     for (decl_idx, decl) in ast.declarations.iter().enumerate() {
         let diag_mark = diagnostics.len();
@@ -1123,25 +1136,34 @@ pub(crate) fn check_stmt(
             );
             match target {
                 Expr::Ident { name, .. } => {
-                    let lhs = env.get(name).cloned().unwrap_or(TypeKind::Unknown);
-                    if lhs == TypeKind::Unknown {
-                        diagnostics.push(Diagnostic::new(
+                    // `E2101` means the name is not bound at all. A name that
+                    // *is* bound but whose type is still `Unknown` (a `select`
+                    // receive binding, for instance) is not unknown-variable
+                    // territory: reporting it here contradicted the mutability
+                    // pass, which correctly says the name was declared.
+                    match env.get(name).cloned() {
+                        None => diagnostics.push(Diagnostic::new(
                             "E2101",
                             Severity::Error,
                             format!("assignment to unknown variable `{name}`"),
                             *span,
-                        ));
-                    } else if !type_compatible(&lhs, &rhs) {
-                        diagnostics.push(Diagnostic::new(
-                            "E2102",
-                            Severity::Error,
-                            format!(
-                                "type mismatch in assignment to `{name}`: lhs `{}`, rhs `{}`",
-                                type_name(&lhs),
-                                type_name(&rhs)
-                            ),
-                            *span,
-                        ));
+                        )),
+                        // Bound, but with no type to compare against yet.
+                        Some(TypeKind::Unknown) => {}
+                        Some(lhs) => {
+                            if !type_compatible(&lhs, &rhs) {
+                                diagnostics.push(Diagnostic::new(
+                                    "E2102",
+                                    Severity::Error,
+                                    format!(
+                                        "type mismatch in assignment to `{name}`: lhs `{}`, rhs `{}`",
+                                        type_name(&lhs),
+                                        type_name(&rhs)
+                                    ),
+                                    *span,
+                                ));
+                            }
+                        }
                     }
                 }
                 Expr::Member { object, field, .. } => {
@@ -4332,6 +4354,8 @@ fn build_generic_monomorph(
                         raw: type_name(&k2),
                     }
                 }),
+                is_mut: p.is_mut,
+                span: p.span,
             })
             .collect(),
         return_type: template.return_type.as_ref().map(|tr| {

@@ -1,7 +1,7 @@
 heapPressure(iter: Int) -> Int {
   @effect alloc
-  i := 0
-  total := 0
+  mut i := 0
+  mut total := 0
   while i < iter {
     total = total + i
     i = i + 1

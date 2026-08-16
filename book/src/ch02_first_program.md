@@ -271,20 +271,15 @@ This binds the name `freezing_point` to the value `32.0`. Once bound, the value
 cannot be changed:
 
 ```vibe
-freezing_point := 32.0
-freezing_point = 0.0  // Compile error!
+pub main() -> Int {
+  freezing_point := 32.0
+  freezing_point = 0.0  // Compile error!
+  0
+}
 ```
 
 ```
-error[E0201]: cannot assign to immutable binding
- --> main.yb:2:1
-  |
-1 | freezing_point := 32.0
-  |                 -- binding is immutable
-2 | freezing_point = 0.0
-  | ^^^^^^^^^^^^^^ cannot assign twice to immutable binding
-  |
-  = help: consider using `mut freezing_point := 32.0` if you need to change this value
+E2110: error: cannot assign to immutable binding `freezing_point`; declared at line 2, column 3 — declare it `mut freezing_point := ...` to allow mutation @ 3:3-3:16
 ```
 
 Immutability is VibeLang's default because immutable values are easier to reason

@@ -1,7 +1,7 @@
 pub main() -> Int {
   @effect io
   raw := fs.read_text(".benchmark_input")
-  n := 27
+  mut n := 27
   if raw != "" {
     parsed := json.parse_i64(raw)
     if parsed > 0 {

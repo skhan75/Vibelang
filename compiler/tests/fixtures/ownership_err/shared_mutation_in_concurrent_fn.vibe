@@ -1,4 +1,4 @@
-racyUpdate(account) -> Int {
+racyUpdate(mut account) -> Int {
   @effect concurrency
   @effect mut_state
   go worker(1)

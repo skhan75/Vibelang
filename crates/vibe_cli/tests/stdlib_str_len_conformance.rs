@@ -109,7 +109,7 @@ pub main() -> Int {
     println("resolve_ok")
   }
   println(convert.to_str(json.encode(P015User { id: 1, name: "x" }).len()))
-  jb := json.builder.new(64)
+  mut jb := json.builder.new(64)
   jb = json.builder.begin_object(jb)
   jb = json.builder.key(jb, "k")
   jb = json.builder.value_i64(jb, 5)

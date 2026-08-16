@@ -1,10 +1,10 @@
 bubble_sort(xs: List<Int>) -> List<Int> {
   @effect mut_state
-  out := xs
+  mut out := xs
   n := out.len()
-  i := 0
+  mut i := 0
   while i < n {
-    j := 0
+    mut j := 0
     while j + 1 < n {
       a := out.get(j)
       b := out.get(j + 1)

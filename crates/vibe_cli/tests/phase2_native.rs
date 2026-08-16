@@ -292,7 +292,7 @@ type Point {
 
 pub main() -> Int {
   @effect alloc
-  p := Point { x: 1, y: 2 }
+  mut p := Point { x: 1, y: 2 }
   p.x = "oops"
   0
 }
@@ -357,8 +357,8 @@ build_series(n: Int) -> List<Int> {
   }
   @effect alloc
   @effect mut_state
-  out := []
-  i := 0
+  mut out := []
+  mut i := 0
   while i < n {
     out.append(i)
     i = i + 1
@@ -424,9 +424,9 @@ pub main() -> Int {
   @effect alloc
   @effect mut_state
   s := "abcd"
-  xs := [10, 20, 30]
+  mut xs := [10, 20, 30]
   xs.set(1, 99)
-  m := {1: 10, 2: 20}
+  mut m := {1: 10, 2: 20}
   m.set(3, 30)
   if s.len() == 4 {
     if xs.get(1) == 99 {
@@ -986,8 +986,8 @@ fn while_loop_supports_break_and_continue() {
         r#"
 pub main() -> Int {
   @effect io
-  i := 0
-  sum := 0
+  mut i := 0
+  mut sum := 0
   while i < 6 {
     i = i + 1
     if i == 2 {

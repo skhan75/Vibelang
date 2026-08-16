@@ -33,6 +33,8 @@ pub enum Keyword {
     False,
     /// Function literal / function type prefix (`fn (...)`).
     Fn,
+    /// Mutable-binding modifier (`mut x := ...`, `fn f(mut a: T)`).
+    Mut,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -463,6 +465,7 @@ fn keyword_of(text: &str) -> Option<Keyword> {
         "true" => Keyword::True,
         "false" => Keyword::False,
         "fn" => Keyword::Fn,
+        "mut" => Keyword::Mut,
         _ => return None,
     })
 }
