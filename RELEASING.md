@@ -70,8 +70,43 @@ Two rules that the history above shows were not obvious:
 
 ## Current version recommendation
 
-**Recommendation: stay on the 1.x line, leave the published tags alone, and pay
-the debt the 1.x number implies instead of lowering the number.** Concretely,
+**Recommendation: reset to the 0.x line, starting at 0.7.0.** Keep the seven
+published 1.x tags in place as history, and cut the next release as 0.7.0.
+After that, every release that changes what compiling programs do is a minor
+bump (0.8.0, 0.9.0), and additive releases are patches.
+
+**Why this reverses the earlier analysis in this file's history.** The original
+recommendation was to stay on 1.x, and its own closing paragraph named the
+condition that would overturn it: 0.x is the better choice "if the owner expects
+most of the next several releases to break programs rather than one of them."
+That condition is now known to hold rather than being speculative. The owner
+confirmed on 2026-08-16 that VibeLang has no users yet and that breaking changes
+are acceptable when they are the correct fix, and the work already queued is
+breaking on purpose: opaque handle types (changes the type of every builder,
+channel and socket handle), `Result`-returning network APIs (changes the
+signature of the stdlib's failure paths), immutability enforcement (rejects
+programs that compile today), effect enforcement (same), and sendability
+enforcement at `go` boundaries (same). Under SemVer, five consecutive breaking
+releases on the 1.x line means 2.0.0, 3.0.0, 4.0.0, 5.0.0 and 6.0.0, which
+signals far less than 0.x does and reads as churn rather than as a language
+finding its shape.
+
+The two costs the original argument raised are also smaller than they looked.
+The pin mechanic in `check_compiler_version` (`crates/vibe_pkg/src/lib.rs`)
+only bites projects that pin `>=1.x`, and there are none. Install instructions
+in the wild cannot break, because the published releases carry no downloadable
+assets to install from. What remains true from the original argument, and is
+retained below, is that renumbering does not retract what six earlier releases
+claimed, and that `docs/policy/versioning_compatibility.md` still owes an
+explicit list of which constructs it covers.
+
+**Why 0.7.0 rather than 0.1.0.** Seven releases have been published
+(v1.0.0 through v1.6.0). Continuing the count at 0.7.0 keeps that history
+legible instead of pretending the work did not happen, while the leading zero
+carries the actual promise, which is that the language is still moving.
+
+**Superseded reasoning, kept because the reasoning is still sound where its
+premises hold:** Concretely,
 keep the source at 1.6.0 today, cut the next release as 1.7.0 if it only adds,
 and as 2.0.0 when the soundness fixes change the behavior of programs that
 compile now. Alongside that, replace the open-ended sentence in
