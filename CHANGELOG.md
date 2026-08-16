@@ -37,6 +37,42 @@ rather than copied over.
   `select` receive binding, for instance — no longer reports it, which removes
   a diagnostic pair that contradicted itself about whether the name existed.
 
+### Fixed
+
+- **A malformed HTTP request no longer ends the server process.** `std.http_router`
+  parsed peer-supplied header and query bytes with the panicking slice forms, so
+  a single byte in the range `0x80`-`0xBF` reached an abort, and under the
+  documented `go handle(conn)` pattern that abort took down the listener and
+  every other connection with it. The router now uses the new
+  `text.slice_bytes`, which clamps instead of rejecting and rewrites no bytes,
+  and it no longer slices a query value at all until the key has matched, so a
+  parameter the application never reads cannot influence the process. Measured
+  over 88 hostile requests: 6 killed the process before, 0 after, with no
+  behaviour change on any request that already worked and well-formed
+  multibyte UTF-8 preserved byte for byte.
+
+- **A malformed or deeply nested JSON body no longer ends the server process,
+  for handlers that ask for that.** `json.parse` recursed without a bound, so
+  repeated `[` exhausted the stack. Parsing now refuses past a nesting depth of
+  256, measured 7.7x below the depth that kills a handler. `json.parse` still
+  aborts on bad input by design; the new `json.try_parse` returns
+  `Result<Json, Str>`, read with `json.result_value` and `json.result_error`,
+  so a handler can answer 400 and stay up. Existing services must adopt the new
+  call to get the benefit. `json.is_valid` now runs the same grammar, trailing
+  content rule and depth cap as the parser, so guard-then-parse cannot abort.
+
+### Added
+
+- `text.slice_bytes` and `text.byte_at` for strings received from the network:
+  bounds are clamped rather than rejected, no UTF-8 boundary check, no byte
+  rewritten.
+- `json.try_parse`, `json.result_value` and `json.result_error`.
+- `RELEASING.md`, the single procedure for cutting a release, plus
+  `tooling/release/check_version_consistency.py` and the
+  `release-version-consistency` workflow that fails a pull request or a tag
+  whenever `Cargo.toml`, `README.md` and `CHANGELOG.md` disagree about the
+  version.
+
 ## [1.6.0] — 2026-04-02
 
 Released from a single commit on top of 1.2.0. Versions 1.3.0, 1.4.0 and 1.5.0
