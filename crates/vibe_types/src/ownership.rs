@@ -25,6 +25,7 @@ pub fn is_sendable_type(ty: &TypeKind) -> bool {
         | TypeKind::Float
         | TypeKind::Bool
         | TypeKind::Str
+        | TypeKind::Bytes
         | TypeKind::Json
         | TypeKind::JsonBuilder
         | TypeKind::Void => true,
@@ -268,6 +269,7 @@ fn type_name(t: &TypeKind) -> String {
         TypeKind::Float => "Float".to_string(),
         TypeKind::Bool => "Bool".to_string(),
         TypeKind::Str => "Str".to_string(),
+        TypeKind::Bytes => "Bytes".to_string(),
         TypeKind::Json => "Json".to_string(),
         TypeKind::JsonBuilder => "JsonBuilder".to_string(),
         TypeKind::List(inner) => format!("List<{}>", type_name(inner)),

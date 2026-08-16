@@ -45,6 +45,10 @@ pub enum TypeKind {
     Float,
     Bool,
     Str,
+    /// Immutable binary data. Distinct from `Str`, which is text and is
+    /// NUL-terminated: `Bytes` carries an explicit length and may contain
+    /// zero bytes anywhere.
+    Bytes,
     Json,
     JsonBuilder,
     List(Box<TypeKind>),
@@ -76,6 +80,7 @@ pub fn type_kind_to_codegen_str(t: &TypeKind) -> String {
         TypeKind::Float => "Float".to_string(),
         TypeKind::Bool => "Bool".to_string(),
         TypeKind::Str => "Str".to_string(),
+        TypeKind::Bytes => "Bytes".to_string(),
         TypeKind::Json => "Json".to_string(),
         TypeKind::JsonBuilder => "JsonBuilder".to_string(),
         TypeKind::UserType(name) => name.clone(),
@@ -3865,6 +3870,9 @@ pub(crate) fn resolve_type_ref(
     if enum_defs.contains_key(&raw) {
         return TypeKind::Enum(raw);
     }
+    if raw == "Bytes" {
+        return TypeKind::Bytes;
+    }
     if raw == "Json" {
         return TypeKind::Json;
     }
@@ -4096,6 +4104,9 @@ pub(crate) fn resolve_type_ref_with_type_param(
     if enum_defs.contains_key(&raw) {
         return TypeKind::Enum(raw);
     }
+    if raw == "Bytes" {
+        return TypeKind::Bytes;
+    }
     if raw == "Json" {
         return TypeKind::Json;
     }
@@ -4165,6 +4176,7 @@ fn mangle_type_for_mono(t: &TypeKind) -> String {
         TypeKind::Float => "Float".to_string(),
         TypeKind::Bool => "Bool".to_string(),
         TypeKind::Str => "Str".to_string(),
+        TypeKind::Bytes => "Bytes".to_string(),
         TypeKind::Json => "Json".to_string(),
         TypeKind::JsonBuilder => "JsonBuilder".to_string(),
         TypeKind::Void => "Void".to_string(),
@@ -4389,6 +4401,9 @@ fn parse_type_ref(t: &TypeRef) -> TypeKind {
     if raw == "Str" {
         return TypeKind::Str;
     }
+    if raw == "Bytes" {
+        return TypeKind::Bytes;
+    }
     if raw == "Json" {
         return TypeKind::Json;
     }
@@ -4493,6 +4508,7 @@ fn type_name(t: &TypeKind) -> String {
         TypeKind::Float => "Float".to_string(),
         TypeKind::Bool => "Bool".to_string(),
         TypeKind::Str => "Str".to_string(),
+        TypeKind::Bytes => "Bytes".to_string(),
         TypeKind::Json => "Json".to_string(),
         TypeKind::JsonBuilder => "JsonBuilder".to_string(),
         TypeKind::List(inner) => format!("List<{}>", type_name(inner)),
