@@ -68,12 +68,22 @@ Two rules that the history above shows were not obvious:
   plain requirement. A project pinning `1.6` rejects a `1.7.0-rc.1` compiler.
   Release candidates are for testers who pin nothing.
 
-## Current version recommendation
+## Current version line
 
-**Recommendation: reset to the 0.x line, starting at 0.7.0.** Keep the seven
-published 1.x tags in place as history, and cut the next release as 0.7.0.
-After that, every release that changes what compiling programs do is a minor
-bump (0.8.0, 0.9.0), and additive releases are patches.
+**Decided on 2026-08-16 by the project owner: reset to the 0.x line, starting
+at 0.7.0.** Keep the seven published 1.x tags in place as history, and cut the
+next release as 0.7.0. After that, every release that changes what compiling
+programs do is a minor bump (0.8.0, 0.9.0), and additive releases are patches.
+
+The number itself does not change until a release is cut. `Cargo.toml`,
+`README.md` and `CHANGELOG.md` move together in the release preparation pull
+request described under "Cutting the release", and the
+`release-version-consistency` workflow fails that pull request if they
+disagree. Until then the tree keeps reporting 1.6.0, which is the last version
+that was actually published.
+
+The reasoning that produced this decision is kept below, because the argument
+still has to hold up when someone asks why the number went backwards.
 
 **Why this reverses the earlier analysis in this file's history.** The original
 recommendation was to stay on 1.x, and its own closing paragraph named the
