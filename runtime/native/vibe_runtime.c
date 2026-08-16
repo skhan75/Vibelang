@@ -76,6 +76,7 @@ enum {
     VIBE_CONTAINER_MAP_I64_I64 = 2,
     VIBE_CONTAINER_MAP_STR_I64 = 3,
     VIBE_CONTAINER_MAP_STR_STR = 4,
+    VIBE_CONTAINER_BYTES = 5,
 };
 
 typedef struct vibe_list_i64 {
@@ -1859,6 +1860,199 @@ void *vibe_str_concat(const char *left, const char *right) {
     memcpy(out + left_len, safe_right, right_len);
     out[out_len] = '\0';
     return (void *)out;
+}
+
+/*
+ * Binary data with an explicit length. This is the whole point of the type:
+ * `Str` is `char*` and its length is `strlen` (vibe_str_len_bytes), so a Str
+ * carrying binary data ends at its first 0x00. Measured before this type
+ * existed: a 16-byte PNG header arrived on a socket and the program saw 8
+ * bytes. `vibe_bytes` never consults a terminator.
+ */
+typedef struct vibe_bytes {
+    int64_t tag;
+    int64_t len;
+    int64_t cap;
+    uint8_t *data;
+} vibe_bytes;
+
+void *vibe_bytes_new(int64_t len) {
+    if (len < 0) {
+        len = 0;
+    }
+    vibe_bytes *b = (vibe_bytes *)calloc(1, sizeof(vibe_bytes));
+    if (b == NULL) {
+        vibe_panic("failed to allocate Bytes");
+    }
+    b->tag = VIBE_CONTAINER_BYTES;
+    b->len = len;
+    b->cap = len;
+    b->data = (uint8_t *)calloc((size_t)len + 1, sizeof(uint8_t));
+    if (b->data == NULL) {
+        vibe_panic("failed to allocate Bytes buffer");
+    }
+    return b;
+}
+
+int64_t vibe_bytes_len(void *handle) {
+    const vibe_bytes *b = (const vibe_bytes *)handle;
+    return b == NULL ? 0 : b->len;
+}
+
+int64_t vibe_bytes_get(void *handle, int64_t index) {
+    const vibe_bytes *b = (const vibe_bytes *)handle;
+    if (b == NULL || index < 0 || index >= b->len) {
+        return -1;
+    }
+    return (int64_t)b->data[index];
+}
+
+/*
+ * Byte-exact slice. Clamped exactly the way vibe_str_slice_bytes is (see the
+ * long comment above that function): TOTAL, never calls vibe_panic for any
+ * (handle, start, end) -- the only failure path is OOM, which is not
+ * peer-controlled. Bounds are CLAMPED, never rejected: start<0 -> 0;
+ * start>len -> len; end<start -> start; end>len -> len. A NULL handle is
+ * treated as a zero-length Bytes, so the result is an empty Bytes rather than
+ * a panic.
+ */
+void *vibe_bytes_slice(void *handle, int64_t start, int64_t end) {
+    const vibe_bytes *b = (const vibe_bytes *)handle;
+    int64_t len = b == NULL ? 0 : b->len;
+    int64_t lo = start < 0 ? 0 : (start > len ? len : start);
+    int64_t hi = end > len ? len : end;
+    if (hi < lo) {
+        hi = lo;
+    }
+    int64_t out_len = hi - lo;
+    vibe_bytes *out = (vibe_bytes *)vibe_bytes_new(out_len);
+    if (out_len > 0) {
+        memcpy(out->data, b->data + lo, (size_t)out_len);
+    }
+    return out;
+}
+
+/*
+ * Concatenation. NULL operands are treated as zero-length Bytes. TOTAL
+ * except for OOM.
+ */
+void *vibe_bytes_concat(void *a_handle, void *b_handle) {
+    const vibe_bytes *a = (const vibe_bytes *)a_handle;
+    const vibe_bytes *b = (const vibe_bytes *)b_handle;
+    int64_t a_len = a == NULL ? 0 : a->len;
+    int64_t b_len = b == NULL ? 0 : b->len;
+    vibe_bytes *out = (vibe_bytes *)vibe_bytes_new(a_len + b_len);
+    if (a_len > 0) {
+        memcpy(out->data, a->data, (size_t)a_len);
+    }
+    if (b_len > 0) {
+        memcpy(out->data + a_len, b->data, (size_t)b_len);
+    }
+    return out;
+}
+
+/*
+ * Copies up to the NUL. This is the on-ramp from trusted program data (a .yb
+ * string literal) into Bytes; the result never carries bytes past the
+ * source's terminator, because a Str's length IS its terminator. A NULL
+ * pointer is treated as an empty string.
+ */
+void *vibe_bytes_from_str(const char *s) {
+    const char *safe_s = s == NULL ? "" : s;
+    int64_t len = (int64_t)strlen(safe_s);
+    vibe_bytes *out = (vibe_bytes *)vibe_bytes_new(len);
+    if (len > 0) {
+        memcpy(out->data, safe_s, (size_t)len);
+    }
+    return out;
+}
+
+/*
+ * NUL-terminated copy of the Bytes buffer. DELIBERATELY LOSSY: any embedded
+ * 0x00 byte in the source truncates the result exactly the way it would for
+ * any NUL-scanning C string consumer (strlen, printf %s, ...). This is a
+ * known, intentional boundary of the conversion, not a bug to fix here --
+ * binary data with an embedded NUL has no faithful Str representation,
+ * because a Str's length IS the offset of its first NUL. Callers that need
+ * every byte back out losslessly should use vibe_bytes_to_hex instead. A
+ * NULL handle returns an empty string.
+ */
+char *vibe_bytes_to_str(void *handle) {
+    const vibe_bytes *b = (const vibe_bytes *)handle;
+    int64_t len = b == NULL ? 0 : b->len;
+    char *out = (char *)calloc((size_t)len + 1, sizeof(char));
+    if (out == NULL) {
+        vibe_panic("failed to allocate Bytes-to-Str copy");
+    }
+    if (len > 0) {
+        memcpy(out, b->data, (size_t)len);
+    }
+    out[len] = '\0';
+    return out;
+}
+
+/* Forward declaration: defined below, shared with vibe_encoding_hex_decode
+ * and vibe_encoding_hex_encode. Declared here so the Bytes<->hex functions,
+ * which live beside the rest of the Bytes helpers, can use it too. */
+static int vibe_hex_value(char ch);
+
+/*
+ * Decodes a hex string into Bytes. This is the ONLY on-ramp for a NUL byte,
+ * or any other arbitrary octet, into program-controlled data: a .yb string
+ * literal cannot express \x00 (the lexer reads source as a Rust String with
+ * no \xNN escape), so hex is how later tests mint binary inputs that plain
+ * string literals cannot.
+ *
+ * TOTAL, matching vibe_encoding_hex_decode's existing precedent in this file
+ * (see that function below): an odd-length input, or any character outside
+ * [0-9a-fA-F], yields a zero-length Bytes rather than a partial decode or a
+ * panic. A partial decode would leave it ambiguous how many bytes decoded
+ * before the bad one; an all-or-nothing empty result is unambiguous and
+ * matches the sibling hex decoder already in this file. Never aborts on
+ * attacker-shaped hex.
+ */
+void *vibe_bytes_from_hex(const char *hex) {
+    const char *src = hex == NULL ? "" : hex;
+    size_t len = strlen(src);
+    if ((len % 2) != 0) {
+        return vibe_bytes_new(0);
+    }
+    vibe_bytes *out = (vibe_bytes *)vibe_bytes_new((int64_t)(len / 2));
+    for (size_t i = 0; i < len; i += 2) {
+        int hi = vibe_hex_value(src[i]);
+        int lo = vibe_hex_value(src[i + 1]);
+        if (hi < 0 || lo < 0) {
+            /* `out` hasn't escaped to any caller yet, so it is ours to
+             * release before handing back the empty result. */
+            free(out->data);
+            free(out);
+            return vibe_bytes_new(0);
+        }
+        out->data[i / 2] = (uint8_t)((hi << 4) | lo);
+    }
+    return out;
+}
+
+/*
+ * Lowercase hex encoding of the whole Bytes buffer. Unlike vibe_bytes_to_str,
+ * this is LOSSLESS: every byte, including an embedded NUL, round-trips
+ * through vibe_bytes_from_hex. A NULL handle returns an empty string.
+ */
+char *vibe_bytes_to_hex(void *handle) {
+    static const char hex_digits[] = "0123456789abcdef";
+    const vibe_bytes *b = (const vibe_bytes *)handle;
+    int64_t len = b == NULL ? 0 : b->len;
+    char *out = (char *)calloc((size_t)len * 2 + 1, sizeof(char));
+    if (out == NULL) {
+        vibe_panic("failed to allocate Bytes-to-hex output");
+    }
+    for (int64_t i = 0; i < len; i++) {
+        uint8_t byte_value = b->data[i];
+        out[i * 2] = hex_digits[(byte_value >> 4) & 0x0f];
+        out[i * 2 + 1] = hex_digits[byte_value & 0x0f];
+    }
+    out[len * 2] = '\0';
+    return out;
 }
 
 /*
