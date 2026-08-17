@@ -358,7 +358,7 @@ channels), standard library functions, and contract check stubs (dev/test).
 |---|---|---|
 | Linux | x86_64, aarch64 | Supported |
 | macOS | x86_64, aarch64 | Supported |
-| Windows | x86_64 | Supported |
+| Windows | x86_64 | Supported, except `std.net`, whose functions are stubs on this platform |
 
 Cross-compilation: `vibe build --target x86_64-linux src/main.yb`
 

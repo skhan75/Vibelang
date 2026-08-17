@@ -13,7 +13,7 @@
 
 <p align="center">
   <a href="https://github.com/skhan75/VibeLang/actions"><img src="https://img.shields.io/github/actions/workflow/status/skhan75/VibeLang/phase1-frontend.yml?branch=main&style=for-the-badge&label=CI" alt="CI" /></a>
-  <a href="https://github.com/skhan75/VibeLang/releases/tag/v1.6.0"><img src="https://img.shields.io/badge/release-v1.6.0-22c55e?style=for-the-badge" alt="release" /></a>
+  <a href="https://github.com/skhan75/VibeLang/releases/tag/v0.7.0"><img src="https://img.shields.io/badge/release-v0.7.0-22c55e?style=for-the-badge" alt="release" /></a>
   <img src="https://img.shields.io/badge/status-Beta-f59e0b?style=for-the-badge" alt="beta" />
   <a href="https://github.com/skhan75/VibeLang/issues"><img src="https://img.shields.io/github/issues/skhan75/VibeLang?style=for-the-badge&color=ec4899" alt="issues" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache_2.0-2563eb?style=for-the-badge" alt="license" /></a>
@@ -62,10 +62,15 @@ export PATH="$PWD/target/release:$PATH"
 vibe --version
 ```
 
-Building from source is the only supported install path today. The current
-release, v1.6.0, has no binaries attached to it, so there is nothing to
-download. Attaching signed archives and checksums to the GitHub release is a
-required step of the process in [RELEASING.md](RELEASING.md).
+**Or download a binary.** This release attaches signed archives and checksums
+for macOS on Apple Silicon and Intel, Linux x86_64, and Windows x86_64. Every
+release for the past year shipped with no assets at all, because the packaging
+job could not build on Windows. That is fixed, and this is the first release in
+that time with binaries you can actually install.
+
+Note for Windows users: `std.net` does not work on this platform. Its functions
+are stubs that return empty values without attempting a connection. Everything
+else, including the compiler, the filesystem and JSON APIs, works normally.
 
 For a minimal binary without AI sidecar dependencies:
 
@@ -99,7 +104,7 @@ Platform guides: [Linux](docs/install/linux.md) · [macOS](docs/install/macos.md
 | Linux | x86_64 | 1 (CI-tested, prebuilt binaries) |
 | macOS | ARM64 (Apple Silicon) | 1 |
 | macOS | x86_64 | 2 (builds, not all CI lanes) |
-| Windows | x86_64 | 2 |
+| Windows | x86_64 | 2 (`std.net` is stubbed and does not connect) |
 
 **Tier 1**: full CI coverage, prebuilt release binaries, actively tested.
 **Tier 2**: builds from source, community-tested, best-effort support.

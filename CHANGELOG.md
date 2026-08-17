@@ -8,7 +8,7 @@ published GitHub release notes and the commit history. Each item in them was
 checked against the tagged tree, and claims that did not hold up were left out
 rather than copied over.
 
-## [Unreleased]
+## [0.7.0] — 2026-08-17
 
 ### Changed (breaking)
 
@@ -61,8 +61,48 @@ rather than copied over.
   call to get the benefit. `json.is_valid` now runs the same grammar, trailing
   content rule and depth cap as the parser, so guard-then-parse cannot abort.
 
+- **Binary data is no longer truncated at the first zero byte.** A `Str` is a
+  NUL-terminated `char*` and its length is `strlen`, so every path that carried
+  bytes through a `Str` stopped at the first `0x00`. Measured against a compiled
+  server before the fix: a 16-byte PNG header arrived on a socket and the
+  program saw 8 bytes. A VibeLang service could not accept a file upload, hash a
+  binary blob, or read a binary file. The new `Bytes` type carries an explicit
+  length and never consults a terminator.
+
+- **The Windows compiler could not build any program, hello world included.**
+  Three defects, each hidden behind the one before it. CRLF checkouts put a bare
+  carriage return inside every multi-line raw string, which Rust rejects
+  outright; `NT_SUCCESS` was used without the header that defines it; and
+  Winsock was never linked, so every Windows link failed with
+  `undefined reference to __imp_recv`. This is why no release since v1.0.0
+  carried a single attached asset: the packaging job failed, and the signing,
+  SBOM and install-smoke jobs downstream of it were skipped.
+
+- `cli.args_len()` and `cli.arg()` returned nothing on macOS. The only
+  implementation read `/proc/self/cmdline` behind `#ifdef __linux__`, with no
+  macOS branch of any kind, so every program on this platform saw zero
+  command-line arguments.
+
 ### Added
 
+- **The `Bytes` type**, and `std.bytes`: `new`, `len`, `get`, `slice`,
+  `concat`, `from_str`, `to_str`, `from_hex`, `to_hex`. `Bytes` is distinct from
+  `Str` and the two are not interchangeable. Bounds are clamped rather than
+  rejected everywhere peer data can reach, `to_str` is deliberately lossy and
+  documented as such, and a `from_hex` failure is indistinguishable from empty
+  input, which is stated at every surface a caller reads.
+- **Byte-exact input**: `net.read_bytes`, `fs.read_bytes`, `fs.write_bytes`.
+  `net.read_bytes` keeps the 4 MiB ceiling `net.read` already had, and
+  `fs.read_bytes` refuses a file larger than 64 MiB rather than allocating an
+  attacker-chosen size, since an unallocatable length ends the process.
+- **`fs.size`**, so a caller can tell a missing file, an empty file and a file
+  past the read ceiling apart. All three previously returned a zero-length read
+  with no way to distinguish them.
+- **Byte-exact encoding and hashing**: `encoding.base64_encode_bytes`,
+  `encoding.base64_decode_bytes`, `crypto.sha256_bytes`. The existing
+  `Str`-taking forms are unchanged and still take their length from `strlen`.
+- A native `aarch64-apple-darwin` release target. Every previous macOS asset was
+  x86_64 and ran on Apple Silicon under Rosetta.
 - `text.slice_bytes` and `text.byte_at` for strings received from the network:
   bounds are clamped rather than rejected, no UTF-8 boundary check, no byte
   rewritten.
@@ -72,6 +112,22 @@ rather than copied over.
   `release-version-consistency` workflow that fails a pull request or a tag
   whenever `Cargo.toml`, `README.md` and `CHANGELOG.md` disagree about the
   version.
+- `benchmarks/stdlib/`, a differential harness that compares a C-backed stdlib
+  function against a VibeLang implementation of the same job on wall time and
+  peak memory, and fails a merge on a regression.
+
+### Known limitations
+
+- **`std.net` does not work on Windows.** Nine of its functions are stubs that
+  return `0`, `""` or an empty `Bytes` without attempting anything. A Windows
+  program will read those as ordinary connection failures. This is long-standing
+  and is called out here because 0.7.0 ships the first Windows binary since
+  v1.0.0.
+- **Nothing is ever freed.** The compiler emits no deallocation and the runtime
+  releases nothing a program can observe, so a long-running process grows until
+  it exits. The memory model is the next major piece of work.
+- Two of 123 stdlib functions return a `Result`. The rest report failure with a
+  sentinel value or by ending the process.
 
 ## [1.6.0] — 2026-04-02
 

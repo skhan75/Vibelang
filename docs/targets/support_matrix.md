@@ -15,7 +15,7 @@ Date: 2026-02-17
 | --- | --- | --- | --- | --- | --- |
 | `x86_64-unknown-linux-gnu` | Tier 1 | Yes | Yes | Yes | Tier-1 packaged install candidate |
 | `x86_64-apple-darwin` | Tier 1 | Yes | Yes | Yes | Tier-1 packaged install candidate |
-| `x86_64-pc-windows-msvc` | Tier 1 | Yes | Yes | Yes | Tier-1 packaged install candidate |
+| `x86_64-pc-windows-msvc` | Tier 1 | Yes | Yes | Yes | Tier-1 packaged install candidate. **`std.net` is non-functional on this target**: nine functions are stubs returning `0`/`""`/empty, so network programs build and run but never connect. |
 | `aarch64-unknown-linux-gnu` | Tier 2 | Yes (codegen+runtime compile path support) | Partial | Partial | Cross-runner availability dependent |
 | `aarch64-apple-darwin` | Tier 2 | Yes (codegen+runtime compile path support) | Partial | Partial | Arm64 parity remains a tracked expansion |
 

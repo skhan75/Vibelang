@@ -13,7 +13,7 @@ integrity controls (checksums, signatures, provenance, SBOM).
 | --- | --- | --- | --- | --- |
 | `x86_64-unknown-linux-gnu` | `vibe-x86_64-unknown-linux-gnu.tar.gz` | `package_artifacts` (`ubuntu-22.04` baseline build) | `install_smoke_linux`, `install_smoke_linux_latest` | validated |
 | `x86_64-apple-darwin` | `vibe-x86_64-apple-darwin.tar.gz` | `package_artifacts` | `install_smoke_macos` | validated |
-| `x86_64-pc-windows-msvc` | `vibe-x86_64-pc-windows-msvc.zip` | `package_artifacts` | `install_smoke_windows` | validated |
+| `x86_64-pc-windows-msvc` | `vibe-x86_64-pc-windows-msvc.zip` | `package_artifacts` | `install_smoke_windows` | validated for the toolchain; `std.net` is stubbed on this target and does not connect |
 
 ## Security Control Status
 
