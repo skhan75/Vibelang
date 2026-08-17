@@ -3214,6 +3214,35 @@ int64_t vibe_fs_exists(const char *path) {
     return access(path, F_OK) == 0 ? 1 : 0;
 }
 
+/*
+ * Returns a file's byte size, or -1 when it cannot be stat'd (missing,
+ * unreadable, or any other stat() failure). This exists so a caller can
+ * pre-check a file against fs.read_bytes's VIBE_FS_READ_BYTES_MAX ceiling
+ * and tell apart the three cases fs.read_bytes' own return value cannot
+ * distinguish on its own: a missing file, a genuinely empty file, and a
+ * file that was refused for being over the ceiling all otherwise produce
+ * the same zero-length Bytes. fs.exists is not a substitute for this check
+ * either -- it only calls access(path, F_OK), so it reports `true` for an
+ * oversize file exactly as readily as for a normal one.
+ *
+ * TODO(Result): -1-as-sentinel is a stopgap matching this stdlib's current
+ * error-signaling convention elsewhere (e.g. bytes.get's -1 for
+ * out-of-range), not the final shape. Once the stdlib has a Result type
+ * (a later plan item, not yet built), this should become
+ * fs.size(path: Str) -> Result<Int, Error> and this sentinel should go
+ * away.
+ */
+int64_t vibe_fs_size(const char *path) {
+    if (path == NULL || path[0] == '\0') {
+        return -1;
+    }
+    struct stat st;
+    if (stat(path, &st) != 0) {
+        return -1;
+    }
+    return (int64_t)st.st_size;
+}
+
 char *vibe_fs_read_text(const char *path) {
     if (path == NULL || path[0] == '\0') {
         return vibe_strdup_or_panic("");
@@ -3260,15 +3289,22 @@ char *vibe_fs_read_text(const char *path) {
  * bytes.to_hex (2x) and bytes.concat (sum of two), bounded to double- and
  * low-hundreds-of-MiB territory rather than unbounded.
  *
- * A file at or past the ceiling is treated as a read failure, the same as a
- * missing file or a seek/tell failure a few lines up: it returns an empty
- * Bytes rather than either (a) calling vibe_panic, whose abort() would take
- * down the whole process under the documented
- * `while true { conn := net.accept(l); go handle(conn) }` server pattern if
- * this were reachable from a request handler, or (b) silently handing back
- * only the first VIBE_FS_READ_BYTES_MAX bytes of the file mislabeled as the
- * complete contents, which would reintroduce a silent-truncation bug of
- * exactly the shape this function exists to eliminate.
+ * A file STRICTLY LARGER than the ceiling (file_len > VIBE_FS_READ_BYTES_MAX,
+ * so a file of exactly VIBE_FS_READ_BYTES_MAX bytes is still read in full)
+ * is treated as a read failure, the same as a missing file or a seek/tell
+ * failure a few lines up: it returns an empty Bytes rather than either (a)
+ * calling vibe_panic, whose abort() would take down the whole process under
+ * the documented `while true { conn := net.accept(l); go handle(conn) }`
+ * server pattern if this were reachable from a request handler, or (b)
+ * silently handing back only the first VIBE_FS_READ_BYTES_MAX bytes of the
+ * file mislabeled as the complete contents, which would reintroduce a
+ * silent-truncation bug of exactly the shape this function exists to
+ * eliminate.
+ *
+ * That empty-Bytes-on-failure return is indistinguishable from "the file is
+ * genuinely empty" or "the file does not exist" from inside this function
+ * alone -- fs.size (vibe_fs_size, above) is what lets a caller tell the
+ * three cases apart before ever calling this function.
  */
 #define VIBE_FS_READ_BYTES_MAX (64 * 1024 * 1024)
 
@@ -3654,6 +3690,18 @@ int64_t vibe_net_connect(const char *host, int64_t port) {
 #endif
 }
 
+/*
+ * Ceiling shared by vibe_net_read and vibe_net_read_bytes below: a single
+ * recv() call never fills more than this many bytes, regardless of what a
+ * caller passes as max_bytes. This is the hard requirement this task exists
+ * to satisfy -- max_bytes is effectively peer-influenced (a caller may
+ * forward a length it just read off the same connection, e.g. a frame's
+ * length prefix), so it is clamped to this ceiling BEFORE either function
+ * allocates. Named and shared by both call sites so the two copies cannot
+ * drift apart.
+ */
+#define VIBE_NET_READ_MAX_BYTES (4 * 1024 * 1024)
+
 char *vibe_net_read(int64_t fd_raw, int64_t max_bytes_raw) {
 #ifdef _WIN32
     (void)fd_raw;
@@ -3665,8 +3713,8 @@ char *vibe_net_read(int64_t fd_raw, int64_t max_bytes_raw) {
     if (fd <= 0 || max_bytes <= 0) {
         return vibe_strdup_or_panic("");
     }
-    if (max_bytes > 4 * 1024 * 1024) {
-        max_bytes = 4 * 1024 * 1024;
+    if (max_bytes > VIBE_NET_READ_MAX_BYTES) {
+        max_bytes = VIBE_NET_READ_MAX_BYTES;
     }
     char *buffer = (char *)calloc((size_t)max_bytes + 1, sizeof(char));
     if (buffer == NULL) {
@@ -3692,8 +3740,9 @@ char *vibe_net_read(int64_t fd_raw, int64_t max_bytes_raw) {
  *
  * max_bytes is effectively peer-influenced -- a caller may forward a length
  * it just read off the same connection, e.g. a frame's length prefix -- so
- * it is NEVER trusted past the same 4 MiB ceiling vibe_net_read already
- * enforces on itself. The clamp happens before any allocation, so this
+ * it is NEVER trusted past the same VIBE_NET_READ_MAX_BYTES ceiling
+ * vibe_net_read already enforces on itself (see the shared #define above
+ * vibe_net_read). The clamp happens before any allocation, so this
  * function's worst-case allocation is bounded no matter what max_bytes a
  * caller passes: a call site cannot turn a hostile length into an
  * unbounded calloc, which is what would otherwise make vibe_bytes_new's
@@ -3713,8 +3762,8 @@ void *vibe_net_read_bytes(int64_t fd_raw, int64_t max_bytes_raw) {
     if (fd <= 0 || max_bytes <= 0) {
         return vibe_bytes_new(0);
     }
-    if (max_bytes > 4 * 1024 * 1024) {
-        max_bytes = 4 * 1024 * 1024;
+    if (max_bytes > VIBE_NET_READ_MAX_BYTES) {
+        max_bytes = VIBE_NET_READ_MAX_BYTES;
     }
     char *buffer = (char *)calloc((size_t)max_bytes, sizeof(char));
     if (buffer == NULL) {

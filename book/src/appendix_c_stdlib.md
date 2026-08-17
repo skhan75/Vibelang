@@ -211,6 +211,38 @@ text.byte_at("abc", 99)   // -1
 
 ---
 
+## C.4b `net` — Low-level TCP Networking (Preview)
+
+The full `net` module (`listen`, `accept`, `connect`, `read`, `write`,
+`close`, `resolve`, ...) is listed in the Module Summary, Import Quick
+Reference, and Effects tables below; this section documents only the one
+function added alongside `Bytes` support. Import: `import std.net`
+
+### `read_bytes(socket: Int, max_bytes: Int) -> Bytes`
+
+Reads up to `max_bytes` from a socket, byte-exact — including embedded
+`0x00` bytes, which `net.read`'s `Str` result truncates at (`Str` length is
+effectively `strlen`, and a truncated read is silent: nothing signals that
+bytes were lost). Prefer `read_bytes` over `read` for anything binary —
+images, length-prefixed frames, any protocol that isn't plain text.
+
+`max_bytes` is capped at a **4 MiB ceiling** regardless of what value is
+passed: a single call never fills more than 4 MiB, the same ceiling
+`net.read` already enforces on itself. This protects against a
+peer-influenced `max_bytes` (e.g. a length prefix read off the same
+connection and forwarded straight into this call) turning into an
+unbounded allocation.
+
+```vibe
+b := net.read_bytes(conn, 65536)
+println(convert.to_str(bytes.len(b)))
+println(bytes.to_hex(b))
+```
+
+**Effects:** `net`
+
+---
+
 ## C.5 `fs` — File System Operations (Preview)
 
 Functions for reading and writing files and directories. All functions perform
@@ -239,6 +271,51 @@ pub load_config(path: Str) -> Result<Str, Error> {
 }
 ```
 
+### `read_bytes(p: Str) -> Bytes`
+
+Reads a file's entire contents byte-exact — including embedded `0x00`
+bytes, which `read_text`'s `Str` result cannot hold past their first
+occurrence. Length comes from the file's actual size, never from a
+terminator.
+
+Capped at a **64 MiB ceiling**: a file strictly larger than 64 MiB (a file
+of exactly 64 MiB is read in full) is refused, returning an empty `Bytes` —
+the same value `read_bytes` returns for a missing file or a genuinely
+empty file. All three cases look identical from `read_bytes`'s return value
+alone; use `fs.size` first to tell them apart before assuming a `0`-length
+result means "empty file."
+
+```vibe
+b := fs.read_bytes("image.png")
+println(convert.to_str(bytes.len(b)))
+```
+
+### `size(p: Str) -> Int`
+
+Returns a file's byte size, or `-1` when it cannot be stat'd (missing or
+unreadable). Use this to pre-check a file against `read_bytes`'s 64 MiB
+ceiling, and to distinguish "file does not exist" (`-1`) from "file is
+genuinely empty" (`0`) from "file is over the ceiling" (`size` greater than
+64 MiB, while `read_bytes` on the same path returns a zero-length `Bytes`)
+— three cases `read_bytes` alone cannot tell apart. `fs.exists` is not a
+substitute: it only checks that the path exists, so it reports `true` for
+an oversize file exactly as readily as for a normal one.
+
+```vibe
+sz := fs.size("upload.bin")
+if sz < 0 {
+  println("missing")
+} else if sz > 64 * 1024 * 1024 {
+  println("too large for fs.read_bytes")
+} else {
+  b := fs.read_bytes("upload.bin")
+}
+```
+
+This is a stopgap, not a `Result` — the stdlib does not have a `Result<T,
+Error>` type yet (a later plan item). Once it does, this becomes
+`fs.size(p: Str) -> Result<Int, Error>` and the `-1` sentinel goes away.
+
 ### `write_text(p: Str, content: Str) -> Result<(), Error>`
 
 Writes a string to a file, creating it if it does not exist, overwriting if it
@@ -248,6 +325,18 @@ does. Parent directories must already exist.
 fs.write_text("output.txt", report)?
 ```
 
+### `write_bytes(p: Str, data: Bytes) -> Bool`
+
+Writes a `Bytes` value byte-exact, creating or overwriting the file. Unlike
+`write_text`, the write length comes from `data`'s own length, never from a
+terminator — an embedded `0x00` does not truncate the write. Returns `true`
+on success, `false` if the file could not be opened for writing (e.g. the
+parent directory does not exist) or the write was short.
+
+```vibe
+fs.write_bytes("out.bin", bytes.from_hex("89504e470d0a1a0a"))
+```
+
 ### `create_dir(p: Str) -> Result<(), Error>`
 
 Creates a directory at the given path.
@@ -255,6 +344,87 @@ Creates a directory at the given path.
 ```vibe
 fs.create_dir(path.join(base, "output"))?
 ```
+
+---
+
+## C.5a `bytes` — Binary Data (Preview)
+
+Explicit-length binary data. Use `Bytes` for anything that came off a socket,
+a file, or a decoder; use `Str` only for text. A `Str` is NUL-terminated, so
+binary data held in one ends at its first `0x00` byte — `Bytes` does not have
+that limitation. Import: `import std.bytes`
+
+All functions are pure (no effects) — they operate on an already-allocated
+`Bytes` value; the effectful boundary is at the functions that produce one,
+`fs.read_bytes` and `net.read_bytes`.
+
+### `new(len: Int) -> Bytes`
+
+Allocates `len` zero bytes. A negative `len` clamps to `0`.
+
+```vibe
+b := bytes.new(4)   // 4 zero bytes
+```
+
+### `len(b: Bytes) -> Int`
+
+The number of bytes, counted explicitly — never the position of a
+terminator the way `Str` length effectively is.
+
+### `get(b: Bytes, index: Int) -> Int`
+
+The byte at `index` (`0`-`255`), or `-1` when `index` is out of range
+(negative, or at/past the length). Total: never aborts.
+
+### `slice(b: Bytes, start: Int, end: Int) -> Bytes`
+
+Byte-exact subrange with clamped bounds: `start < 0` clamps to `0`; `start`
+or `end` past the length clamps to the length; `end < start` yields an
+empty result. Total, matching `text.slice_bytes`'s clamping style.
+
+### `concat(a: Bytes, b: Bytes) -> Bytes`
+
+Joins two byte sequences. The result's length is the sum of the two inputs'.
+
+### `from_str(s: Str) -> Bytes`
+
+The bytes of a string, up to its first `0x00` — since a `Str` is already
+NUL-terminated, this cannot recover bytes a `Str` never had in the first
+place. To mint a `Bytes` value containing a `0x00`, use `bytes.from_hex`,
+not a `.yb` string literal (the lexer has no `\xNN` escape).
+
+### `to_str(b: Bytes) -> Str`
+
+Reinterprets bytes as text. **Lossy by design**: the result ends at the
+first `0x00` byte, exactly like any other NUL-terminated `Str`. This means
+`bytes.to_str` is the wrong tool for verifying a round trip through
+`Bytes` — a truncated `to_str` result can look identical for two `Bytes`
+values that differ after their first `0x00`. Use `bytes.to_hex` for a
+lossless, byte-exact view instead.
+
+```vibe
+b := bytes.from_hex("68656c6c6f00776f726c64")  // "hello\0world"
+bytes.to_str(b)   // "hello" -- "world" is silently gone
+bytes.to_hex(b)   // "68656c6c6f00776f726c64" -- nothing lost
+```
+
+### `from_hex(hex: Str) -> Bytes`
+
+Decodes a hexadecimal string into bytes. This is the only way to construct
+a `Bytes` value containing an arbitrary byte (including `0x00`) directly
+from a `.yb` source literal.
+
+**Fails closed and indistinguishably**: an odd-length input, or any
+character outside `[0-9a-fA-F]`, both produce the same zero-length `Bytes`
+as decoding `""` does. There is no separate error signal — a caller cannot
+tell "you passed empty hex" apart from "you passed malformed hex" from the
+return value alone.
+
+### `to_hex(b: Bytes) -> Str`
+
+Lossless lowercase hexadecimal encoding of the whole buffer — the byte-exact
+counterpart to `to_str`, and the right choice whenever a result needs to be
+compared or logged without losing data at an embedded `0x00`.
 
 ---
 
@@ -704,8 +874,9 @@ regex.replace_all("foo bar foo", "foo", "baz")   // "baz bar baz"
 | `core` | **Stable**  | None             | —         |
 | `time` | **Preview** | `nondet`         | 4         |
 | `path` | **Stable**  | None             | 4         |
-| `fs`   | **Preview** | `io`             | 4         |
-| `net`  | **Preview** | `net`            | 8         |
+| `fs`   | **Preview** | `io`             | 7         |
+| `bytes` | **Preview** | None            | 9         |
+| `net`  | **Preview** | `net`            | 9         |
 | `convert` | **Preview** | None          | 10        |
 | `text` | **Preview** | None             | 10        |
 | `encoding` | **Preview** | None         | 6         |
@@ -915,8 +1086,9 @@ import std.io          // println, print, eprintln
 import std.core        // deterministic utilities
 import std.time        // now_ms, sleep_ms, duration_ms
 import std.path        // join, parent, basename, is_absolute
-import std.fs          // exists, read_text, write_text, create_dir
-import std.net         // listen, listener_port, accept, connect, read, write, close, resolve
+import std.fs          // exists, read_text, read_bytes, size, write_text, write_bytes, create_dir
+import std.bytes       // new, len, get, slice, concat, from_str, to_str, from_hex, to_hex
+import std.net         // listen, listener_port, accept, connect, read, read_bytes, write, close, resolve
 import std.convert     // to_int, parse_i64, to_float, parse_f64, to_str, to_str_f64, format_f64, i64_to_f64, f64_to_bits, f64_from_bits
 import std.text        // trim, contains, starts_with, ends_with, replace, to_lower, to_upper, byte_len, split_part, index_of, slice_bytes, byte_at
 import std.encoding    // hex/base64/url encode/decode
@@ -955,13 +1127,26 @@ import std.concurrent  // spawn, with_timeout, map_int, map_str
 | `is_absolute(Str)`             | path   | None     |
 | `exists(Str)`                  | fs     | `io`     |
 | `read_text(Str)`               | fs     | `io`     |
+| `read_bytes(Str)`              | fs     | `io`     |
+| `size(Str)`                    | fs     | `io`     |
 | `write_text(Str, Str)`         | fs     | `io`     |
+| `write_bytes(Str, Bytes)`      | fs     | `io`     |
 | `create_dir(Str)`              | fs     | `io`     |
+| `new(Int)`                     | bytes  | None     |
+| `len(Bytes)`                   | bytes  | None     |
+| `get(Bytes, Int)`              | bytes  | None     |
+| `slice(Bytes, Int, Int)`       | bytes  | None     |
+| `concat(Bytes, Bytes)`         | bytes  | None     |
+| `from_str(Str)`                | bytes  | None     |
+| `to_str(Bytes)`                | bytes  | None     |
+| `from_hex(Str)`                | bytes  | None     |
+| `to_hex(Bytes)`                | bytes  | None     |
 | `listen(Str, Int)`             | net    | `net`    |
 | `listener_port(Int)`           | net    | `net`    |
 | `accept(Int)`                  | net    | `net`    |
 | `connect(Str, Int)`            | net    | `net`    |
 | `read(Int, Int)`               | net    | `net`    |
+| `read_bytes(Int, Int)`         | net    | `net`    |
 | `write(Int, Str)`              | net    | `net`    |
 | `close(Int)`                   | net    | `net`    |
 | `resolve(Str)`                 | net    | `net`    |

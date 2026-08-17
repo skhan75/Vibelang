@@ -87,6 +87,91 @@ pub main() -> Int {
     assert_eq!(lines[1], "89504e470d0a1a0a0000000d49484452");
 }
 
+/// `fs.write_bytes` writes exactly a `Bytes` value's `len` bytes, not up to a
+/// NUL terminator -- the write-side mirror of `fs.read_bytes`. This branch's
+/// invariant is "length comes from `len`, never `strlen`"; nothing else in
+/// this file protects the write half of that invariant, so this asserts
+/// against the file on disk via `std::fs::read`, never through
+/// `bytes.len`/`bytes.to_hex` read back through VibeLang -- reading the
+/// bytes back with the same runtime that wrote them would only prove the
+/// two agree with each other, not that either is right.
+#[test]
+fn fs_write_bytes_writes_byte_exact_bytes_to_disk() {
+    let dir = unique_temp_dir("bytes_fs_write");
+    fs::create_dir_all(&dir).expect("create temp dir");
+    let png_path = dir.join("header.png");
+    let empty_path = dir.join("empty.bin");
+    // A path inside a directory that does not exist: fopen(..., "wb") fails,
+    // so this exercises write_bytes's `false` return.
+    let bad_path = dir.join("no_such_subdir").join("unreachable.bin");
+
+    let source = temp_source_file(
+        "bytes_fs_write",
+        &format!(
+            r#"
+pub main() -> Int {{
+  @effect io
+  ok1 := fs.write_bytes("{}", bytes.from_hex("89504e470d0a1a0a0000000d49484452"))
+  if ok1 {{
+    println("write-ok")
+  }} else {{
+    println("write-fail")
+  }}
+
+  ok2 := fs.write_bytes("{}", bytes.new(0))
+  if ok2 {{
+    println("write-ok")
+  }} else {{
+    println("write-fail")
+  }}
+
+  ok3 := fs.write_bytes("{}", bytes.from_hex("aabbcc"))
+  if ok3 {{
+    println("write-ok")
+  }} else {{
+    println("write-fail")
+  }}
+  0
+}}
+"#,
+            png_path.display(),
+            empty_path.display(),
+            bad_path.display()
+        ),
+    );
+    let out = run_vibe(&["run", source.to_str().expect("utf-8 path")]);
+    assert!(out.status.success(), "vibe run failed:\n{}", out.stderr);
+    let lines: Vec<&str> = out.stdout.trim().lines().collect();
+    assert_eq!(lines[0], "write-ok", "writing the PNG header must succeed");
+    assert_eq!(lines[1], "write-ok", "writing an empty Bytes must succeed");
+    assert_eq!(
+        lines[2], "write-fail",
+        "writing into a nonexistent directory must fail, not panic"
+    );
+
+    // The real assertion: read the files back with Rust's own std::fs, not
+    // through bytes.len/bytes.to_hex, so this cannot pass merely because the
+    // runtime agrees with itself.
+    let on_disk = fs::read(&png_path).expect("read PNG header back from disk");
+    assert_eq!(
+        on_disk, PNG_HEADER,
+        "the file on disk must be byte-identical to what write_bytes was given, \
+         including the three interior 0x00 bytes at offsets 8, 9 and 10"
+    );
+
+    let on_disk_empty = fs::read(&empty_path).expect("read empty file back from disk");
+    assert!(
+        on_disk_empty.is_empty(),
+        "writing an empty Bytes must produce a zero-length file, got {} bytes",
+        on_disk_empty.len()
+    );
+
+    assert!(
+        !bad_path.exists(),
+        "a failed write must not leave a file behind"
+    );
+}
+
 fn temp_source_file(prefix: &str, source: &str) -> PathBuf {
     let dir = unique_temp_dir(prefix);
     fs::create_dir_all(&dir).expect("create temp source dir");

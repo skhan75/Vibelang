@@ -19,9 +19,15 @@ pub read_text(path: Str) -> Str {
 }
 
 pub read_bytes(path: Str) -> Bytes {
-  @intent "read a file's entire contents byte-exact, including embedded zeros, up to a 64 MiB ceiling"
+  @intent "read a file's entire contents byte-exact, including embedded zeros, up to a 64 MiB ceiling; past that ceiling, or when the file is missing, read_bytes returns an empty Bytes -- use fs.size to tell those cases apart from a genuinely empty file"
   @effect io
   @native("vibe_fs_read_bytes")
+}
+
+pub size(path: Str) -> Int {
+  @intent "a file's byte size, or -1 when it cannot be stat'd (missing or unreadable); a stopgap until the stdlib has Result, at which point this becomes Result<Int, Error>"
+  @effect io
+  @native("vibe_fs_size")
 }
 
 pub write_text(path: Str, content: Str) -> Bool {
