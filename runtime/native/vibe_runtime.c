@@ -2395,15 +2395,22 @@ char *vibe_encoding_hex_decode(const char *hex_text) {
     return out;
 }
 
-char *vibe_encoding_base64_encode(const char *text) {
-    static const char b64[] =
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    const unsigned char *src = (const unsigned char *)(text == NULL ? "" : text);
-    size_t len = strlen((const char *)src);
+static const char VIBE_BASE64_ALPHABET[] =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+/*
+ * Shared base64 encode core: encodes exactly `len` bytes at `src` (`src` may
+ * be NULL only when `len` is 0) into a freshly allocated, NUL-terminated
+ * Str. vibe_encoding_base64_encode (Str input) and
+ * vibe_encoding_base64_encode_bytes (Bytes input) differ only in how they
+ * resolve their argument to a (pointer, length) pair; both call this for the
+ * actual triple-packing loop, so there is exactly one copy of it.
+ */
+static char *vibe_base64_encode_core(const uint8_t *src, size_t len) {
     size_t out_len = ((len + 2) / 3) * 4;
     char *out = (char *)calloc(out_len + 1, sizeof(char));
     if (out == NULL) {
-        vibe_panic("failed to allocate base64_encode output");
+        vibe_panic("failed to allocate base64 encode output");
     }
     size_t in_idx = 0;
     size_t out_idx = 0;
@@ -2413,47 +2420,31 @@ char *vibe_encoding_base64_encode(const char *text) {
         uint32_t octet_b = rem > 1 ? src[in_idx++] : 0;
         uint32_t octet_c = rem > 2 ? src[in_idx++] : 0;
         uint32_t triple = (octet_a << 16) | (octet_b << 8) | octet_c;
-        out[out_idx++] = b64[(triple >> 18) & 0x3f];
-        out[out_idx++] = b64[(triple >> 12) & 0x3f];
-        out[out_idx++] = rem > 1 ? b64[(triple >> 6) & 0x3f] : '=';
-        out[out_idx++] = rem > 2 ? b64[triple & 0x3f] : '=';
+        out[out_idx++] = VIBE_BASE64_ALPHABET[(triple >> 18) & 0x3f];
+        out[out_idx++] = VIBE_BASE64_ALPHABET[(triple >> 12) & 0x3f];
+        out[out_idx++] = rem > 1 ? VIBE_BASE64_ALPHABET[(triple >> 6) & 0x3f] : '=';
+        out[out_idx++] = rem > 2 ? VIBE_BASE64_ALPHABET[triple & 0x3f] : '=';
     }
     out[out_len] = '\0';
     return out;
 }
 
+char *vibe_encoding_base64_encode(const char *text) {
+    const char *safe = text == NULL ? "" : text;
+    return vibe_base64_encode_core((const uint8_t *)safe, strlen(safe));
+}
+
 /*
- * Same algorithm as vibe_encoding_base64_encode, but the input length comes
- * from the vibe_bytes struct's explicit `len` field rather than strlen, so an
- * embedded 0x00 byte is encoded like any other byte instead of truncating the
- * input. A NULL handle is treated as zero-length Bytes.
+ * Same encode core as vibe_encoding_base64_encode, but the input length
+ * comes from the vibe_bytes struct's explicit `len` field rather than
+ * strlen, so an embedded 0x00 byte is encoded like any other byte instead of
+ * truncating the input. A NULL handle is treated as zero-length Bytes.
  */
 char *vibe_encoding_base64_encode_bytes(void *handle) {
-    static const char b64[] =
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     const vibe_bytes *b = (const vibe_bytes *)handle;
     int64_t len = b == NULL ? 0 : b->len;
     const uint8_t *src = b == NULL ? NULL : b->data;
-    size_t out_len = (((size_t)len + 2) / 3) * 4;
-    char *out = (char *)calloc(out_len + 1, sizeof(char));
-    if (out == NULL) {
-        vibe_panic("failed to allocate base64_encode_bytes output");
-    }
-    int64_t in_idx = 0;
-    size_t out_idx = 0;
-    while (in_idx < len) {
-        int64_t rem = len - in_idx;
-        uint32_t octet_a = src[in_idx++];
-        uint32_t octet_b = rem > 1 ? src[in_idx++] : 0;
-        uint32_t octet_c = rem > 2 ? src[in_idx++] : 0;
-        uint32_t triple = (octet_a << 16) | (octet_b << 8) | octet_c;
-        out[out_idx++] = b64[(triple >> 18) & 0x3f];
-        out[out_idx++] = b64[(triple >> 12) & 0x3f];
-        out[out_idx++] = rem > 1 ? b64[(triple >> 6) & 0x3f] : '=';
-        out[out_idx++] = rem > 2 ? b64[triple & 0x3f] : '=';
-    }
-    out[out_len] = '\0';
-    return out;
+    return vibe_base64_encode_core(src, (size_t)len);
 }
 
 static int vibe_base64_value(char ch) {
@@ -2475,20 +2466,26 @@ static int vibe_base64_value(char ch) {
     return -1;
 }
 
-char *vibe_encoding_base64_decode(const char *base64_text) {
-    const char *src = base64_text == NULL ? "" : base64_text;
-    size_t len = strlen(src);
-    if (len == 0) {
-        return vibe_strdup_or_panic("");
-    }
-    if ((len % 4) != 0) {
-        return vibe_strdup_or_panic("");
-    }
-    size_t out_cap = (len / 4) * 3;
-    char *out = (char *)calloc(out_cap + 1, sizeof(char));
-    if (out == NULL) {
-        vibe_panic("failed to allocate base64_decode output");
-    }
+/*
+ * Shared base64 decode core. PRECONDITION: len > 0 and len % 4 == 0 --
+ * callers check this themselves before allocating `out`, so a
+ * doomed-by-length request never allocates. Writes up to (len/4)*3 bytes
+ * into `out` (which the caller must size to at least that) and returns the
+ * number written, or -1 if any character in `src` is outside the base64
+ * alphabet (padding characters aside). Never calls vibe_panic -- `src` may
+ * be attacker-controlled text.
+ *
+ * KNOWN LENIENCY (inherited from the pre-existing vibe_encoding_base64_decode
+ * this was extracted from; not introduced or fixed here, and explicitly out
+ * of scope for the byte-taking-encoding-and-hashing task): this decoder
+ * accepts non-canonical padding ("====" decodes as one zero byte, "AA==AAAA"
+ * decodes as four bytes) and rejects any line-wrapped input (a "\n" inside
+ * base64 fails the character check), so PEM/MIME-style bodies do not decode.
+ * Both callers below share this behavior because they share this loop --
+ * fixing it here fixes it for both at once, which is the point of the
+ * extraction.
+ */
+static int64_t vibe_base64_decode_core(const char *src, size_t len, uint8_t *out) {
     size_t out_idx = 0;
     for (size_t i = 0; i < len; i += 4) {
         int vals[4];
@@ -2500,8 +2497,7 @@ char *vibe_encoding_base64_decode(const char *base64_text) {
                 continue;
             }
             if (vals[j] < 0) {
-                free(out);
-                return vibe_strdup_or_panic("");
+                return -1;
             }
         }
         uint32_t triple = 0;
@@ -2513,26 +2509,50 @@ char *vibe_encoding_base64_decode(const char *base64_text) {
             }
             triple = (triple << 6) | (uint32_t)(vals[j] & 0x3f);
         }
-        out[out_idx++] = (char)((triple >> 16) & 0xff);
+        out[out_idx++] = (uint8_t)((triple >> 16) & 0xff);
         if (pad < 2) {
-            out[out_idx++] = (char)((triple >> 8) & 0xff);
+            out[out_idx++] = (uint8_t)((triple >> 8) & 0xff);
         }
         if (pad < 1) {
-            out[out_idx++] = (char)(triple & 0xff);
+            out[out_idx++] = (uint8_t)(triple & 0xff);
         }
     }
-    out[out_idx] = '\0';
+    return (int64_t)out_idx;
+}
+
+char *vibe_encoding_base64_decode(const char *base64_text) {
+    const char *src = base64_text == NULL ? "" : base64_text;
+    size_t len = strlen(src);
+    if (len == 0 || (len % 4) != 0) {
+        return vibe_strdup_or_panic("");
+    }
+    size_t out_cap = (len / 4) * 3;
+    char *out = (char *)calloc(out_cap + 1, sizeof(char));
+    if (out == NULL) {
+        vibe_panic("failed to allocate base64_decode output");
+    }
+    int64_t written = vibe_base64_decode_core(src, len, (uint8_t *)out);
+    if (written < 0) {
+        free(out);
+        return vibe_strdup_or_panic("");
+    }
+    out[written] = '\0';
     return out;
 }
 
 /*
- * Same decode algorithm as vibe_encoding_base64_decode, but the result is
- * Bytes rather than a NUL-terminated Str, so a decoded 0x00 byte survives.
- * The input is base64 text, which is legitimately NUL-terminated, so reading
- * its length with strlen is correct here -- only the OUTPUT needed to change
+ * Same decode core as vibe_encoding_base64_decode, but the result is Bytes
+ * rather than a NUL-terminated Str, so a decoded 0x00 byte survives. The
+ * input is base64 text, which is legitimately NUL-terminated, so reading its
+ * length with strlen is correct here -- only the OUTPUT needed to change
  * shape. TOTAL: any malformed base64 (bad length, invalid character) yields
  * an empty Bytes, matching vibe_encoding_base64_decode's own precedent,
  * rather than a panic on attacker-controlled input.
+ *
+ * `out->cap` is sized to the length-implied upper bound `(len/4)*3` and may
+ * end up larger than `out->len` once padding is accounted for; nothing reads
+ * `cap` on a Bytes value after construction (grep confirms the only use is
+ * inside vibe_bytes_new itself), so this is safe.
  */
 void *vibe_encoding_base64_decode_bytes(const char *base64_text) {
     const char *src = base64_text == NULL ? "" : base64_text;
@@ -2541,47 +2561,14 @@ void *vibe_encoding_base64_decode_bytes(const char *base64_text) {
         return vibe_bytes_new(0);
     }
     size_t out_cap = (len / 4) * 3;
-    uint8_t *scratch = (uint8_t *)malloc(out_cap > 0 ? out_cap : 1);
-    if (scratch == NULL) {
-        vibe_panic("failed to allocate base64_decode_bytes scratch buffer");
+    vibe_bytes *out = (vibe_bytes *)vibe_bytes_new((int64_t)out_cap);
+    int64_t written = vibe_base64_decode_core(src, len, out->data);
+    if (written < 0) {
+        free(out->data);
+        free(out);
+        return vibe_bytes_new(0);
     }
-    size_t out_idx = 0;
-    for (size_t i = 0; i < len; i += 4) {
-        int vals[4];
-        for (int j = 0; j < 4; j++) {
-            char ch = src[i + (size_t)j];
-            vals[j] = (ch == '=') ? -2 : vibe_base64_value(ch);
-            if (vals[j] < -1) {
-                // -2 is valid padding
-                continue;
-            }
-            if (vals[j] < 0) {
-                free(scratch);
-                return vibe_bytes_new(0);
-            }
-        }
-        uint32_t triple = 0;
-        int pad = 0;
-        for (int j = 0; j < 4; j++) {
-            if (vals[j] == -2) {
-                vals[j] = 0;
-                pad += 1;
-            }
-            triple = (triple << 6) | (uint32_t)(vals[j] & 0x3f);
-        }
-        scratch[out_idx++] = (uint8_t)((triple >> 16) & 0xff);
-        if (pad < 2) {
-            scratch[out_idx++] = (uint8_t)((triple >> 8) & 0xff);
-        }
-        if (pad < 1) {
-            scratch[out_idx++] = (uint8_t)(triple & 0xff);
-        }
-    }
-    vibe_bytes *out = (vibe_bytes *)vibe_bytes_new((int64_t)out_idx);
-    if (out_idx > 0) {
-        memcpy(out->data, scratch, out_idx);
-    }
-    free(scratch);
+    out->len = written;
     return out;
 }
 

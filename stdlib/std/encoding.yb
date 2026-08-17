@@ -32,7 +32,7 @@ pub base64_encode_bytes(data: Bytes) -> Str {
 }
 
 pub base64_decode_bytes(b64: Str) -> Bytes {
-  @intent "decode a Base64 string into bytes, preserving any decoded zero bytes"
+  @intent "decode a Base64 string into bytes, preserving any decoded zero bytes; malformed input (wrong length, invalid character) and a legitimately empty result both return an empty Bytes, indistinguishably"
   @native("vibe_encoding_base64_decode_bytes")
 }
 

@@ -879,7 +879,7 @@ regex.replace_all("foo bar foo", "foo", "baz")   // "baz bar baz"
 | `net`  | **Preview** | `net`            | 9         |
 | `convert` | **Preview** | None          | 10        |
 | `text` | **Preview** | None             | 10        |
-| `encoding` | **Preview** | None         | 6         |
+| `encoding` | **Preview** | None         | 8         |
 | `json` | **Preview** | None             | 13+       |
 | `http` | **Preview** | `net` (client ops) | 7      |
 | `log`  | **Preview** | `io`             | 3         |
@@ -888,7 +888,7 @@ regex.replace_all("foo bar foo", "foo", "baz")   // "baz bar baz"
 | `cli`  | **Preview** | `nondet`         | 2         |
 | `str_builder` | **Preview** | None      | 4         |
 | `regex` | **Preview** | None            | 2         |
-| `crypto` | **Preview** | `nondet` (random) | 5     |
+| `crypto` | **Preview** | `nondet` (random) | 6     |
 | `http_server` | **Preview** | `net`    | 3         |
 | `http_router` | **Preview** | None (uses `http_server`) | 5 |
 | `ws`    | **Preview** | `net`            | 4         |
@@ -907,6 +907,18 @@ Returns the SHA-256 hash of `data` as a lowercase hex string.
 ```vibe
 hash := crypto.sha256("hello world")
 // "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9"
+```
+
+### `sha256_bytes(data: Bytes) -> Str`
+
+Same hash as `sha256`, but the input length comes from `data`'s own length
+rather than a terminator, so an embedded `0x00` byte is hashed like any
+other byte instead of ending the input early. Use this over `sha256` for
+anything binary — `sha256(bytes.to_str(b))` would silently hash only the
+bytes before `b`'s first `0x00`.
+
+```vibe
+hash := crypto.sha256_bytes(bytes.from_hex("89504e470d0a1a0a"))
 ```
 
 ### `hmac_sha256(key: Str, data: Str) -> Str`
@@ -1079,6 +1091,41 @@ output order matches input order.
 
 ---
 
+## C.11h `encoding` — Byte-Safe Base64 (Preview)
+
+The full `encoding` module (`hex_encode`, `hex_decode`, `base64_encode`,
+`base64_decode`, `url_encode`, `url_decode`) is listed in the Module
+Summary, Import Quick Reference, and Effects tables; this section documents
+only the two functions added alongside `Bytes` support. Import:
+`import std.encoding`
+
+### `base64_encode_bytes(data: Bytes) -> Str`
+
+Same encoding as `base64_encode`, but the input length comes from `data`'s
+own length rather than a terminator, so an embedded `0x00` byte is encoded
+like any other byte instead of ending the input early.
+
+### `base64_decode_bytes(b64: Str) -> Bytes`
+
+Same decoding as `base64_decode`, but the result is `Bytes` rather than a
+NUL-terminated `Str`, so a decoded `0x00` byte survives.
+
+**Fails closed and indistinguishably**, the same way `bytes.from_hex` does:
+malformed input (a length that is not a multiple of 4, or any character
+outside the base64 alphabet) produces the same zero-length `Bytes` as
+decoding `""` does. There is no separate error signal -- a caller cannot
+tell "you passed empty Base64" apart from "you passed malformed Base64"
+from the return value alone.
+
+```vibe
+b := bytes.from_hex("89504e470d0a1a0a00000000")
+encoded := encoding.base64_encode_bytes(b)
+decoded := encoding.base64_decode_bytes(encoded)
+println(bytes.to_hex(decoded))   // "89504e470d0a1a0a00000000" -- nothing lost
+```
+
+---
+
 ## C.12 Import Quick Reference
 
 ```vibe
@@ -1091,7 +1138,7 @@ import std.bytes       // new, len, get, slice, concat, from_str, to_str, from_h
 import std.net         // listen, listener_port, accept, connect, read, read_bytes, write, close, resolve
 import std.convert     // to_int, parse_i64, to_float, parse_f64, to_str, to_str_f64, format_f64, i64_to_f64, f64_to_bits, f64_from_bits
 import std.text        // trim, contains, starts_with, ends_with, replace, to_lower, to_upper, byte_len, split_part, index_of, slice_bytes, byte_at
-import std.encoding    // hex/base64/url encode/decode
+import std.encoding    // hex/base64/url encode/decode, base64_encode_bytes/base64_decode_bytes
 import std.json        // Json: parse, stringify, stringify_pretty, null/bool/i64/f64/str; builder.*; is_valid, minify; parse_i64, stringify_i64; from_map; encode_<T>, decode_<T>
 import std.http        // status_text, default_port, build_request_line, request, request_status, get, post, send, response, ok, get_with_headers, post_with_headers, post_json, get_retry
 import std.log         // info, warn, error
@@ -1100,7 +1147,7 @@ import std.env         // get, has, get_required
 import std.cli         // args_len, arg
 import std.str_builder // new, append, append_char, finish
 import std.regex       // count, replace_all
-import std.crypto      // sha256, hmac_sha256, uuid_v4, random_bytes, constant_time_eq
+import std.crypto      // sha256, sha256_bytes, hmac_sha256, uuid_v4, random_bytes, constant_time_eq
 import std.http_server // parse_request, format_response, cors_headers
 import std.http_router // header_get, query_get, json_response, text_response, route
 import std.ws          // upgrade, read_frame, write_frame, close_frame
@@ -1176,6 +1223,8 @@ import std.concurrent  // spawn, with_timeout, map_int, map_str
 | `hex_decode(Str)`              | encoding | None   |
 | `base64_encode(Str)`           | encoding | None   |
 | `base64_decode(Str)`           | encoding | None   |
+| `base64_encode_bytes(Bytes)`   | encoding | None   |
+| `base64_decode_bytes(Str)`     | encoding | None   |
 | `url_encode(Str)`              | encoding | None   |
 | `url_decode(Str)`              | encoding | None   |
 | `is_valid(Str)`                | json   | None     |
