@@ -11,6 +11,11 @@ pub sha256(data: Str) -> Str {
   @native("vibe_crypto_sha256")
 }
 
+pub sha256_bytes(data: Bytes) -> Str {
+  @intent "compute SHA-256 hash of bytes, returned as hex, hashing every byte instead of stopping at the first zero byte"
+  @native("vibe_crypto_sha256_bytes")
+}
+
 pub hmac_sha256(key: Str, data: Str) -> Str {
   @intent "compute HMAC-SHA256 of data with key, returned as hex"
   @native("vibe_crypto_hmac_sha256")

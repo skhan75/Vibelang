@@ -26,6 +26,16 @@ pub base64_decode(b64: Str) -> Str {
   @native("vibe_encoding_base64_decode")
 }
 
+pub base64_encode_bytes(data: Bytes) -> Str {
+  @intent "encode bytes as Base64, covering every byte instead of stopping at the first zero byte"
+  @native("vibe_encoding_base64_encode_bytes")
+}
+
+pub base64_decode_bytes(b64: Str) -> Bytes {
+  @intent "decode a Base64 string into bytes, preserving any decoded zero bytes"
+  @native("vibe_encoding_base64_decode_bytes")
+}
+
 pub url_encode(s: Str) -> Str {
   @intent "percent-encode a string for use in URLs"
   @native("vibe_encoding_url_encode")
