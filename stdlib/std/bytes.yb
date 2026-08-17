@@ -11,7 +11,7 @@
 module std.bytes
 
 pub new(len: Int) -> Bytes {
-  @intent "allocate len zero bytes"
+  @intent "allocate len zero bytes; len has no ceiling, so a len the system cannot allocate ends the process -- bound any caller-supplied len before calling"
   @native("vibe_bytes_new")
 }
 

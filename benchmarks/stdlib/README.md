@@ -6,7 +6,7 @@ paths — one backed by an existing native (C) stdlib call, one written as a
 pure VibeLang loop — and reports wall time and peak RSS for both, measured
 from outside the process (`/usr/bin/time -l`, macOS only for now).
 
-## Per-tier gate (decision Q6, approved 2026-08-16)
+## Per-tier gate
 
 - **Tier A** (scanning and comparing, no allocation): the VibeLang side must
   land within 5% of the C side's wall time **and** within `RSS_GATE_MULT`
@@ -48,9 +48,9 @@ instrument resolve" below for why, and what that buys.
 
 ## `bytes_scan`: what it measures, and why it is (and isn't) like-for-like
 
-The brief's original sketch was: count occurrences of one byte value across
+The original design was: count occurrences of one byte value across
 a 64 KB `Bytes`, the C side via a loop of `text.index_of` calls, the
-VibeLang side via a `bytes.get` loop. That sketch does not survive contact
+VibeLang side via a `bytes.get` loop. That design does not survive contact
 with the actual API surface, for two independent reasons, both discovered
 by trying to write it:
 
@@ -74,11 +74,21 @@ by trying to write it:
    mechanism matters for reasoning about where an allocation happens versus
    where data is lost.
 
-Given the currently available stdlib (`bytes.*`, `text.*`, `convert.*`,
-`math`, `fs.read_bytes`/`write_bytes`/`size`, `net.read_bytes`), there is no
-native call that counts multiple occurrences of a byte in one shot without
-allocating. So this harness ships a corrected version of the same idea
-instead of the literal sketch:
+The stdlib does have a native call that counts occurrences in one shot:
+`regex.count(text: Str, pattern: Str) -> Int` (`stdlib/std/regex.yb:9-12`,
+backed by `vibe_regex_count`). It doesn't fit this case, though:
+`regex.count` takes a `Str`, not `Bytes`, so using it on the VibeLang side
+would mean converting the 64 KB buffer to a `Str` first — an allocation
+this benchmark is built to avoid. It would have been usable on the C side
+instead (which already converts the buffer to a `Str` once, see below), and
+a faster, more accurate C-side count only widens the gap this benchmark
+measures, not narrows it. Among the modules this case actually draws on
+(`bytes.*`, `text.*`, `convert.*`, `math`, `fs.read_bytes`/`write_bytes`/
+`size`, `net.read_bytes` — a handful of the 23 modules in `stdlib/std/`,
+not the whole stdlib), there is no native call that counts multiple
+occurrences of a byte in a `Bytes` buffer in one shot without allocating.
+So this harness ships a corrected version of the same idea instead of the
+literal sketch:
 
 - Both `bytes_scan_c.yb` and `bytes_scan_vibe.yb` build the **identical**
   deterministic 64 KB buffer: 65,535 bytes of `0x41` ("A") followed by a
@@ -119,7 +129,7 @@ instead of the literal sketch:
   reason above), "count" and "found" coincide (0 or 1), so this does not
   change what's being measured — a full linear pass with a comparison per
   byte — but it means the case no longer literally exercises "count
-  occurrences" in the multiple-hits sense the brief's wording suggested.
+  occurrences" in the multiple-hits sense originally intended.
 
 **What this case actually measures:** the cost of doing a full-buffer
 linear scan as ONE native (C) call versus the same logical scan expressed
@@ -276,7 +286,7 @@ by a factor of well over 6, not a few percent. Worth being explicit about
 what this range means for the "what tolerance can this instrument
 resolve" claim above: an *identical* pair resolves to under 1% noise, but
 two genuinely different code paths with different absolute costs (C here
-runs in ~0.5s, ten times faster than VibeLang's ~3.4s) can still show
+runs in ~0.5s, about seven times faster than VibeLang's ~3.4s) can still show
 several-percent run-to-run drift from ambient system load even with
 warmup and minimum-of-5 — irrelevant at a 6-7x gap, but worth knowing
 before trusting this harness to resolve a case that lands close to the 5%
@@ -285,21 +295,20 @@ line.
 Peak RSS: VibeLang (1664 KB) was slightly *lower* than C's (1744 KB), ratio
 0.954x, comfortably inside the 1.5x tier A RSS budget, and stable across
 every run. This case doesn't hit the "matches on time but leaks on memory"
-failure mode the plan is worried about — see the next section for a
-formulation that does.
+failure mode described above — see the next section for a formulation
+that does.
 
-**This is not being reported as a pass.** Per the standing instruction: a
-byte-scan loop is the most favorable case this migration will ever have —
-no allocation, one comparison per byte, no branching complexity — and it
-still misses the tier A budget by a factor of ~7. That means either (a)
-tier A migrations as currently scoped (a VibeLang loop calling a
-per-element native accessor) cannot meet a 5% budget against C's one-call
-implementations with the compiler and stdlib calling convention as they
-stand today, or (b) the 5% number itself needs revisiting. Both are
-decisions for the plan owner. The data does implicate two concrete,
-separately actionable things (see "Named unblockers" below) rather than
-pointing at "make the compiler auto-vectorize," which the measurements
-above rule out as the fix.
+**This is not being reported as a pass.** A byte-scan loop is the most
+favorable case this migration will ever have — no allocation, one
+comparison per byte, no branching complexity — and it still misses the
+tier A budget by a factor of ~7. That means either (a) tier A migrations
+as currently scoped (a VibeLang loop calling a per-element native
+accessor) cannot meet a 5% budget against C's one-call implementations
+with the compiler and stdlib calling convention as they stand today, or
+(b) the 5% number itself needs revisiting. Both remain open. The data does
+implicate two concrete, separately actionable things (see "Named
+unblockers" below) rather than pointing at "make the compiler
+auto-vectorize," which the measurements above rule out as the fix.
 
 ## Alternative formulations considered
 
@@ -458,9 +467,7 @@ FAIL: tier A requires the VibeLang implementation within 5% of C on wall time
 
 The RSS gate was proven separately by the `bytes_scan_chunk` alternative
 above (778 MB vs. 1.7 MB, correctly triggers `FAIL: ... within 1.5x of C on
-peak RSS`). All probe/alternative case files were deleted after use — see
-`task-7-report.md` for the exact commands and output, and for what stayed
-out of the commit.
+peak RSS`). All probe/alternative case files were deleted after use.
 
 ## Adding a new case
 

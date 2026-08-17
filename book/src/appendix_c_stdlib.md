@@ -305,10 +305,12 @@ an oversize file exactly as readily as for a normal one.
 sz := fs.size("upload.bin")
 if sz < 0 {
   println("missing")
-} else if sz > 64 * 1024 * 1024 {
-  println("too large for fs.read_bytes")
 } else {
-  b := fs.read_bytes("upload.bin")
+  if sz > 64 * 1024 * 1024 {
+    println("too large for fs.read_bytes")
+  } else {
+    b := fs.read_bytes("upload.bin")
+  }
 }
 ```
 
@@ -360,7 +362,10 @@ All functions are pure (no effects) — they operate on an already-allocated
 
 ### `new(len: Int) -> Bytes`
 
-Allocates `len` zero bytes. A negative `len` clamps to `0`.
+Allocates `len` zero bytes. A negative `len` clamps to `0`. There is no
+upper bound on `len`: a length the system cannot allocate ends the process
+(verified: `bytes.new(1000000000000000)` aborts with SIGABRT). A caller
+that passes an untrusted length must bound it before calling.
 
 ```vibe
 b := bytes.new(4)   // 4 zero bytes
@@ -410,9 +415,11 @@ bytes.to_hex(b)   // "68656c6c6f00776f726c64" -- nothing lost
 
 ### `from_hex(hex: Str) -> Bytes`
 
-Decodes a hexadecimal string into bytes. This is the only way to construct
-a `Bytes` value containing an arbitrary byte (including `0x00`) directly
-from a `.yb` source literal.
+Decodes a hexadecimal string into bytes. This is one way to construct a
+`Bytes` value containing an arbitrary byte (including `0x00`) directly from
+a `.yb` source literal — `encoding.base64_decode_bytes` is another, since a
+`.yb` string literal itself has no way to write `0x00` (the lexer has no
+`\xNN` escape).
 
 **Fails closed and indistinguishably**: an odd-length input, or any
 character outside `[0-9a-fA-F]`, both produce the same zero-length `Bytes`

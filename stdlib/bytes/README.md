@@ -45,13 +45,22 @@ its first zero byte.
 ## Error model
 
 - All nine functions are total and never panic on malformed or
-  out-of-range input. The one exception is allocation failure (OOM), which
-  is not peer-controlled: every function that allocates (`new`, and
+  out-of-range input, with one exception: allocation failure (OOM). Every
+  function that allocates (`new`, and
   `slice`/`concat`/`from_str`/`from_hex`/`to_str`/`to_hex`, which all
   allocate their result) calls `vibe_panic` if the underlying `calloc`
-  fails. `len` and `get` never allocate and cannot hit this path.
+  fails, which aborts the process. For
+  `slice`/`concat`/`from_str`/`from_hex`/`to_str`/`to_hex`, the allocation
+  size is derived from a `Bytes` or `Str` value that already exists in
+  memory. `new` is different: `len` is a plain caller-supplied `Int` with
+  no ceiling, so a single call can ask `calloc` for more memory than the
+  process can provide with no buffer of that size ever having existed
+  first. This is peer-controlled whenever an untrusted value reaches
+  `len` — verified: `bytes.new(1000000000000000)` aborts the process with
+  SIGABRT. A caller that passes an untrusted length to `new` must bound it
+  itself before calling; there is no built-in ceiling. `len` and `get`
+  never allocate and cannot hit this path.
 - `from_hex` fails closed: an odd-length input, any character outside
   `[0-9a-fA-F]`, or a NULL input all return a **zero-length** `Bytes`. There
   is no distinct error signal, so a decode failure is not distinguishable
-  from decoding `""` — check `bytes.len(result) == 0` if the distinction
-  matters to the caller, not any exception or sentinel value.
+  from decoding `""`.

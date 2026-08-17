@@ -1998,11 +1998,12 @@ char *vibe_bytes_to_str(void *handle) {
 static int vibe_hex_value(char ch);
 
 /*
- * Decodes a hex string into Bytes. This is the ONLY on-ramp for a NUL byte,
- * or any other arbitrary octet, into program-controlled data: a .yb string
- * literal cannot express \x00 (the lexer reads source as a Rust String with
- * no \xNN escape), so hex is how later tests mint binary inputs that plain
- * string literals cannot.
+ * Decodes a hex string into Bytes. This is ONE on-ramp for a NUL byte, or
+ * any other arbitrary octet, into program-controlled data (base64 decoding
+ * into Bytes, vibe_encoding_base64_decode_bytes below, is another): a .yb
+ * string literal cannot express \x00 (the lexer reads source as a Rust
+ * String with no \xNN escape), so hex (or base64) is how later tests mint
+ * binary inputs that plain string literals cannot.
  *
  * TOTAL, matching vibe_encoding_hex_decode's existing precedent in this file
  * (see that function below): an odd-length input, or any character outside
