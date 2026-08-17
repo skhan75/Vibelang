@@ -5886,7 +5886,7 @@ fn mir_ty_to_clif(ty: &MirType, ptr_ty: ir::Type) -> ir::Type {
 #[cfg(test)]
 mod tests {
     use super::{emit_object, CodegenOptions};
-    use object::{Object, ObjectSymbol};
+    use object::{Object, ObjectSection, ObjectSymbol, RelocationTarget};
     use vibe_mir::{MirExpr, MirFunction, MirParam, MirProgram, MirStmt, MirType};
 
     #[test]
@@ -5963,12 +5963,29 @@ mod tests {
     /// Pins the fix for the native-call wrapper defect: a `@native` function
     /// must bind its VibeLang name directly to the imported C symbol, not
     /// declare a same-signature local wrapper that just forwards to it. A
-    /// wrapper meant every native stdlib call cost two calls instead of
-    /// one, and stdlib mangling used the `__stdlib_` prefix for exactly
-    /// this kind of function (see `vibe_cli::module_resolver`), so that
-    /// prefix is what a regression would reintroduce.
+    /// wrapper meant every native stdlib call cost two calls instead of one.
+    ///
+    /// Checks two things, both against the emitted object's real bytes, not
+    /// codegen's internal state:
+    /// 1. No symbol name contains the stdlib wrapper-mangling prefix
+    ///    `__stdlib_`. That prefix is generated in
+    ///    `crates/vibe_cli/src/module_resolver.rs:846`
+    ///    (`format!("__stdlib_{namespace}__{}", func.name)`) — the two
+    ///    sites are independent copies of the same string by hand, not
+    ///    sharing a constant (vibe_codegen has no dependency edge to
+    ///    vibe_cli), so if that mangling scheme ever changes, update both.
+    /// 2. `main`'s own machine code contains a relocation that targets the
+    ///    native C symbol by name. This is the part that actually proves a
+    ///    call site reaches the native function: merely declaring the
+    ///    symbol as an import (which an earlier version of this test
+    ///    checked via `is_undefined()`) is satisfied just by *declaring*
+    ///    it, even if `main` never calls it, or calls a *different* native
+    ///    function bound to a *different* C symbol — a `FuncId` mix-up that
+    ///    pointed a call site at the wrong function would still leave the
+    ///    import declared and that weaker check would pass.
     #[test]
-    fn native_function_has_no_wrapper_symbol_and_imports_native_symbol() {
+    fn native_function_has_no_wrapper_and_call_site_targets_native_symbol() {
+        const NATIVE_SYMBOL: &str = "vibe_text_trim";
         let program = MirProgram {
             functions: vec![
                 MirFunction {
@@ -5976,10 +5993,16 @@ mod tests {
                     is_public: true,
                     params: vec![MirParam {
                         name: "s".to_string(),
-                        ty: MirType::I64,
+                        // `Str` lowers to the pointer-sized Cranelift type
+                        // (see `mir_ty_to_clif`), matching the real
+                        // `text.trim(s: Str) -> Str` this test models.
+                        // `I64` would be numerically identical on a 64-bit
+                        // target and would never exercise the
+                        // pointer-argument ABI shape this is meant to pin.
+                        ty: MirType::Str,
                     }],
-                    return_type: MirType::I64,
-                    native_symbol: Some("vibe_text_trim".to_string()),
+                    return_type: MirType::Str,
+                    native_symbol: Some(NATIVE_SYMBOL.to_string()),
                     ..Default::default()
                 },
                 MirFunction {
@@ -5989,33 +6012,63 @@ mod tests {
                     return_type: MirType::I64,
                     body: vec![MirStmt::Return(MirExpr::Call {
                         callee: Box::new(MirExpr::Var("__stdlib_text__trim".to_string())),
-                        args: vec![MirExpr::Int(1)],
+                        args: vec![MirExpr::Str("hi".to_string())],
                     })],
                     ..Default::default()
                 },
             ],
         };
         let bytes = emit_object(&program, &CodegenOptions::default()).expect("object should emit");
-
         let parsed = object::File::parse(bytes.as_slice()).expect("object bytes should parse");
-        let mut saw_native_import = false;
+
+        // 1. No wrapper symbol anywhere in the object.
         for symbol in parsed.symbols() {
             let name = symbol.name().expect("symbol name should be valid utf8");
             assert!(
                 !name.contains("__stdlib_"),
                 "no wrapper symbol should be emitted for a native function, found `{name}`"
             );
-            if name.contains("vibe_text_trim") {
-                saw_native_import = true;
-                assert!(
-                    symbol.is_undefined(),
-                    "the native C symbol should be an unresolved import, not defined locally, found `{name}` defined"
-                );
+        }
+
+        // 2. `main`'s own code contains a relocation targeting the native
+        // symbol by name -- proof a call site, not just a declaration,
+        // reaches it.
+        let main_symbol = parsed
+            .symbol_by_name("main")
+            .expect("object should define a `main` symbol");
+        let section_index = main_symbol
+            .section_index()
+            .expect("`main` should be defined in a section");
+        let section = parsed
+            .section_by_index(section_index)
+            .expect("main's section index should resolve to a real section");
+        // Relocation offsets are section-relative, so bound `main`'s own
+        // byte range the same way, in case the section holds more than one
+        // function's code (as ELF `.text` typically does).
+        let main_start = main_symbol.address() - section.address();
+        let main_end = main_start + main_symbol.size();
+
+        let mut call_site_targets_native = false;
+        for (offset, relocation) in section.relocations() {
+            if offset < main_start || offset >= main_end {
+                continue; // relocation belongs to a different function
+            }
+            if let RelocationTarget::Symbol(idx) = relocation.target() {
+                let name = parsed
+                    .symbol_by_index(idx)
+                    .expect("relocation should target a real symbol table entry")
+                    .name()
+                    .expect("target symbol name should be valid utf8");
+                if name == NATIVE_SYMBOL {
+                    call_site_targets_native = true;
+                }
             }
         }
         assert!(
-            saw_native_import,
-            "expected the object to import the native C symbol `vibe_text_trim`"
+            call_site_targets_native,
+            "expected a relocation inside `main`'s own code to target `{NATIVE_SYMBOL}` \
+             directly (main calls the native function once) -- found none, which means the \
+             call site is not actually reaching the native symbol"
         );
     }
 }

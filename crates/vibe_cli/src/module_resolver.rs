@@ -843,6 +843,12 @@ fn load_stdlib_namespace_functions() -> (Vec<Declaration>, BTreeMap<(String, Str
             }
             if let Declaration::Function(func) = decl {
                 if is_native_only(func) {
+                    // `__stdlib_` prefix: also matched by hand in
+                    // `crates/vibe_codegen/src/lib.rs`'s
+                    // `native_function_has_no_wrapper_and_call_site_targets_native_symbol`
+                    // test, which asserts no compiled object ever emits a
+                    // wrapper symbol using this exact prefix. Keep both in
+                    // sync if this mangling scheme changes.
                     let mangled = format!("__stdlib_{namespace}__{}", func.name);
                     let mut mangled_func = func.clone();
                     mangled_func.name = mangled.clone();
