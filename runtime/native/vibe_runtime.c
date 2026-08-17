@@ -4,6 +4,7 @@
 #endif
 #if defined(__APPLE__)
 #include <sys/random.h>
+#include <crt_externs.h>
 #endif
 #include <stdio.h>
 #include <stdlib.h>
@@ -3242,6 +3243,64 @@ char *vibe_fs_read_text(const char *path) {
     return buffer;
 }
 
+/*
+ * Byte-exact whole-file read: length comes from the file's actual size, not
+ * strlen, so an embedded 0x00 anywhere in the file no longer truncates the
+ * result the way vibe_fs_read_text's Str return does.
+ *
+ * A file's size is not attacker-controlled in the direct, per-request way a
+ * socket's max_bytes argument is (see vibe_net_read_bytes above), but it is
+ * still unbounded input driving an allocation -- an attacker with any way to
+ * place or grow a file this call later reads (an upload saved to disk and
+ * re-read, a path traversal onto a huge or special file) still gets to pick
+ * the allocation size. So this gets its own stated ceiling,
+ * VIBE_FS_READ_BYTES_MAX (64 MiB), chosen to comfortably cover real files
+ * (images, documents, small datasets) while keeping this call's own
+ * worst-case allocation, and the worst case of the downstream amplifiers
+ * bytes.to_hex (2x) and bytes.concat (sum of two), bounded to double- and
+ * low-hundreds-of-MiB territory rather than unbounded.
+ *
+ * A file at or past the ceiling is treated as a read failure, the same as a
+ * missing file or a seek/tell failure a few lines up: it returns an empty
+ * Bytes rather than either (a) calling vibe_panic, whose abort() would take
+ * down the whole process under the documented
+ * `while true { conn := net.accept(l); go handle(conn) }` server pattern if
+ * this were reachable from a request handler, or (b) silently handing back
+ * only the first VIBE_FS_READ_BYTES_MAX bytes of the file mislabeled as the
+ * complete contents, which would reintroduce a silent-truncation bug of
+ * exactly the shape this function exists to eliminate.
+ */
+#define VIBE_FS_READ_BYTES_MAX (64 * 1024 * 1024)
+
+void *vibe_fs_read_bytes(const char *path) {
+    if (path == NULL || path[0] == '\0') {
+        return vibe_bytes_new(0);
+    }
+    FILE *f = fopen(path, "rb");
+    if (f == NULL) {
+        return vibe_bytes_new(0);
+    }
+    if (fseek(f, 0, SEEK_END) != 0) {
+        fclose(f);
+        return vibe_bytes_new(0);
+    }
+    long file_len = ftell(f);
+    if (file_len < 0) {
+        fclose(f);
+        return vibe_bytes_new(0);
+    }
+    if (file_len > VIBE_FS_READ_BYTES_MAX) {
+        fclose(f);
+        return vibe_bytes_new(0);
+    }
+    rewind(f);
+    vibe_bytes *out = (vibe_bytes *)vibe_bytes_new((int64_t)file_len);
+    size_t read_len = fread(out->data, 1, (size_t)file_len, f);
+    fclose(f);
+    out->len = (int64_t)read_len;
+    return out;
+}
+
 int64_t vibe_fs_write_text(const char *path, const char *content) {
     if (path == NULL || path[0] == '\0') {
         return 0;
@@ -3258,6 +3317,33 @@ int64_t vibe_fs_write_text(const char *path, const char *content) {
     }
     int close_rc = fclose(f);
     if (len > 0 && written != len) {
+        return 0;
+    }
+    return close_rc == 0 ? 1 : 0;
+}
+
+/*
+ * Byte-exact file write: writes exactly the Bytes value's `len` bytes,
+ * unlike vibe_fs_write_text which stops at `content`'s NUL terminator. A
+ * NULL handle or a zero-length Bytes value writes a zero-length file,
+ * matching vibe_fs_write_text's empty-string behavior.
+ */
+int64_t vibe_fs_write_bytes(const char *path, void *handle) {
+    if (path == NULL || path[0] == '\0') {
+        return 0;
+    }
+    FILE *f = fopen(path, "wb");
+    if (f == NULL) {
+        return 0;
+    }
+    const vibe_bytes *b = (const vibe_bytes *)handle;
+    int64_t len = b == NULL ? 0 : b->len;
+    size_t written = 0;
+    if (len > 0) {
+        written = fwrite(b->data, 1, (size_t)len, f);
+    }
+    int close_rc = fclose(f);
+    if (len > 0 && written != (size_t)len) {
         return 0;
     }
     return close_rc == 0 ? 1 : 0;
@@ -3312,6 +3398,24 @@ char *vibe_env_get_required(const char *key) {
     return vibe_env_get(key);
 }
 
+/*
+ * Recovers this process's own argv as a NUL-separated blob (argv[0], NUL,
+ * argv[1], NUL, ...), matching the exact format /proc/self/cmdline already
+ * provides on Linux, so vibe_cli_args_len/vibe_cli_arg's parsing below is
+ * shared across platforms. Cranelift-compiled VibeLang programs declare
+ * `main` with no C-level argc/argv parameters, so this is the only way for
+ * cli.args_len/cli.arg to see the process's real command line at all.
+ *
+ * Found while implementing this task: on macOS there was previously no
+ * fallback here at all (only #ifdef __linux__, else empty), so
+ * cli.args_len() always returned 0 and cli.arg(i) always returned "" on
+ * every non-Linux platform, regardless of index -- not a question of which
+ * index carries the port, but a total absence of argv access. _NSGetArgv /
+ * _NSGetArgc (from crt_externs.h) is the standard portable way to recover a
+ * process's own argv on macOS without changing main's signature, so it is
+ * used here to build the identical blob format the Linux path already
+ * produces.
+ */
 static char *vibe_cli_read_cmdline_blob(size_t *out_len) {
 #ifdef __linux__
     FILE *f = fopen("/proc/self/cmdline", "rb");
@@ -3336,6 +3440,26 @@ static char *vibe_cli_read_cmdline_blob(size_t *out_len) {
         }
     }
     fclose(f);
+    if (out_len != NULL) {
+        *out_len = builder.len;
+    }
+    return builder.data;
+#elif defined(__APPLE__)
+    char **argv = *_NSGetArgv();
+    int argc = *_NSGetArgc();
+    if (argv == NULL || argc <= 0) {
+        if (out_len != NULL) {
+            *out_len = 0;
+        }
+        return vibe_strdup_or_panic("");
+    }
+    vibe_string_builder builder;
+    vibe_builder_init(&builder, 256);
+    for (int i = 0; i < argc; i++) {
+        const char *a = argv[i] == NULL ? "" : argv[i];
+        vibe_builder_append_bytes(&builder, a, strlen(a));
+        vibe_builder_append_bytes(&builder, "\0", 1);
+    }
     if (out_len != NULL) {
         *out_len = builder.len;
     }
@@ -3555,6 +3679,56 @@ char *vibe_net_read(int64_t fd_raw, int64_t max_bytes_raw) {
     }
     buffer[(size_t)n] = '\0';
     return buffer;
+#endif
+}
+
+/*
+ * Byte-exact socket read. Mirrors vibe_net_read above but returns the exact
+ * number of bytes recv() reported as a Bytes value, instead of
+ * NUL-terminating the buffer and throwing that count away. This is the fix
+ * for the measured regression: a 16-byte PNG header read through net.read
+ * arrived as 8 bytes, because Str length is strlen and the header's ninth
+ * byte is 0x00.
+ *
+ * max_bytes is effectively peer-influenced -- a caller may forward a length
+ * it just read off the same connection, e.g. a frame's length prefix -- so
+ * it is NEVER trusted past the same 4 MiB ceiling vibe_net_read already
+ * enforces on itself. The clamp happens before any allocation, so this
+ * function's worst-case allocation is bounded no matter what max_bytes a
+ * caller passes: a call site cannot turn a hostile length into an
+ * unbounded calloc, which is what would otherwise make vibe_bytes_new's
+ * vibe_panic-on-OOM path (vibe_panic ends in abort()) reachable from a
+ * single peer under the `while true { conn := net.accept(l); go handle(conn) }`
+ * server pattern this runtime documents -- an abort there kills the
+ * listener and every other connection, not just the offending request.
+ */
+void *vibe_net_read_bytes(int64_t fd_raw, int64_t max_bytes_raw) {
+#ifdef _WIN32
+    (void)fd_raw;
+    (void)max_bytes_raw;
+    return vibe_bytes_new(0);
+#else
+    int fd = vibe_net_checked_fd(fd_raw);
+    int64_t max_bytes = max_bytes_raw;
+    if (fd <= 0 || max_bytes <= 0) {
+        return vibe_bytes_new(0);
+    }
+    if (max_bytes > 4 * 1024 * 1024) {
+        max_bytes = 4 * 1024 * 1024;
+    }
+    char *buffer = (char *)calloc((size_t)max_bytes, sizeof(char));
+    if (buffer == NULL) {
+        vibe_panic("failed to allocate net.read_bytes buffer");
+    }
+    ssize_t n = recv(fd, buffer, (size_t)max_bytes, 0);
+    if (n <= 0) {
+        free(buffer);
+        return vibe_bytes_new(0);
+    }
+    vibe_bytes *out = (vibe_bytes *)vibe_bytes_new((int64_t)n);
+    memcpy(out->data, buffer, (size_t)n);
+    free(buffer);
+    return out;
 #endif
 }
 

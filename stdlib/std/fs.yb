@@ -18,10 +18,22 @@ pub read_text(path: Str) -> Str {
   @native("vibe_fs_read_text")
 }
 
+pub read_bytes(path: Str) -> Bytes {
+  @intent "read a file's entire contents byte-exact, including embedded zeros, up to a 64 MiB ceiling"
+  @effect io
+  @native("vibe_fs_read_bytes")
+}
+
 pub write_text(path: Str, content: Str) -> Bool {
   @intent "write a string to a file, creating or overwriting it; returns true on success"
   @effect io
   @native("vibe_fs_write_text")
+}
+
+pub write_bytes(path: Str, data: Bytes) -> Bool {
+  @intent "write bytes to a file byte-exact, creating or overwriting it; returns true on success"
+  @effect io
+  @native("vibe_fs_write_bytes")
 }
 
 pub create_dir(path: Str) -> Bool {

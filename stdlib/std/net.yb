@@ -36,6 +36,12 @@ pub read(socket: Int, max_bytes: Int) -> Str {
   @native("vibe_net_read")
 }
 
+pub read_bytes(socket: Int, max_bytes: Int) -> Bytes {
+  @intent "read up to max_bytes from a socket, keeping every byte including embedded zeros"
+  @effect net
+  @native("vibe_net_read_bytes")
+}
+
 pub write(socket: Int, data: Str) -> Int {
   @intent "write data to a socket; returns bytes written"
   @effect net
