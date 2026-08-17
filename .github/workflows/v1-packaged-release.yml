@@ -48,7 +48,7 @@ jobs:
       # narrowing lives in the matrix itself: pull requests package only the
       # Linux target, pushes and manual dispatches package all three targets.
       matrix:
-        include: ${{ github.event_name == 'pull_request' && fromJSON('[{"os":"ubuntu-22.04","target":"x86_64-unknown-linux-gnu","archive":"tar.gz","binary_name":"vibe"}]') || fromJSON('[{"os":"ubuntu-22.04","target":"x86_64-unknown-linux-gnu","archive":"tar.gz","binary_name":"vibe"},{"os":"macos-latest","target":"x86_64-apple-darwin","archive":"tar.gz","binary_name":"vibe"},{"os":"windows-latest","target":"x86_64-pc-windows-msvc","archive":"zip","binary_name":"vibe.exe"}]') }}
+        include: ${{ github.event_name == 'pull_request' && fromJSON('[{"os":"ubuntu-22.04","target":"x86_64-unknown-linux-gnu","archive":"tar.gz","binary_name":"vibe"}]') || fromJSON('[{"os":"ubuntu-22.04","target":"x86_64-unknown-linux-gnu","archive":"tar.gz","binary_name":"vibe"},{"os":"macos-latest","target":"x86_64-apple-darwin","archive":"tar.gz","binary_name":"vibe"},{"os":"macos-latest","target":"aarch64-apple-darwin","archive":"tar.gz","binary_name":"vibe"},{"os":"windows-latest","target":"x86_64-pc-windows-msvc","archive":"zip","binary_name":"vibe.exe"}]') }}
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
