@@ -1,9 +1,12 @@
 // Tier A differential benchmark: the C-backed side of `bytes_scan`.
 //
 // Builds the SAME deterministic 64 KB buffer as `bytes_scan_vibe.yb`
-// (65536 bytes of 0x41 "A", with a single 0x42 "B" marker as the LAST
-// byte), converts it once to a `Str` (safe: no embedded 0x00, so
-// `bytes.to_str` is lossless here), and counts occurrences of the marker
+// (65535 bytes of 0x41 "A" followed by a single 0x42 "B" marker as the
+// LAST byte, 65536 total), converts it once to a `Str` (safe here: no
+// embedded 0x00, so nothing is lost -- `bytes.to_str` copies every byte
+// and NUL-terminates the copy; it is later NUL-scanning consumers, like
+// `strlen`, that would stop early on an embedded zero, not the conversion
+// itself), and counts occurrences of the marker
 // with a single `text.index_of` native call per repetition. That call is
 // backed by `vibe_text_index_of` in the C runtime (a `strstr` scan) and
 // does the entire traversal in one native crossing with no allocation.

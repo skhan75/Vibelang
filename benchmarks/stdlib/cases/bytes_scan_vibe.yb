@@ -1,7 +1,8 @@
 // Tier A differential benchmark: the VibeLang-loop side of `bytes_scan`.
 //
-// Builds a deterministic 64 KB `Bytes` buffer (65536 bytes of 0x41 "A",
-// with a single 0x42 "B" marker as the LAST byte) and counts occurrences
+// Builds a deterministic 64 KB `Bytes` buffer (65535 bytes of 0x41 "A"
+// followed by a single 0x42 "B" marker as the LAST byte, 65536 total) and
+// counts occurrences
 // of the marker with a hand-written VibeLang loop over `bytes.get`, one
 // native accessor call per byte, zero allocation inside the loop.
 //
