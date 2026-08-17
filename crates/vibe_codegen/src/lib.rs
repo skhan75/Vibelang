@@ -5887,7 +5887,9 @@ fn mir_ty_to_clif(ty: &MirType, ptr_ty: ir::Type) -> ir::Type {
 mod tests {
     use super::{emit_object, CodegenOptions};
     use object::{Object, ObjectSection, ObjectSymbol, RelocationTarget};
-    use vibe_mir::{MirExpr, MirFunction, MirParam, MirProgram, MirStmt, MirType};
+    use vibe_mir::{
+        MirExpr, MirFunction, MirParam, MirProgram, MirStmt, MirType, STDLIB_WRAPPER_PREFIX,
+    };
 
     #[test]
     fn emits_object_for_simple_program() {
@@ -5967,13 +5969,13 @@ mod tests {
     ///
     /// Checks two things, both against the emitted object's real bytes, not
     /// codegen's internal state:
-    /// 1. No symbol name contains the stdlib wrapper-mangling prefix
-    ///    `__stdlib_`. That prefix is generated in
-    ///    `crates/vibe_cli/src/module_resolver.rs:846`
-    ///    (`format!("__stdlib_{namespace}__{}", func.name)`) — the two
-    ///    sites are independent copies of the same string by hand, not
-    ///    sharing a constant (vibe_codegen has no dependency edge to
-    ///    vibe_cli), so if that mangling scheme ever changes, update both.
+    /// 1. No symbol name contains `vibe_mir::STDLIB_WRAPPER_PREFIX`, the
+    ///    stdlib wrapper-mangling prefix generated in
+    ///    `vibe_cli::module_resolver::load_stdlib_namespace_functions`.
+    ///    Both that site and this test import the same constant (rather
+    ///    than each holding its own copy of the `"__stdlib_"` literal), so
+    ///    the two cannot drift out of sync the way a hand-matched pair of
+    ///    comments can.
     /// 2. `main`'s own machine code contains a relocation that targets the
     ///    native C symbol by name. This is the part that actually proves a
     ///    call site reaches the native function: merely declaring the
@@ -5986,10 +5988,11 @@ mod tests {
     #[test]
     fn native_function_has_no_wrapper_and_call_site_targets_native_symbol() {
         const NATIVE_SYMBOL: &str = "vibe_text_trim";
+        let mangled_name = format!("{STDLIB_WRAPPER_PREFIX}text__trim");
         let program = MirProgram {
             functions: vec![
                 MirFunction {
-                    name: "__stdlib_text__trim".to_string(),
+                    name: mangled_name.clone(),
                     is_public: true,
                     params: vec![MirParam {
                         name: "s".to_string(),
@@ -6011,7 +6014,7 @@ mod tests {
                     params: vec![],
                     return_type: MirType::I64,
                     body: vec![MirStmt::Return(MirExpr::Call {
-                        callee: Box::new(MirExpr::Var("__stdlib_text__trim".to_string())),
+                        callee: Box::new(MirExpr::Var(mangled_name.clone())),
                         args: vec![MirExpr::Str("hi".to_string())],
                     })],
                     ..Default::default()
@@ -6025,7 +6028,7 @@ mod tests {
         for symbol in parsed.symbols() {
             let name = symbol.name().expect("symbol name should be valid utf8");
             assert!(
-                !name.contains("__stdlib_"),
+                !name.contains(STDLIB_WRAPPER_PREFIX),
                 "no wrapper symbol should be emitted for a native function, found `{name}`"
             );
         }

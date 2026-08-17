@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 
 use vibe_ast::{Contract, Declaration, Expr, FileAst, SelectPattern, Stmt};
 use vibe_diagnostics::{Diagnostic, Diagnostics, Severity, Span};
+use vibe_mir::STDLIB_WRAPPER_PREFIX;
 use vibe_parser::parse_source;
 #[allow(clippy::single_component_path_imports)]
 // Ensures `vibe_pkg` is linked; required by project conventions.
@@ -843,13 +844,13 @@ fn load_stdlib_namespace_functions() -> (Vec<Declaration>, BTreeMap<(String, Str
             }
             if let Declaration::Function(func) = decl {
                 if is_native_only(func) {
-                    // `__stdlib_` prefix: also matched by hand in
-                    // `crates/vibe_codegen/src/lib.rs`'s
+                    // `STDLIB_WRAPPER_PREFIX` (see `vibe_mir`): also read by
+                    // `vibe_codegen`'s
                     // `native_function_has_no_wrapper_and_call_site_targets_native_symbol`
                     // test, which asserts no compiled object ever emits a
-                    // wrapper symbol using this exact prefix. Keep both in
-                    // sync if this mangling scheme changes.
-                    let mangled = format!("__stdlib_{namespace}__{}", func.name);
+                    // wrapper symbol using this prefix. Both sites import
+                    // the same constant, so they cannot drift.
+                    let mangled = format!("{STDLIB_WRAPPER_PREFIX}{namespace}__{}", func.name);
                     let mut mangled_func = func.clone();
                     mangled_func.name = mangled.clone();
                     strip_examples(&mut mangled_func);

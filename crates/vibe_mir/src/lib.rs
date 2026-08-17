@@ -7,6 +7,20 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use vibe_hir::{HirContractKind, HirExpr, HirExprKind, HirProgram, HirSelectPattern, HirStmt};
 
+/// Name-mangling prefix for synthetic MIR functions generated from
+/// `@native`-only stdlib declarations (e.g. `text.trim` becomes
+/// `__stdlib_text__trim`), so a stdlib function's mangled name cannot
+/// collide with a user-defined function in the flat MIR function-name
+/// space every `MirFunction::name` lives in.
+///
+/// Mangled in `vibe_cli::module_resolver::load_stdlib_namespace_functions`
+/// (the only place a name using this prefix is constructed); asserted
+/// absent from every compiled object's symbol table by `vibe_codegen`'s
+/// `native_function_has_no_wrapper_and_call_site_targets_native_symbol`
+/// test, which is what a regression here would reintroduce. Both sites use
+/// this constant rather than a copy of the literal so the two cannot drift.
+pub const STDLIB_WRAPPER_PREFIX: &str = "__stdlib_";
+
 #[derive(Debug, Clone, Default)]
 pub struct MirProgram {
     pub functions: Vec<MirFunction>,
