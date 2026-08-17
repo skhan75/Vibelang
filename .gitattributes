@@ -1,3 +1,34 @@
 # GitHub Linguist fallback highlighting until native VibeLang support lands.
 *.yb linguist-language=Rust
 *.vibe linguist-language=Rust
+
+# Line endings are LF everywhere, including on Windows checkouts.
+#
+# Without this, a Windows runner with core.autocrlf=true checks source out with
+# CRLF, and every raw string literal that spans lines then contains a bare CR.
+# Rust rejects that outright: `error: bare CR not allowed in string, use \r
+# instead`. That is what broke package-x86_64-pc-windows-msvc, and because the
+# packaging job failed, the signing, SBOM, reproducibility and install-smoke
+# jobs downstream of it were skipped -- which is why no release since v1.0.0
+# carries a single attached asset. 39 .rs files in this repo contain `r#"`
+# literals, so the exposure is broad rather than incidental.
+#
+# Every file is already stored with LF, so this pins existing behaviour on the
+# platforms that were fine and repairs the one that was not.
+* text=auto eol=lf
+
+# Binary files must never be line-ending converted.
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.tar binary
+*.wasm binary
+*.o binary
+*.a binary
+*.dylib binary
+*.so binary
+*.exe binary
