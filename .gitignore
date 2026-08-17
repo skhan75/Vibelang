@@ -36,3 +36,11 @@ reports/benchmarks/third_party/analysis/baseline_pointer.json
 
 # npm dependencies (editor extension)
 node_modules/
+
+# Internal planning and execution scratch. `vibelang` is a public repo, and
+# `docs/superpowers/` holds implementation plans and agent ledgers that are
+# working material, not documentation anyone should read as authoritative.
+# The VibeDrift repo published a backlog file this way; do not repeat it.
+docs/superpowers/
+.superpowers/
+.lavish/
