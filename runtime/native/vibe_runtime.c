@@ -21,6 +21,18 @@
 #include <direct.h>
 #include <windows.h>
 #include <bcrypt.h>
+/*
+ * NT_SUCCESS lives in <ntdef.h>/<winternl.h>, which <windows.h> does not pull
+ * in under MinGW, so `BCryptGenRandom`'s NTSTATUS could be obtained but not
+ * tested: the Windows install smoke failed with
+ * `error: implicit declaration of function 'NT_SUCCESS'`, which meant the
+ * packaged Windows compiler could not build any program at all, hello world
+ * included. Defining it here rather than including <winternl.h> keeps the
+ * internal-API surface out of the runtime; the test is a documented one-liner.
+ */
+#ifndef NT_SUCCESS
+#define NT_SUCCESS(Status) (((NTSTATUS)(Status)) >= 0)
+#endif
 #else
 #include <regex.h>
 #include <arpa/inet.h>
