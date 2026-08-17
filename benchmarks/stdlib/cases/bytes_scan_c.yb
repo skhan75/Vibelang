@@ -1,0 +1,57 @@
+// Tier A differential benchmark: the C-backed side of `bytes_scan`.
+//
+// Builds the SAME deterministic 64 KB buffer as `bytes_scan_vibe.yb`
+// (65536 bytes of 0x41 "A", with a single 0x42 "B" marker as the LAST
+// byte), converts it once to a `Str` (safe: no embedded 0x00, so
+// `bytes.to_str` is lossless here), and counts occurrences of the marker
+// with a single `text.index_of` native call per repetition. That call is
+// backed by `vibe_text_index_of` in the C runtime (a `strstr` scan) and
+// does the entire traversal in one native crossing with no allocation.
+//
+// The marker sits at the very last byte on purpose: `text.index_of`
+// short-circuits on the first match, so if the marker sat anywhere else
+// the C side could finish early and the two programs would no longer be
+// doing comparable work. Placing it last forces `text.index_of` to
+// examine (almost) every byte, exactly like the `bytes.get` loop on the
+// other side has to. See `benchmarks/stdlib/README.md` for the full
+// fairness argument, including why counting MULTIPLE occurrences with
+// `text.index_of` (as originally sketched) was rejected: without a
+// start-offset parameter, counting more than one occurrence requires
+// reslicing the haystack per match, which allocates once per occurrence
+// and stops being a tier A (no-allocation) comparison at all.
+pub main() -> Int {
+  @effect io
+  iterations := convert.to_int(cli.arg(0))
+
+  mut block := bytes.from_hex("41")
+  mut doublings := 0
+  while doublings < 14 {
+    block = bytes.concat(block, block)
+    doublings = doublings + 1
+  }
+  // block is now 16384 bytes of 0x41.
+  part := bytes.slice(block, 0, 16383)
+  marker := bytes.from_hex("42")
+  mut buf := bytes.concat(block, block)
+  buf = bytes.concat(buf, block)
+  buf = bytes.concat(buf, part)
+  buf = bytes.concat(buf, marker)
+  // buf is now exactly 65536 bytes: 65535 of 0x41 followed by one 0x42.
+
+  hay := bytes.to_str(buf)
+  needle := "B"
+
+  mut total := 0
+  mut rep := 0
+  while rep < iterations {
+    mut count := 0
+    idx := text.index_of(hay, needle)
+    if idx != -1 {
+      count = 1
+    }
+    total = total + count
+    rep = rep + 1
+  }
+  println(convert.to_str(total))
+  0
+}

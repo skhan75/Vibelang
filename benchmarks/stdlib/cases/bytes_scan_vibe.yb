@@ -1,0 +1,52 @@
+// Tier A differential benchmark: the VibeLang-loop side of `bytes_scan`.
+//
+// Builds a deterministic 64 KB `Bytes` buffer (65536 bytes of 0x41 "A",
+// with a single 0x42 "B" marker as the LAST byte) and counts occurrences
+// of the marker with a hand-written VibeLang loop over `bytes.get`, one
+// native accessor call per byte, zero allocation inside the loop.
+//
+// This stands in for what a stdlib scan/compare function looks like AFTER
+// migration from C: the control flow (the loop, the comparison, the
+// counter) is compiled VibeLang, and the only native crossing left is the
+// unavoidable per-element `bytes.get` read, paid once per byte instead of
+// once for the whole buffer. See `bytes_scan_c.yb` for the other side and
+// `benchmarks/stdlib/README.md` for why the marker sits at the very end.
+pub main() -> Int {
+  @effect io
+  iterations := convert.to_int(cli.arg(0))
+
+  mut block := bytes.from_hex("41")
+  mut doublings := 0
+  while doublings < 14 {
+    block = bytes.concat(block, block)
+    doublings = doublings + 1
+  }
+  // block is now 16384 bytes of 0x41.
+  part := bytes.slice(block, 0, 16383)
+  marker := bytes.from_hex("42")
+  mut buf := bytes.concat(block, block)
+  buf = bytes.concat(buf, block)
+  buf = bytes.concat(buf, part)
+  buf = bytes.concat(buf, marker)
+  // buf is now exactly 65536 bytes: 65535 of 0x41 followed by one 0x42.
+
+  len := bytes.len(buf)
+  target := 66
+
+  mut total := 0
+  mut rep := 0
+  while rep < iterations {
+    mut count := 0
+    mut i := 0
+    while i < len {
+      if bytes.get(buf, i) == target {
+        count = count + 1
+      }
+      i = i + 1
+    }
+    total = total + count
+    rep = rep + 1
+  }
+  println(convert.to_str(total))
+  0
+}
