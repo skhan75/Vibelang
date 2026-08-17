@@ -262,6 +262,12 @@ pub fn link_executable(
         cmd.arg("-lm");
     } else {
         cmd.arg("-lbcrypt");
+        // Winsock. `vibe_http_read_all_response` and `vibe_http_read_message`
+        // call `recv` without a `#ifdef _WIN32` guard, so every Windows link
+        // needs ws2_32 -- without it the link fails with
+        // `undefined reference to __imp_recv`, which is what the Windows
+        // install smoke hit once the compile errors ahead of it were cleared.
+        cmd.arg("-lws2_32");
     }
     #[cfg(feature = "bench-runtime")]
     if gmp_available() {
