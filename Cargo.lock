@@ -1577,6 +1577,7 @@ dependencies = [
  "cranelift-module",
  "cranelift-native",
  "cranelift-object",
+ "object",
  "target-lexicon",
  "vibe_mir",
  "vibe_types",

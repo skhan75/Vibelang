@@ -172,15 +172,31 @@ pub fn emit_object_with_types(
     let mut function_ids = BTreeMap::new();
     let mut function_returns = BTreeMap::new();
     for f in &program.functions {
-        let sig = build_signature(&module, f, ptr_ty);
-        let linkage = if f.name == "main" || f.is_public {
-            Linkage::Export
+        let id = if let Some(native_sym) = &f.native_symbol {
+            // `@native` functions have no MIR body: bind the VibeLang name
+            // directly to the imported C symbol instead of declaring a
+            // separate function for `f.name` and emitting a same-signature
+            // wrapper that just forwards to it. Call sites then resolve
+            // straight to the C symbol, so a native call costs one call
+            // instead of two. Two `@native` declarations may share the same
+            // C symbol (e.g. `to_int`/`parse_i64`); declaring it more than
+            // once with a matching signature is fine, cranelift-module
+            // merges it into the same `FuncId`.
+            let native_sig = build_signature(&module, f, ptr_ty);
+            module
+                .declare_function(native_sym, Linkage::Import, &native_sig)
+                .map_err(|e| format!("failed to declare native symbol `{native_sym}`: {e}"))?
         } else {
-            Linkage::Local
+            let sig = build_signature(&module, f, ptr_ty);
+            let linkage = if f.name == "main" || f.is_public {
+                Linkage::Export
+            } else {
+                Linkage::Local
+            };
+            module
+                .declare_function(&f.name, linkage, &sig)
+                .map_err(|e| format!("failed to declare function `{}`: {e}", f.name))?
         };
-        let id = module
-            .declare_function(&f.name, linkage, &sig)
-            .map_err(|e| format!("failed to declare function `{}`: {e}", f.name))?;
         function_ids.insert(f.name.clone(), id);
         function_returns.insert(f.name.clone(), f.return_type.clone());
     }
@@ -1222,52 +1238,10 @@ fn define_function(
     type_defs: &BTreeMap<String, Vec<(String, String)>>,
     enum_defs: &BTreeMap<String, Vec<EnumVariantLayout>>,
 ) -> Result<(), String> {
-    if let Some(native_sym) = &function.native_symbol {
-        let mut ctx = module.make_context();
-        let sig = build_signature(module, function, ptr_ty);
-        ctx.func.signature = sig.clone();
-        ctx.func.name = UserFuncName::user(0, func_id.as_u32());
-
-        let mut native_sig = module.make_signature();
-        for p in &function.params {
-            native_sig
-                .params
-                .push(AbiParam::new(mir_ty_to_clif(&p.ty, ptr_ty)));
-        }
-        if function.return_type != MirType::Void {
-            native_sig
-                .returns
-                .push(AbiParam::new(mir_ty_to_clif(&function.return_type, ptr_ty)));
-        }
-        let native_id = module
-            .declare_function(native_sym, Linkage::Import, &native_sig)
-            .map_err(|e| format!("failed to declare native symbol `{native_sym}`: {e}"))?;
-
-        let mut builder_ctx = FunctionBuilderContext::new();
-        let mut builder = FunctionBuilder::new(&mut ctx.func, &mut builder_ctx);
-        let entry = builder.create_block();
-        builder.append_block_params_for_function_params(entry);
-        builder.switch_to_block(entry);
-        builder.seal_block(entry);
-
-        let local_fn = module.declare_func_in_func(native_id, builder.func);
-        let params: Vec<ir::Value> = (0..function.params.len())
-            .map(|i| builder.block_params(entry)[i])
-            .collect();
-        let call = builder.ins().call(local_fn, &params);
-        if function.return_type == MirType::Void {
-            builder.ins().return_(&[]);
-        } else {
-            let ret =
-                builder.inst_results(call).first().copied().ok_or_else(|| {
-                    format!("native function `{native_sym}` did not return a value")
-                })?;
-            builder.ins().return_(&[ret]);
-        }
-        builder.finalize();
-        module
-            .define_function(func_id, &mut ctx)
-            .map_err(|e| format!("failed to define native wrapper `{}`: {e}", function.name))?;
+    if function.native_symbol.is_some() {
+        // `func_id` was already bound directly to the imported C symbol
+        // when `function_ids` was built (see `emit_object_with_types`).
+        // There is no MIR body and nothing to define here.
         return Ok(());
     }
 
@@ -5912,7 +5886,8 @@ fn mir_ty_to_clif(ty: &MirType, ptr_ty: ir::Type) -> ir::Type {
 #[cfg(test)]
 mod tests {
     use super::{emit_object, CodegenOptions};
-    use vibe_mir::{MirExpr, MirFunction, MirProgram, MirStmt, MirType};
+    use object::{Object, ObjectSymbol};
+    use vibe_mir::{MirExpr, MirFunction, MirParam, MirProgram, MirStmt, MirType};
 
     #[test]
     fn emits_object_for_simple_program() {
@@ -5983,5 +5958,64 @@ mod tests {
             .expect("target object emission should succeed");
             assert!(!object.is_empty(), "target object should not be empty");
         }
+    }
+
+    /// Pins the fix for the native-call wrapper defect: a `@native` function
+    /// must bind its VibeLang name directly to the imported C symbol, not
+    /// declare a same-signature local wrapper that just forwards to it. A
+    /// wrapper meant every native stdlib call cost two calls instead of
+    /// one, and stdlib mangling used the `__stdlib_` prefix for exactly
+    /// this kind of function (see `vibe_cli::module_resolver`), so that
+    /// prefix is what a regression would reintroduce.
+    #[test]
+    fn native_function_has_no_wrapper_symbol_and_imports_native_symbol() {
+        let program = MirProgram {
+            functions: vec![
+                MirFunction {
+                    name: "__stdlib_text__trim".to_string(),
+                    is_public: true,
+                    params: vec![MirParam {
+                        name: "s".to_string(),
+                        ty: MirType::I64,
+                    }],
+                    return_type: MirType::I64,
+                    native_symbol: Some("vibe_text_trim".to_string()),
+                    ..Default::default()
+                },
+                MirFunction {
+                    name: "main".to_string(),
+                    is_public: true,
+                    params: vec![],
+                    return_type: MirType::I64,
+                    body: vec![MirStmt::Return(MirExpr::Call {
+                        callee: Box::new(MirExpr::Var("__stdlib_text__trim".to_string())),
+                        args: vec![MirExpr::Int(1)],
+                    })],
+                    ..Default::default()
+                },
+            ],
+        };
+        let bytes = emit_object(&program, &CodegenOptions::default()).expect("object should emit");
+
+        let parsed = object::File::parse(bytes.as_slice()).expect("object bytes should parse");
+        let mut saw_native_import = false;
+        for symbol in parsed.symbols() {
+            let name = symbol.name().expect("symbol name should be valid utf8");
+            assert!(
+                !name.contains("__stdlib_"),
+                "no wrapper symbol should be emitted for a native function, found `{name}`"
+            );
+            if name.contains("vibe_text_trim") {
+                saw_native_import = true;
+                assert!(
+                    symbol.is_undefined(),
+                    "the native C symbol should be an unresolved import, not defined locally, found `{name}` defined"
+                );
+            }
+        }
+        assert!(
+            saw_native_import,
+            "expected the object to import the native C symbol `vibe_text_trim`"
+        );
     }
 }
